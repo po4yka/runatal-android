@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.runicquotes.android"
+    namespace = "com.po4yka.runicquotes"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.runicquotes.android"
+        applicationId = "com.po4yka.runicquotes"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

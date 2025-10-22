@@ -31,11 +31,11 @@
     kotlinx.serialization.KSerializer serializer(...);
 }
 
--keep,includedescriptorclasses class com.runicquotes.android.**$$serializer { *; }
--keepclassmembers class com.runicquotes.android.** {
+-keep,includedescriptorclasses class com.po4yka.runicquotes.**$$serializer { *; }
+-keepclassmembers class com.po4yka.runicquotes.** {
     *** Companion;
 }
--keepclasseswithmembers class com.runicquotes.android.** {
+-keepclasseswithmembers class com.po4yka.runicquotes.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
 
