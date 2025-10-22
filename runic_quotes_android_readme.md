@@ -8,12 +8,18 @@
 - **Younger Futhark**
 - **Tolkien’s Cirth (Angerthas, PUA-mapped)**
 
-The app integrates custom runic fonts (Noto Sans Runic, BabelStone Runic, and a Cirth font) and provides a material, reactive UI powered by Jetpack Compose, with a home-screen widget built using Jetpack Glance.
+The app integrates custom runic fonts (Noto Sans Runic, BabelStone Runic, and a Cirth font) and provides a **minimalist, monochromatic** Material 3 Expressive UI powered by Jetpack Compose, with a home-screen widget built using Jetpack Glance.
+
+**Design Philosophy:**
+- **Strictly black & white color scheme** with transparency, tints, and gradients
+- **Material 3 Expressive** design language with physics-based motion
+- Timeless aesthetic echoing ancient stone carvings and manuscripts
 
 The project emphasizes:
 - Clean architecture with DI (Hilt)
 - Reactive data flows (coroutines + Flow)
-- Modern UI (Compose + Material3)
+- Modern UI (Compose + Material 3 Expressive)
+- Monochromatic design (black, white, grayscale)
 - Structured persistence (Room + DataStore)
 - Background tasks (WorkManager)
 - Widget support (Glance)
@@ -31,9 +37,11 @@ The project emphasizes:
 
 ### UI & Navigation
 - Jetpack Compose
-  - Material 3 components
+  - **Material 3 Expressive** components
   - Compose BOM
   - UI, animation, tooling
+  - Physics-based motion system
+  - Variable typography (Roboto Flex)
 - Navigation Compose
   - Integrated with **Nav-3** library
 
@@ -81,7 +89,577 @@ The project emphasizes:
 
 ---
 
-## 3. Runic Fonts & Rendering
+## 3. Material 3 Expressive Design Language
+
+**Runic Quotes** adheres to **Material 3 Expressive**, Google's latest evolution of Material Design launched in May 2025. This design system emphasizes emotional engagement, fluid motion, and personality-driven interfaces while maintaining usability and accessibility.
+
+### 3.1 What is Material 3 Expressive?
+
+Material 3 Expressive (M3 Expressive) is the most researched update to Google's design system, built on insights from 46 separate studies with over 18,000 participants worldwide. It extends Material You personalization with:
+
+- **Enhanced visual expression**: More vibrant colors, dynamic shapes, and expressive typography
+- **Physics-based motion**: Natural, springy animations that feel alive and delightful
+- **Variable typography**: Roboto Flex with adjustable weight, width, and slant axes
+- **Shape morphing**: Fluid transitions between component states
+- **Emotional resonance**: Interfaces that mirror specific emotions and feelings
+
+Research shows M3 Expressive is preferred across all age groups, with Gen Z preferring expressive screens 87% of the time over traditional Material designs.
+
+### 3.2 Core Principles for Runic Quotes
+
+#### 3.2.1 Typography System
+
+Runic Quotes uses the M3 Expressive typography scale with **Roboto Flex** as the primary typeface:
+
+```kotlin
+// ui/theme/Type.kt
+import androidx.compose.material3.Typography
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontVariation
+
+val RunicTypography = Typography(
+    // Display styles - for large, impactful text
+    displayLarge = TextStyle(
+        fontFamily = RobotoFlex,
+        fontSize = 57.sp,
+        lineHeight = 64.sp,
+        fontWeight = FontWeight.Bold,
+        fontVariationSettings = FontVariation.Settings(
+            FontVariation.weight(700),
+            FontVariation.width(100f)
+        )
+    ),
+
+    // Headline styles - for section headers
+    headlineLarge = TextStyle(
+        fontFamily = RobotoFlex,
+        fontSize = 32.sp,
+        lineHeight = 40.sp,
+        fontWeight = FontWeight.SemiBold
+    ),
+
+    // Title styles - for card titles, dialog headers
+    titleLarge = TextStyle(
+        fontFamily = RobotoFlex,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
+        fontWeight = FontWeight.Medium
+    ),
+
+    // Body styles - for main content (quote authors, descriptions)
+    bodyLarge = TextStyle(
+        fontFamily = RobotoFlex,
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
+        fontWeight = FontWeight.Normal
+    ),
+
+    // Label styles - for buttons, small UI elements
+    labelLarge = TextStyle(
+        fontFamily = RobotoFlex,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+        fontWeight = FontWeight.Medium,
+        letterSpacing = 0.1.sp
+    )
+)
+```
+
+**Key Typography Guidelines:**
+- Use **displayLarge** for the main runic quote text
+- Use **headlineMedium** for screen titles
+- Use **titleMedium** for quote authors
+- Use **bodyLarge** for settings descriptions
+- Leverage variable font axes for dynamic weight/width animations
+
+#### 3.2.2 Physics-Based Motion
+
+M3 Expressive replaces duration-based animations with **spring physics** for more natural, fluid motion:
+
+```kotlin
+// Example: Animated quote transition with spring physics
+@Composable
+fun AnimatedRunicQuote(quote: QuoteEntity) {
+    val scale by animateFloatAsState(
+        targetValue = if (quote != null) 1f else 0.8f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        )
+    )
+
+    val alpha by animateFloatAsState(
+        targetValue = if (quote != null) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium
+        )
+    )
+
+    RunicText(
+        text = quote.runicText,
+        modifier = Modifier
+            .scale(scale)
+            .alpha(alpha)
+    )
+}
+```
+
+**Motion Principles:**
+- **Entrance animations**: Use `Spring.DampingRatioMediumBouncy` for delightful introductions
+- **Exit animations**: Use `Spring.DampingRatioNoBouncy` for smooth departures
+- **Morphing shapes**: Animate container shapes when switching between scripts
+- **Fluid interactions**: All taps, swipes should feel responsive and alive
+
+#### 3.2.3 Shape Morphing
+
+M3 Expressive introduces adaptive shapes that can morph between states:
+
+```kotlin
+// ui/theme/Shapes.kt
+val RunicShapes = Shapes(
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(16.dp),
+    extraLarge = RoundedCornerShape(24.dp)
+)
+
+// Morphing between shapes
+@Composable
+fun MorphingQuoteCard(expanded: Boolean) {
+    val cornerRadius by animateDpAsState(
+        targetValue = if (expanded) 24.dp else 12.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+    )
+
+    Card(
+        shape = RoundedCornerShape(cornerRadius),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // Quote content
+    }
+}
+```
+
+#### 3.2.4 Color & Theming
+
+**Runic Quotes adheres to a monochromatic black and white color scheme** with strategic use of transparency, tints, and gradients to create depth and visual hierarchy. This minimalist approach emphasizes the ancient, timeless nature of runic scripts while maintaining M3 Expressive's emotional expressiveness.
+
+**Color Philosophy:**
+- **Base Colors**: Pure black (#000000) and pure white (#FFFFFF)
+- **Tints & Shades**: Grayscale values from 0-255 for hierarchy
+- **Transparency (Alpha)**: 0.0 to 1.0 for layering and depth
+- **Gradients**: Linear and radial gradients for backgrounds and effects
+- **No chromatic colors**: Strictly monochromatic palette
+
+```kotlin
+// ui/theme/Color.kt
+
+// Black & White with grayscale tints
+object RunicColors {
+    // Pure values
+    val Black = Color(0xFF000000)
+    val White = Color(0xFFFFFFFF)
+
+    // Grayscale tints (for light theme)
+    val Gray50 = Color(0xFFF9F9F9)   // Lightest
+    val Gray100 = Color(0xFFF5F5F5)
+    val Gray200 = Color(0xFFEEEEEE)
+    val Gray300 = Color(0xFFE0E0E0)
+    val Gray400 = Color(0xFFBDBDBD)
+    val Gray500 = Color(0xFF9E9E9E)  // Mid-gray
+    val Gray600 = Color(0xFF757575)
+    val Gray700 = Color(0xFF616161)
+    val Gray800 = Color(0xFF424242)
+    val Gray900 = Color(0xFF212121)  // Darkest
+
+    // Alpha variants for transparency
+    val BlackAlpha10 = Color(0x1A000000)  // 10% opacity
+    val BlackAlpha20 = Color(0x33000000)  // 20% opacity
+    val BlackAlpha30 = Color(0x4D000000)  // 30% opacity
+    val BlackAlpha50 = Color(0x80000000)  // 50% opacity
+    val BlackAlpha70 = Color(0xB3000000)  // 70% opacity
+    val BlackAlpha90 = Color(0xE6000000)  // 90% opacity
+
+    val WhiteAlpha10 = Color(0x1AFFFFFF)
+    val WhiteAlpha20 = Color(0x33FFFFFF)
+    val WhiteAlpha30 = Color(0x4DFFFFFF)
+    val WhiteAlpha50 = Color(0x80FFFFFF)
+    val WhiteAlpha70 = Color(0xB3FFFFFF)
+    val WhiteAlpha90 = Color(0xE6FFFFFF)
+}
+
+// Light theme - White background with black accents
+val RunicLightScheme = lightColorScheme(
+    primary = RunicColors.Black,
+    onPrimary = RunicColors.White,
+    primaryContainer = RunicColors.Gray100,
+    onPrimaryContainer = RunicColors.Black,
+
+    secondary = RunicColors.Gray700,
+    onSecondary = RunicColors.White,
+    secondaryContainer = RunicColors.Gray200,
+    onSecondaryContainer = RunicColors.Gray900,
+
+    tertiary = RunicColors.Gray600,
+    onTertiary = RunicColors.White,
+    tertiaryContainer = RunicColors.Gray300,
+    onTertiaryContainer = RunicColors.Gray900,
+
+    surface = RunicColors.White,
+    onSurface = RunicColors.Black,
+    surfaceVariant = RunicColors.Gray100,
+    onSurfaceVariant = RunicColors.Gray700,
+
+    outline = RunicColors.Gray400,
+    outlineVariant = RunicColors.Gray200,
+
+    background = RunicColors.White,
+    onBackground = RunicColors.Black,
+)
+
+// Dark theme - Black background with white accents
+val RunicDarkScheme = darkColorScheme(
+    primary = RunicColors.White,
+    onPrimary = RunicColors.Black,
+    primaryContainer = RunicColors.Gray900,
+    onPrimaryContainer = RunicColors.White,
+
+    secondary = RunicColors.Gray400,
+    onSecondary = RunicColors.Black,
+    secondaryContainer = RunicColors.Gray800,
+    onSecondaryContainer = RunicColors.Gray100,
+
+    tertiary = RunicColors.Gray500,
+    onTertiary = RunicColors.Black,
+    tertiaryContainer = RunicColors.Gray700,
+    onTertiaryContainer = RunicColors.Gray100,
+
+    surface = RunicColors.Black,
+    onSurface = RunicColors.White,
+    surfaceVariant = RunicColors.Gray900,
+    onSurfaceVariant = RunicColors.Gray400,
+
+    outline = RunicColors.Gray700,
+    outlineVariant = RunicColors.Gray800,
+
+    background = RunicColors.Black,
+    onBackground = RunicColors.White,
+)
+
+// Gradient definitions for backgrounds and effects
+object RunicGradients {
+    // Light theme gradients
+    val LightRadialBackground = Brush.radialGradient(
+        colors = listOf(
+            RunicColors.Gray50,
+            RunicColors.White
+        )
+    )
+
+    val LightCardGradient = Brush.verticalGradient(
+        colors = listOf(
+            RunicColors.White,
+            RunicColors.Gray100
+        )
+    )
+
+    // Dark theme gradients
+    val DarkRadialBackground = Brush.radialGradient(
+        colors = listOf(
+            RunicColors.Gray900,
+            RunicColors.Black
+        )
+    )
+
+    val DarkCardGradient = Brush.verticalGradient(
+        colors = listOf(
+            RunicColors.Gray900,
+            RunicColors.Black
+        )
+    )
+
+    // Accent gradients for emphasis
+    val RuneGlowLight = Brush.radialGradient(
+        colors = listOf(
+            RunicColors.BlackAlpha20,
+            RunicColors.BlackAlpha10,
+            Color.Transparent
+        )
+    )
+
+    val RuneGlowDark = Brush.radialGradient(
+        colors = listOf(
+            RunicColors.WhiteAlpha20,
+            RunicColors.WhiteAlpha10,
+            Color.Transparent
+        )
+    )
+}
+
+// Monochromatic theme implementation (no dynamic color)
+@Composable
+fun RunicQuotesTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit
+) {
+    // Strictly black & white - no dynamic color support
+    val colorScheme = if (darkTheme) RunicDarkScheme else RunicLightScheme
+
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = RunicTypography,
+        shapes = RunicShapes,
+        content = content
+    )
+}
+
+// Example: Using gradients for backgrounds
+@Composable
+fun RunicQuoteBackground(
+    darkTheme: Boolean,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Box(
+        modifier = modifier.background(
+            brush = if (darkTheme) {
+                RunicGradients.DarkRadialBackground
+            } else {
+                RunicGradients.LightRadialBackground
+            }
+        )
+    ) {
+        content()
+    }
+}
+```
+
+**Usage Examples:**
+
+```kotlin
+// Card with subtle gradient
+Card(
+    modifier = Modifier
+        .fillMaxWidth()
+        .background(brush = RunicGradients.LightCardGradient),
+    colors = CardDefaults.cardColors(
+        containerColor = Color.Transparent // Let gradient show through
+    )
+) {
+    // Content
+}
+
+// Runic text with glow effect
+Box {
+    // Glow layer
+    Box(
+        modifier = Modifier
+            .matchParentSize()
+            .background(brush = RunicGradients.RuneGlowDark)
+    )
+
+    // Runic text
+    RunicText(
+        text = quote.runicElder,
+        style = MaterialTheme.typography.displayLarge
+    )
+}
+
+// Layered transparency for depth
+Surface(
+    color = RunicColors.WhiteAlpha90,
+    modifier = Modifier.fillMaxWidth()
+) {
+    Surface(
+        color = RunicColors.BlackAlpha10,
+        modifier = Modifier.padding(16.dp)
+    ) {
+        // Nested content with subtle depth
+    }
+}
+```
+
+### 3.3 Expressive Components for Runic Quotes
+
+#### 3.3.1 Hero Quote Display
+
+```kotlin
+@Composable
+fun ExpressiveQuoteDisplay(
+    quote: QuoteEntity,
+    script: RunicScript,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        // Runic text with expressive entrance animation
+        AnimatedVisibility(
+            visible = true,
+            enter = fadeIn(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ) + scaleIn(
+                initialScale = 0.8f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy
+                )
+            )
+        ) {
+            RunicText(
+                text = quote.getRunicText(script),
+                style = MaterialTheme.typography.displayLarge,
+                modifier = Modifier.padding(vertical = 32.dp)
+            )
+        }
+
+        // Author with subtle slide-in
+        AnimatedVisibility(
+            visible = true,
+            enter = slideInVertically(
+                initialOffsetY = { it / 2 },
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+            ) + fadeIn()
+        ) {
+            Text(
+                text = "— ${quote.author}",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+```
+
+#### 3.3.2 Morphing Script Selector
+
+```kotlin
+@Composable
+fun ExpressiveScriptSelector(
+    selectedScript: RunicScript,
+    onScriptSelected: (RunicScript) -> Unit
+) {
+    val scripts = listOf(
+        RunicScript.ELDER_FUTHARK to "Elder",
+        RunicScript.YOUNGER_FUTHARK to "Younger",
+        RunicScript.CIRTH to "Cirth"
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        scripts.forEach { (script, label) ->
+            val isSelected = script == selectedScript
+            val scale by animateFloatAsState(
+                targetValue = if (isSelected) 1.05f else 1f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+            )
+
+            FilterChip(
+                selected = isSelected,
+                onClick = { onScriptSelected(script) },
+                label = { Text(label) },
+                modifier = Modifier.scale(scale)
+            )
+        }
+    }
+}
+```
+
+### 3.4 M3 Expressive Resources
+
+**Official Documentation:**
+- [Material 3 Expressive Guidelines](https://m3.material.io/expressive)
+- [Material 3 in Compose](https://developer.android.com/develop/ui/compose/designsystems/material3)
+- [Material Theme Builder](https://material.io/material-theme-builder)
+- [Expressive Motion Specs](https://m3.material.io/styles/motion/overview)
+
+**Design Tools:**
+- [Material Theme Builder](https://material.io/material-theme-builder) - Generate color schemes
+- [Figma Material 3 Kit](https://www.figma.com/community/file/1035203688168086460)
+- [Roboto Flex on Google Fonts](https://fonts.google.com/specimen/Roboto+Flex)
+
+**Sample Apps:**
+- [Reply Sample](https://github.com/android/compose-samples/tree/main/Reply) - Full M3 implementation
+- [Now in Android](https://github.com/android/nowinandroid) - M3 Expressive patterns
+
+### 3.5 Implementation Checklist
+
+#### Typography & Fonts
+- [ ] Use Roboto Flex for primary UI typography
+- [ ] Configure variable font axes for dynamic typography
+- [ ] Integrate runic fonts (Noto Sans Runic, BabelStone, Cirth)
+- [ ] Test font rendering across Android versions
+
+#### Motion & Animation
+- [ ] Implement spring-based animations for all transitions
+- [ ] Use `Spring.DampingRatioMediumBouncy` for entrances
+- [ ] Use `Spring.DampingRatioNoBouncy` for exits
+- [ ] Apply shape morphing to interactive components
+- [ ] Implement fluid motion for quote transitions
+- [ ] Profile animation performance (maintain 60fps minimum)
+- [ ] Add haptic feedback to enhance expressiveness
+
+#### Color & Theming
+- [ ] **Implement strict black & white color scheme**
+- [ ] Define complete grayscale tint palette (Gray50-Gray900)
+- [ ] Create alpha/transparency variants (10%, 20%, 30%, 50%, 70%, 90%)
+- [ ] Design light theme (white background, black accents)
+- [ ] Design dark theme (black background, white accents)
+- [ ] Implement radial and linear gradients for backgrounds
+- [ ] Create gradient overlays for runic text effects
+- [ ] **NO chromatic colors** - validate in code review
+- [ ] Ensure WCAG AAA contrast ratios (7:1 minimum for text)
+- [ ] Test monochromatic theme in light/dark modes
+
+#### Components & UI
+- [ ] Build expressive quote display with animations
+- [ ] Create morphing script selector
+- [ ] Design cards with gradient backgrounds
+- [ ] Implement layered transparency for depth
+- [ ] Add glow effects for rune emphasis
+- [ ] Test all components in both themes
+
+#### Accessibility
+- [ ] Ensure proper contrast ratios with black/white scheme
+- [ ] Test with TalkBack screen reader
+- [ ] Verify touch target sizes (48dp minimum)
+- [ ] Add content descriptions for all interactive elements
+- [ ] Test with font scaling up to 200%
+
+#### Performance
+- [ ] Profile rendering performance with gradients
+- [ ] Optimize transparency layering
+- [ ] Test on low-end devices (API 26+)
+- [ ] Ensure smooth 60fps animations
+
+### 3.6 Why M3 Expressive + Monochrome for Runic Quotes?
+
+Material 3 Expressive with a black & white color scheme aligns perfectly with the Runic Quotes app vision:
+
+1. **Timeless Aesthetic**: A monochromatic palette echoes ancient stone carvings and historical runic inscriptions
+2. **Emotional Connection**: Ancient runes carry historical weight and mystique—M3 Expressive's emphasis on emotion through motion (not color) enhances this connection
+3. **Fluid Motion**: The physics-based animations mirror the organic, hand-carved nature of historical runes
+4. **Minimalist Focus**: Black and white forces attention on the runic glyphs themselves, letting the ancient scripts be the visual stars
+5. **Personality Through Motion**: Each runic script has distinct character—M3 Expressive's shape morphing and typography flexibility lets each script shine without chromatic distractions
+6. **Modern + Ancient**: Bridges cutting-edge Android design with timeless monochromatic aesthetics reminiscent of stone tablets and ancient manuscripts
+7. **Universal Appeal**: Monochrome design transcends cultural color associations, making the app universally accessible
+8. **Expressiveness Without Color**: Demonstrates that M3 Expressive's emotional impact comes from typography, motion, and shape—not just vibrant colors
+
+---
+
+## 4. Runic Fonts & Rendering
 
 ### 3.1 Fonts Used
 - **Noto Sans Runic** (Unicode Runic block)
@@ -1021,16 +1599,34 @@ runatal-android/
 
 ### Phase 2 – UI & ViewModels (Est: 3-4 days)
 
-#### 2.1 Design System & Theme
-- [ ] Create `ui/theme/Color.kt` with Material3 color schemes
-  - Light theme colors
-  - Dark theme colors
-  - Stone/wood/parchment accent colors
-- [ ] Create `ui/theme/Type.kt` with typography scale
-  - Include runic font variations
-- [ ] Create `ui/theme/Theme.kt` with Material3 theming
-- [ ] Create `ui/theme/Shapes.kt`
-- [ ] Add theme previews
+#### 2.1 Material 3 Expressive Design System & Theme
+- [ ] Create `ui/theme/Color.kt` with **monochromatic black & white scheme**
+  - Pure black (#000000) and pure white (#FFFFFF)
+  - Grayscale tints (Gray50-Gray900)
+  - Alpha/transparency variants (10%, 20%, 30%, 50%, 70%, 90%)
+  - Light theme: white background, black accents
+  - Dark theme: black background, white accents
+  - **NO chromatic colors allowed**
+- [ ] Create `ui/theme/Gradients.kt` with gradient definitions
+  - Radial gradients for backgrounds
+  - Linear gradients for cards
+  - Glow effects for runic text
+- [ ] Create `ui/theme/Type.kt` with **Roboto Flex** M3 Expressive typography
+  - Variable font configuration
+  - Font variation axes (weight, width)
+  - Complete 15-style type scale
+- [ ] Create `ui/theme/Theme.kt` with Material3 Expressive theming
+  - No dynamic color support (monochrome only)
+  - Spring-based animation defaults
+- [ ] Create `ui/theme/Shapes.kt` with M3 Expressive shapes
+  - Rounded corners (4dp, 8dp, 12dp, 16dp, 24dp)
+  - Shape morphing support
+- [ ] Create `ui/theme/RunicFonts.kt` with runic FontFamily definitions
+- [ ] Add M3 Expressive motion utilities
+  - Spring animation specs
+  - Damping ratio constants
+- [ ] Add theme previews for light/dark modes
+- [ ] Validate WCAG AAA contrast ratios (7:1 minimum)
 
 #### 2.2 Core UI Components
 - [ ] Create `ui/components/RunicText.kt`
@@ -1719,6 +2315,10 @@ testOptions {
 - [Android Developers](https://developer.android.com/)
 - [Jetpack Compose](https://developer.android.com/jetpack/compose)
 - [Material Design 3](https://m3.material.io/)
+- [**Material 3 Expressive**](https://m3.material.io/expressive) - Latest evolution with physics-based motion
+- [Material 3 in Compose](https://developer.android.com/develop/ui/compose/designsystems/material3)
+- [Material Theme Builder](https://material.io/material-theme-builder) - Generate color schemes
+- [Roboto Flex Variable Font](https://fonts.google.com/specimen/Roboto+Flex) - M3 Expressive typography
 - [Jetpack Glance](https://developer.android.com/jetpack/androidx/releases/glance)
 
 **Kotlin:**
