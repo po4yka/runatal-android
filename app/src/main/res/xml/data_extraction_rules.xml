@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- Include DataStore preferences in cloud backups -->
+        <include domain="sharedpref" path="."/>
+        <!-- Exclude database from cloud backups (quotes are pre-seeded) -->
+        <exclude domain="database" path="runic_quotes.db"/>
+    </cloud-backup>
+</data-extraction-rules>

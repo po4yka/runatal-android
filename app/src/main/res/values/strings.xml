@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Runic Quotes</string>
+    <string name="quote_of_the_day">Quote of the Day</string>
+    <string name="settings">Settings</string>
+    <string name="about">About</string>
+    <string name="refresh_quote">Refresh Quote</string>
+    <string name="share_quote">Share Quote</string>
+    <string name="script_elder_futhark">Elder Futhark</string>
+    <string name="script_younger_futhark">Younger Futhark</string>
+    <string name="script_cirth">Cirth (Angerthas)</string>
+    <string name="font_noto_sans">Noto Sans Runic</string>
+    <string name="font_babelstone">BabelStone Runic</string>
+    <string name="widget_description">Daily runic quote widget</string>
+</resources>

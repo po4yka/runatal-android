@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base theme for Runic Quotes using Material 3 -->
+    <style name="Theme.RunicQuotes" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

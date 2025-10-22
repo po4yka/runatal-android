@@ -1,0 +1,112 @@
+package com.runicquotes.android.data.repository
+
+import com.runicquotes.android.data.local.dao.QuoteDao
+import com.runicquotes.android.data.local.entity.QuoteEntity
+import com.runicquotes.android.domain.model.RunicScript
+import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * Implementation of QuoteRepository.
+ */
+@Singleton
+class QuoteRepositoryImpl @Inject constructor(
+    private val quoteDao: QuoteDao
+) : QuoteRepository {
+
+    private var isSeeded = false
+
+    override suspend fun seedIfNeeded() {
+        if (isSeeded || quoteDao.getCount() > 0) {
+            return
+        }
+
+        // Seed with initial quotes
+        val initialQuotes = getInitialQuotes()
+        quoteDao.insertAll(initialQuotes)
+        isSeeded = true
+    }
+
+    override suspend fun quoteOfTheDay(script: RunicScript): QuoteEntity? {
+        // Ensure database is seeded
+        seedIfNeeded()
+
+        // Get a consistent quote for today based on the day of year
+        val dayOfYear = LocalDate.now().dayOfYear
+        val allQuotes = quoteDao.getAll()
+
+        if (allQuotes.isEmpty()) return null
+
+        // Use modulo to get a consistent quote for the day
+        val index = dayOfYear % allQuotes.size
+        return allQuotes[index]
+    }
+
+    override suspend fun randomQuote(script: RunicScript): QuoteEntity? {
+        seedIfNeeded()
+        return quoteDao.getRandom()
+    }
+
+    override fun getAllQuotesFlow(): Flow<List<QuoteEntity>> {
+        return quoteDao.getAllAsFlow()
+    }
+
+    override suspend fun getAllQuotes(): List<QuoteEntity> {
+        return quoteDao.getAll()
+    }
+
+    override suspend fun getQuoteCount(): Int {
+        return quoteDao.getCount()
+    }
+
+    /**
+     * Returns a list of initial quotes to seed the database with.
+     * These are placeholder quotes that will be replaced with real content later.
+     */
+    private fun getInitialQuotes(): List<QuoteEntity> {
+        return listOf(
+            QuoteEntity(
+                id = 1,
+                textLatin = "The only way to do great work is to love what you do.",
+                author = "Steve Jobs",
+                runicElder = "ᚦᛖ ᛟᚾᛚᚤ ᚹᚨᚤ ᛏᛟ ᛞᛟ ᚷᚱᛖᚨᛏ ᚹᛟᚱᚲ ᛁᛋ ᛏᛟ ᛚᛟᚢᛖ ᚹᚺᚨᛏ ᚤᛟᚢ ᛞᛟ",
+                runicYounger = null,
+                runicCirth = null
+            ),
+            QuoteEntity(
+                id = 2,
+                textLatin = "Not all those who wander are lost.",
+                author = "J.R.R. Tolkien",
+                runicElder = "ᚾᛟᛏ ᚨᛚᛚ ᚦᛟᛋᛖ ᚹᚺᛟ ᚹᚨᚾᛞᛖᚱ ᚨᚱᛖ ᛚᛟᛋᛏ",
+                runicYounger = null,
+                runicCirth = null
+            ),
+            QuoteEntity(
+                id = 3,
+                textLatin = "In the middle of difficulty lies opportunity.",
+                author = "Albert Einstein",
+                runicElder = "ᛁᚾ ᚦᛖ ᛗᛁᛞᛞᛚᛖ ᛟᚠ ᛞᛁᚠᚠᛁᚲᚢᛚᛏᚤ ᛚᛁᛖᛋ ᛟᛈᛈᛟᚱᛏᚢᚾᛁᛏᚤ",
+                runicYounger = null,
+                runicCirth = null
+            ),
+            QuoteEntity(
+                id = 4,
+                textLatin = "Be yourself; everyone else is already taken.",
+                author = "Oscar Wilde",
+                runicElder = "ᛒᛖ ᚤᛟᚢᚱᛋᛖᛚᚠ ᛖᚢᛖᚱᚤᛟᚾᛖ ᛖᛚᛋᛖ ᛁᛋ ᚨᛚᚱᛖᚨᛞᚤ ᛏᚨᚲᛖᚾ",
+                runicYounger = null,
+                runicCirth = null
+            ),
+            QuoteEntity(
+                id = 5,
+                textLatin = "The journey of a thousand miles begins with one step.",
+                author = "Lao Tzu",
+                runicElder = "ᚦᛖ ᛃᛟᚢᚱᚾᛖᚤ ᛟᚠ ᚨ ᚦᛟᚢᛋᚨᚾᛞ ᛗᛁᛚᛖᛋ ᛒᛖᚷᛁᚾᛋ ᚹᛁᚦ ᛟᚾᛖ ᛋᛏᛖᛈ",
+                runicYounger = null,
+                runicCirth = null
+            )
+        )
+    }
+}

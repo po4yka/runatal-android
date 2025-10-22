@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Include DataStore preferences in backups -->
+    <include domain="sharedpref" path="."/>
+    <!-- Exclude database from backups (quotes are pre-seeded) -->
+    <exclude domain="database" path="runic_quotes.db"/>
+</full-backup-content>
