@@ -23,8 +23,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Widget Receiver (will be implemented in Phase 3) -->
-        <!--
+        <!-- Widget Receiver for daily runic quote widget -->
         <receiver
             android:name=".ui.widget.RunicQuoteWidgetReceiver"
             android:exported="true">
@@ -35,7 +34,6 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/runic_quote_widget_info" />
         </receiver>
-        -->
     </application>
 
 </manifest>

@@ -4,20 +4,20 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.compose.rememberNavController
+import com.po4yka.runicquotes.ui.navigation.NavGraph
+import com.po4yka.runicquotes.ui.screens.settings.SettingsViewModel
 import com.po4yka.runicquotes.ui.theme.RunicQuotesTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
  * Main Activity for Runic Quotes.
- * Uses Jetpack Compose for the UI.
+ * Uses Jetpack Compose for the UI with Navigation.
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -25,33 +25,30 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            RunicQuotesTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                    ) {
-                        Greeting("Runic Quotes")
-                    }
-                }
-            }
+            RunicQuotesApp()
         }
     }
 }
 
+/**
+ * Root composable for the Runic Quotes app.
+ * Handles theme preferences and navigation.
+ */
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Welcome to $name!",
-        modifier = modifier
-    )
-}
+fun RunicQuotesApp() {
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
+    val preferences by settingsViewModel.userPreferences.collectAsState()
+    val systemInDarkTheme = isSystemInDarkTheme()
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    RunicQuotesTheme {
-        Greeting("Runic Quotes")
+    // Determine dark theme based on preferences
+    val darkTheme = when (preferences.themeMode) {
+        "light" -> false
+        "dark" -> true
+        else -> systemInDarkTheme // "system" or default
+    }
+
+    RunicQuotesTheme(darkTheme = darkTheme) {
+        val navController = rememberNavController()
+        NavGraph(navController = navController)
     }
 }
