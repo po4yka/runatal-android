@@ -3,12 +3,17 @@ package com.po4yka.runicquotes.ui.widget
 import android.content.Context
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.updateAll
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.po4yka.runicquotes.worker.WidgetUpdateWorker
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 /**
@@ -21,6 +26,14 @@ class RunicQuoteWidgetReceiver : GlanceAppWidgetReceiver() {
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
+
+        // Trigger immediate update when widget is first added
+        // (Fixes: Poor first impression - no 1 hour wait)
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        scope.launch {
+            glanceAppWidget.updateAll(context)
+        }
+
         // Schedule daily widget updates when the first widget is added
         scheduleWidgetUpdates(context)
     }
@@ -44,12 +57,12 @@ class RunicQuoteWidgetReceiver : GlanceAppWidgetReceiver() {
             repeatIntervalTimeUnit = TimeUnit.HOURS
         )
             .setConstraints(constraints)
-            .setInitialDelay(1, TimeUnit.HOURS) // First update after 1 hour
+            // No initial delay - immediate update already triggered in onEnabled()
             .build()
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             WidgetUpdateWorker.WORK_NAME,
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.UPDATE, // Changed from KEEP to UPDATE
             workRequest
         )
     }
