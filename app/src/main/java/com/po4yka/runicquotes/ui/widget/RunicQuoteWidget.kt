@@ -1,23 +1,29 @@
 package com.po4yka.runicquotes.ui.widget
 
 import android.content.Context
+import android.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.Image
+import androidx.glance.ImageProvider
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
+import androidx.glance.layout.ContentScale
 import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.padding
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
+import com.po4yka.runicquotes.util.RunicTextRenderer
 import dagger.hilt.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -57,8 +63,25 @@ class RunicQuoteWidget : GlanceAppWidget() {
                                 .transliterate(quote.textLatin, preferences.selectedScript)
                     }
 
+                    // Render runic text to bitmap using custom font
+                    val fontResource = RunicTextRenderer.getFontResource(preferences.selectedFont)
+                    val runicBitmap = try {
+                        RunicTextRenderer.renderTextToBitmap(
+                            context = context,
+                            text = runicText,
+                            fontResource = fontResource,
+                            textSizeSp = 24f,
+                            textColor = Color.WHITE,
+                            backgroundColor = null, // Transparent background
+                            maxWidth = 800 // Max width in pixels for widget
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+
                     WidgetState(
                         runicText = runicText,
+                        runicBitmap = runicBitmap,
                         latinText = quote.textLatin,
                         author = quote.author,
                         isLoading = false
@@ -120,17 +143,15 @@ class RunicQuoteWidget : GlanceAppWidget() {
                     }
 
                     else -> {
-                        // Runic text
-                        if (state.runicText.isNotEmpty()) {
-                            Text(
-                                text = state.runicText,
-                                style = TextStyle(
-                                    color = GlanceTheme.colors.onBackground,
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = TextAlign.Center
-                                ),
-                                modifier = GlanceModifier.padding(bottom = 8.dp)
+                        // Runic text as bitmap image (custom font support)
+                        if (state.runicBitmap != null) {
+                            Image(
+                                provider = ImageProvider(state.runicBitmap),
+                                contentDescription = "Runic quote: ${state.latinText}",
+                                contentScale = ContentScale.Fit,
+                                modifier = GlanceModifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp)
                             )
                         }
 
