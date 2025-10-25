@@ -4,8 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
-import com.po4yka.runicquotes.domain.model.RunicScript
-import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
+import com.po4yka.runicquotes.domain.model.getRunicText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +16,8 @@ import javax.inject.Inject
 
 /**
  * ViewModel for the Quote screen.
- * Manages quote data, script selection, and transliteration.
+ * Manages UI state and coordinates between repository and preferences.
+ * Business logic is delegated to domain layer.
  */
 @HiltViewModel
 class QuoteViewModel @Inject constructor(
@@ -29,15 +29,14 @@ class QuoteViewModel @Inject constructor(
     val uiState: StateFlow<QuoteUiState> = _uiState.asStateFlow()
 
     init {
-        // Seed database and load initial quote
+        // Load initial quote
         viewModelScope.launch {
-            quoteRepository.seedIfNeeded()
             loadQuoteOfTheDay()
         }
 
         // Observe preferences changes
         viewModelScope.launch {
-            userPreferencesManager.userPreferencesFlow.collectLatest { preferences ->
+            userPreferencesManager.userPreferencesFlow.collectLatest {
                 // Reload quote when preferences change
                 loadQuoteOfTheDay()
             }
@@ -57,7 +56,8 @@ class QuoteViewModel @Inject constructor(
             val quote = quoteRepository.quoteOfTheDay(preferences.selectedScript)
 
             if (quote != null) {
-                val runicText = getRunicText(quote, preferences.selectedScript)
+                // Use domain extension function for business logic
+                val runicText = quote.getRunicText(preferences.selectedScript)
 
                 _uiState.update {
                     QuoteUiState.Success(
@@ -90,7 +90,8 @@ class QuoteViewModel @Inject constructor(
                 val quote = quoteRepository.randomQuote(preferences.selectedScript)
 
                 if (quote != null) {
-                    val runicText = getRunicText(quote, preferences.selectedScript)
+                    // Use domain extension function for business logic
+                    val runicText = quote.getRunicText(preferences.selectedScript)
 
                     _uiState.update {
                         QuoteUiState.Success(
@@ -117,21 +118,5 @@ class QuoteViewModel @Inject constructor(
         viewModelScope.launch {
             loadQuoteOfTheDay()
         }
-    }
-
-    /**
-     * Gets the runic text for a quote based on the selected script.
-     * If pre-computed runic text exists, uses it; otherwise transliterates on the fly.
-     */
-    private fun getRunicText(quote: com.po4yka.runicquotes.data.local.entity.QuoteEntity, script: RunicScript): String {
-        // Try to get pre-computed runic text
-        val precomputedText = when (script) {
-            RunicScript.ELDER_FUTHARK -> quote.runicElder
-            RunicScript.YOUNGER_FUTHARK -> quote.runicYounger
-            RunicScript.CIRTH -> quote.runicCirth
-        }
-
-        // If pre-computed text exists, use it; otherwise transliterate on the fly
-        return precomputedText ?: TransliterationFactory.transliterate(quote.textLatin, script)
     }
 }

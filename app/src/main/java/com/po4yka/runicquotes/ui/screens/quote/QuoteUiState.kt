@@ -1,10 +1,12 @@
 package com.po4yka.runicquotes.ui.screens.quote
 
-import com.po4yka.runicquotes.data.local.entity.QuoteEntity
+import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 
 /**
  * UI state for the Quote screen.
+ * Uses domain model (Quote) instead of data entity (QuoteEntity)
+ * to maintain clean architecture separation.
  */
 sealed class QuoteUiState {
     /**
@@ -16,7 +18,7 @@ sealed class QuoteUiState {
      * Success state with quote data.
      */
     data class Success(
-        val quote: QuoteEntity,
+        val quote: Quote,
         val runicText: String,
         val selectedScript: RunicScript,
         val selectedFont: String,

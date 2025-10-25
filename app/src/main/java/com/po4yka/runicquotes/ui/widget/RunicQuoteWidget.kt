@@ -23,6 +23,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
+import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.util.RunicTextRenderer
 import dagger.hilt.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
@@ -51,17 +52,8 @@ class RunicQuoteWidget : GlanceAppWidget() {
                 val quote = quoteRepository.quoteOfTheDay(preferences.selectedScript)
 
                 if (quote != null) {
-                    val runicText = when (preferences.selectedScript) {
-                        com.po4yka.runicquotes.domain.model.RunicScript.ELDER_FUTHARK ->
-                            quote.runicElder ?: com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
-                                .transliterate(quote.textLatin, preferences.selectedScript)
-                        com.po4yka.runicquotes.domain.model.RunicScript.YOUNGER_FUTHARK ->
-                            quote.runicYounger ?: com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
-                                .transliterate(quote.textLatin, preferences.selectedScript)
-                        com.po4yka.runicquotes.domain.model.RunicScript.CIRTH ->
-                            quote.runicCirth ?: com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
-                                .transliterate(quote.textLatin, preferences.selectedScript)
-                    }
+                    // Use domain extension function for business logic
+                    val runicText = quote.getRunicText(preferences.selectedScript)
 
                     // Render runic text to bitmap using custom font
                     val fontResource = RunicTextRenderer.getFontResource(preferences.selectedFont)

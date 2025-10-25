@@ -1,11 +1,13 @@
 package com.po4yka.runicquotes.data.repository
 
-import com.po4yka.runicquotes.data.local.entity.QuoteEntity
+import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import kotlinx.coroutines.flow.Flow
 
 /**
  * Repository interface for quote operations.
+ * Returns domain models (Quote) instead of data entities (QuoteEntity)
+ * to maintain clean architecture and separation of concerns.
  */
 interface QuoteRepository {
 
@@ -18,22 +20,22 @@ interface QuoteRepository {
      * Gets the quote of the day for the specified script.
      * This returns a consistent quote for the current day.
      */
-    suspend fun quoteOfTheDay(script: RunicScript): QuoteEntity?
+    suspend fun quoteOfTheDay(script: RunicScript): Quote?
 
     /**
      * Gets a random quote for the specified script.
      */
-    suspend fun randomQuote(script: RunicScript): QuoteEntity?
+    suspend fun randomQuote(script: RunicScript): Quote?
 
     /**
      * Gets all quotes as a Flow for reactive updates.
      */
-    fun getAllQuotesFlow(): Flow<List<QuoteEntity>>
+    fun getAllQuotesFlow(): Flow<List<Quote>>
 
     /**
      * Gets all quotes.
      */
-    suspend fun getAllQuotes(): List<QuoteEntity>
+    suspend fun getAllQuotes(): List<Quote>
 
     /**
      * Gets the total count of quotes in the database.

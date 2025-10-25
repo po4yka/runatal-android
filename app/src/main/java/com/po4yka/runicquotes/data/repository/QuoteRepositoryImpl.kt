@@ -2,14 +2,17 @@ package com.po4yka.runicquotes.data.repository
 
 import com.po4yka.runicquotes.data.local.dao.QuoteDao
 import com.po4yka.runicquotes.data.local.entity.QuoteEntity
+import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * Implementation of QuoteRepository.
+ * Maps data layer entities to domain models to maintain separation of concerns.
  */
 @Singleton
 class QuoteRepositoryImpl @Inject constructor(
@@ -29,7 +32,7 @@ class QuoteRepositoryImpl @Inject constructor(
         isSeeded = true
     }
 
-    override suspend fun quoteOfTheDay(script: RunicScript): QuoteEntity? {
+    override suspend fun quoteOfTheDay(script: RunicScript): Quote? {
         // Ensure database is seeded
         seedIfNeeded()
 
@@ -41,20 +44,22 @@ class QuoteRepositoryImpl @Inject constructor(
 
         // Use modulo to get a consistent quote for the day
         val index = dayOfYear % allQuotes.size
-        return allQuotes[index]
+        return allQuotes[index].toDomain()
     }
 
-    override suspend fun randomQuote(script: RunicScript): QuoteEntity? {
+    override suspend fun randomQuote(script: RunicScript): Quote? {
         seedIfNeeded()
-        return quoteDao.getRandom()
+        return quoteDao.getRandom()?.toDomain()
     }
 
-    override fun getAllQuotesFlow(): Flow<List<QuoteEntity>> {
-        return quoteDao.getAllAsFlow()
+    override fun getAllQuotesFlow(): Flow<List<Quote>> {
+        return quoteDao.getAllAsFlow().map { entities ->
+            entities.map { it.toDomain() }
+        }
     }
 
-    override suspend fun getAllQuotes(): List<QuoteEntity> {
-        return quoteDao.getAll()
+    override suspend fun getAllQuotes(): List<Quote> {
+        return quoteDao.getAll().map { it.toDomain() }
     }
 
     override suspend fun getQuoteCount(): Int {
@@ -109,4 +114,18 @@ class QuoteRepositoryImpl @Inject constructor(
             )
         )
     }
+
+    /**
+     * Maps a data layer entity to a domain model.
+     * This maintains clean architecture by keeping domain models
+     * independent from data layer implementation details.
+     */
+    private fun QuoteEntity.toDomain() = Quote(
+        id = id,
+        textLatin = textLatin,
+        author = author,
+        runicElder = runicElder,
+        runicYounger = runicYounger,
+        runicCirth = runicCirth
+    )
 }
