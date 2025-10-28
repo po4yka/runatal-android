@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.domain.model.getRunicText
+import com.po4yka.runicquotes.util.QuoteShareManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +23,8 @@ import javax.inject.Inject
 @HiltViewModel
 class QuoteViewModel @Inject constructor(
     private val quoteRepository: QuoteRepository,
-    private val userPreferencesManager: UserPreferencesManager
+    private val userPreferencesManager: UserPreferencesManager,
+    private val quoteShareManager: QuoteShareManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<QuoteUiState>(QuoteUiState.Loading)
@@ -117,6 +119,56 @@ class QuoteViewModel @Inject constructor(
     fun refreshQuote() {
         viewModelScope.launch {
             loadQuoteOfTheDay()
+        }
+    }
+
+    /**
+     * Toggles the favorite status of the current quote.
+     */
+    fun toggleFavorite() {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is QuoteUiState.Success) {
+                try {
+                    quoteRepository.toggleFavorite(
+                        currentState.quote.id,
+                        !currentState.quote.isFavorite
+                    )
+                    // Reload to reflect the change
+                    loadQuoteOfTheDay()
+                } catch (e: Exception) {
+                    // Silently fail, could add error state if needed
+                }
+            }
+        }
+    }
+
+    /**
+     * Shares the current quote as an image.
+     */
+    fun shareQuoteAsImage() {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is QuoteUiState.Success) {
+                quoteShareManager.shareQuoteAsImage(
+                    runicText = currentState.runicText,
+                    latinText = currentState.quote.textLatin,
+                    author = currentState.quote.author
+                )
+            }
+        }
+    }
+
+    /**
+     * Shares the current quote as text.
+     */
+    fun shareQuoteText() {
+        val currentState = _uiState.value
+        if (currentState is QuoteUiState.Success) {
+            quoteShareManager.shareQuoteText(
+                latinText = currentState.quote.textLatin,
+                author = currentState.quote.author
+            )
         }
     }
 }

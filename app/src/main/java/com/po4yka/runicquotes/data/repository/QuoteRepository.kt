@@ -41,4 +41,40 @@ interface QuoteRepository {
      * Gets the total count of quotes in the database.
      */
     suspend fun getQuoteCount(): Int
+
+    /**
+     * Gets all user-created quotes as a Flow for reactive updates.
+     */
+    fun getUserQuotesFlow(): Flow<List<Quote>>
+
+    /**
+     * Gets all favorite quotes as a Flow for reactive updates.
+     */
+    fun getFavoritesFlow(): Flow<List<Quote>>
+
+    /**
+     * Gets all favorite quotes.
+     */
+    suspend fun getFavorites(): List<Quote>
+
+    /**
+     * Toggles the favorite status of a quote.
+     */
+    suspend fun toggleFavorite(quoteId: Long, isFavorite: Boolean)
+
+    /**
+     * Inserts or updates a user-created quote.
+     * @return The ID of the inserted/updated quote.
+     */
+    suspend fun saveUserQuote(quote: Quote): Long
+
+    /**
+     * Deletes a user-created quote.
+     */
+    suspend fun deleteUserQuote(quoteId: Long)
+
+    /**
+     * Gets a quote by ID.
+     */
+    suspend fun getQuoteById(id: Long): Quote?
 }

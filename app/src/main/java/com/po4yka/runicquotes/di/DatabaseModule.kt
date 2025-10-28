@@ -28,7 +28,7 @@ object DatabaseModule {
             RunicQuotesDatabase::class.java,
             "runic_quotes.db"
         )
-            .fallbackToDestructiveMigration()
+            .addMigrations(RunicQuotesDatabase.MIGRATION_1_2)
             .build()
     }
 

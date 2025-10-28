@@ -66,6 +66,44 @@ class QuoteRepositoryImpl @Inject constructor(
         return quoteDao.getCount()
     }
 
+    override fun getUserQuotesFlow(): Flow<List<Quote>> {
+        return quoteDao.getUserQuotesFlow().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override fun getFavoritesFlow(): Flow<List<Quote>> {
+        return quoteDao.getFavoritesFlow().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override suspend fun getFavorites(): List<Quote> {
+        return quoteDao.getFavorites().map { it.toDomain() }
+    }
+
+    override suspend fun toggleFavorite(quoteId: Long, isFavorite: Boolean) {
+        quoteDao.updateFavoriteStatus(quoteId, isFavorite)
+    }
+
+    override suspend fun saveUserQuote(quote: Quote): Long {
+        val entity = quote.toEntity().copy(isUserCreated = true)
+        return if (quote.id == 0L) {
+            quoteDao.insert(entity)
+        } else {
+            quoteDao.update(entity)
+            quote.id
+        }
+    }
+
+    override suspend fun deleteUserQuote(quoteId: Long) {
+        quoteDao.deleteUserQuote(quoteId)
+    }
+
+    override suspend fun getQuoteById(id: Long): Quote? {
+        return quoteDao.getById(id)?.toDomain()
+    }
+
     /**
      * Returns a list of initial quotes to seed the database with.
      * These are placeholder quotes that will be replaced with real content later.
@@ -126,6 +164,24 @@ class QuoteRepositoryImpl @Inject constructor(
         author = author,
         runicElder = runicElder,
         runicYounger = runicYounger,
-        runicCirth = runicCirth
+        runicCirth = runicCirth,
+        isUserCreated = isUserCreated,
+        isFavorite = isFavorite,
+        createdAt = createdAt
+    )
+
+    /**
+     * Maps a domain model to a data layer entity.
+     */
+    private fun Quote.toEntity() = QuoteEntity(
+        id = id,
+        textLatin = textLatin,
+        author = author,
+        runicElder = runicElder,
+        runicYounger = runicYounger,
+        runicCirth = runicCirth,
+        isUserCreated = isUserCreated,
+        isFavorite = isFavorite,
+        createdAt = createdAt
     )
 }

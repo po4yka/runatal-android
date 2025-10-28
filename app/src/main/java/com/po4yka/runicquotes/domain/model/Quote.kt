@@ -11,5 +11,8 @@ data class Quote(
     val author: String,
     val runicElder: String?,
     val runicYounger: String?,
-    val runicCirth: String?
+    val runicCirth: String?,
+    val isUserCreated: Boolean = false,
+    val isFavorite: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis()
 )
