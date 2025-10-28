@@ -1,0 +1,70 @@
+version: 2
+updates:
+  # Gradle dependencies
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "po4yka"
+    labels:
+      - "dependencies"
+      - "gradle"
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    groups:
+      # Group Jetpack Compose updates together
+      compose:
+        patterns:
+          - "androidx.compose.*"
+          - "androidx.compose.material3:*"
+      # Group Kotlin updates together
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin:*"
+          - "org.jetbrains.kotlinx:*"
+      # Group AndroidX libraries
+      androidx:
+        patterns:
+          - "androidx.*"
+        exclude-patterns:
+          - "androidx.compose.*"
+      # Group testing libraries
+      testing:
+        patterns:
+          - "junit:*"
+          - "io.mockk:*"
+          - "app.cash.turbine:*"
+          - "androidx.test.*"
+          - "org.robolectric:*"
+      # Group Hilt/Dagger
+      di:
+        patterns:
+          - "com.google.dagger:*"
+      # Group build tools
+      build-tools:
+        patterns:
+          - "com.android.tools.build:*"
+          - "gradle"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "po4yka"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"

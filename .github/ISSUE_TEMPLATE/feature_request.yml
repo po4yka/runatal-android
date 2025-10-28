@@ -1,0 +1,116 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your interest in improving Runic Quotes! Please describe your feature idea below.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a problem? Please describe.
+      placeholder: I'm frustrated when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like
+      placeholder: I would like to see...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or features you've considered
+      placeholder: I also considered...
+    validations:
+      required: false
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: Which area does this feature relate to?
+      options:
+        - UI/UX
+        - Runic Scripts
+        - Quotes Management
+        - Widget
+        - Sharing
+        - Settings
+        - Performance
+        - Accessibility
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Critical (blocks usage)
+        - High (would significantly improve experience)
+        - Medium (nice to have)
+        - Low (minor enhancement)
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Describe how you would use this feature
+      placeholder: |
+        As a user, I want to...
+        So that I can...
+    validations:
+      required: true
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups or Examples
+      description: If applicable, add mockups or examples to illustrate the feature
+      placeholder: Drag and drop images or provide links to similar features in other apps
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context or information about the feature request
+      placeholder: Any additional details...
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Are you willing to help implement this feature?
+      options:
+        - label: I would like to implement this feature myself
+          required: false
+        - label: I can help with testing
+          required: false
+        - label: I can help with design
+          required: false
+
+  - type: checkboxes
+    id: search
+    attributes:
+      label: Pre-submission Checklist
+      description: Please check the following before submitting
+      options:
+        - label: I have searched for similar feature requests
+          required: true
+        - label: This feature aligns with the project's goals
+          required: true

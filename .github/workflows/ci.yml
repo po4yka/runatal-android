@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
 jobs:
   lint:
     name: Detekt Static Analysis
@@ -72,11 +77,13 @@ jobs:
           retention-days: 7
 
       - name: Publish test results
-        if: always()
+        if: success() || failure()
         uses: EnricoMi/publish-unit-test-result-action@v2
+        continue-on-error: true
         with:
           files: |
             app/build/test-results/**/*.xml
+          check_name: Unit Test Results
 
   build:
     name: Build APK

@@ -6,8 +6,14 @@ plugins {
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.detekt) apply false
+    alias(libs.plugins.dokka) apply false
 }
 
 tasks.register("clean", Delete::class) {
     delete(rootProject.layout.buildDirectory)
+}
+
+// Dokka configuration for generating documentation
+subprojects {
+    apply(plugin = "org.jetbrains.dokka")
 }
