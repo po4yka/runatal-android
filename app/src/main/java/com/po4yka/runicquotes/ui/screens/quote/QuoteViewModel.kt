@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -52,8 +53,7 @@ class QuoteViewModel @Inject constructor(
         _uiState.update { QuoteUiState.Loading }
 
         try {
-            val preferences = userPreferencesManager.userPreferencesFlow.replayCache.firstOrNull()
-                ?: return
+            val preferences = userPreferencesManager.userPreferencesFlow.first()
 
             val quote = quoteRepository.quoteOfTheDay(preferences.selectedScript)
 
@@ -86,8 +86,7 @@ class QuoteViewModel @Inject constructor(
             _uiState.update { QuoteUiState.Loading }
 
             try {
-                val preferences = userPreferencesManager.userPreferencesFlow.replayCache.firstOrNull()
-                    ?: return@launch
+                val preferences = userPreferencesManager.userPreferencesFlow.first()
 
                 val quote = quoteRepository.randomQuote(preferences.selectedScript)
 

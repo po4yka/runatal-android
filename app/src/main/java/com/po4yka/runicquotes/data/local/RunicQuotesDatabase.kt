@@ -13,7 +13,7 @@ import com.po4yka.runicquotes.data.local.entity.QuoteEntity
 @Database(
     entities = [QuoteEntity::class],
     version = 2,
-    exportSchema = true
+    exportSchema = false
 )
 abstract class RunicQuotesDatabase : RoomDatabase() {
 

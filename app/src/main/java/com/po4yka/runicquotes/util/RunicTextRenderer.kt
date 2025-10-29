@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Typeface
+import android.util.TypedValue
 import androidx.core.content.res.ResourcesCompat
 import com.po4yka.runicquotes.R
 
@@ -44,8 +45,12 @@ object RunicTextRenderer {
             Typeface.DEFAULT
         }
 
-        // Convert SP to pixels
-        val textSizePx = textSizeSp * context.resources.displayMetrics.scaledDensity
+        // Convert SP to pixels using TypedValue (scaledDensity is deprecated)
+        val textSizePx = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_SP,
+            textSizeSp,
+            context.resources.displayMetrics
+        )
 
         // Create paint for text
         val paint = Paint().apply {

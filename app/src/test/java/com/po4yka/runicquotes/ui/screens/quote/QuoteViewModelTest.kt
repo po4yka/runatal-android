@@ -6,6 +6,7 @@ import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.util.QuoteShareManager
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -35,6 +36,7 @@ class QuoteViewModelTest {
 
     private lateinit var quoteRepository: QuoteRepository
     private lateinit var userPreferencesManager: UserPreferencesManager
+    private lateinit var quoteShareManager: QuoteShareManager
     private lateinit var viewModel: QuoteViewModel
 
     private val testDispatcher = StandardTestDispatcher()
@@ -63,6 +65,7 @@ class QuoteViewModelTest {
         // Create mocks
         quoteRepository = mockk()
         userPreferencesManager = mockk()
+        quoteShareManager = mockk(relaxed = true)
 
         // Set up preferences flow
         preferencesFlow = MutableStateFlow(defaultPreferences)
@@ -82,7 +85,7 @@ class QuoteViewModelTest {
         coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
 
         // When: ViewModel is created
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
 
         // Then: Initial state is Loading
         viewModel.uiState.test {
@@ -106,7 +109,7 @@ class QuoteViewModelTest {
         coEvery { quoteRepository.quoteOfTheDay(RunicScript.ELDER_FUTHARK) } returns testQuote
 
         // When: ViewModel is created
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
 
         // Then: Quote is loaded
@@ -126,7 +129,7 @@ class QuoteViewModelTest {
         coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
 
         // When: ViewModel loads quote
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
 
         // Then: Success state contains all expected data
@@ -152,7 +155,7 @@ class QuoteViewModelTest {
         coEvery { quoteRepository.quoteOfTheDay(any()) } returns quote
 
         // When: ViewModel loads quote
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
 
         // Then: Runic text from domain extension is used
@@ -171,7 +174,7 @@ class QuoteViewModelTest {
         coEvery { quoteRepository.quoteOfTheDay(any()) } returns null
 
         // When: ViewModel loads quote
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
 
         // Then: Empty state is emitted
@@ -190,7 +193,7 @@ class QuoteViewModelTest {
         coEvery { quoteRepository.quoteOfTheDay(any()) } throws RuntimeException("Database error")
 
         // When: ViewModel loads quote
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
 
         // Then: Error state with message is emitted
@@ -207,7 +210,7 @@ class QuoteViewModelTest {
         coEvery { quoteRepository.quoteOfTheDay(any()) } throws RuntimeException()
 
         // When: ViewModel loads quote
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
 
         // Then: Generic error message is used
@@ -227,7 +230,7 @@ class QuoteViewModelTest {
         coEvery { quoteRepository.quoteOfTheDay(RunicScript.YOUNGER_FUTHARK) } returns
             testQuote.copy(id = 2)
 
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
 
         // When: Preferences change to different script
@@ -254,7 +257,7 @@ class QuoteViewModelTest {
         // Given: ViewModel initialized
         coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
 
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
 
         // When: Font preference changes
@@ -281,7 +284,7 @@ class QuoteViewModelTest {
         val randomQuote = testQuote.copy(id = 99, textLatin = "Random quote")
         coEvery { quoteRepository.randomQuote(any()) } returns randomQuote
 
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
 
         // When: Getting random quote
@@ -310,7 +313,7 @@ class QuoteViewModelTest {
         coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
         coEvery { quoteRepository.randomQuote(any()) } returns null
 
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
 
         // When: Getting random quote
@@ -334,7 +337,7 @@ class QuoteViewModelTest {
         coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
         coEvery { quoteRepository.randomQuote(any()) } throws RuntimeException("Random error")
 
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
 
         // When: Getting random quote
@@ -359,7 +362,7 @@ class QuoteViewModelTest {
         // Given: ViewModel initialized
         coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
 
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
 
         // When: Refreshing quote
@@ -385,7 +388,7 @@ class QuoteViewModelTest {
         // Given: ViewModel initialized
         coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
 
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
 
         // When: Refreshing quote
@@ -405,7 +408,7 @@ class QuoteViewModelTest {
         coEvery { quoteRepository.quoteOfTheDay(RunicScript.YOUNGER_FUTHARK) } returns testQuote
 
         // When: ViewModel loads quote
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
 
         // Then: Repository called with correct script
@@ -420,7 +423,7 @@ class QuoteViewModelTest {
         coEvery { quoteRepository.quoteOfTheDay(RunicScript.CIRTH) } returns cirthQuote
 
         // When: ViewModel loads quote
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
 
         // Then: Cirth text is used
@@ -445,7 +448,7 @@ class QuoteViewModelTest {
         coEvery { quoteRepository.quoteOfTheDay(any()) } returns quoteWithNulls
 
         // When: ViewModel loads quote
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
 
         // Then: Runic text is generated from domain transliteration
@@ -461,7 +464,7 @@ class QuoteViewModelTest {
         // Given: ViewModel initialized
         coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
 
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
 
         // When: Multiple rapid preference changes
@@ -469,13 +472,22 @@ class QuoteViewModelTest {
             skipItems(1) // Skip initial state
 
             preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.YOUNGER_FUTHARK)
+            advanceUntilIdle()
+            skipItems(2) // Skip Loading and Success
+
             preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.CIRTH)
+            advanceUntilIdle()
+            skipItems(2) // Skip Loading and Success
+
             preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.ELDER_FUTHARK)
             advanceUntilIdle()
 
             // Then: Final state reflects last preference
-            val finalState = expectMostRecentItem() as QuoteUiState.Success
+            skipItems(1) // Skip Loading
+            val finalState = awaitItem() as QuoteUiState.Success
             assertEquals(RunicScript.ELDER_FUTHARK, finalState.selectedScript)
+
+            cancelAndIgnoreRemainingEvents()
         }
     }
 }

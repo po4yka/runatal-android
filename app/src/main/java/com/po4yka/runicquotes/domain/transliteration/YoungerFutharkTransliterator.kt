@@ -1,11 +1,13 @@
 package com.po4yka.runicquotes.domain.transliteration
 
+import javax.inject.Inject
+
 /**
  * Transliterator for Younger Futhark runic script.
  * Younger Futhark is a simplified version used during the Viking Age (~800-1100 AD).
  * Unicode range: U+16A0–U+16EA (subset of Runic block)
  */
-class YoungerFutharkTransliterator : RunicTransliterator {
+class YoungerFutharkTransliterator @Inject constructor() : RunicTransliterator {
 
     override val scriptName: String = "Younger Futhark"
 

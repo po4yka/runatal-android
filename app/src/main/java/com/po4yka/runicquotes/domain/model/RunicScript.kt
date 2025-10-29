@@ -26,3 +26,13 @@ enum class RunicScript {
         val DEFAULT = ELDER_FUTHARK
     }
 }
+
+/**
+ * Get the display name for a runic script.
+ */
+val RunicScript.displayName: String
+    get() = when (this) {
+        RunicScript.ELDER_FUTHARK -> "Elder Futhark"
+        RunicScript.YOUNGER_FUTHARK -> "Younger Futhark"
+        RunicScript.CIRTH -> "Cirth"
+    }

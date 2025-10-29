@@ -8,9 +8,9 @@ import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.getRunicText
-import com.po4yka.runicquotes.domain.transliterator.CirthTransliterator
-import com.po4yka.runicquotes.domain.transliterator.ElderFutharkTransliterator
-import com.po4yka.runicquotes.domain.transliterator.YoungerFutharkTransliterator
+import com.po4yka.runicquotes.domain.transliteration.CirthTransliterator
+import com.po4yka.runicquotes.domain.transliteration.ElderFutharkTransliterator
+import com.po4yka.runicquotes.domain.transliteration.YoungerFutharkTransliterator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

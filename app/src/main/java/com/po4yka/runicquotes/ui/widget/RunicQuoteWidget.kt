@@ -31,7 +31,7 @@ import com.po4yka.runicquotes.MainActivity
 import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.util.BitmapCache
 import com.po4yka.runicquotes.util.RunicTextRenderer
-import dagger.hilt.EntryPointAccessors
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -55,8 +55,8 @@ class RunicQuoteWidget : GlanceAppWidget() {
         // Get widget size for adaptive rendering
         val sizes = GlanceAppWidgetManager(context)
             .getAppWidgetSizes(id)
-        val widgetWidth = sizes.firstOrNull()?.width?.value ?: 200
-        val widgetHeight = sizes.firstOrNull()?.height?.value ?: 100
+        val widgetWidth = sizes.firstOrNull()?.width?.value?.toInt() ?: 200
+        val widgetHeight = sizes.firstOrNull()?.height?.value?.toInt() ?: 100
 
         // Load widget state with caching
         val state = withContext(Dispatchers.IO) {

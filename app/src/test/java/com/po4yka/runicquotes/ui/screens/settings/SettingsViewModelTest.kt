@@ -145,14 +145,17 @@ class SettingsViewModelTest {
 
     @Test
     fun `updateSelectedScript to Cirth works correctly`() = runTest {
-        // When: Updating to Cirth
-        viewModel.updateSelectedScript(RunicScript.CIRTH)
-        advanceUntilIdle()
-
-        // Then: Preferences reflect change
         viewModel.userPreferences.test {
-            val prefs = awaitItem()
-            assertEquals(RunicScript.CIRTH, prefs.selectedScript)
+            // Given: Initial state
+            val initial = awaitItem()
+            assertEquals(RunicScript.ELDER_FUTHARK, initial.selectedScript)
+
+            // When: Updating to Cirth
+            viewModel.updateSelectedScript(RunicScript.CIRTH)
+
+            // Then: Preferences reflect change
+            val updated = awaitItem()
+            assertEquals(RunicScript.CIRTH, updated.selectedScript)
         }
     }
 
@@ -239,14 +242,16 @@ class SettingsViewModelTest {
 
     @Test
     fun `updateThemeMode supports light mode`() = runTest {
-        // When: Setting to light mode
-        viewModel.updateThemeMode("light")
-        advanceUntilIdle()
-
-        // Then: Preferences reflect change
         viewModel.userPreferences.test {
-            val prefs = awaitItem()
-            assertEquals("light", prefs.themeMode)
+            // Given: Initial state
+            awaitItem()
+
+            // When: Setting to light mode
+            viewModel.updateThemeMode("light")
+
+            // Then: Preferences reflect change
+            val updated = awaitItem()
+            assertEquals("light", updated.themeMode)
         }
     }
 
@@ -341,27 +346,33 @@ class SettingsViewModelTest {
 
     @Test
     fun `updateFontSize handles small values`() = runTest {
-        // When: Setting to small value
-        viewModel.updateFontSize(0.5f)
-        advanceUntilIdle()
-
-        // Then: Value is updated
+        // Given: Observing preferences
         viewModel.userPreferences.test {
-            val prefs = awaitItem()
-            assertEquals(0.5f, prefs.fontSize, 0.001f)
+            // Initial state
+            awaitItem()
+
+            // When: Setting to small value
+            viewModel.updateFontSize(0.5f)
+
+            // Then: Value is updated
+            val updated = awaitItem()
+            assertEquals(0.5f, updated.fontSize, 0.001f)
         }
     }
 
     @Test
     fun `updateFontSize handles large values`() = runTest {
-        // When: Setting to large value
-        viewModel.updateFontSize(2.5f)
-        advanceUntilIdle()
-
-        // Then: Value is updated
+        // Given: Observing preferences
         viewModel.userPreferences.test {
-            val prefs = awaitItem()
-            assertEquals(2.5f, prefs.fontSize, 0.001f)
+            // Initial state
+            awaitItem()
+
+            // When: Setting to large value
+            viewModel.updateFontSize(2.5f)
+
+            // Then: Value is updated
+            val updated = awaitItem()
+            assertEquals(2.5f, updated.fontSize, 0.001f)
         }
     }
 
@@ -369,39 +380,61 @@ class SettingsViewModelTest {
 
     @Test
     fun `multiple different preference updates work correctly`() = runTest {
-        // When: Updating multiple preferences
-        viewModel.updateSelectedScript(RunicScript.YOUNGER_FUTHARK)
-        viewModel.updateSelectedFont("babelstone")
-        viewModel.updateThemeMode("dark")
-        viewModel.updateShowTransliteration(false)
-        viewModel.updateFontSize(1.2f)
-        advanceUntilIdle()
-
-        // Then: All updates are reflected
+        // Given: Observing preferences
         viewModel.userPreferences.test {
-            val prefs = awaitItem()
-            assertEquals(RunicScript.YOUNGER_FUTHARK, prefs.selectedScript)
-            assertEquals("babelstone", prefs.selectedFont)
-            assertEquals("dark", prefs.themeMode)
-            assertFalse(prefs.showTransliteration)
-            assertEquals(1.2f, prefs.fontSize, 0.001f)
+            // Initial state
+            awaitItem()
+
+            // When: Updating multiple preferences
+            viewModel.updateSelectedScript(RunicScript.YOUNGER_FUTHARK)
+            awaitItem() // Script update
+
+            viewModel.updateSelectedFont("babelstone")
+            awaitItem() // Font update
+
+            viewModel.updateThemeMode("dark")
+            awaitItem() // Theme update
+
+            viewModel.updateShowTransliteration(false)
+            awaitItem() // Transliteration update
+
+            viewModel.updateFontSize(1.2f)
+
+            // Then: All updates are reflected in final state
+            val final = awaitItem()
+            assertEquals(RunicScript.YOUNGER_FUTHARK, final.selectedScript)
+            assertEquals("babelstone", final.selectedFont)
+            assertEquals("dark", final.themeMode)
+            assertFalse(final.showTransliteration)
+            assertEquals(1.2f, final.fontSize, 0.001f)
         }
     }
 
     @Test
     fun `rapid sequential updates are handled`() = runTest {
-        // When: Rapid font size changes
-        viewModel.updateFontSize(1.1f)
-        viewModel.updateFontSize(1.2f)
-        viewModel.updateFontSize(1.3f)
-        viewModel.updateFontSize(1.4f)
-        viewModel.updateFontSize(1.5f)
-        advanceUntilIdle()
-
-        // Then: Final value is applied
+        // Given: Observing preferences
         viewModel.userPreferences.test {
-            val prefs = awaitItem()
-            assertEquals(1.5f, prefs.fontSize, 0.001f)
+            // Initial state
+            awaitItem()
+
+            // When: Rapid font size changes
+            viewModel.updateFontSize(1.1f)
+            awaitItem() // 1.1f
+
+            viewModel.updateFontSize(1.2f)
+            awaitItem() // 1.2f
+
+            viewModel.updateFontSize(1.3f)
+            awaitItem() // 1.3f
+
+            viewModel.updateFontSize(1.4f)
+            awaitItem() // 1.4f
+
+            viewModel.updateFontSize(1.5f)
+
+            // Then: Final value is applied
+            val final = awaitItem()
+            assertEquals(1.5f, final.fontSize, 0.001f)
         }
     }
 
@@ -409,71 +442,79 @@ class SettingsViewModelTest {
 
     @Test
     fun `userPreferences flow persists after updates`() = runTest {
-        // When: Updating preferences
-        viewModel.updateSelectedScript(RunicScript.CIRTH)
-        advanceUntilIdle()
-
-        // Then: Multiple collectors see the same state
+        // Given: Observing preferences and updating
         viewModel.userPreferences.test {
-            val prefs1 = awaitItem()
-            assertEquals(RunicScript.CIRTH, prefs1.selectedScript)
+            // Initial state
+            awaitItem()
+
+            // When: Updating preferences
+            viewModel.updateSelectedScript(RunicScript.CIRTH)
+
+            // Then: Preferences are updated
+            val updated = awaitItem()
+            assertEquals(RunicScript.CIRTH, updated.selectedScript)
         }
 
+        // Then: New collectors see the updated state
         viewModel.userPreferences.test {
-            val prefs2 = awaitItem()
-            assertEquals(RunicScript.CIRTH, prefs2.selectedScript)
+            val prefs = awaitItem()
+            assertEquals(RunicScript.CIRTH, prefs.selectedScript)
         }
     }
 
     @Test
     fun `userPreferences flow is hot and shares state`() = runTest {
         // When: Collecting from multiple points
-        val job1 = viewModel.userPreferences.test {
+        viewModel.userPreferences.test {
             val prefs = awaitItem()
             assertEquals(RunicScript.ELDER_FUTHARK, prefs.selectedScript)
             expectNoEvents()
         }
 
-        val job2 = viewModel.userPreferences.test {
+        viewModel.userPreferences.test {
             val prefs = awaitItem()
             assertEquals(RunicScript.ELDER_FUTHARK, prefs.selectedScript)
         }
 
         // Both collectors see the same initial state
-        job1.cancel()
-        job2.cancel()
     }
 
     // ==================== Edge Cases ====================
 
     @Test
     fun `updating same value multiple times works`() = runTest {
-        // When: Setting same value repeatedly
-        viewModel.updateThemeMode("dark")
-        viewModel.updateThemeMode("dark")
-        viewModel.updateThemeMode("dark")
-        advanceUntilIdle()
-
-        // Then: Value is set
+        // Given: Observing preferences
         viewModel.userPreferences.test {
-            val prefs = awaitItem()
-            assertEquals("dark", prefs.themeMode)
-        }
+            // Initial state
+            awaitItem()
 
-        // And preferences manager was called each time
-        coVerify(exactly = 3) { userPreferencesManager.updateThemeMode("dark") }
+            // When: Setting same value repeatedly
+            viewModel.updateThemeMode("dark")
+            viewModel.updateThemeMode("dark")
+            viewModel.updateThemeMode("dark")
+
+            // Then: Value is set (only one emission because values are the same)
+            val updated = awaitItem()
+            assertEquals("dark", updated.themeMode)
+
+            // And preferences manager was called each time
+            coVerify(exactly = 3) { userPreferencesManager.updateThemeMode("dark") }
+        }
     }
 
     @Test
     fun `zero font size is handled`() = runTest {
-        // When: Setting font size to zero
-        viewModel.updateFontSize(0f)
-        advanceUntilIdle()
-
-        // Then: Value is updated (validation is in data layer)
+        // Given: Observing preferences
         viewModel.userPreferences.test {
-            val prefs = awaitItem()
-            assertEquals(0f, prefs.fontSize, 0.001f)
+            // Initial state
+            awaitItem()
+
+            // When: Setting font size to zero
+            viewModel.updateFontSize(0f)
+
+            // Then: Value is updated (validation is in data layer)
+            val updated = awaitItem()
+            assertEquals(0f, updated.fontSize, 0.001f)
         }
     }
 

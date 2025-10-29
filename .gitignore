@@ -76,3 +76,12 @@ fabric.properties
 
 # Detekt
 detekt-baseline.xml
+
+# Room schemas
+**/schemas/
+
+# KSP generated files
+.ksp/
+
+# Claude Code
+.claude/settings.local.json

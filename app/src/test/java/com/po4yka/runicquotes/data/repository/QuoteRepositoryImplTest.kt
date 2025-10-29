@@ -138,8 +138,9 @@ class QuoteRepositoryImplTest {
 
     @Test
     fun `quoteOfTheDay returns null when no quotes available`() = runTest {
-        // Given: Empty database
+        // Given: Empty database (even after seeding attempt)
         coEvery { quoteDao.getCount() } returns 0
+        coEvery { quoteDao.insertAll(any()) } returns Unit
         coEvery { quoteDao.getAll() } returns emptyList()
 
         // When: Getting quote of the day
@@ -206,8 +207,9 @@ class QuoteRepositoryImplTest {
 
     @Test
     fun `randomQuote returns null when DAO returns null`() = runTest {
-        // Given: DAO returns null
+        // Given: DAO returns null (even after seeding attempt)
         coEvery { quoteDao.getCount() } returns 0
+        coEvery { quoteDao.insertAll(any()) } returns Unit
         coEvery { quoteDao.getRandom() } returns null
 
         // When: Getting random quote

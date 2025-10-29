@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.domain.model.displayName
 
 /**
  * Screen for adding or editing a user-created quote.

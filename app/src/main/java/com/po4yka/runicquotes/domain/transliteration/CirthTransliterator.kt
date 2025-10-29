@@ -1,5 +1,7 @@
 package com.po4yka.runicquotes.domain.transliteration
 
+import javax.inject.Inject
+
 /**
  * Transliterator for Cirth (Angerthas) script.
  * This is Tolkien's fictional runic script from Middle-earth.
@@ -8,7 +10,7 @@ package com.po4yka.runicquotes.domain.transliteration
  * Note: This is a basic implementation. Full Cirth support requires
  * specialized fonts and more complex mappings.
  */
-class CirthTransliterator : RunicTransliterator {
+class CirthTransliterator @Inject constructor() : RunicTransliterator {
 
     override val scriptName: String = "Cirth (Angerthas)"
 

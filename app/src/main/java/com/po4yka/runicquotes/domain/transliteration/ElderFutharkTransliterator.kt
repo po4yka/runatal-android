@@ -1,10 +1,12 @@
 package com.po4yka.runicquotes.domain.transliteration
 
+import javax.inject.Inject
+
 /**
  * Transliterator for Elder Futhark runic script.
  * Unicode range: U+16A0–U+16FF
  */
-class ElderFutharkTransliterator : RunicTransliterator {
+class ElderFutharkTransliterator @Inject constructor() : RunicTransliterator {
 
     override val scriptName: String = "Elder Futhark"
 

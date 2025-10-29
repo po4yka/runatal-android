@@ -9,7 +9,6 @@ build:
 config:
   validation: true
   warningsAsErrors: false
-  excludes: '**/build/**,**/.*'
 
 complexity:
   active: true
@@ -47,7 +46,6 @@ naming:
   FunctionNaming:
     active: true
     functionPattern: '[a-z][a-zA-Z0-9]*'
-    excludeAnnotatedFunction: ['Composable']
     ignoreAnnotated: ['Composable']
   ClassNaming:
     active: true
