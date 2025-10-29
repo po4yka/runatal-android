@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
  * A single setting item with title, subtitle, and optional trailing content.
  *
  * @param title The main title of the setting
+ * @param modifier Modifier for the item
  * @param subtitle Optional subtitle/description
  * @param selected Whether this item is currently selected (shows checkmark)
  * @param onClick Callback when the item is clicked

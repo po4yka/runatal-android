@@ -1,5 +1,6 @@
 package com.po4yka.runicquotes.ui.screens.addeditquote
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 import javax.inject.Inject
 
 /**
@@ -38,6 +40,10 @@ class AddEditQuoteViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(AddEditQuoteUiState())
     val uiState: StateFlow<AddEditQuoteUiState> = _uiState.asStateFlow()
+
+    companion object {
+        private const val TAG = "AddEditQuoteViewModel"
+    }
 
     init {
         viewModelScope.launch {
@@ -117,11 +123,20 @@ class AddEditQuoteViewModel @Inject constructor(
                 quoteRepository.saveUserQuote(quote)
                 _uiState.update { it.copy(isSaving = false) }
                 onSuccess()
-            } catch (e: Exception) {
+            } catch (e: IOException) {
+                Log.e(TAG, "IO error saving quote", e)
                 _uiState.update {
                     it.copy(
                         isSaving = false,
                         errorMessage = "Failed to save quote: ${e.message}"
+                    )
+                }
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Invalid state saving quote", e)
+                _uiState.update {
+                    it.copy(
+                        isSaving = false,
+                        errorMessage = "Invalid state: ${e.message}"
                     )
                 }
             }

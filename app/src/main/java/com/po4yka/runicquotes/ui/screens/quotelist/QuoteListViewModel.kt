@@ -1,5 +1,6 @@
 package com.po4yka.runicquotes.ui.screens.quotelist
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 import javax.inject.Inject
 
 /**
@@ -26,6 +28,10 @@ class QuoteListViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(QuoteListUiState())
     val uiState: StateFlow<QuoteListUiState> = _uiState.asStateFlow()
+
+    companion object {
+        private const val TAG = "QuoteListViewModel"
+    }
 
     init {
         loadQuotes()
@@ -62,11 +68,20 @@ class QuoteListViewModel @Inject constructor(
                 }.collect { newState ->
                     _uiState.value = newState
                 }
-            } catch (e: Exception) {
+            } catch (e: IOException) {
+                Log.e(TAG, "IO error loading quotes", e)
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         errorMessage = "Failed to load quotes: ${e.message}"
+                    )
+                }
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Invalid state loading quotes", e)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Invalid state: ${e.message}"
                     )
                 }
             }
@@ -87,9 +102,15 @@ class QuoteListViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 quoteRepository.toggleFavorite(quote.id, !quote.isFavorite)
-            } catch (e: Exception) {
+            } catch (e: IOException) {
+                Log.e(TAG, "IO error toggling favorite", e)
                 _uiState.update {
                     it.copy(errorMessage = "Failed to update favorite: ${e.message}")
+                }
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Invalid state toggling favorite", e)
+                _uiState.update {
+                    it.copy(errorMessage = "Invalid state: ${e.message}")
                 }
             }
         }
@@ -102,9 +123,15 @@ class QuoteListViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 quoteRepository.deleteUserQuote(quoteId)
-            } catch (e: Exception) {
+            } catch (e: IOException) {
+                Log.e(TAG, "IO error deleting quote", e)
                 _uiState.update {
                     it.copy(errorMessage = "Failed to delete quote: ${e.message}")
+                }
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Invalid state deleting quote", e)
+                _uiState.update {
+                    it.copy(errorMessage = "Invalid state: ${e.message}")
                 }
             }
         }

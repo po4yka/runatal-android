@@ -1,5 +1,6 @@
 package com.po4yka.runicquotes.ui.screens.quote
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 import javax.inject.Inject
 
 /**
@@ -30,6 +32,10 @@ class QuoteViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<QuoteUiState>(QuoteUiState.Loading)
     val uiState: StateFlow<QuoteUiState> = _uiState.asStateFlow()
+
+    companion object {
+        private const val TAG = "QuoteViewModel"
+    }
 
     init {
         // Load initial quote
@@ -73,8 +79,12 @@ class QuoteViewModel @Inject constructor(
             } else {
                 _uiState.update { QuoteUiState.Empty }
             }
-        } catch (e: Exception) {
-            _uiState.update { QuoteUiState.Error(e.message ?: "Unknown error") }
+        } catch (e: IOException) {
+            Log.e(TAG, "IO error loading quote of the day", e)
+            _uiState.update { QuoteUiState.Error(e.message ?: "Failed to load quote") }
+        } catch (e: IllegalStateException) {
+            Log.e(TAG, "Invalid state loading quote", e)
+            _uiState.update { QuoteUiState.Error(e.message ?: "Invalid state") }
         }
     }
 
@@ -106,8 +116,12 @@ class QuoteViewModel @Inject constructor(
                 } else {
                     _uiState.update { QuoteUiState.Empty }
                 }
-            } catch (e: Exception) {
-                _uiState.update { QuoteUiState.Error(e.message ?: "Unknown error") }
+            } catch (e: IOException) {
+                Log.e(TAG, "IO error loading random quote", e)
+                _uiState.update { QuoteUiState.Error(e.message ?: "Failed to load random quote") }
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Invalid state loading random quote", e)
+                _uiState.update { QuoteUiState.Error(e.message ?: "Invalid state") }
             }
         }
     }
@@ -135,8 +149,10 @@ class QuoteViewModel @Inject constructor(
                     )
                     // Reload to reflect the change
                     loadQuoteOfTheDay()
-                } catch (e: Exception) {
-                    // Silently fail, could add error state if needed
+                } catch (e: IOException) {
+                    Log.e(TAG, "IO error toggling favorite status", e)
+                } catch (e: IllegalStateException) {
+                    Log.e(TAG, "Invalid state toggling favorite", e)
                 }
             }
         }

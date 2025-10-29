@@ -27,20 +27,34 @@ import androidx.glance.layout.padding
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
+import android.util.Log
 import com.po4yka.runicquotes.MainActivity
 import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.util.BitmapCache
+import com.po4yka.runicquotes.util.RenderConfig
 import com.po4yka.runicquotes.util.RunicTextRenderer
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import java.io.IOException
 import java.time.LocalDate
 
 /**
  * Glance widget that displays a daily runic quote.
  */
 class RunicQuoteWidget : GlanceAppWidget() {
+
+    companion object {
+        private const val TAG = "RunicQuoteWidget"
+        private const val SMALL_WIDGET_WIDTH = 150
+        private const val MEDIUM_WIDGET_WIDTH = 250
+        private const val TEXT_SIZE_SMALL = 16f
+        private const val TEXT_SIZE_MEDIUM = 20f
+        private const val TEXT_SIZE_LARGE = 24f
+        private const val MAX_WIDTH_FACTOR = 0.9f
+        private const val DEFAULT_WIDGET_WIDTH = 200
+    }
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         // Get dependencies via Hilt EntryPoint
@@ -55,8 +69,7 @@ class RunicQuoteWidget : GlanceAppWidget() {
         // Get widget size for adaptive rendering
         val sizes = GlanceAppWidgetManager(context)
             .getAppWidgetSizes(id)
-        val widgetWidth = sizes.firstOrNull()?.width?.value?.toInt() ?: 200
-        val widgetHeight = sizes.firstOrNull()?.height?.value?.toInt() ?: 100
+        val widgetWidth = sizes.firstOrNull()?.width?.value?.toInt() ?: DEFAULT_WIDGET_WIDTH
 
         // Load widget state with caching
         val state = withContext(Dispatchers.IO) {
@@ -79,13 +92,13 @@ class RunicQuoteWidget : GlanceAppWidget() {
 
                     // Adaptive text size based on widget dimensions
                     val textSize = when {
-                        widgetWidth < 150 -> 16f // Small widget (1x1, 2x1)
-                        widgetWidth < 250 -> 20f // Medium widget (2x2, 3x1)
-                        else -> 24f // Large widget (4x2, 5x3)
+                        widgetWidth < SMALL_WIDGET_WIDTH -> TEXT_SIZE_SMALL // Small widget (1x1, 2x1)
+                        widgetWidth < MEDIUM_WIDGET_WIDTH -> TEXT_SIZE_MEDIUM // Medium widget (2x2, 3x1)
+                        else -> TEXT_SIZE_LARGE // Large widget (4x2, 5x3)
                     }
 
                     // Calculate max width in pixels
-                    val maxWidth = (widgetWidth * context.resources.displayMetrics.density * 0.9f).toInt()
+                    val maxWidth = (widgetWidth * context.resources.displayMetrics.density * MAX_WIDTH_FACTOR).toInt()
 
                     // Render runic text to bitmap with caching
                     val fontResource = RunicTextRenderer.getFontResource(preferences.selectedFont)
@@ -98,18 +111,22 @@ class RunicQuoteWidget : GlanceAppWidget() {
 
                     // Performance: 90% reduction in bitmap rendering operations
                     val runicBitmap = BitmapCache.get(cacheKey) ?: try {
-                        val bitmap = RunicTextRenderer.renderTextToBitmap(
-                            context = context,
+                        val config = RenderConfig(
                             text = runicText,
                             fontResource = fontResource,
                             textSizeSp = textSize,
                             textColor = Color.WHITE,
-                            backgroundColor = null, // Transparent background
+                            backgroundColor = null,
                             maxWidth = maxWidth
                         )
+                        val bitmap = RunicTextRenderer.renderTextToBitmap(context, config)
                         BitmapCache.put(cacheKey, bitmap)
                         bitmap
-                    } catch (e: Exception) {
+                    } catch (e: IOException) {
+                        Log.e(TAG, "Failed to render runic text bitmap", e)
+                        null
+                    } catch (e: OutOfMemoryError) {
+                        Log.e(TAG, "Out of memory rendering bitmap", e)
                         null
                     }
 
@@ -132,7 +149,8 @@ class RunicQuoteWidget : GlanceAppWidget() {
                         isLoading = false
                     )
                 }
-            } catch (e: Exception) {
+            } catch (e: IOException) {
+                Log.e(TAG, "IO error loading widget state", e)
                 WidgetState(
                     runicText = "",
                     latinText = "",

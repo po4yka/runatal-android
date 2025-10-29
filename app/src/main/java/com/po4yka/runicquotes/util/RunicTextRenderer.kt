@@ -1,54 +1,70 @@
 package com.po4yka.runicquotes.util
 
 import android.content.Context
+import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Typeface
+import android.util.Log
 import android.util.TypedValue
 import androidx.core.content.res.ResourcesCompat
 import com.po4yka.runicquotes.R
+import java.io.IOException
+
+/**
+ * Configuration for rendering runic text to bitmaps.
+ */
+data class RenderConfig(
+    val text: String,
+    val fontResource: Int,
+    val textSizeSp: Float = DEFAULT_TEXT_SIZE_SP,
+    val textColor: Int = Color.WHITE,
+    val backgroundColor: Int? = null,
+    val maxWidth: Int = 0
+) {
+    companion object {
+        private const val DEFAULT_TEXT_SIZE_SP = 20f
+    }
+}
 
 /**
  * Utility class for rendering runic text to bitmaps.
  * This is necessary for widgets since Glance doesn't support custom fonts.
  */
 object RunicTextRenderer {
+    private const val TAG = "RunicTextRenderer"
+    private const val PADDING_FACTOR = 0.2f
+    private const val MIN_BITMAP_SIZE = 1
 
     /**
-     * Renders runic text to a bitmap using the specified font.
+     * Renders runic text to a bitmap using the specified configuration.
      *
      * @param context Application context
-     * @param text The text to render
-     * @param fontResource The font resource ID (e.g., R.font.noto_sans_runic)
-     * @param textSizeSp Text size in SP
-     * @param textColor Text color
-     * @param backgroundColor Background color (or null for transparent)
-     * @param maxWidth Maximum width in pixels (0 for no limit)
+     * @param config Rendering configuration
      * @return Bitmap containing the rendered text
      */
     fun renderTextToBitmap(
         context: Context,
-        text: String,
-        fontResource: Int,
-        textSizeSp: Float = 20f,
-        textColor: Int = Color.WHITE,
-        backgroundColor: Int? = null,
-        maxWidth: Int = 0
+        config: RenderConfig
     ): Bitmap {
         // Load the custom font
         val typeface = try {
-            ResourcesCompat.getFont(context, fontResource)
-        } catch (e: Exception) {
+            ResourcesCompat.getFont(context, config.fontResource)
+        } catch (e: IOException) {
+            Log.e(TAG, "Failed to load font resource ${config.fontResource}", e)
+            Typeface.DEFAULT
+        } catch (e: Resources.NotFoundException) {
+            Log.e(TAG, "Font resource ${config.fontResource} not found", e)
             Typeface.DEFAULT
         }
 
         // Convert SP to pixels using TypedValue (scaledDensity is deprecated)
         val textSizePx = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_SP,
-            textSizeSp,
+            config.textSizeSp,
             context.resources.displayMetrics
         )
 
@@ -56,48 +72,48 @@ object RunicTextRenderer {
         val paint = Paint().apply {
             this.typeface = typeface
             this.textSize = textSizePx
-            this.color = textColor
+            this.color = config.textColor
             isAntiAlias = true
             textAlign = Paint.Align.CENTER
         }
 
         // Measure the text
         val bounds = Rect()
-        paint.getTextBounds(text, 0, text.length, bounds)
+        paint.getTextBounds(config.text, 0, config.text.length, bounds)
 
         // Calculate bitmap dimensions
-        val padding = (textSizePx * 0.2f).toInt() // 20% padding
+        val padding = (textSizePx * PADDING_FACTOR).toInt()
         var width = bounds.width() + padding * 2
         var height = bounds.height() + padding * 2
 
         // Apply max width if specified
-        if (maxWidth > 0 && width > maxWidth) {
+        if (config.maxWidth > 0 && width > config.maxWidth) {
             // Need to wrap text or scale down
             // For simplicity, we'll scale down the font
-            val scale = maxWidth.toFloat() / width
+            val scale = config.maxWidth.toFloat() / width
             paint.textSize = textSizePx * scale
-            paint.getTextBounds(text, 0, text.length, bounds)
+            paint.getTextBounds(config.text, 0, config.text.length, bounds)
             width = bounds.width() + padding * 2
             height = bounds.height() + padding * 2
         }
 
         // Ensure minimum size
-        width = width.coerceAtLeast(1)
-        height = height.coerceAtLeast(1)
+        width = width.coerceAtLeast(MIN_BITMAP_SIZE)
+        height = height.coerceAtLeast(MIN_BITMAP_SIZE)
 
         // Create bitmap
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
         // Draw background if specified
-        backgroundColor?.let {
+        config.backgroundColor?.let {
             canvas.drawColor(it)
         }
 
         // Draw text centered
         val x = width / 2f
         val y = height / 2f - (paint.descent() + paint.ascent()) / 2f
-        canvas.drawText(text, x, y, paint)
+        canvas.drawText(config.text, x, y, paint)
 
         return bitmap
     }

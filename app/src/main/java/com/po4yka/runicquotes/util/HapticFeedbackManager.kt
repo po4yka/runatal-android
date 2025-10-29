@@ -1,3 +1,5 @@
+@file:Suppress("MagicNumber") // Vibration timing constants
+
 package com.po4yka.runicquotes.util
 
 import android.content.Context

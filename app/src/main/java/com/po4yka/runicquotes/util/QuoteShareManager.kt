@@ -1,15 +1,18 @@
 package com.po4yka.runicquotes.util
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
+import android.util.Log
 import androidx.core.content.FileProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,6 +25,7 @@ class QuoteShareManager @Inject constructor(
     private val imageGenerator: QuoteImageGenerator
 ) {
     companion object {
+        private const val TAG = "QuoteShareManager"
         private const val AUTHORITY = "com.po4yka.runicquotes.fileprovider"
         private const val SHARE_DIR = "shared_quotes"
         private const val FILE_NAME = "runic_quote.png"
@@ -80,8 +84,14 @@ class QuoteShareManager @Inject constructor(
             }
 
             true
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (e: IOException) {
+            Log.e(TAG, "IO error sharing quote as image", e)
+            false
+        } catch (e: ActivityNotFoundException) {
+            Log.e(TAG, "No app found to handle share intent", e)
+            false
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Security exception sharing image", e)
             false
         }
     }
@@ -103,8 +113,10 @@ class QuoteShareManager @Inject constructor(
             }
 
             context.startActivity(chooserIntent)
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (e: ActivityNotFoundException) {
+            Log.e(TAG, "No app found to handle text share intent", e)
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Security exception sharing text", e)
         }
     }
 }

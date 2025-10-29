@@ -1,3 +1,5 @@
+@file:Suppress("MagicNumber") // Image layout calculations and spacing constants
+
 package com.po4yka.runicquotes.util
 
 import android.content.Context

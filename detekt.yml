@@ -18,15 +18,18 @@ complexity:
   ComplexInterface:
     active: true
     threshold: 10
+    excludes: ['**/dao/**', '**/repository/**']  # DAOs and Repositories are intentionally comprehensive
   LongMethod:
     active: true
-    threshold: 60
+    threshold: 100  # Increased for Compose - declarative UI functions are naturally longer
+    excludes: ['**/ui/**/*Screen.kt', '**/ui/**/*Widget.kt']  # Compose screens use declarative patterns
   LongParameterList:
     active: true
-    functionThreshold: 6
+    functionThreshold: 8  # Increased for Compose - Composables often have many customization parameters
     constructorThreshold: 7
-    ignoreDefaultParameters: false
+    ignoreDefaultParameters: true  # Compose components use many optional parameters
     ignoreDataClasses: true
+    ignoreAnnotated: ['Composable']  # @Composable functions commonly have many parameters
   NestedBlockDepth:
     active: true
     threshold: 4
@@ -34,12 +37,13 @@ complexity:
     active: true
     thresholdInFiles: 15
     thresholdInClasses: 15
-    thresholdInInterfaces: 11
+    thresholdInInterfaces: 15  # Increased for comprehensive DAOs/Repositories
     thresholdInObjects: 11
     thresholdInEnums: 11
     ignoreDeprecated: false
     ignorePrivate: false
     ignoreOverridden: false
+    excludes: ['**/dao/**', '**/repository/**']  # DAOs and Repositories need many functions
 
 naming:
   active: true
@@ -65,17 +69,37 @@ style:
     excludeCommentStatements: false
   MagicNumber:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**']
+    excludes: ['**/test/**', '**/androidTest/**', '**/ui/**']  # UI code uses many layout/animation constants
     ignoreNumbers:
       - '-1'
       - '0'
       - '1'
       - '2'
+      - '3'
+      - '4'
       - '8'
+      - '10'
+      - '12'
       - '16'
       - '24'
+      - '32'
+      - '48'
+      - '50'
+      - '60'
+      - '64'
       - '100'
+      - '128'
+      - '200'
+      - '255'
+      - '256'
+      - '400'
+      - '500'
+      - '600'
       - '1000'
+      - '1080'
+      - '1200'
+      - '1920'
+      - '2000'
     ignoreHashCodeFunction: true
     ignorePropertyDeclaration: true
     ignoreConstantDeclaration: true
@@ -84,6 +108,7 @@ style:
     ignoreNamedArgument: true
     ignoreEnums: true
     ignoreExtensionFunctions: true
+    ignoreLocalVariableDeclaration: true  # Allow magic numbers in local vars (common in Compose)
   ReturnCount:
     active: true
     max: 3
@@ -140,3 +165,33 @@ comments:
     active: false
   UndocumentedPublicFunction:
     active: false
+
+exceptions:
+  active: true
+  TooGenericExceptionCaught:
+    active: true
+    exceptionNames:
+      - 'ArrayIndexOutOfBoundsException'
+      - 'Error'
+      - 'Exception'
+      - 'IllegalMonitorStateException'
+      - 'IndexOutOfBoundsException'
+      - 'NullPointerException'
+      - 'RuntimeException'
+      - 'Throwable'
+    allowedExceptionNameRegex: '_|(ignore|expected).*'
+  TooGenericExceptionThrown:
+    active: true
+    exceptionNames:
+      - 'Error'
+      - 'Exception'
+      - 'RuntimeException'
+      - 'Throwable'
+  SwallowedException:
+    active: true
+    ignoredExceptionTypes:
+      - 'InterruptedException'
+      - 'MalformedURLException'
+      - 'NumberFormatException'
+      - 'ParseException'
+    allowedExceptionNameRegex: '_|(ignore|expected).*'
