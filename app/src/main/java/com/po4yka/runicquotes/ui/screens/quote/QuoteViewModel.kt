@@ -129,6 +129,7 @@ class QuoteViewModel @Inject constructor(
     /**
      * Toggles the favorite status of the current quote.
      */
+    @Suppress("SwallowedException") // Intentionally silent fail for non-critical favorite toggle
     fun toggleFavorite() {
         viewModelScope.launch {
             val currentState = _uiState.value
@@ -140,10 +141,10 @@ class QuoteViewModel @Inject constructor(
                     )
                     // Reload to reflect the change
                     loadQuoteOfTheDay()
-                } catch (e: IOException) {
-                    // Error toggling favorite, silently fail
-                } catch (e: IllegalStateException) {
-                    // Invalid state, silently fail
+                } catch (_: IOException) {
+                    // Error toggling favorite, silently fail - non-critical operation
+                } catch (_: IllegalStateException) {
+                    // Invalid state, silently fail - non-critical operation
                 }
             }
         }
