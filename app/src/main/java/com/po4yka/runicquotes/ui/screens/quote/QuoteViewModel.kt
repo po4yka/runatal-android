@@ -1,6 +1,5 @@
 package com.po4yka.runicquotes.ui.screens.quote
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
@@ -32,10 +31,6 @@ class QuoteViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<QuoteUiState>(QuoteUiState.Loading)
     val uiState: StateFlow<QuoteUiState> = _uiState.asStateFlow()
-
-    companion object {
-        private const val TAG = "QuoteViewModel"
-    }
 
     init {
         // Load initial quote
@@ -80,10 +75,8 @@ class QuoteViewModel @Inject constructor(
                 _uiState.update { QuoteUiState.Empty }
             }
         } catch (e: IOException) {
-            Log.e(TAG, "IO error loading quote of the day", e)
             _uiState.update { QuoteUiState.Error(e.message ?: "Failed to load quote") }
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "Invalid state loading quote", e)
             _uiState.update { QuoteUiState.Error(e.message ?: "Invalid state") }
         }
     }
@@ -117,10 +110,8 @@ class QuoteViewModel @Inject constructor(
                     _uiState.update { QuoteUiState.Empty }
                 }
             } catch (e: IOException) {
-                Log.e(TAG, "IO error loading random quote", e)
                 _uiState.update { QuoteUiState.Error(e.message ?: "Failed to load random quote") }
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state loading random quote", e)
                 _uiState.update { QuoteUiState.Error(e.message ?: "Invalid state") }
             }
         }
@@ -150,9 +141,9 @@ class QuoteViewModel @Inject constructor(
                     // Reload to reflect the change
                     loadQuoteOfTheDay()
                 } catch (e: IOException) {
-                    Log.e(TAG, "IO error toggling favorite status", e)
+                    // Error toggling favorite, silently fail
                 } catch (e: IllegalStateException) {
-                    Log.e(TAG, "Invalid state toggling favorite", e)
+                    // Invalid state, silently fail
                 }
             }
         }

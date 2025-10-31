@@ -24,6 +24,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.IOException
 
 /**
  * Comprehensive unit tests for QuoteViewModel.
@@ -189,8 +190,8 @@ class QuoteViewModelTest {
 
     @Test
     fun `repository throwing exception emits Error state`() = runTest {
-        // Given: Repository throws exception
-        coEvery { quoteRepository.quoteOfTheDay(any()) } throws RuntimeException("Database error")
+        // Given: Repository throws IOException
+        coEvery { quoteRepository.quoteOfTheDay(any()) } throws IOException("Database error")
 
         // When: ViewModel loads quote
         viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
@@ -206,8 +207,8 @@ class QuoteViewModelTest {
 
     @Test
     fun `error state handles exception without message`() = runTest {
-        // Given: Exception without message
-        coEvery { quoteRepository.quoteOfTheDay(any()) } throws RuntimeException()
+        // Given: IOException without message
+        coEvery { quoteRepository.quoteOfTheDay(any()) } throws IOException()
 
         // When: ViewModel loads quote
         viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
@@ -216,7 +217,7 @@ class QuoteViewModelTest {
         // Then: Generic error message is used
         viewModel.uiState.test {
             val state = awaitItem() as QuoteUiState.Error
-            assertEquals("Unknown error", state.message)
+            assertEquals("Failed to load quote", state.message)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -333,9 +334,9 @@ class QuoteViewModelTest {
 
     @Test
     fun `getRandomQuote handles errors`() = runTest {
-        // Given: Repository throws exception
+        // Given: Repository throws IOException
         coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
-        coEvery { quoteRepository.randomQuote(any()) } throws RuntimeException("Random error")
+        coEvery { quoteRepository.randomQuote(any()) } throws IOException("Random error")
 
         viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
