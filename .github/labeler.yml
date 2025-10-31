@@ -1,0 +1,49 @@
+# Configuration for PR labeler
+# Labels PRs based on changed files
+
+'area: ui':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'app/src/main/java/**/ui/**/*'
+      - 'app/src/main/res/**/*'
+
+'area: domain':
+  - changed-files:
+    - any-glob-to-any-file: 'app/src/main/java/**/domain/**/*'
+
+'area: data':
+  - changed-files:
+    - any-glob-to-any-file: 'app/src/main/java/**/data/**/*'
+
+'area: di':
+  - changed-files:
+    - any-glob-to-any-file: 'app/src/main/java/**/di/**/*'
+
+'area: tests':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'app/src/test/**/*'
+      - 'app/src/androidTest/**/*'
+
+'area: ci':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/**/*'
+      - '**/*.yml'
+
+'area: build':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.gradle.kts'
+      - 'gradle/**/*'
+      - 'gradle.properties'
+
+'area: docs':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+      - 'docs/**/*'
+
+'dependencies':
+  - changed-files:
+    - any-glob-to-any-file: 'gradle/libs.versions.toml'
