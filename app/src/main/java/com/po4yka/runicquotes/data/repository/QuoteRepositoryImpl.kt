@@ -4,9 +4,9 @@ import com.po4yka.runicquotes.data.local.dao.QuoteDao
 import com.po4yka.runicquotes.data.local.entity.QuoteEntity
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.util.TimeProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,7 +16,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class QuoteRepositoryImpl @Inject constructor(
-    private val quoteDao: QuoteDao
+    private val quoteDao: QuoteDao,
+    private val timeProvider: TimeProvider
 ) : QuoteRepository {
 
     private var isSeeded = false
@@ -37,7 +38,7 @@ class QuoteRepositoryImpl @Inject constructor(
         seedIfNeeded()
 
         // Get a consistent quote for today based on the day of year
-        val dayOfYear = LocalDate.now().dayOfYear
+        val dayOfYear = timeProvider.getCurrentDayOfYear()
         val allQuotes = quoteDao.getAll()
 
         if (allQuotes.isEmpty()) return null

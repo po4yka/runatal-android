@@ -470,23 +470,78 @@ class QuoteViewModelTest {
 
         // When: Multiple rapid preference changes
         viewModel.uiState.test {
-            skipItems(1) // Skip initial state
+            // Initial state
+            val initial = awaitItem()
+            assertTrue(initial is QuoteUiState.Success)
 
+            // First change
             preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.YOUNGER_FUTHARK)
             advanceUntilIdle()
-            skipItems(2) // Skip Loading and Success
+            awaitItem() // Loading
+            val state1 = awaitItem() as QuoteUiState.Success
+            assertEquals(RunicScript.YOUNGER_FUTHARK, state1.selectedScript)
 
+            // Second change
             preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.CIRTH)
             advanceUntilIdle()
-            skipItems(2) // Skip Loading and Success
+            awaitItem() // Loading
+            val state2 = awaitItem() as QuoteUiState.Success
+            assertEquals(RunicScript.CIRTH, state2.selectedScript)
 
+            // Third change
             preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.ELDER_FUTHARK)
             advanceUntilIdle()
-
-            // Then: Final state reflects last preference
-            skipItems(1) // Skip Loading
+            awaitItem() // Loading
             val finalState = awaitItem() as QuoteUiState.Success
             assertEquals(RunicScript.ELDER_FUTHARK, finalState.selectedScript)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `state transitions follow correct order from loading to success`() = runTest {
+        // Given: Repository will return a quote after delay
+        coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
+
+        // When: ViewModel is created
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+
+        // Then: States transition in expected order
+        viewModel.uiState.test {
+            val loadingState = awaitItem()
+            assertTrue("First state should be Loading", loadingState is QuoteUiState.Loading)
+
+            advanceUntilIdle()
+
+            val successState = awaitItem()
+            assertTrue("Second state should be Success", successState is QuoteUiState.Success)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `state transitions from success to loading to success on refresh`() = runTest {
+        // Given: ViewModel initialized with quote
+        coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
+
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        advanceUntilIdle()
+
+        // When: Refreshing
+        viewModel.uiState.test {
+            val initialSuccess = awaitItem()
+            assertTrue("Should start in Success", initialSuccess is QuoteUiState.Success)
+
+            viewModel.refreshQuote()
+            advanceUntilIdle()
+
+            val loading = awaitItem()
+            assertTrue("Should transition to Loading", loading is QuoteUiState.Loading)
+
+            val finalSuccess = awaitItem()
+            assertTrue("Should return to Success", finalSuccess is QuoteUiState.Success)
 
             cancelAndIgnoreRemainingEvents()
         }

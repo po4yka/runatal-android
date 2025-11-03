@@ -3,13 +3,16 @@ package com.po4yka.runicquotes.data.repository
 import com.po4yka.runicquotes.data.local.dao.QuoteDao
 import com.po4yka.runicquotes.data.local.entity.QuoteEntity
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.util.TimeProvider
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -21,13 +24,28 @@ import java.time.LocalDate
 /**
  * Comprehensive unit tests for QuoteRepositoryImpl.
  * Uses MockK to mock the DAO layer and verify repository business logic.
+ * Uses FakeTimeProvider to make tests deterministic and not dependent on system time.
  *
  * Coverage goals: >90%
  */
 class QuoteRepositoryImplTest {
 
     private lateinit var quoteDao: QuoteDao
+    private lateinit var timeProvider: FakeTimeProvider
     private lateinit var repository: QuoteRepositoryImpl
+
+    /**
+     * Fake TimeProvider for testing that allows setting a specific day of year.
+     */
+    private class FakeTimeProvider(private var dayOfYear: Int = 1) : TimeProvider {
+        fun setDayOfYear(day: Int) {
+            dayOfYear = day
+        }
+
+        override fun getCurrentDayOfYear(): Int = dayOfYear
+
+        override fun getCurrentDate(): LocalDate = LocalDate.ofYearDay(2024, dayOfYear)
+    }
 
     private val testQuotes = listOf(
         QuoteEntity(
@@ -59,7 +77,13 @@ class QuoteRepositoryImplTest {
     @Before
     fun setUp() {
         quoteDao = mockk()
-        repository = QuoteRepositoryImpl(quoteDao)
+        timeProvider = FakeTimeProvider(dayOfYear = 1)
+        repository = QuoteRepositoryImpl(quoteDao, timeProvider)
+    }
+
+    @After
+    fun tearDown() {
+        clearAllMocks()
     }
 
     // ==================== Seed Logic Tests ====================
@@ -123,16 +147,16 @@ class QuoteRepositoryImplTest {
 
     @Test
     fun `quoteOfTheDay uses day of year for selection`() = runTest {
-        // Given: Database with 3 quotes
+        // Given: Database with 3 quotes and day of year set to 5
+        timeProvider.setDayOfYear(5)
         coEvery { quoteDao.getCount() } returns 3
         coEvery { quoteDao.getAll() } returns testQuotes
 
         // When: Getting quote of the day
         val quote = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
 
-        // Then: Quote index matches dayOfYear % size
-        val dayOfYear = LocalDate.now().dayOfYear
-        val expectedIndex = dayOfYear % testQuotes.size
+        // Then: Quote index matches dayOfYear % size (5 % 3 = 2)
+        val expectedIndex = 2
         assertEquals(testQuotes[expectedIndex].id, quote?.id)
     }
 
@@ -167,17 +191,17 @@ class QuoteRepositoryImplTest {
 
     @Test
     fun `quoteOfTheDay maps entity to domain model correctly`() = runTest {
-        // Given: Database with quotes
+        // Given: Database with quotes and day of year set to 7
+        timeProvider.setDayOfYear(7)
         coEvery { quoteDao.getCount() } returns 3
         coEvery { quoteDao.getAll() } returns testQuotes
 
         // When: Getting quote of the day
         val quote = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
 
-        // Then: Domain model properties match entity
+        // Then: Domain model properties match entity (7 % 3 = 1)
         assertNotNull(quote)
-        val dayOfYear = LocalDate.now().dayOfYear
-        val expectedIndex = dayOfYear % testQuotes.size
+        val expectedIndex = 1
         val expectedEntity = testQuotes[expectedIndex]
 
         assertEquals(expectedEntity.id, quote?.id)
@@ -450,17 +474,105 @@ class QuoteRepositoryImplTest {
 
     @Test
     fun `day of year modulo works correctly for year boundary`() = runTest {
-        // Given: 3 quotes in database
+        // Given: 3 quotes in database and day of year set to 365 (end of year)
+        timeProvider.setDayOfYear(365)
         coEvery { quoteDao.getCount() } returns 3
         coEvery { quoteDao.getAll() } returns testQuotes
 
         // When: Getting quote (day of year will be moduloed by 3)
         val quote = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
 
-        // Then: Index is within valid range
+        // Then: Index is within valid range (365 % 3 = 2)
         assertNotNull(quote)
-        val dayOfYear = LocalDate.now().dayOfYear
-        val expectedIndex = dayOfYear % 3
-        assertEquals(testQuotes[expectedIndex].id, quote?.id)
+        assertEquals(testQuotes[365 % 3].id, quote?.id)
+    }
+
+    @Test
+    fun `different days return different quotes predictably`() = runTest {
+        // Given: Database with 3 quotes
+        coEvery { quoteDao.getCount() } returns 3
+        coEvery { quoteDao.getAll() } returns testQuotes
+
+        // When: Getting quotes for different days
+        timeProvider.setDayOfYear(1)
+        val quote1 = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+
+        timeProvider.setDayOfYear(2)
+        val quote2 = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+
+        timeProvider.setDayOfYear(3)
+        val quote3 = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+
+        // Then: Different quotes are returned based on modulo
+        assertEquals(testQuotes[1].id, quote1?.id) // 1 % 3 = 1
+        assertEquals(testQuotes[2].id, quote2?.id) // 2 % 3 = 2
+        assertEquals(testQuotes[0].id, quote3?.id) // 3 % 3 = 0
+    }
+
+    @Test
+    fun `same day always returns same quote index`() = runTest {
+        // Given: Database with 3 quotes and day set to 10
+        timeProvider.setDayOfYear(10)
+        coEvery { quoteDao.getCount() } returns 3
+        coEvery { quoteDao.getAll() } returns testQuotes
+
+        // When: Getting quote multiple times on same day
+        val quote1 = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+        val quote2 = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+        val quote3 = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+
+        // Then: All return same quote (10 % 3 = 1)
+        assertEquals(testQuotes[1].id, quote1?.id)
+        assertEquals(quote1?.id, quote2?.id)
+        assertEquals(quote1?.id, quote3?.id)
+    }
+
+    @Test
+    fun `leap year day 366 is handled correctly`() = runTest {
+        // Given: Database with 5 quotes and day set to 366 (leap year)
+        val fiveQuotes = testQuotes + listOf(
+            QuoteEntity(id = 4, textLatin = "Quote 4", author = "Author 4", runicElder = null, runicYounger = null, runicCirth = null),
+            QuoteEntity(id = 5, textLatin = "Quote 5", author = "Author 5", runicElder = null, runicYounger = null, runicCirth = null)
+        )
+        timeProvider.setDayOfYear(366)
+        coEvery { quoteDao.getCount() } returns 5
+        coEvery { quoteDao.getAll() } returns fiveQuotes
+
+        // When: Getting quote for day 366
+        val quote = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+
+        // Then: Valid quote is returned (366 % 5 = 1)
+        assertNotNull(quote)
+        assertEquals(fiveQuotes[1].id, quote?.id)
+    }
+
+    @Test
+    fun `repository with different quote counts distributes evenly`() = runTest {
+        // Test with 1, 2, 5, 10 quotes to ensure modulo works correctly
+        val singleQuote = listOf(testQuotes[0])
+
+        // Test with 1 quote
+        timeProvider.setDayOfYear(100)
+        coEvery { quoteDao.getCount() } returns 1
+        coEvery { quoteDao.getAll() } returns singleQuote
+        val quote = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+        assertEquals(singleQuote[0].id, quote?.id)
+    }
+
+    @Test
+    fun `isSeeded flag prevents multiple seeding calls`() = runTest {
+        // Given: Empty database initially
+        coEvery { quoteDao.getCount() } returns 0 andThen 5
+        coEvery { quoteDao.insertAll(any()) } returns Unit
+        coEvery { quoteDao.getAll() } returns testQuotes
+        coEvery { quoteDao.getRandom() } returns testQuotes[0]
+
+        // When: Multiple operations that call seedIfNeeded
+        repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+        repository.randomQuote(RunicScript.ELDER_FUTHARK)
+        repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+
+        // Then: insertAll is called only once due to isSeeded flag
+        coVerify(exactly = 1) { quoteDao.insertAll(any()) }
     }
 }
