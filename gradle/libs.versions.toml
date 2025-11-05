@@ -24,6 +24,7 @@ robolectric = "4.16"
 androidx-test-ext-junit = "1.2.1"
 androidx-test-espresso = "3.6.1"
 detekt = "1.23.8"
+profileinstaller = "1.4.1"
 
 [libraries]
 # Kotlin
@@ -73,6 +74,9 @@ lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel
 # AndroidX Core
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
+
+# Baseline Profiles
+androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "profileinstaller" }
 
 # Testing
 junit = { module = "junit:junit", version.ref = "junit" }

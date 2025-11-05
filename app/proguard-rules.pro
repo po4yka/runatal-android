@@ -1,36 +1,45 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.kts.
+# ====================================================================================================
+# Runic Quotes - ProGuard/R8 Optimization Rules
+# ====================================================================================================
+# These rules optimize the app for release builds while preserving necessary classes
+# and methods for runtime reflection, serialization, and Android framework interactions.
 #
-# For more details, see
+# For more details, see:
 #   http://developer.android.com/guide/developing/tools/proguard.html
+# ====================================================================================================
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ====================================================================================================
+# DEBUGGING & CRASH REPORTING
+# ====================================================================================================
+# Keep line numbers and source file names for better crash reports
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Keep annotations for debugging and runtime processing
+-keepattributes *Annotation*, Signature, Exception, InnerClasses, EnclosingMethod
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ====================================================================================================
+# KOTLIN & COROUTINES
+# ====================================================================================================
+# Keep Kotlin metadata for reflection
+-keep class kotlin.Metadata { *; }
+
+# Coroutines
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembers class kotlinx.coroutines.** {
+    volatile <fields>;
+}
+-dontwarn kotlinx.coroutines.**
 
 # Kotlin serialization
--keepattributes *Annotation*, InnerClasses
 -dontnote kotlinx.serialization.AnnotationsKt
-
 -keepclassmembers class kotlinx.serialization.json.** {
     *** Companion;
 }
 -keepclasseswithmembers class kotlinx.serialization.json.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
-
 -keep,includedescriptorclasses class com.po4yka.runicquotes.**$$serializer { *; }
 -keepclassmembers class com.po4yka.runicquotes.** {
     *** Companion;
@@ -39,21 +48,168 @@
     kotlinx.serialization.KSerializer serializer(...);
 }
 
-# Room
--keep class * extends androidx.room.RoomDatabase
--keep @androidx.room.Entity class *
--dontwarn androidx.room.paging.**
+# ====================================================================================================
+# JETPACK COMPOSE
+# ====================================================================================================
+# Keep Compose runtime classes
+-keep class androidx.compose.runtime.** { *; }
+-keep class androidx.compose.ui.** { *; }
+-keep class androidx.compose.foundation.** { *; }
+-keep class androidx.compose.material3.** { *; }
 
-# Hilt
--dontwarn com.google.errorprone.annotations.**
-
-# Coroutines
--keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
--keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
--keepclassmembers class kotlinx.coroutines.** {
-    volatile <fields>;
+# Keep @Composable functions
+-keep @androidx.compose.runtime.Composable class * { *; }
+-keepclassmembers class * {
+    @androidx.compose.runtime.Composable *;
 }
 
-# Glance
+# Keep Compose compiler metadata
+-keepattributes RuntimeVisibleAnnotations
+
+# Keep Material 3 icon classes
+-keep class androidx.compose.material.icons.** { *; }
+
+# ====================================================================================================
+# HILT / DAGGER
+# ====================================================================================================
+# Keep Hilt generated classes
+-keep class * extends dagger.hilt.internal.GeneratedComponent
+-keep class * extends dagger.hilt.android.internal.managers.ViewComponentManager$FragmentContextWrapper
+-keep class dagger.hilt.** { *; }
+-keep class javax.inject.** { *; }
+
+# Keep @Inject constructors
+-keepclasseswithmembers class * {
+    @javax.inject.Inject <init>(...);
+}
+
+# Keep Hilt modules
+-keep @dagger.hilt.InstallIn class *
+-keep @dagger.Module class *
+-keep @dagger.hilt.components.SingletonComponent class *
+
+# Keep entry points
+-keep @dagger.hilt.EntryPoint class *
+
+# Don't warn about Hilt dependencies
+-dontwarn com.google.errorprone.annotations.**
+-dontwarn dagger.hilt.android.internal.**
+
+# ====================================================================================================
+# ROOM DATABASE
+# ====================================================================================================
+# Keep Room generated classes
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
+-keep @androidx.room.Dao class *
+
+# Keep Room DAO methods
+-keepclassmembers,allowobfuscation class * extends androidx.room.RoomDatabase {
+    public abstract * *Dao();
+}
+
+# Keep Room entity fields
+-keepclassmembers class * {
+    @androidx.room.* <fields>;
+}
+
+# Don't warn about Room paging
+-dontwarn androidx.room.paging.**
+
+# ====================================================================================================
+# DATASTORE
+# ====================================================================================================
+# Keep DataStore classes
+-keep class androidx.datastore.*.** { *; }
+-keepclassmembers class * extends androidx.datastore.preferences.protobuf.GeneratedMessageLite {
+    <fields>;
+}
+
+# ====================================================================================================
+# WORKMANAGER
+# ====================================================================================================
+# Keep WorkManager workers
+-keep class * extends androidx.work.Worker
+-keep class * extends androidx.work.CoroutineWorker
+-keepclassmembers class * extends androidx.work.Worker {
+    public <init>(android.content.Context, androidx.work.WorkerParameters);
+}
+-keepclassmembers class * extends androidx.work.CoroutineWorker {
+    public <init>(android.content.Context, androidx.work.WorkerParameters);
+}
+
+# ====================================================================================================
+# GLANCE (WIDGETS)
+# ====================================================================================================
+# Keep Glance widget classes
 -keep class androidx.glance.** { *; }
+-keep class * extends androidx.glance.appwidget.GlanceAppWidget
+-keep class * extends androidx.glance.appwidget.GlanceAppWidgetReceiver
 -dontwarn androidx.glance.**
+
+# ====================================================================================================
+# NAVIGATION COMPOSE
+# ====================================================================================================
+# Keep Navigation classes
+-keep class androidx.navigation.** { *; }
+-keepclassmembers class androidx.navigation.** { *; }
+
+# Keep serializable navigation arguments
+-keepclassmembers class * implements java.io.Serializable {
+    static final long serialVersionUID;
+    private static final java.io.ObjectStreamField[] serialPersistentFields;
+    !static !transient <fields>;
+    private void writeObject(java.io.ObjectOutputStream);
+    private void readObject(java.io.ObjectInputStream);
+    java.lang.Object writeReplace();
+    java.lang.Object readResolve();
+}
+
+# ====================================================================================================
+# APP-SPECIFIC RULES
+# ====================================================================================================
+# Keep domain models (used by Room, serialization, and UI)
+-keep class com.po4yka.runicquotes.domain.model.** { *; }
+-keep class com.po4yka.runicquotes.data.local.entity.** { *; }
+-keep class com.po4yka.runicquotes.data.preferences.** { *; }
+
+# Keep transliterators (core app functionality)
+-keep class com.po4yka.runicquotes.domain.transliteration.** { *; }
+
+# Keep ViewModels
+-keep class * extends androidx.lifecycle.ViewModel {
+    <init>(...);
+}
+
+# Keep enum classes (RunicScript, etc.)
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+# ====================================================================================================
+# OPTIMIZATION
+# ====================================================================================================
+# Enable aggressive optimization
+-optimizationpasses 5
+-allowaccessmodification
+-dontpreverify
+
+# Optimize methods
+-optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*
+
+# Remove logging in release (optional - uncomment if desired)
+# -assumenosideeffects class android.util.Log {
+#     public static *** d(...);
+#     public static *** v(...);
+#     public static *** i(...);
+# }
+
+# ====================================================================================================
+# WARNINGS TO IGNORE
+# ====================================================================================================
+-dontwarn org.bouncycastle.**
+-dontwarn org.conscrypt.**
+-dontwarn org.openjsse.**
+-dontwarn javax.annotation.**
+-dontwarn edu.umd.cs.findbugs.annotations.**

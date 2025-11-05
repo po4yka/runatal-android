@@ -135,6 +135,9 @@ dependencies {
     // Serialization
     implementation(libs.kotlinx.serialization.json)
 
+    // Baseline Profiles
+    implementation(libs.androidx.profileinstaller)
+
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

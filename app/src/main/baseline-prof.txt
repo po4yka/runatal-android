@@ -1,0 +1,138 @@
+# ====================================================================================================
+# Runic Quotes - Baseline Profile
+# ====================================================================================================
+# This baseline profile specifies classes and methods that should be pre-compiled (AOT compiled)
+# for faster app startup and improved runtime performance on Android 9+ devices.
+#
+# The profile is organized by:
+# 1. App startup (MainActivity, Application, DI)
+# 2. Critical user paths (Quote display, transliteration)
+# 3. UI rendering (Compose, ViewModels)
+# 4. Data access (Repository, Database, DataStore)
+#
+# Format:
+#   - Class descriptors: Lcom/package/ClassName;
+#   - Method descriptors: Lcom/package/ClassName;->methodName(params)returnType
+#   - Flags: H (hot), S (startup), P (post-startup)
+# ====================================================================================================
+
+# ====================================================================================================
+# APPLICATION & STARTUP
+# ====================================================================================================
+HSPLcom/po4yka/runicquotes/RunicQuotesApp;-><init>()V
+HSPLcom/po4yka/runicquotes/RunicQuotesApp;->onCreate()V
+HSPLcom/po4yka/runicquotes/MainActivity;-><init>()V
+HSPLcom/po4yka/runicquotes/MainActivity;->onCreate(Landroid/os/Bundle;)V
+
+# ====================================================================================================
+# DEPENDENCY INJECTION (Hilt)
+# ====================================================================================================
+HSPLcom/po4yka/runicquotes/di/DatabaseModule;->provideDatabase(Landroid/content/Context;)Lcom/po4yka/runicquotes/data/local/RunicQuotesDatabase;
+HSPLcom/po4yka/runicquotes/di/DatabaseModule;->provideQuoteDao(Lcom/po4yka/runicquotes/data/local/RunicQuotesDatabase;)Lcom/po4yka/runicquotes/data/local/dao/QuoteDao;
+HSPLcom/po4yka/runicquotes/di/DataStoreModule;->provideDataStore(Landroid/content/Context;)Landroidx/datastore/core/DataStore;
+HSPLcom/po4yka/runicquotes/di/RepositoryModule;->bindQuoteRepository(Lcom/po4yka/runicquotes/data/repository/QuoteRepositoryImpl;)Lcom/po4yka/runicquotes/data/repository/QuoteRepository;
+
+# ====================================================================================================
+# DOMAIN LAYER - TRANSLITERATORS (Core functionality)
+# ====================================================================================================
+HSPLcom/po4yka/runicquotes/domain/transliteration/ElderFutharkTransliterator;-><init>()V
+HSPLcom/po4yka/runicquotes/domain/transliteration/ElderFutharkTransliterator;->transliterate(Ljava/lang/String;)Ljava/lang/String;
+HSPLcom/po4yka/runicquotes/domain/transliteration/YoungerFutharkTransliterator;-><init>()V
+HSPLcom/po4yka/runicquotes/domain/transliteration/YoungerFutharkTransliterator;->transliterate(Ljava/lang/String;)Ljava/lang/String;
+HSPLcom/po4yka/runicquotes/domain/transliteration/CirthTransliterator;-><init>()V
+HSPLcom/po4yka/runicquotes/domain/transliteration/CirthTransliterator;->transliterate(Ljava/lang/String;)Ljava/lang/String;
+
+# ====================================================================================================
+# DOMAIN MODELS
+# ====================================================================================================
+HSPLcom/po4yka/runicquotes/domain/model/Quote;-><init>(JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZJJ)V
+HSPLcom/po4yka/runicquotes/domain/model/QuoteKt;->getRunicText(Lcom/po4yka/runicquotes/domain/model/Quote;Lcom/po4yka/runicquotes/domain/model/RunicScript;Lcom/po4yka/runicquotes/domain/transliteration/ElderFutharkTransliterator;Lcom/po4yka/runicquotes/domain/transliteration/YoungerFutharkTransliterator;Lcom/po4yka/runicquotes/domain/transliteration/CirthTransliterator;)Ljava/lang/String;
+HSPLcom/po4yka/runicquotes/domain/model/RunicScript;->values()[Lcom/po4yka/runicquotes/domain/model/RunicScript;
+HSPLcom/po4yka/runicquotes/domain/model/RunicScript;->valueOf(Ljava/lang/String;)Lcom/po4yka/runicquotes/domain/model/RunicScript;
+
+# ====================================================================================================
+# DATA LAYER - REPOSITORY
+# ====================================================================================================
+HSPLcom/po4yka/runicquotes/data/repository/QuoteRepositoryImpl;-><init>(Lcom/po4yka/runicquotes/data/local/dao/QuoteDao;Lcom/po4yka/runicquotes/util/TimeProvider;)V
+HSPLcom/po4yka/runicquotes/data/repository/QuoteRepositoryImpl;->seedIfNeeded(Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+HSPLcom/po4yka/runicquotes/data/repository/QuoteRepositoryImpl;->quoteOfTheDay(Lcom/po4yka/runicquotes/domain/model/RunicScript;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+HPLcom/po4yka/runicquotes/data/repository/QuoteRepositoryImpl;->getAllQuotesFlow()Lkotlinx/coroutines/flow/Flow;
+HPLcom/po4yka/runicquotes/data/repository/QuoteRepositoryImpl;->getFavoritesFlow()Lkotlinx/coroutines/flow/Flow;
+HPLcom/po4yka/runicquotes/data/repository/QuoteRepositoryImpl;->getUserQuotesFlow()Lkotlinx/coroutines/flow/Flow;
+
+# ====================================================================================================
+# DATA LAYER - DATABASE (Room)
+# ====================================================================================================
+HSPLcom/po4yka/runicquotes/data/local/RunicQuotesDatabase;->quoteDao()Lcom/po4yka/runicquotes/data/local/dao/QuoteDao;
+HSPLcom/po4yka/runicquotes/data/local/dao/QuoteDao;->getAll(Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+HPLcom/po4yka/runicquotes/data/local/dao/QuoteDao;->getAllAsFlow()Lkotlinx/coroutines/flow/Flow;
+HPLcom/po4yka/runicquotes/data/local/dao/QuoteDao;->getRandom(Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+HPLcom/po4yka/runicquotes/data/local/dao/QuoteDao;->getById(JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+
+# ====================================================================================================
+# DATA LAYER - PREFERENCES (DataStore)
+# ====================================================================================================
+HSPLcom/po4yka/runicquotes/data/preferences/UserPreferencesManager;-><init>(Landroidx/datastore/core/DataStore;)V
+HSPLcom/po4yka/runicquotes/data/preferences/UserPreferencesManager;->getUserPreferencesFlow()Lkotlinx/coroutines/flow/Flow;
+HPLcom/po4yka/runicquotes/data/preferences/UserPreferencesManager;->updateSelectedScript(Lcom/po4yka/runicquotes/domain/model/RunicScript;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+HPLcom/po4yka/runicquotes/data/preferences/UserPreferencesManager;->updateSelectedFont(Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+
+# ====================================================================================================
+# UI LAYER - VIEWMODELS
+# ====================================================================================================
+HSPLcom/po4yka/runicquotes/ui/screens/quote/QuoteViewModel;-><init>(Lcom/po4yka/runicquotes/data/repository/QuoteRepository;Lcom/po4yka/runicquotes/data/preferences/UserPreferencesManager;Lcom/po4yka/runicquotes/util/QuoteShareManager;)V
+HSPLcom/po4yka/runicquotes/ui/screens/quote/QuoteViewModel;->getUiState()Lkotlinx/coroutines/flow/StateFlow;
+HPLcom/po4yka/runicquotes/ui/screens/quote/QuoteViewModel;->loadQuote(Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+HPLcom/po4yka/runicquotes/ui/screens/quote/QuoteViewModel;->refreshQuote()V
+HPLcom/po4yka/runicquotes/ui/screens/quote/QuoteViewModel;->getRandomQuote()V
+
+HPLcom/po4yka/runicquotes/ui/screens/settings/SettingsViewModel;-><init>(Lcom/po4yka/runicquotes/data/preferences/UserPreferencesManager;)V
+HPLcom/po4yka/runicquotes/ui/screens/settings/SettingsViewModel;->getUserPreferences()Lkotlinx/coroutines/flow/StateFlow;
+
+HPLcom/po4yka/runicquotes/ui/screens/quotelist/QuoteListViewModel;-><init>(Lcom/po4yka/runicquotes/data/repository/QuoteRepository;Lcom/po4yka/runicquotes/data/preferences/UserPreferencesManager;)V
+HPLcom/po4yka/runicquotes/ui/screens/quotelist/QuoteListViewModel;->getUiState()Lkotlinx/coroutines/flow/StateFlow;
+HPLcom/po4yka/runicquotes/ui/screens/quotelist/QuoteListViewModel;->setFilter(Lcom/po4yka/runicquotes/ui/screens/quotelist/QuoteFilter;)V
+
+HPLcom/po4yka/runicquotes/ui/screens/addeditquote/AddEditQuoteViewModel;-><init>(Lcom/po4yka/runicquotes/data/repository/QuoteRepository;Lcom/po4yka/runicquotes/data/preferences/UserPreferencesManager;Lcom/po4yka/runicquotes/domain/transliteration/ElderFutharkTransliterator;Lcom/po4yka/runicquotes/domain/transliteration/YoungerFutharkTransliterator;Lcom/po4yka/runicquotes/domain/transliteration/CirthTransliterator;Landroidx/lifecycle/SavedStateHandle;)V
+HPLcom/po4yka/runicquotes/ui/screens/addeditquote/AddEditQuoteViewModel;->updateTextLatin(Ljava/lang/String;)V
+HPLcom/po4yka/runicquotes/ui/screens/addeditquote/AddEditQuoteViewModel;->updateAuthor(Ljava/lang/String;)V
+
+# ====================================================================================================
+# UI LAYER - COMPOSE SCREENS
+# ====================================================================================================
+HSPLcom/po4yka/runicquotes/ui/screens/quote/QuoteScreenKt;->QuoteScreen(Lcom/po4yka/runicquotes/ui/screens/quote/QuoteViewModel;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;II)V
+HPLcom/po4yka/runicquotes/ui/screens/settings/SettingsScreenKt;->SettingsScreen(Lcom/po4yka/runicquotes/ui/screens/settings/SettingsViewModel;Lkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;II)V
+HPLcom/po4yka/runicquotes/ui/screens/quotelist/QuoteListScreenKt;->QuoteListScreen(Lcom/po4yka/runicquotes/ui/screens/quotelist/QuoteListViewModel;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
+
+# ====================================================================================================
+# UI LAYER - COMPOSE COMPONENTS
+# ====================================================================================================
+HSPLcom/po4yka/runicquotes/ui/components/RunicTextKt;->RunicText(Ljava/lang/String;Lcom/po4yka/runicquotes/domain/model/RunicScript;Ljava/lang/String;Landroidx/compose/ui/Modifier;FLandroidx/compose/runtime/Composer;II)V
+HPLcom/po4yka/runicquotes/ui/components/ScriptSelectorKt;->ScriptSelector(Lcom/po4yka/runicquotes/domain/model/RunicScript;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+HPLcom/po4yka/runicquotes/ui/components/QuoteCardKt;->QuoteCard(Lcom/po4yka/runicquotes/domain/model/Quote;Lcom/po4yka/runicquotes/domain/model/RunicScript;Ljava/lang/String;ZLkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+
+# ====================================================================================================
+# UI LAYER - THEME
+# ====================================================================================================
+HSPLcom/po4yka/runicquotes/ui/theme/ThemeKt;->RunicQuotesTheme(ZZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+HSPLcom/po4yka/runicquotes/ui/theme/ColorKt;->getDarkColorScheme()Landroidx/compose/material3/ColorScheme;
+HSPLcom/po4yka/runicquotes/ui/theme/ColorKt;->getLightColorScheme()Landroidx/compose/material3/ColorScheme;
+HSPLcom/po4yka/runicquotes/ui/theme/RunicFontsKt;->getNotoSansRunic()Landroidx/compose/ui/text/font/FontFamily;
+HSPLcom/po4yka/runicquotes/ui/theme/RunicFontsKt;->getBabelStoneRunic()Landroidx/compose/ui/text/font/FontFamily;
+
+# ====================================================================================================
+# UI LAYER - NAVIGATION
+# ====================================================================================================
+HSPLcom/po4yka/runicquotes/ui/navigation/RunicNavGraphKt;->RunicNavGraph(Landroidx/navigation/NavHostController;Landroidx/compose/runtime/Composer;I)V
+
+# ====================================================================================================
+# WIDGET
+# ====================================================================================================
+HPLcom/po4yka/runicquotes/ui/widget/RunicQuoteWidget;->provideGlance(Landroid/content/Context;Landroidx/glance/GlanceId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+HPLcom/po4yka/runicquotes/worker/WidgetUpdateWorker;->doWork(Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+
+# ====================================================================================================
+# UTILITIES
+# ====================================================================================================
+HSPLcom/po4yka/runicquotes/util/TimeProvider;->getCurrentDayOfYear()I
+HPLcom/po4yka/runicquotes/util/QuoteShareManager;->shareQuoteAsText(Lcom/po4yka/runicquotes/domain/model/Quote;Lcom/po4yka/runicquotes/domain/model/RunicScript;)V
