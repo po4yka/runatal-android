@@ -50,6 +50,8 @@ class QuoteListViewModelTest {
             textLatin = "System quote 1",
             author = "Author 1",
             runicElder = "ᛏᛖᛋᛏ",
+            runicYounger = "ᛏᛖᛋᛏ",
+            runicCirth = "\uE088\uE0C9\uE09C\uE088",
             isUserCreated = false,
             isFavorite = false
         ),
@@ -58,6 +60,8 @@ class QuoteListViewModelTest {
             textLatin = "User quote 1",
             author = "Author 2",
             runicElder = "ᚦᛖᛋᛏ",
+            runicYounger = "ᚦᛖᛋᛏ",
+            runicCirth = "\uE088\uE0B4\uE0C9\uE09C\uE088",
             isUserCreated = true,
             isFavorite = true
         ),
@@ -66,6 +70,8 @@ class QuoteListViewModelTest {
             textLatin = "System quote 2",
             author = "Author 3",
             runicElder = "ᚹᛟᚱᛞ",
+            runicYounger = "ᚹᛟᚱᛞ",
+            runicCirth = "\uE0B8\uE0CB\uE0A0\uE089",
             isUserCreated = false,
             isFavorite = true
         )
@@ -476,6 +482,8 @@ class QuoteListViewModelTest {
                 textLatin = "New quote",
                 author = "New author",
                 runicElder = "ᚾᛖᚹ",
+                runicYounger = "ᚾᛖᚹ",
+                runicCirth = "\uE0B4\uE0C9\uE0B8",
                 isUserCreated = false,
                 isFavorite = false
             )

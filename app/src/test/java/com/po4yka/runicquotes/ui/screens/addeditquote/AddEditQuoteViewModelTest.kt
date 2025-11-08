@@ -609,9 +609,9 @@ class AddEditQuoteViewModelTest {
 
         // Then: All runic fields are populated
         assertNotNull(savedQuote)
-        assertTrue(savedQuote!!.runicElder.isNotEmpty())
-        assertTrue(savedQuote!!.runicYounger!!.isNotEmpty())
-        assertTrue(savedQuote!!.runicCirth!!.isNotEmpty())
+        assertTrue(savedQuote!!.runicElder?.isNotEmpty() == true)
+        assertTrue(savedQuote.runicYounger?.isNotEmpty() == true)
+        assertTrue(savedQuote.runicCirth?.isNotEmpty() == true)
     }
 
     @Test
