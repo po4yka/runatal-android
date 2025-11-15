@@ -276,20 +276,24 @@ class QuoteListViewModelTest {
 
             // Switch to FAVORITES
             viewModel.setFilter(QuoteFilter.FAVORITES)
+            // setFilter updates state, then combine re-emits
+            val filterUpdate1 = awaitItem() // Direct update from setFilter
             advanceUntilIdle()
-            val favoritesState = awaitItem()
+            val favoritesState = awaitItem() // Combine re-emits with filtered data
             assertEquals(favoriteQuotes.size, favoritesState.quotes.size)
 
             // Switch to USER_CREATED
             viewModel.setFilter(QuoteFilter.USER_CREATED)
+            awaitItem() // Direct update from setFilter
             advanceUntilIdle()
-            val userState = awaitItem()
+            val userState = awaitItem() // Combine re-emits with filtered data
             assertEquals(userQuotes.size, userState.quotes.size)
 
             // Switch to SYSTEM
             viewModel.setFilter(QuoteFilter.SYSTEM)
+            awaitItem() // Direct update from setFilter
             advanceUntilIdle()
-            val systemState = awaitItem()
+            val systemState = awaitItem() // Combine re-emits with filtered data
             assertEquals(systemQuotes.size, systemState.quotes.size)
 
             cancelAndIgnoreRemainingEvents()
