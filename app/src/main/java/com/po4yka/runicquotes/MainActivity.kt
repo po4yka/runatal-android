@@ -8,9 +8,11 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.compose.rememberNavController
 import com.po4yka.runicquotes.ui.navigation.NavGraph
+import com.po4yka.runicquotes.ui.navigation.QuoteRoute
 import com.po4yka.runicquotes.ui.screens.settings.SettingsViewModel
 import com.po4yka.runicquotes.ui.theme.RunicQuotesTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -48,7 +50,9 @@ fun RunicQuotesApp() {
     }
 
     RunicQuotesTheme(darkTheme = darkTheme) {
-        val navController = rememberNavController()
-        NavGraph(navController = navController)
+        val backStack = rememberSaveable {
+            mutableStateListOf<Any>(QuoteRoute)
+        }
+        NavGraph(backStack = backStack)
     }
 }

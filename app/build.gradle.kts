@@ -129,8 +129,10 @@ dependencies {
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)
 
-    // Navigation
-    implementation(libs.navigation.compose)
+    // Navigation 3
+    implementation(libs.navigation3.runtime)
+    implementation(libs.navigation3.ui)
+    implementation(libs.lifecycle.viewmodel.navigation3)
 
     // Serialization
     implementation(libs.kotlinx.serialization.json)
