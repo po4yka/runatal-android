@@ -147,14 +147,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: release-apk-${{ steps.version.outputs.VERSION_NAME }}
           path: app/build/outputs/apk/release/RunicQuotes-*.apk
           retention-days: 90
 
       - name: Upload AAB artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: release-aab-${{ steps.version.outputs.VERSION_NAME }}
           path: app/build/outputs/bundle/release/app-release.aab
@@ -162,7 +162,7 @@ jobs:
 
       - name: Upload build reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: build-reports
           path: |
