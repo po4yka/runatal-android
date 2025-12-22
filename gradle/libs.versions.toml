@@ -1,5 +1,5 @@
 [versions]
-kotlin = "2.2.21"
+kotlin = "2.3.0"
 ksp = "2.3.2"
 agp = "8.13.1"
 compose-bom = "2025.11.00"
