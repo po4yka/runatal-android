@@ -1,17 +1,22 @@
 package com.po4yka.runicquotes.ui.theme
 
 import android.app.Activity
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
@@ -246,23 +251,63 @@ val LocalReduceMotion = staticCompositionLocalOf { false }
 private fun resolveColorScheme(
     darkTheme: Boolean,
     themePack: String,
-    highContrast: Boolean
+    highContrast: Boolean,
+    dynamicColorEnabled: Boolean,
+    context: android.content.Context
 ): ColorScheme {
     if (highContrast) {
         return if (darkTheme) HighContrastDarkColorScheme else HighContrastLightColorScheme
     }
 
-    return when (themePack) {
+    val packColorScheme = when (themePack) {
         "parchment" -> if (darkTheme) ParchmentDarkColorScheme else ParchmentLightColorScheme
         "night_ink" -> if (darkTheme) NightInkDarkColorScheme else NightInkLightColorScheme
         else -> if (darkTheme) StoneDarkColorScheme else StoneLightColorScheme
     }
+
+    if (dynamicColorEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val dynamicColorScheme = dynamicColorSchemeForContext(
+            context = context,
+            darkTheme = darkTheme
+        )
+        return harmonizeDynamicWithPack(dynamicColorScheme, packColorScheme)
+    }
+    return packColorScheme
+}
+
+@RequiresApi(Build.VERSION_CODES.S)
+private fun dynamicColorSchemeForContext(
+    context: android.content.Context,
+    darkTheme: Boolean
+): ColorScheme {
+    return if (darkTheme) {
+        dynamicDarkColorScheme(context)
+    } else {
+        dynamicLightColorScheme(context)
+    }
+}
+
+private fun harmonizeDynamicWithPack(dynamic: ColorScheme, pack: ColorScheme): ColorScheme {
+    fun blend(dynamicColor: Color, packColor: Color): Color {
+        return lerp(dynamicColor, packColor, 0.28f)
+    }
+
+    return dynamic.copy(
+        primary = blend(dynamic.primary, pack.primary),
+        primaryContainer = blend(dynamic.primaryContainer, pack.primaryContainer),
+        secondary = blend(dynamic.secondary, pack.secondary),
+        secondaryContainer = blend(dynamic.secondaryContainer, pack.secondaryContainer),
+        tertiary = blend(dynamic.tertiary, pack.tertiary),
+        tertiaryContainer = blend(dynamic.tertiaryContainer, pack.tertiaryContainer),
+        inversePrimary = blend(dynamic.inversePrimary, pack.inversePrimary)
+    )
 }
 
 /**
  * Runic Quotes theme using pack-based palettes and typography.
  *
  * @param darkTheme Whether to use dark theme
+ * @param dynamicColorEnabled Whether to use wallpaper-driven dynamic color harmonized with theme pack
  * @param themePack Visual palette and typography pack
  * @param runicFontScale Global scale multiplier for runic glyphs
  * @param highContrast Enable high-contrast palette override
@@ -272,17 +317,23 @@ private fun resolveColorScheme(
 @Composable
 fun RunicQuotesTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColorEnabled: Boolean = false,
     themePack: String = "stone",
     runicFontScale: Float = 1.0f,
     highContrast: Boolean = false,
     reducedMotion: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    val context = LocalContext.current
     val colorScheme = resolveColorScheme(
         darkTheme = darkTheme,
         themePack = themePack,
-        highContrast = highContrast
+        highContrast = highContrast,
+        dynamicColorEnabled = dynamicColorEnabled,
+        context = context
     )
+    val typography = typographyForThemePack(themePack)
+    val expressiveTypography = expressiveTypographyForThemePack(themePack, typography)
 
     val view = LocalView.current
     if (!view.isInEditMode) {
@@ -299,11 +350,15 @@ fun RunicQuotesTheme(
 
     CompositionLocalProvider(
         LocalRunicFontScale provides runicFontScale,
-        LocalReduceMotion provides reducedMotion
+        LocalReduceMotion provides reducedMotion,
+        LocalRunicShapeTokens provides runicShapeTokens(),
+        LocalRunicElevationTokens provides runicElevationTokens(),
+        LocalRunicMotionTokens provides runicMotionTokens(),
+        LocalRunicExpressiveType provides expressiveTypography
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = typographyForThemePack(themePack),
+            typography = typography,
             content = content
         )
     }

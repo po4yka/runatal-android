@@ -51,6 +51,7 @@ fun RunicQuotesApp() {
 
     RunicQuotesTheme(
         darkTheme = darkTheme,
+        dynamicColorEnabled = preferences.dynamicColorEnabled,
         themePack = preferences.themePack,
         runicFontScale = if (preferences.largeRunesEnabled) 1.25f else 1.0f,
         highContrast = preferences.highContrastEnabled,

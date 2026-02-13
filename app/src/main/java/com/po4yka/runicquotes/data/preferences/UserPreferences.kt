@@ -67,6 +67,11 @@ data class UserPreferences(
     val themeMode: String = "system",
 
     /**
+     * Whether dynamic color is enabled (Android 12+).
+     */
+    val dynamicColorEnabled: Boolean = false,
+
+    /**
      * Visual theme pack (stone, parchment, night_ink).
      */
     val themePack: String = "stone",

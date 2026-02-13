@@ -4,23 +4,27 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -33,6 +37,7 @@ import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.ui.components.SettingItem
 import com.po4yka.runicquotes.ui.components.SettingSection
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
+import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.widget.WidgetDisplayMode
 import com.po4yka.runicquotes.util.rememberHapticFeedback
 
@@ -48,10 +53,13 @@ fun SettingsScreen(
     val preferences by viewModel.userPreferences.collectAsState()
     val haptics = rememberHapticFeedback()
     val reducedMotion = LocalReduceMotion.current
+    val motion = RunicExpressiveTheme.motion
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
+            LargeTopAppBar(
                 title = {
                     Text(
                         text = stringResource(R.string.settings),
@@ -67,7 +75,12 @@ fun SettingsScreen(
                             )
                         }
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                ),
+                scrollBehavior = scrollBehavior
             )
         }
     ) { paddingValues ->
@@ -76,7 +89,24 @@ fun SettingsScreen(
             enter = if (reducedMotion) {
                 EnterTransition.None
             } else {
-                fadeIn() + slideInVertically(initialOffsetY = { it / 6 })
+                fadeIn(
+                    animationSpec = tween(
+                        durationMillis = motion.duration(
+                            reducedMotion = reducedMotion,
+                            base = motion.mediumDurationMillis
+                        ),
+                        easing = motion.standardEasing
+                    )
+                ) + slideInVertically(
+                    animationSpec = tween(
+                        durationMillis = motion.duration(
+                            reducedMotion = reducedMotion,
+                            base = motion.mediumDurationMillis
+                        ),
+                        easing = motion.emphasizedEasing
+                    ),
+                    initialOffsetY = { it / 6 }
+                )
             }
         ) {
             Column(
@@ -204,6 +234,24 @@ fun SettingsScreen(
                         onClick = {
                             haptics.lightToggle()
                             viewModel.updateThemeMode("system")
+                        }
+                    )
+                }
+
+                HorizontalDivider()
+
+                SettingSection(title = "Color Source") {
+                    SettingItem(
+                        title = "Use Dynamic Color",
+                        subtitle = "Blend wallpaper-derived tones with selected theme pack (Android 12+)",
+                        trailing = {
+                            Switch(
+                                checked = preferences.dynamicColorEnabled,
+                                onCheckedChange = {
+                                    haptics.lightToggle()
+                                    viewModel.updateDynamicColorEnabled(it)
+                                }
+                            )
                         }
                     )
                 }

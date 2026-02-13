@@ -41,6 +41,7 @@ class UserPreferencesManager @Inject constructor(
             lastQuoteDate = preferences[LAST_QUOTE_DATE] ?: 0L,
             lastDailyQuoteId = preferences[LAST_DAILY_QUOTE_ID] ?: 0L,
             themeMode = preferences[THEME_MODE] ?: "system",
+            dynamicColorEnabled = preferences[DYNAMIC_COLOR_ENABLED] ?: false,
             themePack = preferences[THEME_PACK] ?: "stone",
             showTransliteration = preferences[SHOW_TRANSLITERATION] ?: true,
             fontSize = preferences[FONT_SIZE] ?: 1.0f,
@@ -160,6 +161,15 @@ class UserPreferencesManager @Inject constructor(
     }
 
     /**
+     * Updates whether dynamic color should be used.
+     */
+    suspend fun updateDynamicColorEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[DYNAMIC_COLOR_ENABLED] = enabled
+        }
+    }
+
+    /**
      * Updates the visual theme pack.
      */
     suspend fun updateThemePack(themePack: String) {
@@ -244,6 +254,7 @@ class UserPreferencesManager @Inject constructor(
         private val LAST_QUOTE_DATE = longPreferencesKey("last_quote_date")
         private val LAST_DAILY_QUOTE_ID = longPreferencesKey("last_daily_quote_id")
         private val THEME_MODE = stringPreferencesKey("theme_mode")
+        private val DYNAMIC_COLOR_ENABLED = booleanPreferencesKey("dynamic_color_enabled")
         private val THEME_PACK = stringPreferencesKey("theme_pack")
         private val SHOW_TRANSLITERATION = booleanPreferencesKey("show_transliteration")
         private val FONT_SIZE = floatPreferencesKey("font_size")

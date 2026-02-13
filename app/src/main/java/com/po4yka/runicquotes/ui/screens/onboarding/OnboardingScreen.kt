@@ -1,6 +1,9 @@
 package com.po4yka.runicquotes.ui.screens.onboarding
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -19,12 +24,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.ui.components.RunicText
+import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
+import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
 import com.po4yka.runicquotes.util.rememberHapticFeedback
 
 /**
@@ -39,6 +48,7 @@ fun OnboardingScreen(
 ) {
     val haptics = rememberHapticFeedback()
     val stories = rememberScriptStories()
+    val typeRoles = RunicTypeRoles.current
 
     Scaffold(
         modifier = Modifier.testTag("onboarding_screen"),
@@ -97,7 +107,7 @@ fun OnboardingScreen(
 
             Text(
                 text = "Selected: ${selectedScriptLabel(selectedScript)} + ${themeLabel(selectedThemePack)}",
-                style = MaterialTheme.typography.titleMedium,
+                style = typeRoles.quoteMeta,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
             Text(
@@ -116,17 +126,51 @@ private fun ScriptStoryCard(
     selected: Boolean,
     onSelect: () -> Unit
 ) {
+    val shapes = RunicExpressiveTheme.shapes
+    val elevations = RunicExpressiveTheme.elevations
+    val motion = RunicExpressiveTheme.motion
+    val typeRoles = RunicTypeRoles.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val elevation by animateDpAsState(
+        targetValue = when {
+            selected -> elevations.raisedCard
+            isPressed -> elevations.card
+            else -> elevations.flat
+        },
+        animationSpec = tween(
+            durationMillis = motion.shortDurationMillis,
+            easing = motion.standardEasing
+        ),
+        label = "onboardingCardElevation"
+    )
+
     Card(
+        shape = shapes.contentCard,
         colors = CardDefaults.cardColors(
             containerColor = if (selected) {
                 MaterialTheme.colorScheme.primaryContainer
             } else {
-                MaterialTheme.colorScheme.surfaceVariant
+                MaterialTheme.colorScheme.surfaceContainerLow
             }
         ),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
         modifier = Modifier
             .width(320.dp)
-            .clickable(onClick = onSelect)
+            .border(
+                width = if (selected) 1.5.dp else 1.dp,
+                color = if (selected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.outlineVariant
+                },
+                shape = shapes.contentCard
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onSelect
+            )
             .testTag("onboarding_${story.script.name.lowercase()}_card")
     ) {
         Column(
@@ -146,15 +190,15 @@ private fun ScriptStoryCard(
             RunicText(
                 text = story.sampleRunes,
                 script = story.script,
-                style = MaterialTheme.typography.headlineMedium
+                style = typeRoles.runicCard
             )
             Text(
                 text = "\"${story.sampleLatin}\"",
-                style = MaterialTheme.typography.bodySmall
+                style = typeRoles.quoteMeta
             )
             Text(
                 text = story.story,
-                style = MaterialTheme.typography.bodyMedium
+                style = typeRoles.latinQuote
             )
             Text(
                 text = "Suggested palette: ${themeLabel(story.suggestedThemePack)}",

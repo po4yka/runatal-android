@@ -1,6 +1,9 @@
 package com.po4yka.runicquotes.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -187,4 +190,73 @@ fun typographyForThemePack(themePack: String): Typography = when (themePack) {
             letterSpacing = 0.45.sp
         )
     )
+}
+
+@Immutable
+data class RunicExpressiveTypography(
+    val runicHero: TextStyle,
+    val runicCard: TextStyle,
+    val runicCollection: TextStyle,
+    val latinQuote: TextStyle,
+    val quoteMeta: TextStyle
+)
+
+private fun baseExpressiveTypography(typography: Typography): RunicExpressiveTypography {
+    return RunicExpressiveTypography(
+        runicHero = typography.displayMedium.copy(
+            fontFamily = RobotoFlex,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.sp
+        ),
+        runicCard = typography.headlineSmall.copy(
+            fontFamily = RobotoFlex,
+            fontWeight = FontWeight.SemiBold
+        ),
+        runicCollection = typography.titleLarge.copy(
+            fontFamily = RobotoFlex,
+            fontWeight = FontWeight.SemiBold
+        ),
+        latinQuote = typography.bodyLarge.copy(
+            fontFamily = RobotoFlex,
+            letterSpacing = 0.45.sp
+        ),
+        quoteMeta = typography.labelLarge.copy(
+            fontFamily = RobotoFlex,
+            letterSpacing = 0.2.sp
+        )
+    )
+}
+
+fun expressiveTypographyForThemePack(
+    themePack: String,
+    typography: Typography
+): RunicExpressiveTypography {
+    val base = baseExpressiveTypography(typography)
+    return when (themePack) {
+        "parchment" -> base.copy(
+            runicHero = base.runicHero.copy(letterSpacing = 0.15.sp),
+            latinQuote = base.latinQuote.copy(letterSpacing = 0.6.sp),
+            quoteMeta = base.quoteMeta.copy(letterSpacing = 0.3.sp)
+        )
+
+        "night_ink" -> base.copy(
+            runicHero = base.runicHero.copy(letterSpacing = (-0.05).sp),
+            runicCard = base.runicCard.copy(fontWeight = FontWeight.Bold),
+            quoteMeta = base.quoteMeta.copy(letterSpacing = 0.1.sp)
+        )
+
+        else -> base
+    }
+}
+
+val LocalRunicExpressiveType = staticCompositionLocalOf {
+    expressiveTypographyForThemePack(
+        themePack = "stone",
+        typography = RunicTypography
+    )
+}
+
+object RunicTypeRoles {
+    val current: RunicExpressiveTypography
+        @Composable get() = LocalRunicExpressiveType.current
 }

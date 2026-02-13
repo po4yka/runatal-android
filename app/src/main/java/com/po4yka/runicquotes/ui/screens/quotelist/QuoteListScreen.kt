@@ -2,9 +2,12 @@ package com.po4yka.runicquotes.ui.screens.quotelist
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -20,10 +23,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -39,8 +42,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -48,12 +53,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -66,6 +73,8 @@ import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
+import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
+import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
 import com.po4yka.runicquotes.util.rememberHapticFeedback
 
 /**
@@ -83,7 +92,9 @@ fun QuoteListScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val reducedMotion = LocalReduceMotion.current
+    val motion = RunicExpressiveTheme.motion
     val haptics = rememberHapticFeedback()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     // Show error messages
     LaunchedEffect(uiState.errorMessage) {
@@ -94,9 +105,12 @@ fun QuoteListScreen(
     }
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = { Text("Browse Quotes") },
+            LargeTopAppBar(
+                title = {
+                    Text("Browse Quotes")
+                },
                 navigationIcon = {
                     if (onNavigateBack != null) {
                         IconButton(onClick = onNavigateBack) {
@@ -106,7 +120,12 @@ fun QuoteListScreen(
                             )
                         }
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                ),
+                scrollBehavior = scrollBehavior
             )
         },
         floatingActionButton = {
@@ -133,7 +152,24 @@ fun QuoteListScreen(
             enter = if (reducedMotion) {
                 EnterTransition.None
             } else {
-                fadeIn() + slideInVertically(initialOffsetY = { it / 8 })
+                fadeIn(
+                    animationSpec = tween(
+                        durationMillis = motion.duration(
+                            reducedMotion = reducedMotion,
+                            base = motion.mediumDurationMillis
+                        ),
+                        easing = motion.standardEasing
+                    )
+                ) + slideInVertically(
+                    animationSpec = tween(
+                        durationMillis = motion.duration(
+                            reducedMotion = reducedMotion,
+                            base = motion.mediumDurationMillis
+                        ),
+                        easing = motion.emphasizedEasing
+                    ),
+                    initialOffsetY = { it / 8 }
+                )
             }
         ) {
             Column(
@@ -169,6 +205,7 @@ fun QuoteListScreen(
                             count = uiState.collectionCounts[collection] ?: 0,
                             selected = uiState.selectedCollection == collection,
                             selectedFont = uiState.selectedFont,
+                            reducedMotion = reducedMotion,
                             onClick = {
                                 haptics.lightToggle()
                                 viewModel.setCollection(collection)
@@ -189,6 +226,7 @@ fun QuoteListScreen(
                                 haptics.lightToggle()
                                 viewModel.setFilter(filter)
                             },
+                            colors = expressiveFilterChipColors(),
                             label = { Text(filter.displayName) }
                         )
                     }
@@ -206,6 +244,7 @@ fun QuoteListScreen(
                                 haptics.lightToggle()
                                 viewModel.updateAuthorFilter(null)
                             },
+                            colors = expressiveFilterChipColors(),
                             label = { Text("Any Author") }
                         )
                     }
@@ -216,6 +255,7 @@ fun QuoteListScreen(
                                 haptics.lightToggle()
                                 viewModel.updateAuthorFilter(author)
                             },
+                            colors = expressiveFilterChipColors(),
                             label = { Text(author) }
                         )
                     }
@@ -233,6 +273,7 @@ fun QuoteListScreen(
                                 haptics.lightToggle()
                                 viewModel.updateLengthFilter(lengthFilter)
                             },
+                            colors = expressiveFilterChipColors(),
                             label = { Text(lengthFilter.displayName) }
                         )
                     }
@@ -354,25 +395,81 @@ fun QuoteListScreen(
 }
 
 @Composable
+private fun expressiveFilterChipColors() = FilterChipDefaults.filterChipColors(
+    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+    labelColor = MaterialTheme.colorScheme.onSurface,
+    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+)
+
+@Composable
 private fun CollectionCoverCard(
     collection: QuoteCollection,
     count: Int,
     selected: Boolean,
     selectedFont: String,
+    reducedMotion: Boolean,
     onClick: () -> Unit
 ) {
+    val shapes = RunicExpressiveTheme.shapes
+    val elevations = RunicExpressiveTheme.elevations
+    val motion = RunicExpressiveTheme.motion
+    val typeRoles = RunicTypeRoles.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val elevation by animateDpAsState(
+        targetValue = when {
+            selected -> elevations.raisedCard
+            isPressed -> elevations.card
+            else -> elevations.flat
+        },
+        animationSpec = tween(
+            durationMillis = motion.duration(
+                reducedMotion = reducedMotion,
+                base = motion.shortDurationMillis
+            ),
+            easing = motion.standardEasing
+        ),
+        label = "collectionCardElevation"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.outlineVariant
+        },
+        animationSpec = tween(
+            durationMillis = motion.duration(
+                reducedMotion = reducedMotion,
+                base = motion.shortDurationMillis
+            ),
+            easing = motion.standardEasing
+        ),
+        label = "collectionCardBorder"
+    )
+
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = shapes.collectionCard,
         colors = CardDefaults.cardColors(
             containerColor = if (selected) {
-                MaterialTheme.colorScheme.primaryContainer
+                MaterialTheme.colorScheme.secondaryContainer
             } else {
-                MaterialTheme.colorScheme.surfaceVariant
+                MaterialTheme.colorScheme.surfaceContainerLow
             }
         ),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
         modifier = Modifier
             .width(176.dp)
-            .clickable(onClick = onClick)
+            .border(
+                width = if (selected) 1.5.dp else 1.dp,
+                color = borderColor,
+                shape = shapes.collectionCard
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
             .testTag("collection_card_${collection.persistedValue}")
     ) {
         Column(
@@ -381,24 +478,24 @@ private fun CollectionCoverCard(
         ) {
             Text(
                 text = collection.displayName,
-                style = MaterialTheme.typography.titleMedium
+                style = typeRoles.runicCollection
             )
             RunicText(
                 text = collection.coverRunes,
                 font = selectedFont,
                 script = RunicScript.ELDER_FUTHARK,
-                style = MaterialTheme.typography.headlineSmall
+                style = typeRoles.runicCard
             )
             Text(
                 text = collection.subtitle,
-                style = MaterialTheme.typography.bodySmall,
+                style = typeRoles.quoteMeta,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = "$count quotes",
                 style = MaterialTheme.typography.labelLarge,
                 color = if (selected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
+                    MaterialTheme.colorScheme.onSecondaryContainer
                 } else {
                     MaterialTheme.colorScheme.onSurface
                 }
@@ -418,16 +515,27 @@ private fun QuoteListItem(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val shapes = RunicExpressiveTheme.shapes
+    val elevations = RunicExpressiveTheme.elevations
+    val motion = RunicExpressiveTheme.motion
+    val typeRoles = RunicTypeRoles.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val elevation by animateDpAsState(
         targetValue = if (reducedMotion) {
-            3.dp
+            elevations.card
         } else if (quote.isUserCreated && isPressed) {
-            10.dp
+            elevations.pressedCard
         } else {
-            3.dp
+            elevations.card
         },
+        animationSpec = tween(
+            durationMillis = motion.duration(
+                reducedMotion = reducedMotion,
+                base = motion.shortDurationMillis
+            ),
+            easing = motion.standardEasing
+        ),
         label = "quoteCardElevation"
     )
     val yOffset by animateDpAsState(
@@ -438,10 +546,18 @@ private fun QuoteListItem(
         } else {
             0.dp
         },
+        animationSpec = tween(
+            durationMillis = motion.duration(
+                reducedMotion = reducedMotion,
+                base = motion.shortDurationMillis
+            ),
+            easing = motion.standardEasing
+        ),
         label = "quoteCardOffset"
     )
 
     Card(
+        shape = shapes.contentCard,
         modifier = Modifier
             .fillMaxWidth()
             .offset(y = yOffset),
@@ -449,7 +565,7 @@ private fun QuoteListItem(
             containerColor = if (quote.isUserCreated) {
                 MaterialTheme.colorScheme.primaryContainer
             } else {
-                MaterialTheme.colorScheme.surfaceVariant
+                MaterialTheme.colorScheme.surfaceContainerHigh
             }
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = elevation)
@@ -469,7 +585,7 @@ private fun QuoteListItem(
                 text = quote.getRunicText(selectedScript),
                 font = selectedFont,
                 script = selectedScript,
-                style = MaterialTheme.typography.headlineSmall.copy(
+                style = typeRoles.runicCard.copy(
                     fontFamily = FontFamily.Monospace
                 ),
                 color = if (quote.isUserCreated) {
@@ -485,7 +601,7 @@ private fun QuoteListItem(
             // Latin text
             Text(
                 text = quote.textLatin,
-                style = MaterialTheme.typography.bodyMedium,
+                style = typeRoles.latinQuote,
                 color = if (quote.isUserCreated) {
                     MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                 } else {
@@ -505,7 +621,7 @@ private fun QuoteListItem(
             ) {
                 Text(
                     text = "— ${quote.author}",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = typeRoles.quoteMeta,
                     color = if (quote.isUserCreated) {
                         MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
                     } else {

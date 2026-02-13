@@ -60,6 +60,15 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
+     * Updates whether dynamic color is enabled.
+     */
+    fun updateDynamicColorEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesManager.updateDynamicColorEnabled(enabled)
+        }
+    }
+
+    /**
      * Updates the visual theme pack.
      */
     fun updateThemePack(themePack: String) {

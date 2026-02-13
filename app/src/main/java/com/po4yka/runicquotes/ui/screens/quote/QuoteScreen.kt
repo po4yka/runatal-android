@@ -62,6 +62,8 @@ import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
+import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
+import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
 import com.po4yka.runicquotes.util.ShareTemplate
 import com.po4yka.runicquotes.util.rememberHapticFeedback
 
@@ -165,6 +167,10 @@ private fun QuoteContent(
     onToggleFavorite: () -> Unit,
     onSelectScript: (RunicScript) -> Unit
 ) {
+    val motion = RunicExpressiveTheme.motion
+    val shapes = RunicExpressiveTheme.shapes
+    val elevations = RunicExpressiveTheme.elevations
+    val typeRoles = RunicTypeRoles.current
     var cardVisible by remember(state.quote.id) { mutableStateOf(false) }
     LaunchedEffect(state.quote.id) {
         cardVisible = true
@@ -192,16 +198,30 @@ private fun QuoteContent(
             enter = if (reducedMotion) {
                 EnterTransition.None
             } else {
-                fadeIn(animationSpec = tween(500)) +
+                fadeIn(
+                    animationSpec = tween(
+                        durationMillis = motion.duration(
+                            reducedMotion = reducedMotion,
+                            base = motion.mediumDurationMillis
+                        ),
+                        easing = motion.standardEasing
+                    )
+                ) +
                     slideInVertically(
-                        animationSpec = tween(500),
+                        animationSpec = tween(
+                            durationMillis = motion.duration(
+                                reducedMotion = reducedMotion,
+                                base = motion.mediumDurationMillis
+                            ),
+                            easing = motion.emphasizedEasing
+                        ),
                         initialOffsetY = { it / 6 }
                     )
             }
         ) {
             ElevatedCard(
-                shape = RoundedCornerShape(28.dp),
-                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp),
+                shape = shapes.heroCard,
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = elevations.raisedCard),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Box(
@@ -210,8 +230,8 @@ private fun QuoteContent(
                         .background(
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    MaterialTheme.colorScheme.surface,
-                                    MaterialTheme.colorScheme.surfaceVariant
+                                    MaterialTheme.colorScheme.surfaceContainerLow,
+                                    MaterialTheme.colorScheme.surfaceContainerHigh
                                 )
                             )
                         )
@@ -254,9 +274,13 @@ private fun QuoteContent(
                                 FilterChip(
                                     selected = state.selectedScript == script,
                                     onClick = { onSelectScript(script) },
+                                    colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                        selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer
+                                    ),
                                     label = { Text(script.displayName) }
                                 )
-                            } 
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(18.dp))
@@ -272,14 +296,21 @@ private fun QuoteContent(
                             val transliterationAlpha by animateFloatAsState(
                                 targetValue = 1f,
                                 animationSpec = tween(
-                                    durationMillis = if (reducedMotion) 0 else 600,
-                                    delayMillis = if (reducedMotion) 0 else 300
+                                    durationMillis = motion.duration(
+                                        reducedMotion = reducedMotion,
+                                        base = motion.mediumDurationMillis
+                                    ),
+                                    delayMillis = motion.delay(
+                                        reducedMotion = reducedMotion,
+                                        base = motion.shortDurationMillis
+                                    ),
+                                    easing = motion.standardEasing
                                 ),
                                 label = "transliterationAlpha"
                             )
                             Text(
                                 text = state.quote.textLatin,
-                                style = MaterialTheme.typography.bodyLarge,
+                                style = typeRoles.latinQuote,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -290,7 +321,7 @@ private fun QuoteContent(
 
                         Text(
                             text = "— ${state.quote.author}",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = typeRoles.quoteMeta,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
@@ -314,13 +345,16 @@ private fun HeroRunicText(
     selectedFont: String,
     reducedMotion: Boolean
 ) {
+    val motion = RunicExpressiveTheme.motion
+    val shapes = RunicExpressiveTheme.shapes
+    val typeRoles = RunicTypeRoles.current
     val words = text.split(" ")
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.65f))
+            .clip(shapes.panel)
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.8f))
             .padding(vertical = 18.dp, horizontal = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -338,13 +372,14 @@ private fun HeroRunicText(
                             if (reducedMotion) {
                                 alpha.snapTo(1f)
                             } else {
-                                val wordStartDelay = wordIndex * word.length * 30
-                                val charDelay = index * 42 + wordStartDelay
+                                val wordStartDelay = wordIndex * word.length * motion.revealStepMillis
+                                val charDelay = index * motion.revealStepMillis + wordStartDelay
                                 alpha.animateTo(
                                     targetValue = 1f,
                                     animationSpec = tween(
-                                        durationMillis = 420,
-                                        delayMillis = charDelay.coerceAtMost(1800)
+                                        durationMillis = motion.longDurationMillis,
+                                        delayMillis = charDelay.coerceAtMost(motion.maxRevealDelayMillis),
+                                        easing = motion.standardEasing
                                     )
                                 )
                             }
@@ -356,6 +391,7 @@ private fun HeroRunicText(
                             script = selectedScript,
                             modifier = Modifier.alpha(alpha.value),
                             textAlign = TextAlign.Center,
+                            style = typeRoles.runicHero,
                             fontSize = when (selectedScript) {
                                 RunicScript.ELDER_FUTHARK -> 34.sp
                                 RunicScript.YOUNGER_FUTHARK -> 32.sp
@@ -372,7 +408,11 @@ private fun HeroRunicText(
 @Composable
 private fun ErrorContent(message: String) {
     Card(
-        modifier = Modifier.padding(24.dp)
+        modifier = Modifier.padding(24.dp),
+        shape = RunicExpressiveTheme.shapes.contentCard,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        )
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -452,12 +492,14 @@ private fun SharePreviewCard(
     author: String,
     template: ShareTemplate
 ) {
+    val shapes = RunicExpressiveTheme.shapes
+    val typeRoles = RunicTypeRoles.current
     val (backgroundBrush, textColor, authorColor) = when (template) {
         ShareTemplate.MINIMAL -> Triple(
             Brush.verticalGradient(
                 listOf(
-                    MaterialTheme.colorScheme.surface,
-                    MaterialTheme.colorScheme.surfaceVariant
+                    MaterialTheme.colorScheme.surfaceContainerLow,
+                    MaterialTheme.colorScheme.surfaceContainerHigh
                 )
             ),
             MaterialTheme.colorScheme.onSurface,
@@ -489,7 +531,7 @@ private fun SharePreviewCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp)
+        shape = shapes.collectionCard
     ) {
         Column(
             modifier = Modifier
@@ -500,17 +542,17 @@ private fun SharePreviewCard(
         ) {
             Text(
                 text = runicText.take(80),
-                style = MaterialTheme.typography.titleMedium,
+                style = typeRoles.runicCard,
                 color = textColor
             )
             Text(
                 text = latinText.take(90),
-                style = MaterialTheme.typography.bodySmall,
+                style = typeRoles.latinQuote,
                 color = textColor
             )
             Text(
                 text = "— $author",
-                style = MaterialTheme.typography.labelMedium,
+                style = typeRoles.quoteMeta,
                 color = authorColor
             )
         }
