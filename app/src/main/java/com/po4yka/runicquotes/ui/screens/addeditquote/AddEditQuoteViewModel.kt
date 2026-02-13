@@ -37,6 +37,8 @@ class AddEditQuoteViewModel @Inject constructor(
 
     private var quoteId: Long = savedStateHandle.get<Long>("quoteId") ?: 0L
     private var loadedQuoteId: Long? = null
+    private var initialTextLatin: String = ""
+    private var initialAuthor: String = ""
 
     private val _uiState = MutableStateFlow(AddEditQuoteUiState())
     val uiState: StateFlow<AddEditQuoteUiState> = _uiState.asStateFlow()
@@ -52,7 +54,13 @@ class AddEditQuoteViewModel @Inject constructor(
         viewModelScope.launch {
             // Load preferences
             userPreferencesManager.userPreferencesFlow.collectLatest { prefs ->
-                _uiState.update { it.copy(selectedScript = prefs.selectedScript) }
+                _uiState.update {
+                    it.copy(
+                        selectedScript = prefs.selectedScript,
+                        selectedFont = prefs.selectedFont
+                    )
+                }
+                recomputeDerivedState()
             }
         }
 
@@ -74,6 +82,8 @@ class AddEditQuoteViewModel @Inject constructor(
         viewModelScope.launch {
             val quote = quoteRepository.getQuoteById(quoteId)
             if (quote != null && quote.isUserCreated) {
+                initialTextLatin = quote.textLatin
+                initialAuthor = quote.author
                 _uiState.update {
                     it.copy(
                         textLatin = quote.textLatin,
@@ -146,7 +156,14 @@ class AddEditQuoteViewModel @Inject constructor(
                 )
 
                 quoteRepository.saveUserQuote(quote)
-                _uiState.update { it.copy(isSaving = false) }
+                initialTextLatin = state.textLatin.trim()
+                initialAuthor = state.author.trim()
+                _uiState.update {
+                    it.copy(
+                        isSaving = false,
+                        hasUnsavedChanges = false
+                    )
+                }
                 onSuccess()
             } catch (e: IOException) {
                 Log.e(TAG, "IO error saving quote", e)
@@ -213,6 +230,12 @@ class AddEditQuoteViewModel @Inject constructor(
             confidence >= 70 -> "Good coverage. Some characters may map approximately."
             else -> "Low compatibility. Reduce symbols/numbers for cleaner runes."
         }
+        val hasUnsavedChanges = if (state.isEditing) {
+            state.textLatin.trim() != initialTextLatin.trim() ||
+                state.author.trim() != initialAuthor.trim()
+        } else {
+            state.textLatin.isNotBlank() || state.author.isNotBlank()
+        }
 
         _uiState.update {
             it.copy(
@@ -222,7 +245,10 @@ class AddEditQuoteViewModel @Inject constructor(
                 authorCharCount = state.author.length,
                 transliterationConfidence = confidence,
                 confidenceHint = confidenceHint,
-                canSave = quoteTextError == null && authorError == null
+                hasUnsavedChanges = hasUnsavedChanges,
+                canSave = quoteTextError == null &&
+                    authorError == null &&
+                    hasUnsavedChanges
             )
         }
     }
@@ -258,8 +284,10 @@ data class AddEditQuoteUiState(
     val transliterationConfidence: Int = 100,
     val confidenceHint: String = "Start typing to compute transliteration confidence.",
     val selectedScript: RunicScript = RunicScript.ELDER_FUTHARK,
+    val selectedFont: String = "noto",
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
+    val hasUnsavedChanges: Boolean = false,
     val canSave: Boolean = false,
     val errorMessage: String? = null
 )

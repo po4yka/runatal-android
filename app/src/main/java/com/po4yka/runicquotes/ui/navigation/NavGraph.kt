@@ -82,7 +82,11 @@ fun NavGraph(
                     )
                 }
                 entry<QuoteRoute> {
-                    QuoteScreen()
+                    QuoteScreen(
+                        onBrowseLibrary = {
+                            switchTopLevelRoute(backStack, QuoteListRoute)
+                        }
+                    )
                 }
                 entry<SettingsRoute> {
                     SettingsScreen()

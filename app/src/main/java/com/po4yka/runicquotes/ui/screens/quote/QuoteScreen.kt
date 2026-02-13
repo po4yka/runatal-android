@@ -20,12 +20,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,13 +36,14 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -54,6 +58,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -73,6 +78,7 @@ import com.po4yka.runicquotes.util.rememberHapticFeedback
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuoteScreen(
+    onBrowseLibrary: (() -> Unit)? = null,
     viewModel: QuoteViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -84,39 +90,42 @@ fun QuoteScreen(
     Scaffold(
         floatingActionButton = {
             if (uiState is QuoteUiState.Success) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ExtendedFloatingActionButton(
-                        onClick = { showShareDialog = true },
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Default.Share,
-                                contentDescription = "Share"
-                            )
-                        },
-                        text = { Text("Share") }
-                    )
-                    ExtendedFloatingActionButton(
-                        onClick = { viewModel.getRandomQuote() },
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Random"
-                            )
-                        },
-                        text = { Text("Random") }
-                    )
-                }
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        haptics.mediumAction()
+                        viewModel.getRandomQuote()
+                    },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Load a random quote"
+                        )
+                    },
+                    text = { Text("New Random Quote") }
+                )
             }
         }
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentAlignment = Alignment.Center
+                .background(
+                    brush = Brush.verticalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.background,
+                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.22f),
+                            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.14f),
+                            MaterialTheme.colorScheme.background
+                        )
+                    )
+                )
+                .padding(paddingValues)
         ) {
             when (val state = uiState) {
-                is QuoteUiState.Loading -> CircularProgressIndicator()
+                is QuoteUiState.Loading -> CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+
                 is QuoteUiState.Success -> {
                     QuoteContent(
                         state = state,
@@ -125,6 +134,10 @@ fun QuoteScreen(
                             haptics.lightToggle()
                             viewModel.toggleFavorite()
                         },
+                        onShareRequest = {
+                            haptics.lightToggle()
+                            showShareDialog = true
+                        },
                         onSelectScript = { script ->
                             haptics.lightToggle()
                             viewModel.updateSelectedScript(script)
@@ -132,8 +145,40 @@ fun QuoteScreen(
                     )
                 }
 
-                is QuoteUiState.Error -> ErrorContent(message = state.message)
-                is QuoteUiState.Empty -> EmptyContent()
+                is QuoteUiState.Error -> {
+                    ErrorContent(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(horizontal = 20.dp),
+                        message = state.message,
+                        onRetry = {
+                            haptics.lightToggle()
+                            viewModel.refreshQuote()
+                        },
+                        onRandom = {
+                            haptics.mediumAction()
+                            viewModel.getRandomQuote()
+                        },
+                        onBrowseLibrary = onBrowseLibrary
+                    )
+                }
+
+                is QuoteUiState.Empty -> {
+                    EmptyContent(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(horizontal = 20.dp),
+                        onRetry = {
+                            haptics.lightToggle()
+                            viewModel.refreshQuote()
+                        },
+                        onRandom = {
+                            haptics.mediumAction()
+                            viewModel.getRandomQuote()
+                        },
+                        onBrowseLibrary = onBrowseLibrary
+                    )
+                }
             }
         }
     }
@@ -165,12 +210,14 @@ private fun QuoteContent(
     state: QuoteUiState.Success,
     reducedMotion: Boolean,
     onToggleFavorite: () -> Unit,
+    onShareRequest: () -> Unit,
     onSelectScript: (RunicScript) -> Unit
 ) {
     val motion = RunicExpressiveTheme.motion
     val shapes = RunicExpressiveTheme.shapes
     val elevations = RunicExpressiveTheme.elevations
     val typeRoles = RunicTypeRoles.current
+    val scrollState = rememberScrollState()
     var cardVisible by remember(state.quote.id) { mutableStateOf(false) }
     LaunchedEffect(state.quote.id) {
         cardVisible = true
@@ -179,8 +226,10 @@ private fun QuoteContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp),
-        verticalArrangement = Arrangement.Center
+            .verticalScroll(scrollState)
+            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(bottom = 92.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
             text = "Daily Rune",
@@ -189,8 +238,7 @@ private fun QuoteContent(
         Text(
             text = "Pick your script and read the same quote in a different voice.",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         AnimatedVisibility(
@@ -206,17 +254,16 @@ private fun QuoteContent(
                         ),
                         easing = motion.standardEasing
                     )
-                ) +
-                    slideInVertically(
-                        animationSpec = tween(
-                            durationMillis = motion.duration(
-                                reducedMotion = reducedMotion,
-                                base = motion.mediumDurationMillis
-                            ),
-                            easing = motion.emphasizedEasing
+                ) + slideInVertically(
+                    animationSpec = tween(
+                        durationMillis = motion.duration(
+                            reducedMotion = reducedMotion,
+                            base = motion.mediumDurationMillis
                         ),
-                        initialOffsetY = { it / 6 }
-                    )
+                        easing = motion.emphasizedEasing
+                    ),
+                    initialOffsetY = { it / 6 }
+                )
             }
         ) {
             ElevatedCard(
@@ -237,9 +284,7 @@ private fun QuoteContent(
                         )
                         .padding(20.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -249,20 +294,34 @@ private fun QuoteContent(
                                 text = "Quote of the Day",
                                 style = MaterialTheme.typography.titleLarge
                             )
-                            IconButton(onClick = onToggleFavorite) {
-                                Icon(
-                                    imageVector = if (state.quote.isFavorite) {
-                                        Icons.Default.Favorite
-                                    } else {
-                                        Icons.Default.FavoriteBorder
-                                    },
-                                    contentDescription = "Favorite",
-                                    tint = if (state.quote.isFavorite) {
-                                        MaterialTheme.colorScheme.error
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    }
-                                )
+                            Row {
+                                IconButton(
+                                    onClick = onShareRequest
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Share,
+                                        contentDescription = "Share quote as image"
+                                    )
+                                }
+                                IconButton(onClick = onToggleFavorite) {
+                                    Icon(
+                                        imageVector = if (state.quote.isFavorite) {
+                                            Icons.Default.Favorite
+                                        } else {
+                                            Icons.Default.FavoriteBorder
+                                        },
+                                        contentDescription = if (state.quote.isFavorite) {
+                                            "Remove from favorites"
+                                        } else {
+                                            "Add to favorites"
+                                        },
+                                        tint = if (state.quote.isFavorite) {
+                                            MaterialTheme.colorScheme.error
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
+                                    )
+                                }
                             }
                         }
 
@@ -274,7 +333,7 @@ private fun QuoteContent(
                                 FilterChip(
                                     selected = state.selectedScript == script,
                                     onClick = { onSelectScript(script) },
-                                    colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                                    colors = FilterChipDefaults.filterChipColors(
                                         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                                         selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer
                                     ),
@@ -406,9 +465,15 @@ private fun HeroRunicText(
 }
 
 @Composable
-private fun ErrorContent(message: String) {
+private fun ErrorContent(
+    message: String,
+    onRetry: () -> Unit,
+    onRandom: () -> Unit,
+    onBrowseLibrary: (() -> Unit)?,
+    modifier: Modifier = Modifier
+) {
     Card(
-        modifier = Modifier.padding(24.dp),
+        modifier = modifier.fillMaxWidth(),
         shape = RunicExpressiveTheme.shapes.contentCard,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
@@ -416,28 +481,80 @@ private fun ErrorContent(message: String) {
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "Error",
+                text = "Something went wrong",
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.error
             )
             Text(
                 text = message,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 8.dp)
+                style = MaterialTheme.typography.bodyMedium
             )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onRetry) {
+                    Text("Retry")
+                }
+                Button(onClick = onRandom) {
+                    Text("Random Quote")
+                }
+            }
+            if (onBrowseLibrary != null) {
+                TextButton(onClick = onBrowseLibrary) {
+                    Text("Open Library")
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun EmptyContent() {
-    Text(
-        text = "No quotes available",
-        style = MaterialTheme.typography.bodyLarge
-    )
+private fun EmptyContent(
+    onRetry: () -> Unit,
+    onRandom: () -> Unit,
+    onBrowseLibrary: (() -> Unit)?,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RunicExpressiveTheme.shapes.contentCard,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "No quotes available yet",
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Text(
+                text = "Try loading a random quote or open your library to add and manage quotes.",
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onRetry) {
+                    Text("Reload")
+                }
+                Button(onClick = onRandom) {
+                    Text("Random Quote")
+                }
+            }
+            if (onBrowseLibrary != null) {
+                TextButton(onClick = onBrowseLibrary) {
+                    Text("Open Library")
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -450,11 +567,24 @@ private fun ShareTemplateDialog(
     onDismiss: () -> Unit,
     onShare: () -> Unit
 ) {
+    val shapes = RunicExpressiveTheme.shapes
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Share Style") },
+        shape = shapes.panel,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        title = {
+            Text(
+                text = "Share Style",
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = "Pick a style and preview how your quote image will look.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(ShareTemplate.entries) { template ->
                         FilterChip(
@@ -541,19 +671,25 @@ private fun SharePreviewCard(
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
-                text = runicText.take(80),
+                text = runicText,
                 style = typeRoles.runicCard,
-                color = textColor
+                color = textColor,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = latinText.take(90),
+                text = latinText,
                 style = typeRoles.latinQuote,
-                color = textColor
+                color = textColor,
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = "— $author",
                 style = typeRoles.quoteMeta,
-                color = authorColor
+                color = authorColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

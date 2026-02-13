@@ -241,6 +241,27 @@ class QuoteListViewModel @Inject constructor(
     }
 
     /**
+     * Restores a previously deleted user-created quote.
+     */
+    fun restoreDeletedQuote(quote: Quote) {
+        viewModelScope.launch {
+            try {
+                quoteRepository.saveUserQuote(quote.copy(isUserCreated = true))
+            } catch (e: IOException) {
+                Log.e(TAG, "IO error restoring quote", e)
+                _uiState.update {
+                    it.copy(errorMessage = "Failed to restore quote: ${e.message}")
+                }
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Invalid state restoring quote", e)
+                _uiState.update {
+                    it.copy(errorMessage = "Invalid state: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
      * Clears any error message.
      */
     fun clearError() {
