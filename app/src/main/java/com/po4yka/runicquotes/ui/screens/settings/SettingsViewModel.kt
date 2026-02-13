@@ -6,6 +6,7 @@ import com.po4yka.runicquotes.data.preferences.UserPreferences
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.ui.widget.WidgetDisplayMode
+import com.po4yka.runicquotes.ui.widget.WidgetUpdateMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -101,6 +102,15 @@ class SettingsViewModel @Inject constructor(
     fun updateWidgetDisplayMode(mode: WidgetDisplayMode) {
         viewModelScope.launch {
             userPreferencesManager.updateWidgetDisplayMode(mode.persistedValue)
+        }
+    }
+
+    /**
+     * Updates widget refresh mode.
+     */
+    fun updateWidgetUpdateMode(mode: WidgetUpdateMode) {
+        viewModelScope.launch {
+            userPreferencesManager.updateWidgetUpdateMode(mode.persistedValue)
         }
     }
 

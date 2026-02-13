@@ -16,9 +16,10 @@ class RefreshQuoteAction : ActionCallback {
         glanceId: GlanceId,
         parameters: ActionParameters
     ) {
+        val widgetKey = glanceId.toString()
         // Clear caches to force fresh data
-        WidgetStateCache.clear()
-        WidgetInteractionState.requestRandomQuote()
+        WidgetStateCache.clear(widgetKey)
+        WidgetInteractionState.requestRandomQuote(widgetKey)
 
         // Update the specific widget that was clicked
         RunicQuoteWidget().update(context, glanceId)

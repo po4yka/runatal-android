@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -39,6 +40,8 @@ import com.po4yka.runicquotes.ui.components.SettingSection
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.widget.WidgetDisplayMode
+import com.po4yka.runicquotes.ui.widget.WidgetSyncManager
+import com.po4yka.runicquotes.ui.widget.WidgetUpdateMode
 import com.po4yka.runicquotes.util.rememberHapticFeedback
 
 /**
@@ -54,6 +57,7 @@ fun SettingsScreen(
     val haptics = rememberHapticFeedback()
     val reducedMotion = LocalReduceMotion.current
     val motion = RunicExpressiveTheme.motion
+    val context = LocalContext.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     Scaffold(
@@ -124,6 +128,7 @@ fun SettingsScreen(
                         onClick = {
                             haptics.lightToggle()
                             viewModel.updateSelectedScript(RunicScript.ELDER_FUTHARK)
+                            WidgetSyncManager.refreshAllAsync(context)
                         }
                     )
                     SettingItem(
@@ -133,6 +138,7 @@ fun SettingsScreen(
                         onClick = {
                             haptics.lightToggle()
                             viewModel.updateSelectedScript(RunicScript.YOUNGER_FUTHARK)
+                            WidgetSyncManager.refreshAllAsync(context)
                         }
                     )
                     SettingItem(
@@ -142,6 +148,7 @@ fun SettingsScreen(
                         onClick = {
                             haptics.lightToggle()
                             viewModel.updateSelectedScript(RunicScript.CIRTH)
+                            WidgetSyncManager.refreshAllAsync(context)
                         }
                     )
                 }
@@ -157,6 +164,7 @@ fun SettingsScreen(
                         onClick = {
                             haptics.lightToggle()
                             viewModel.updateSelectedFont("noto")
+                            WidgetSyncManager.refreshAllAsync(context)
                         }
                     )
                     SettingItem(
@@ -166,6 +174,7 @@ fun SettingsScreen(
                         onClick = {
                             haptics.lightToggle()
                             viewModel.updateSelectedFont("babelstone")
+                            WidgetSyncManager.refreshAllAsync(context)
                         }
                     )
                 }
@@ -200,6 +209,24 @@ fun SettingsScreen(
                             onClick = {
                                 haptics.lightToggle()
                                 viewModel.updateWidgetDisplayMode(mode)
+                                WidgetSyncManager.refreshAllAsync(context)
+                            }
+                        )
+                    }
+                }
+
+                HorizontalDivider()
+
+                SettingSection(title = "Widget Update Frequency") {
+                    WidgetUpdateMode.entries.forEach { updateMode ->
+                        SettingItem(
+                            title = updateMode.displayName,
+                            subtitle = updateMode.subtitle,
+                            selected = preferences.widgetUpdateMode == updateMode.persistedValue,
+                            onClick = {
+                                haptics.lightToggle()
+                                viewModel.updateWidgetUpdateMode(updateMode)
+                                WidgetSyncManager.refreshAndRescheduleAsync(context)
                             }
                         )
                     }
@@ -216,6 +243,7 @@ fun SettingsScreen(
                         onClick = {
                             haptics.lightToggle()
                             viewModel.updateThemeMode("light")
+                            WidgetSyncManager.refreshAllAsync(context)
                         }
                     )
                     SettingItem(
@@ -225,6 +253,7 @@ fun SettingsScreen(
                         onClick = {
                             haptics.lightToggle()
                             viewModel.updateThemeMode("dark")
+                            WidgetSyncManager.refreshAllAsync(context)
                         }
                     )
                     SettingItem(
@@ -234,6 +263,7 @@ fun SettingsScreen(
                         onClick = {
                             haptics.lightToggle()
                             viewModel.updateThemeMode("system")
+                            WidgetSyncManager.refreshAllAsync(context)
                         }
                     )
                 }
@@ -250,6 +280,7 @@ fun SettingsScreen(
                                 onCheckedChange = {
                                     haptics.lightToggle()
                                     viewModel.updateDynamicColorEnabled(it)
+                                    WidgetSyncManager.refreshAllAsync(context)
                                 }
                             )
                         }
@@ -267,6 +298,7 @@ fun SettingsScreen(
                         onClick = {
                             haptics.lightToggle()
                             viewModel.updateThemePack("stone")
+                            WidgetSyncManager.refreshAllAsync(context)
                         }
                     )
                     SettingItem(
@@ -276,6 +308,7 @@ fun SettingsScreen(
                         onClick = {
                             haptics.lightToggle()
                             viewModel.updateThemePack("parchment")
+                            WidgetSyncManager.refreshAllAsync(context)
                         }
                     )
                     SettingItem(
@@ -285,6 +318,7 @@ fun SettingsScreen(
                         onClick = {
                             haptics.lightToggle()
                             viewModel.updateThemePack("night_ink")
+                            WidgetSyncManager.refreshAllAsync(context)
                         }
                     )
                 }
@@ -314,6 +348,7 @@ fun SettingsScreen(
                                 onCheckedChange = {
                                     haptics.lightToggle()
                                     viewModel.updateHighContrastEnabled(it)
+                                    WidgetSyncManager.refreshAllAsync(context)
                                 }
                             )
                         }

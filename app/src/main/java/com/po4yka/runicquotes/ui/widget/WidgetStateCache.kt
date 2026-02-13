@@ -2,73 +2,82 @@ package com.po4yka.runicquotes.ui.widget
 
 import com.po4yka.runicquotes.data.preferences.UserPreferences
 import java.time.LocalDate
+import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Cache for widget state to avoid redundant database queries.
- * State is invalidated when the date changes or preferences change.
+ * Cache for widget state keyed per widget instance.
+ * State is invalidated when date, preferences, or widget size changes.
  */
 object WidgetStateCache {
 
-    private var cachedState: WidgetState? = null
-    private var cacheDate: LocalDate? = null
-    private var cachedScript: String? = null
-    private var cachedFont: String? = null
-    private var cachedDisplayMode: String? = null
+    private data class CacheEntry(
+        val date: LocalDate,
+        val widgetWidth: Int,
+        val widgetHeight: Int,
+        val selectedScript: String,
+        val selectedFont: String,
+        val displayMode: String,
+        val updateMode: String,
+        val themeMode: String,
+        val themePack: String,
+        val highContrastEnabled: Boolean,
+        val dynamicColorEnabled: Boolean,
+        val state: WidgetState
+    )
 
-    /**
-     * Retrieves cached widget state if valid for current date and preferences.
-     *
-     * @param currentDate Today's date
-     * @param preferences Current user preferences
-     * @return Cached WidgetState or null if cache is invalid
-     */
-    fun get(currentDate: LocalDate, preferences: UserPreferences): WidgetState? {
-        // Check if cache is valid
-        val isValid = cacheDate == currentDate &&
-                cachedScript == preferences.selectedScript.name &&
-                cachedFont == preferences.selectedFont &&
-                cachedDisplayMode == preferences.widgetDisplayMode
+    private val cache = ConcurrentHashMap<String, CacheEntry>()
 
-        return if (isValid) cachedState else null
+    fun get(
+        widgetKey: String,
+        currentDate: LocalDate,
+        preferences: UserPreferences,
+        widgetWidth: Int,
+        widgetHeight: Int
+    ): WidgetState? {
+        val entry = cache[widgetKey] ?: return null
+        val isValid = entry.date == currentDate &&
+            entry.widgetWidth == widgetWidth &&
+            entry.widgetHeight == widgetHeight &&
+            entry.selectedScript == preferences.selectedScript.name &&
+            entry.selectedFont == preferences.selectedFont &&
+            entry.displayMode == preferences.widgetDisplayMode &&
+            entry.updateMode == preferences.widgetUpdateMode &&
+            entry.themeMode == preferences.themeMode &&
+            entry.themePack == preferences.themePack &&
+            entry.highContrastEnabled == preferences.highContrastEnabled &&
+            entry.dynamicColorEnabled == preferences.dynamicColorEnabled
+        return if (isValid) entry.state else null
     }
 
-    /**
-     * Stores widget state in cache.
-     *
-     * @param date Current date
-     * @param preferences Current user preferences
-     * @param state Widget state to cache
-     */
-    fun put(date: LocalDate, preferences: UserPreferences, state: WidgetState) {
-        cacheDate = date
-        cachedScript = preferences.selectedScript.name
-        cachedFont = preferences.selectedFont
-        cachedDisplayMode = preferences.widgetDisplayMode
-        cachedState = state
+    fun put(
+        widgetKey: String,
+        date: LocalDate,
+        preferences: UserPreferences,
+        widgetWidth: Int,
+        widgetHeight: Int,
+        state: WidgetState
+    ) {
+        cache[widgetKey] = CacheEntry(
+            date = date,
+            widgetWidth = widgetWidth,
+            widgetHeight = widgetHeight,
+            selectedScript = preferences.selectedScript.name,
+            selectedFont = preferences.selectedFont,
+            displayMode = preferences.widgetDisplayMode,
+            updateMode = preferences.widgetUpdateMode,
+            themeMode = preferences.themeMode,
+            themePack = preferences.themePack,
+            highContrastEnabled = preferences.highContrastEnabled,
+            dynamicColorEnabled = preferences.dynamicColorEnabled,
+            state = state
+        )
     }
 
-    /**
-     * Clears the cache, forcing a fresh load on next request.
-     */
+    fun clear(widgetKey: String) {
+        cache.remove(widgetKey)
+    }
+
     fun clear() {
-        cachedState = null
-        cacheDate = null
-        cachedScript = null
-        cachedFont = null
-        cachedDisplayMode = null
-    }
-
-    /**
-     * Checks if cache is valid for given date and preferences.
-     *
-     * @param currentDate Date to check
-     * @param preferences Preferences to check
-     * @return True if cache is valid
-     */
-    fun isValid(currentDate: LocalDate, preferences: UserPreferences): Boolean {
-        return cacheDate == currentDate &&
-                cachedScript == preferences.selectedScript.name &&
-                cachedFont == preferences.selectedFont &&
-                cachedDisplayMode == preferences.widgetDisplayMode
+        cache.clear()
     }
 }
