@@ -13,4 +13,61 @@
     <string name="font_noto_sans">Noto Sans Runic</string>
     <string name="font_babelstone">BabelStone Runic</string>
     <string name="widget_description">Daily runic quote widget</string>
+    <string name="settings_back">Back</string>
+    <string name="settings_search_hint">Search settings</string>
+    <string name="settings_no_results">No settings matched your search.</string>
+
+    <string name="settings_section_runic_script">Runic Script</string>
+    <string name="settings_section_runic_script_subtitle">Choose the default script used across the app.</string>
+    <string name="settings_section_font">Font</string>
+    <string name="settings_section_font_subtitle">Pick the runic font style for reading and previews.</string>
+    <string name="settings_section_display">Display</string>
+    <string name="settings_section_display_subtitle">Control transliteration visibility and reading layout.</string>
+    <string name="settings_section_widget">Widget</string>
+    <string name="settings_section_widget_subtitle">Tune widget content style and refresh behavior.</string>
+    <string name="settings_section_theme">Theme</string>
+    <string name="settings_section_theme_subtitle">Manage theme mode, color source, and palette pack.</string>
+    <string name="settings_section_accessibility">Accessibility</string>
+    <string name="settings_section_accessibility_subtitle">Optimize readability, contrast, and motion.</string>
+
+    <string name="settings_elder_subtitle">Elder Futhark (150-800 AD)</string>
+    <string name="settings_younger_subtitle">Younger Futhark (800-1100 AD)</string>
+    <string name="settings_cirth_subtitle">Tolkien\'s Cirth (Angerthas)</string>
+    <string name="settings_font_noto_subtitle">Clean and modern</string>
+    <string name="settings_font_babelstone_subtitle">Traditional appearance</string>
+
+    <string name="settings_show_transliteration_title">Show Transliteration</string>
+    <string name="settings_show_transliteration_subtitle">Display Latin text alongside runes</string>
+
+    <string name="settings_widget_mode_section">Widget Mode</string>
+    <string name="settings_widget_frequency_section">Widget Update Frequency</string>
+
+    <string name="settings_theme_mode_section">Theme Mode</string>
+    <string name="settings_light">Light</string>
+    <string name="settings_light_subtitle">Bright UI surfaces</string>
+    <string name="settings_dark">Dark</string>
+    <string name="settings_dark_subtitle">Low-light UI surfaces</string>
+    <string name="settings_system">System</string>
+    <string name="settings_system_subtitle">Follow device appearance</string>
+
+    <string name="settings_color_source_section">Color Source</string>
+    <string name="settings_dynamic_color_title">Use Dynamic Color</string>
+    <string name="settings_dynamic_color_subtitle_supported">Blend wallpaper-derived tones with selected theme pack (Android 12+)</string>
+    <string name="settings_dynamic_color_subtitle_unsupported">Dynamic color requires Android 12 or newer.</string>
+
+    <string name="settings_theme_pack_section">Theme Pack</string>
+    <string name="settings_stone">Stone</string>
+    <string name="settings_stone_subtitle">Cool mineral tones</string>
+    <string name="settings_parchment">Parchment</string>
+    <string name="settings_parchment_subtitle">Warm manuscript tones</string>
+    <string name="settings_night_ink">Night Ink</string>
+    <string name="settings_night_ink_subtitle">Deep blue-black contrast</string>
+
+    <string name="settings_accessibility_presets_section">Accessibility Presets</string>
+    <string name="settings_large_runes_title">Large Runes</string>
+    <string name="settings_large_runes_subtitle">Increase rune size across core reading surfaces</string>
+    <string name="settings_high_contrast_title">High Contrast</string>
+    <string name="settings_high_contrast_subtitle">Use stronger foreground/background contrast</string>
+    <string name="settings_reduced_motion_title">Reduced Motion</string>
+    <string name="settings_reduced_motion_subtitle">Minimize transitions and animated reveals</string>
 </resources>
