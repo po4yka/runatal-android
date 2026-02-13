@@ -26,9 +26,9 @@ class UserPreferencesManager @Inject constructor(
      */
     val userPreferencesFlow: Flow<UserPreferences> = dataStore.data.map { preferences ->
         UserPreferences(
-            selectedScript = RunicScript.valueOf(
-                preferences[SELECTED_SCRIPT] ?: RunicScript.DEFAULT.name
-            ),
+            selectedScript = preferences[SELECTED_SCRIPT]
+                ?.let { scriptName -> RunicScript.entries.firstOrNull { it.name == scriptName } }
+                ?: RunicScript.DEFAULT,
             selectedFont = preferences[SELECTED_FONT] ?: "noto",
             widgetUpdateMode = preferences[WIDGET_UPDATE_MODE] ?: "daily",
             lastQuoteDate = preferences[LAST_QUOTE_DATE] ?: 0L,

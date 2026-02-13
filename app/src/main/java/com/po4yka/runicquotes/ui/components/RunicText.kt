@@ -16,8 +16,8 @@ import com.po4yka.runicquotes.ui.theme.NotoSansRunic
  * Composable for displaying text in runic fonts.
  *
  * @param text The runic text to display
- * @param font The font to use ("noto", "babelstone", "babelstone_ruled")
  * @param modifier Modifier for styling
+ * @param font The font to use ("noto", "babelstone", "babelstone_ruled")
  * @param color Text color
  * @param fontSize Font size
  * @param textAlign Text alignment
@@ -26,8 +26,8 @@ import com.po4yka.runicquotes.ui.theme.NotoSansRunic
 @Composable
 fun RunicText(
     text: String,
-    font: String = "noto",
     modifier: Modifier = Modifier,
+    font: String = "noto",
     color: Color = Color.Unspecified,
     fontSize: TextUnit = TextUnit.Unspecified,
     textAlign: TextAlign? = null,

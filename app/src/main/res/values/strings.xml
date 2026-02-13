@@ -6,6 +6,7 @@
     <string name="about">About</string>
     <string name="refresh_quote">Refresh Quote</string>
     <string name="share_quote">Share Quote</string>
+    <string name="browse_quotes">Browse Quotes</string>
     <string name="script_elder_futhark">Elder Futhark</string>
     <string name="script_younger_futhark">Younger Futhark</string>
     <string name="script_cirth">Cirth (Angerthas)</string>

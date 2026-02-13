@@ -10,7 +10,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.po4yka.runicquotes.ui.navigation.NavGraph
 import com.po4yka.runicquotes.ui.navigation.QuoteRoute
 import com.po4yka.runicquotes.ui.screens.settings.SettingsViewModel

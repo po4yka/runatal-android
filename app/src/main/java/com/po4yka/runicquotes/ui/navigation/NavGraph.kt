@@ -6,7 +6,9 @@ import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDe
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import com.po4yka.runicquotes.ui.screens.addeditquote.AddEditQuoteScreen
 import com.po4yka.runicquotes.ui.screens.quote.QuoteScreen
+import com.po4yka.runicquotes.ui.screens.quotelist.QuoteListScreen
 import com.po4yka.runicquotes.ui.screens.settings.SettingsScreen
 
 /**
@@ -30,6 +32,9 @@ fun NavGraph(
                 QuoteScreen(
                     onNavigateToSettings = {
                         backStack.add(SettingsRoute)
+                    },
+                    onNavigateToQuoteList = {
+                        backStack.add(QuoteListRoute)
                     }
                 )
             }
@@ -40,6 +45,31 @@ fun NavGraph(
                     onNavigateBack = {
                         backStack.removeLastOrNull()
                     }
+                )
+            }
+
+            // Quote List Screen
+            entry<QuoteListRoute> {
+                QuoteListScreen(
+                    onNavigateBack = {
+                        backStack.removeLastOrNull()
+                    },
+                    onNavigateToAddQuote = {
+                        backStack.add(AddEditQuoteRoute())
+                    },
+                    onNavigateToEditQuote = { quoteId ->
+                        backStack.add(AddEditQuoteRoute(quoteId = quoteId))
+                    }
+                )
+            }
+
+            // Add/Edit Quote Screen
+            entry<AddEditQuoteRoute> { route ->
+                AddEditQuoteScreen(
+                    onNavigateBack = {
+                        backStack.removeLastOrNull()
+                    },
+                    quoteId = route.quoteId
                 )
             }
         }

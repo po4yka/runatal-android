@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
 import androidx.core.content.FileProvider
+import com.po4yka.runicquotes.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -26,7 +27,6 @@ class QuoteShareManager @Inject constructor(
 ) {
     companion object {
         private const val TAG = "QuoteShareManager"
-        private const val AUTHORITY = "com.po4yka.runicquotes.fileprovider"
         private const val SHARE_DIR = "shared_quotes"
         private const val FILE_NAME = "runic_quote.png"
     }
@@ -59,9 +59,10 @@ class QuoteShareManager @Inject constructor(
             }
 
             // Get URI using FileProvider
+            val authority = "${BuildConfig.APPLICATION_ID}.fileprovider"
             val imageUri: Uri = FileProvider.getUriForFile(
                 context,
-                AUTHORITY,
+                authority,
                 imageFile
             )
 

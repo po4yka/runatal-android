@@ -18,3 +18,17 @@ data object QuoteRoute
  */
 @Serializable
 data object SettingsRoute
+
+/**
+ * Quote list screen - allows browsing, filtering and managing quotes.
+ */
+@Serializable
+data object QuoteListRoute
+
+/**
+ * Add/Edit quote screen.
+ *
+ * @property quoteId Quote ID to edit. Use 0 for creating a new quote.
+ */
+@Serializable
+data class AddEditQuoteRoute(val quoteId: Long = 0L)

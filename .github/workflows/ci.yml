@@ -67,7 +67,7 @@ jobs:
           retention-days: 7
         continue-on-error: true
   lint:
-    name: Detekt Static Analysis
+    name: Static Analysis
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -85,17 +85,18 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Run Detekt
-        run: ./gradlew detekt
+      - name: Run Detekt and Android Lint
+        run: ./gradlew detekt lintDebug
 
-      - name: Upload Detekt reports
+      - name: Upload analysis reports
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: detekt-reports
+          name: static-analysis-reports
           path: |
             build/reports/detekt/
             app/build/reports/detekt/
+            app/build/reports/lint-results-debug.*
           retention-days: 7
 
   test:
@@ -122,7 +123,6 @@ jobs:
 
       - name: Generate coverage report
         run: ./gradlew jacocoTestCoverageVerification
-        continue-on-error: true
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5

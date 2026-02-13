@@ -36,7 +36,8 @@ class AddEditQuoteViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val quoteId: Long = savedStateHandle.get<Long>("quoteId") ?: 0L
+    private var quoteId: Long = savedStateHandle.get<Long>("quoteId") ?: 0L
+    private var loadedQuoteId: Long? = null
 
     private val _uiState = MutableStateFlow(AddEditQuoteUiState())
     val uiState: StateFlow<AddEditQuoteUiState> = _uiState.asStateFlow()
@@ -53,20 +54,32 @@ class AddEditQuoteViewModel @Inject constructor(
             }
         }
 
-        // Load quote if editing
-        if (quoteId != 0L) {
-            viewModelScope.launch {
-                val quote = quoteRepository.getQuoteById(quoteId)
-                if (quote != null && quote.isUserCreated) {
-                    _uiState.update {
-                        it.copy(
-                            textLatin = quote.textLatin,
-                            author = quote.author,
-                            isEditing = true
-                        )
-                    }
-                    updateRunicPreviews()
+        initializeQuoteIfNeeded(quoteId)
+    }
+
+    /**
+     * Loads quote data for editing when a quote ID is provided.
+     * Safe to call multiple times; already-loaded IDs are ignored.
+     */
+    fun initializeQuoteIfNeeded(quoteId: Long) {
+        if (quoteId == 0L || loadedQuoteId == quoteId) {
+            return
+        }
+
+        this.quoteId = quoteId
+        loadedQuoteId = quoteId
+
+        viewModelScope.launch {
+            val quote = quoteRepository.getQuoteById(quoteId)
+            if (quote != null && quote.isUserCreated) {
+                _uiState.update {
+                    it.copy(
+                        textLatin = quote.textLatin,
+                        author = quote.author,
+                        isEditing = true
+                    )
                 }
+                updateRunicPreviews()
             }
         }
     }

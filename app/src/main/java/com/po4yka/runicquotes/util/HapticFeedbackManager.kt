@@ -81,16 +81,11 @@ class HapticFeedbackManager @Inject constructor(
      * Provides success feedback pattern.
      */
     fun success() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val timings = longArrayOf(0, 50, 50, 100)
-            val amplitudes = intArrayOf(0, 128, 0, 255)
-            vibrator.vibrate(
-                VibrationEffect.createWaveform(timings, amplitudes, -1)
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(longArrayOf(0, 50, 50, 100), -1)
-        }
+        val timings = longArrayOf(0, 50, 50, 100)
+        val amplitudes = intArrayOf(0, 128, 0, 255)
+        vibrator.vibrate(
+            VibrationEffect.createWaveform(timings, amplitudes, -1)
+        )
     }
 
     /**
@@ -101,15 +96,12 @@ class HapticFeedbackManager @Inject constructor(
             vibrator.vibrate(
                 VibrationEffect.createPredefined(VibrationEffect.EFFECT_DOUBLE_CLICK)
             )
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        } else {
             val timings = longArrayOf(0, 100, 100, 100)
             val amplitudes = intArrayOf(0, 255, 0, 255)
             vibrator.vibrate(
                 VibrationEffect.createWaveform(timings, amplitudes, -1)
             )
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(longArrayOf(0, 100, 100, 100), -1)
         }
     }
 }
@@ -153,12 +145,10 @@ class HapticFeedback(
     }
 
     fun success() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val timings = longArrayOf(0, 50, 50, 100)
-            val amplitudes = intArrayOf(0, 128, 0, 255)
-            vibrator.vibrate(
-                VibrationEffect.createWaveform(timings, amplitudes, -1)
-            )
-        }
+        val timings = longArrayOf(0, 50, 50, 100)
+        val amplitudes = intArrayOf(0, 128, 0, 255)
+        vibrator.vibrate(
+            VibrationEffect.createWaveform(timings, amplitudes, -1)
+        )
     }
 }

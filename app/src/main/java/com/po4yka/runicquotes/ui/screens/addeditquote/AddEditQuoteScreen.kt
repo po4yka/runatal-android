@@ -36,7 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
 
@@ -48,10 +48,15 @@ import com.po4yka.runicquotes.domain.model.displayName
 @Composable
 fun AddEditQuoteScreen(
     onNavigateBack: () -> Unit,
+    quoteId: Long = 0L,
     viewModel: AddEditQuoteViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(quoteId) {
+        viewModel.initializeQuoteIfNeeded(quoteId)
+    }
 
     // Show error messages
     LaunchedEffect(uiState.errorMessage) {
