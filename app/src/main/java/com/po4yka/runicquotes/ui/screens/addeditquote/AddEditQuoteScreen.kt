@@ -21,6 +21,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -85,7 +86,11 @@ fun AddEditQuoteScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.saveQuote(onNavigateBack) },
+                onClick = {
+                    if (uiState.canSave && !uiState.isSaving) {
+                        viewModel.saveQuote(onNavigateBack)
+                    }
+                },
                 containerColor = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.testTag("add_edit_save_button")
             ) {
@@ -122,6 +127,19 @@ fun AddEditQuoteScreen(
                     .testTag("add_edit_quote_text"),
                 minLines = 3,
                 maxLines = 6,
+                isError = uiState.quoteTextError != null,
+                supportingText = {
+                    val helper = uiState.quoteTextError
+                        ?: "Keep it concise and readable in rune form."
+                    Text(
+                        text = "$helper (${uiState.quoteCharCount}/280)",
+                        color = if (uiState.quoteTextError != null) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                },
                 enabled = !uiState.isSaving
             )
 
@@ -135,6 +153,18 @@ fun AddEditQuoteScreen(
                     .fillMaxWidth()
                     .testTag("add_edit_author_text"),
                 singleLine = true,
+                isError = uiState.authorError != null,
+                supportingText = {
+                    val helper = uiState.authorError ?: "Who said this quote?"
+                    Text(
+                        text = "$helper (${uiState.authorCharCount}/60)",
+                        color = if (uiState.authorError != null) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                },
                 enabled = !uiState.isSaving
             )
 
@@ -162,46 +192,7 @@ fun AddEditQuoteScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Live runic preview
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "Live Preview",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    val previewText = when (uiState.selectedScript) {
-                        RunicScript.ELDER_FUTHARK -> uiState.runicElderPreview
-                        RunicScript.YOUNGER_FUTHARK -> uiState.runicYoungerPreview
-                        RunicScript.CIRTH -> uiState.runicCirthPreview
-                    }
-
-                    if (previewText.isNotEmpty()) {
-                        Text(
-                            text = previewText,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontFamily = FontFamily.Monospace,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    } else {
-                        Text(
-                            text = "Type to see runic preview...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-            }
+            LivePreviewSection(uiState = uiState)
 
             // All scripts preview
             Text(
@@ -226,6 +217,70 @@ fun AddEditQuoteScreen(
 
             // Bottom padding for FAB
             Spacer(modifier = Modifier.height(72.dp))
+        }
+    }
+}
+
+@Composable
+private fun LivePreviewSection(uiState: AddEditQuoteUiState) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Live Preview",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            val previewText = when (uiState.selectedScript) {
+                RunicScript.ELDER_FUTHARK -> uiState.runicElderPreview
+                RunicScript.YOUNGER_FUTHARK -> uiState.runicYoungerPreview
+                RunicScript.CIRTH -> uiState.runicCirthPreview
+            }
+
+            if (previewText.isNotEmpty()) {
+                Text(
+                    text = previewText,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                Text(
+                    text = "ᚱᚢᚾᛖ",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                )
+                Text(
+                    text = "Type to see runic preview...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Transliteration Confidence: ${uiState.transliterationConfidence}%",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            LinearProgressIndicator(
+                progress = { uiState.transliterationConfidence / 100f },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(
+                text = uiState.confidenceHint,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+            )
         }
     }
 }

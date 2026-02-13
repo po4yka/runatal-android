@@ -8,7 +8,6 @@ import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
-import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.domain.transliteration.CirthTransliterator
 import com.po4yka.runicquotes.domain.transliteration.ElderFutharkTransliterator
 import com.po4yka.runicquotes.domain.transliteration.YoungerFutharkTransliterator
@@ -44,6 +43,9 @@ class AddEditQuoteViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "AddEditQuoteViewModel"
+        private const val MAX_QUOTE_LENGTH = 280
+        private const val MAX_AUTHOR_LENGTH = 60
+        private const val MIN_QUOTE_LENGTH = 10
     }
 
     init {
@@ -80,6 +82,7 @@ class AddEditQuoteViewModel @Inject constructor(
                     )
                 }
                 updateRunicPreviews()
+                recomputeDerivedState()
             }
         }
     }
@@ -90,6 +93,7 @@ class AddEditQuoteViewModel @Inject constructor(
     fun updateTextLatin(text: String) {
         _uiState.update { it.copy(textLatin = text) }
         updateRunicPreviews()
+        recomputeDerivedState()
     }
 
     /**
@@ -97,6 +101,7 @@ class AddEditQuoteViewModel @Inject constructor(
      */
     fun updateAuthor(author: String) {
         _uiState.update { it.copy(author = author) }
+        recomputeDerivedState()
     }
 
     /**
@@ -115,6 +120,13 @@ class AddEditQuoteViewModel @Inject constructor(
 
             if (state.textLatin.isBlank() || state.author.isBlank()) {
                 _uiState.update { it.copy(errorMessage = "Text and author cannot be empty") }
+                return@launch
+            }
+
+            if (!state.canSave) {
+                _uiState.update {
+                    it.copy(errorMessage = "Please resolve field errors before saving")
+                }
                 return@launch
             }
 
@@ -176,6 +188,58 @@ class AddEditQuoteViewModel @Inject constructor(
             )
         }
     }
+
+    private fun recomputeDerivedState() {
+        val state = _uiState.value
+        val quoteTextError = when {
+            state.textLatin.isBlank() -> "Quote text is required"
+            state.textLatin.length > MAX_QUOTE_LENGTH -> "Keep quote under $MAX_QUOTE_LENGTH characters"
+            state.textLatin.trim().length < MIN_QUOTE_LENGTH -> {
+                "Use at least $MIN_QUOTE_LENGTH characters for meaningful transliteration"
+            }
+            else -> null
+        }
+
+        val authorError = when {
+            state.author.isBlank() -> "Author is required"
+            state.author.length > MAX_AUTHOR_LENGTH -> "Keep author under $MAX_AUTHOR_LENGTH characters"
+            else -> null
+        }
+
+        val confidence = computeTransliterationConfidence(state.textLatin)
+        val confidenceHint = when {
+            state.textLatin.isBlank() -> "Start typing to compute transliteration confidence."
+            confidence >= 90 -> "Excellent transliteration compatibility."
+            confidence >= 70 -> "Good coverage. Some characters may map approximately."
+            else -> "Low compatibility. Reduce symbols/numbers for cleaner runes."
+        }
+
+        _uiState.update {
+            it.copy(
+                quoteTextError = quoteTextError,
+                authorError = authorError,
+                quoteCharCount = state.textLatin.length,
+                authorCharCount = state.author.length,
+                transliterationConfidence = confidence,
+                confidenceHint = confidenceHint,
+                canSave = quoteTextError == null && authorError == null
+            )
+        }
+    }
+
+    private fun computeTransliterationConfidence(text: String): Int {
+        val letters = text.filter { it.isLetter() }
+        if (letters.isEmpty()) {
+            return 100
+        }
+
+        val supportedLetters = letters.count { char ->
+            val lower = char.lowercaseChar()
+            lower in 'a'..'z'
+        }
+
+        return (supportedLetters * 100) / letters.length
+    }
 }
 
 /**
@@ -187,8 +251,15 @@ data class AddEditQuoteUiState(
     val runicElderPreview: String = "",
     val runicYoungerPreview: String = "",
     val runicCirthPreview: String = "",
+    val quoteTextError: String? = null,
+    val authorError: String? = null,
+    val quoteCharCount: Int = 0,
+    val authorCharCount: Int = 0,
+    val transliterationConfidence: Int = 100,
+    val confidenceHint: String = "Start typing to compute transliteration confidence.",
     val selectedScript: RunicScript = RunicScript.ELDER_FUTHARK,
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
+    val canSave: Boolean = false,
     val errorMessage: String? = null
 )

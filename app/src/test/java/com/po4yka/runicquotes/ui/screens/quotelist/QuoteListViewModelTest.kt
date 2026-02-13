@@ -110,6 +110,10 @@ class QuoteListViewModelTest {
         every { quoteRepository.getAllQuotesFlow() } returns allQuotesFlow
         every { quoteRepository.getUserQuotesFlow() } returns userQuotesFlow
         every { quoteRepository.getFavoritesFlow() } returns favoritesFlow
+        coEvery { userPreferencesManager.updateQuoteListFilter(any()) } returns Unit
+        coEvery { userPreferencesManager.updateQuoteSearchQuery(any()) } returns Unit
+        coEvery { userPreferencesManager.updateQuoteAuthorFilter(any()) } returns Unit
+        coEvery { userPreferencesManager.updateQuoteLengthFilter(any()) } returns Unit
     }
 
     @After

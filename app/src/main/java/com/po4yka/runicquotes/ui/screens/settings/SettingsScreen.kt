@@ -1,5 +1,8 @@
 package com.po4yka.runicquotes.ui.screens.settings
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,7 +38,7 @@ import com.po4yka.runicquotes.ui.components.SettingSection
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    onNavigateBack: () -> Unit,
+    onNavigateBack: (() -> Unit)? = null,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val preferences by viewModel.userPreferences.collectAsState()
@@ -50,100 +53,131 @@ fun SettingsScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
+                    if (onNavigateBack != null) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
                     }
                 }
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
+        AnimatedVisibility(
+            visible = true,
+            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 6 })
         ) {
-            // Runic Script Section
-            SettingSection(title = "Runic Script") {
-                SettingItem(
-                    title = stringResource(R.string.script_elder_futhark),
-                    subtitle = "Elder Futhark (150-800 AD)",
-                    selected = preferences.selectedScript == RunicScript.ELDER_FUTHARK,
-                    onClick = { viewModel.updateSelectedScript(RunicScript.ELDER_FUTHARK) }
-                )
-                SettingItem(
-                    title = stringResource(R.string.script_younger_futhark),
-                    subtitle = "Younger Futhark (800-1100 AD)",
-                    selected = preferences.selectedScript == RunicScript.YOUNGER_FUTHARK,
-                    onClick = { viewModel.updateSelectedScript(RunicScript.YOUNGER_FUTHARK) }
-                )
-                SettingItem(
-                    title = stringResource(R.string.script_cirth),
-                    subtitle = "Tolkien's Cirth (Angerthas)",
-                    selected = preferences.selectedScript == RunicScript.CIRTH,
-                    onClick = { viewModel.updateSelectedScript(RunicScript.CIRTH) }
-                )
-            }
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // Runic Script Section
+                SettingSection(title = "Runic Script") {
+                    SettingItem(
+                        title = stringResource(R.string.script_elder_futhark),
+                        subtitle = "Elder Futhark (150-800 AD)",
+                        selected = preferences.selectedScript == RunicScript.ELDER_FUTHARK,
+                        onClick = { viewModel.updateSelectedScript(RunicScript.ELDER_FUTHARK) }
+                    )
+                    SettingItem(
+                        title = stringResource(R.string.script_younger_futhark),
+                        subtitle = "Younger Futhark (800-1100 AD)",
+                        selected = preferences.selectedScript == RunicScript.YOUNGER_FUTHARK,
+                        onClick = { viewModel.updateSelectedScript(RunicScript.YOUNGER_FUTHARK) }
+                    )
+                    SettingItem(
+                        title = stringResource(R.string.script_cirth),
+                        subtitle = "Tolkien's Cirth (Angerthas)",
+                        selected = preferences.selectedScript == RunicScript.CIRTH,
+                        onClick = { viewModel.updateSelectedScript(RunicScript.CIRTH) }
+                    )
+                }
 
-            HorizontalDivider()
+                HorizontalDivider()
 
-            // Font Section
-            SettingSection(title = "Font") {
-                SettingItem(
-                    title = stringResource(R.string.font_noto_sans),
-                    subtitle = "Clean and modern",
-                    selected = preferences.selectedFont == "noto",
-                    onClick = { viewModel.updateSelectedFont("noto") }
-                )
-                SettingItem(
-                    title = stringResource(R.string.font_babelstone),
-                    subtitle = "Traditional appearance",
-                    selected = preferences.selectedFont == "babelstone",
-                    onClick = { viewModel.updateSelectedFont("babelstone") }
-                )
-            }
+                // Font Section
+                SettingSection(title = "Font") {
+                    SettingItem(
+                        title = stringResource(R.string.font_noto_sans),
+                        subtitle = "Clean and modern",
+                        selected = preferences.selectedFont == "noto",
+                        onClick = { viewModel.updateSelectedFont("noto") }
+                    )
+                    SettingItem(
+                        title = stringResource(R.string.font_babelstone),
+                        subtitle = "Traditional appearance",
+                        selected = preferences.selectedFont == "babelstone",
+                        onClick = { viewModel.updateSelectedFont("babelstone") }
+                    )
+                }
 
-            HorizontalDivider()
+                HorizontalDivider()
 
-            // Display Section
-            SettingSection(title = "Display") {
-                SettingItem(
-                    title = "Show Transliteration",
-                    subtitle = "Display Latin text alongside runes",
-                    trailing = {
-                        Switch(
-                            checked = preferences.showTransliteration,
-                            onCheckedChange = { viewModel.updateShowTransliteration(it) }
-                        )
-                    }
-                )
-            }
+                // Display Section
+                SettingSection(title = "Display") {
+                    SettingItem(
+                        title = "Show Transliteration",
+                        subtitle = "Display Latin text alongside runes",
+                        trailing = {
+                            Switch(
+                                checked = preferences.showTransliteration,
+                                onCheckedChange = { viewModel.updateShowTransliteration(it) }
+                            )
+                        }
+                    )
+                }
 
-            HorizontalDivider()
+                HorizontalDivider()
 
-            // Theme Section
-            SettingSection(title = "Theme") {
-                SettingItem(
-                    title = "Light",
-                    subtitle = "White background",
-                    selected = preferences.themeMode == "light",
-                    onClick = { viewModel.updateThemeMode("light") }
-                )
-                SettingItem(
-                    title = "Dark",
-                    subtitle = "Black background",
-                    selected = preferences.themeMode == "dark",
-                    onClick = { viewModel.updateThemeMode("dark") }
-                )
-                SettingItem(
-                    title = "System",
-                    subtitle = "Follow system theme",
-                    selected = preferences.themeMode == "system",
-                    onClick = { viewModel.updateThemeMode("system") }
-                )
+                // Theme Section
+                SettingSection(title = "Theme Mode") {
+                    SettingItem(
+                        title = "Light",
+                        subtitle = "Bright UI surfaces",
+                        selected = preferences.themeMode == "light",
+                        onClick = { viewModel.updateThemeMode("light") }
+                    )
+                    SettingItem(
+                        title = "Dark",
+                        subtitle = "Low-light UI surfaces",
+                        selected = preferences.themeMode == "dark",
+                        onClick = { viewModel.updateThemeMode("dark") }
+                    )
+                    SettingItem(
+                        title = "System",
+                        subtitle = "Follow device appearance",
+                        selected = preferences.themeMode == "system",
+                        onClick = { viewModel.updateThemeMode("system") }
+                    )
+                }
+
+                HorizontalDivider()
+
+                // Theme Pack Section
+                SettingSection(title = "Theme Pack") {
+                    SettingItem(
+                        title = "Stone",
+                        subtitle = "Cool mineral tones",
+                        selected = preferences.themePack == "stone",
+                        onClick = { viewModel.updateThemePack("stone") }
+                    )
+                    SettingItem(
+                        title = "Parchment",
+                        subtitle = "Warm manuscript tones",
+                        selected = preferences.themePack == "parchment",
+                        onClick = { viewModel.updateThemePack("parchment") }
+                    )
+                    SettingItem(
+                        title = "Night Ink",
+                        subtitle = "Deep blue-black contrast",
+                        selected = preferences.themePack == "night_ink",
+                        onClick = { viewModel.updateThemePack("night_ink") }
+                    )
+                }
             }
         }
     }

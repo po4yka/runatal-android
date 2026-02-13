@@ -5,8 +5,11 @@ package com.po4yka.runicquotes.util
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Rect
+import android.graphics.Shader
 import android.graphics.Typeface
 import androidx.core.content.ContextCompat
 import com.po4yka.runicquotes.R
@@ -22,6 +25,15 @@ import kotlin.math.max
 class QuoteImageGenerator @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+    private data class ShareStyle(
+        val backgroundStart: Int,
+        val backgroundEnd: Int,
+        val runicColor: Int,
+        val latinColor: Int,
+        val authorColor: Int,
+        val addFrame: Boolean
+    )
+
     companion object {
         private const val IMAGE_WIDTH = 1080
         private const val IMAGE_HEIGHT = 1920
@@ -37,23 +49,36 @@ class QuoteImageGenerator @Inject constructor(
      * @param runicText The runic transliteration
      * @param latinText The Latin text
      * @param author The quote author
+     * @param template Share template style preset
      * @return Bitmap image ready for sharing
      */
     fun generateQuoteImage(
         runicText: String,
         latinText: String,
-        author: String
+        author: String,
+        template: ShareTemplate = ShareTemplate.MINIMAL
     ): Bitmap {
         val bitmap = Bitmap.createBitmap(IMAGE_WIDTH, IMAGE_HEIGHT, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
+        val templateStyle = resolveStyle(template)
 
-        // Background
-        val backgroundColor = ContextCompat.getColor(context, R.color.surface)
-        canvas.drawColor(backgroundColor)
+        // Background (gradient for richer templates)
+        val backgroundPaint = Paint().apply {
+            shader = LinearGradient(
+                0f,
+                0f,
+                IMAGE_WIDTH.toFloat(),
+                IMAGE_HEIGHT.toFloat(),
+                templateStyle.backgroundStart,
+                templateStyle.backgroundEnd,
+                Shader.TileMode.CLAMP
+            )
+        }
+        canvas.drawRect(0f, 0f, IMAGE_WIDTH.toFloat(), IMAGE_HEIGHT.toFloat(), backgroundPaint)
 
         // Paint for runic text
         val runicPaint = Paint().apply {
-            color = ContextCompat.getColor(context, R.color.on_surface)
+            color = templateStyle.runicColor
             textSize = RUNIC_TEXT_SIZE
             typeface = Typeface.MONOSPACE
             isAntiAlias = true
@@ -62,7 +87,7 @@ class QuoteImageGenerator @Inject constructor(
 
         // Paint for Latin text
         val latinPaint = Paint().apply {
-            color = ContextCompat.getColor(context, R.color.on_surface)
+            color = templateStyle.latinColor
             textSize = LATIN_TEXT_SIZE
             typeface = Typeface.DEFAULT
             isAntiAlias = true
@@ -71,11 +96,27 @@ class QuoteImageGenerator @Inject constructor(
 
         // Paint for author
         val authorPaint = Paint().apply {
-            color = ContextCompat.getColor(context, R.color.on_surface_variant)
+            color = templateStyle.authorColor
             textSize = AUTHOR_TEXT_SIZE
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
             isAntiAlias = true
             textAlign = Paint.Align.CENTER
+        }
+
+        if (templateStyle.addFrame) {
+            val framePaint = Paint().apply {
+                color = Color.argb(150, 120, 90, 50)
+                style = Paint.Style.STROKE
+                strokeWidth = 6f
+                isAntiAlias = true
+            }
+            canvas.drawRect(
+                PADDING / 2f,
+                PADDING / 2f,
+                IMAGE_WIDTH - PADDING / 2f,
+                IMAGE_HEIGHT - PADDING / 2f,
+                framePaint
+            )
         }
 
         val centerX = IMAGE_WIDTH / 2f
@@ -113,6 +154,37 @@ class QuoteImageGenerator @Inject constructor(
         canvas.drawText("— $author", centerX, currentY, authorPaint)
 
         return bitmap
+    }
+
+    private fun resolveStyle(template: ShareTemplate): ShareStyle {
+        return when (template) {
+            ShareTemplate.MINIMAL -> ShareStyle(
+                backgroundStart = ContextCompat.getColor(context, R.color.surface),
+                backgroundEnd = ContextCompat.getColor(context, R.color.gray_200),
+                runicColor = ContextCompat.getColor(context, R.color.on_surface),
+                latinColor = ContextCompat.getColor(context, R.color.on_surface),
+                authorColor = ContextCompat.getColor(context, R.color.on_surface_variant),
+                addFrame = false
+            )
+
+            ShareTemplate.ORNATE -> ShareStyle(
+                backgroundStart = Color.parseColor("#FAEFD9"),
+                backgroundEnd = Color.parseColor("#EFD7B1"),
+                runicColor = Color.parseColor("#402715"),
+                latinColor = Color.parseColor("#5A3B23"),
+                authorColor = Color.parseColor("#7A5A3C"),
+                addFrame = true
+            )
+
+            ShareTemplate.HIGH_CONTRAST -> ShareStyle(
+                backgroundStart = Color.BLACK,
+                backgroundEnd = Color.BLACK,
+                runicColor = Color.WHITE,
+                latinColor = Color.WHITE,
+                authorColor = Color.parseColor("#E0E0E0"),
+                addFrame = false
+            )
+        }
     }
 
     /**

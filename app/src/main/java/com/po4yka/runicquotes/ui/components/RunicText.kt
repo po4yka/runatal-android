@@ -11,6 +11,8 @@ import androidx.compose.ui.unit.TextUnit
 import com.po4yka.runicquotes.ui.theme.BabelStoneRunic
 import com.po4yka.runicquotes.ui.theme.BabelStoneRunicRuled
 import com.po4yka.runicquotes.ui.theme.NotoSansRunic
+import com.po4yka.runicquotes.domain.model.RunicScript
+import androidx.compose.ui.unit.sp
 
 /**
  * Composable for displaying text in runic fonts.
@@ -28,6 +30,7 @@ fun RunicText(
     text: String,
     modifier: Modifier = Modifier,
     font: String = "noto",
+    script: RunicScript = RunicScript.DEFAULT,
     color: Color = Color.Unspecified,
     fontSize: TextUnit = TextUnit.Unspecified,
     textAlign: TextAlign? = null,
@@ -39,12 +42,36 @@ fun RunicText(
         else -> NotoSansRunic // Default to Noto Sans Runic
     }
 
+    val tunedStyle = style.copy(
+        fontFamily = fontFamily,
+        letterSpacing = when (script) {
+            RunicScript.ELDER_FUTHARK -> 0.35.sp
+            RunicScript.YOUNGER_FUTHARK -> 0.15.sp
+            RunicScript.CIRTH -> 0.25.sp
+        },
+        lineHeight = when (script) {
+            RunicScript.ELDER_FUTHARK -> 44.sp
+            RunicScript.YOUNGER_FUTHARK -> 42.sp
+            RunicScript.CIRTH -> 46.sp
+        }
+    )
+
+    val tunedFontSize = if (fontSize != TextUnit.Unspecified) {
+        fontSize
+    } else {
+        when (script) {
+            RunicScript.ELDER_FUTHARK -> 33.sp
+            RunicScript.YOUNGER_FUTHARK -> 31.sp
+            RunicScript.CIRTH -> 35.sp
+        }
+    }
+
     Text(
         text = text,
         modifier = modifier,
         color = color,
-        fontSize = fontSize,
+        fontSize = tunedFontSize,
         textAlign = textAlign,
-        style = style.copy(fontFamily = fontFamily)
+        style = tunedStyle
     )
 }

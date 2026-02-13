@@ -2,10 +2,14 @@ package com.po4yka.runicquotes.ui.screens.quote
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.po4yka.runicquotes.data.preferences.UserPreferences
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
+import com.po4yka.runicquotes.domain.model.Quote
+import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.util.QuoteShareManager
+import com.po4yka.runicquotes.util.ShareTemplate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,18 +35,17 @@ class QuoteViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<QuoteUiState>(QuoteUiState.Loading)
     val uiState: StateFlow<QuoteUiState> = _uiState.asStateFlow()
+    private var currentQuote: Quote? = null
 
     init {
-        // Load initial quote
+        // Observe preferences changes and keep quote rendering in sync.
         viewModelScope.launch {
-            loadQuoteOfTheDay()
-        }
-
-        // Observe preferences changes
-        viewModelScope.launch {
-            userPreferencesManager.userPreferencesFlow.collectLatest {
-                // Reload quote when preferences change
-                loadQuoteOfTheDay()
+            userPreferencesManager.userPreferencesFlow.collectLatest { preferences ->
+                if (currentQuote == null) {
+                    loadQuoteOfTheDay(preferences = preferences, showLoading = true)
+                } else {
+                    applyPreferencesToCurrentQuote(preferences)
+                }
             }
         }
     }
@@ -50,28 +53,24 @@ class QuoteViewModel @Inject constructor(
     /**
      * Loads the quote of the day based on current preferences.
      */
-    private suspend fun loadQuoteOfTheDay() {
-        _uiState.update { QuoteUiState.Loading }
+    private suspend fun loadQuoteOfTheDay(
+        preferences: UserPreferences? = null,
+        showLoading: Boolean = true
+    ) {
+        if (showLoading) {
+            _uiState.update { QuoteUiState.Loading }
+        }
 
         try {
-            val preferences = userPreferencesManager.userPreferencesFlow.first()
+            val resolvedPreferences = preferences ?: userPreferencesManager.userPreferencesFlow.first()
 
-            val quote = quoteRepository.quoteOfTheDay(preferences.selectedScript)
+            val quote = quoteRepository.quoteOfTheDay(resolvedPreferences.selectedScript)
 
             if (quote != null) {
-                // Use domain extension function for business logic
-                val runicText = quote.getRunicText(preferences.selectedScript)
-
-                _uiState.update {
-                    QuoteUiState.Success(
-                        quote = quote,
-                        runicText = runicText,
-                        selectedScript = preferences.selectedScript,
-                        selectedFont = preferences.selectedFont,
-                        showTransliteration = preferences.showTransliteration
-                    )
-                }
+                currentQuote = quote
+                emitSuccessState(quote, resolvedPreferences)
             } else {
+                currentQuote = null
                 _uiState.update { QuoteUiState.Empty }
             }
         } catch (e: IOException) {
@@ -94,19 +93,10 @@ class QuoteViewModel @Inject constructor(
                 val quote = quoteRepository.randomQuote(preferences.selectedScript)
 
                 if (quote != null) {
-                    // Use domain extension function for business logic
-                    val runicText = quote.getRunicText(preferences.selectedScript)
-
-                    _uiState.update {
-                        QuoteUiState.Success(
-                            quote = quote,
-                            runicText = runicText,
-                            selectedScript = preferences.selectedScript,
-                            selectedFont = preferences.selectedFont,
-                            showTransliteration = preferences.showTransliteration
-                        )
-                    }
+                    currentQuote = quote
+                    emitSuccessState(quote, preferences)
                 } else {
+                    currentQuote = null
                     _uiState.update { QuoteUiState.Empty }
                 }
             } catch (e: IOException) {
@@ -122,7 +112,7 @@ class QuoteViewModel @Inject constructor(
      */
     fun refreshQuote() {
         viewModelScope.launch {
-            loadQuoteOfTheDay()
+            loadQuoteOfTheDay(showLoading = true)
         }
     }
 
@@ -135,12 +125,13 @@ class QuoteViewModel @Inject constructor(
             val currentState = _uiState.value
             if (currentState is QuoteUiState.Success) {
                 try {
+                    val nextFavoriteState = !currentState.quote.isFavorite
                     quoteRepository.toggleFavorite(
                         currentState.quote.id,
-                        !currentState.quote.isFavorite
+                        nextFavoriteState
                     )
-                    // Reload to reflect the change
-                    loadQuoteOfTheDay()
+                    currentQuote = currentState.quote.copy(isFavorite = nextFavoriteState)
+                    applyPreferencesToCurrentQuote(userPreferencesManager.userPreferencesFlow.first())
                 } catch (_: IOException) {
                     // Error toggling favorite, silently fail - non-critical operation
                 } catch (_: IllegalStateException) {
@@ -153,14 +144,15 @@ class QuoteViewModel @Inject constructor(
     /**
      * Shares the current quote as an image.
      */
-    fun shareQuoteAsImage() {
+    fun shareQuoteAsImage(template: ShareTemplate = ShareTemplate.MINIMAL) {
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is QuoteUiState.Success) {
                 quoteShareManager.shareQuoteAsImage(
                     runicText = currentState.runicText,
                     latinText = currentState.quote.textLatin,
-                    author = currentState.quote.author
+                    author = currentState.quote.author,
+                    template = template
                 )
             }
         }
@@ -175,6 +167,33 @@ class QuoteViewModel @Inject constructor(
             quoteShareManager.shareQuoteText(
                 latinText = currentState.quote.textLatin,
                 author = currentState.quote.author
+            )
+        }
+    }
+
+    /**
+     * Updates selected script and keeps preview responsive.
+     */
+    fun updateSelectedScript(script: RunicScript) {
+        viewModelScope.launch {
+            userPreferencesManager.updateSelectedScript(script)
+        }
+    }
+
+    private fun applyPreferencesToCurrentQuote(preferences: UserPreferences) {
+        val quote = currentQuote ?: return
+        emitSuccessState(quote, preferences)
+    }
+
+    private fun emitSuccessState(quote: Quote, preferences: UserPreferences) {
+        val runicText = quote.getRunicText(preferences.selectedScript)
+        _uiState.update {
+            QuoteUiState.Success(
+                quote = quote,
+                runicText = runicText,
+                selectedScript = preferences.selectedScript,
+                selectedFont = preferences.selectedFont,
+                showTransliteration = preferences.showTransliteration
             )
         }
     }

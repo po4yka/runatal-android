@@ -37,16 +37,23 @@ class QuoteShareManager @Inject constructor(
      * @param runicText The runic transliteration
      * @param latinText The Latin text
      * @param author The quote author
+     * @param template Share template style preset
      * @return true if sharing was initiated successfully
      */
     suspend fun shareQuoteAsImage(
         runicText: String,
         latinText: String,
-        author: String
+        author: String,
+        template: ShareTemplate = ShareTemplate.MINIMAL
     ): Boolean = withContext(Dispatchers.IO) {
         try {
             // Generate image
-            val bitmap = imageGenerator.generateQuoteImage(runicText, latinText, author)
+            val bitmap = imageGenerator.generateQuoteImage(
+                runicText = runicText,
+                latinText = latinText,
+                author = author,
+                template = template
+            )
 
             // Save to cache directory
             val shareDir = File(context.cacheDir, SHARE_DIR).apply {

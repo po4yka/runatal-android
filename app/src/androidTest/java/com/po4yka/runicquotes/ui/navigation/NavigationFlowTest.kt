@@ -25,7 +25,7 @@ class NavigationFlowTest {
         val quoteText = "UI route quote ${System.currentTimeMillis()}"
         val quoteAuthor = "Route Tester"
 
-        composeRule.onNodeWithTag("quote_browse_button")
+        composeRule.onNodeWithTag("tab_library")
             .performClick()
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodesWithText("Browse Quotes").fetchSemanticsNodes().isNotEmpty()

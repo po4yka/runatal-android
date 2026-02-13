@@ -599,7 +599,7 @@ class AddEditQuoteViewModelTest {
         )
         advanceUntilIdle()
 
-        viewModel.updateTextLatin("Hello")
+        viewModel.updateTextLatin("Hello world")
         viewModel.updateAuthor("Author")
         advanceUntilIdle()
 
@@ -664,7 +664,7 @@ class AddEditQuoteViewModelTest {
         )
         advanceUntilIdle()
 
-        viewModel.updateTextLatin("Test")
+        viewModel.updateTextLatin("Test quote!")
         viewModel.updateAuthor("Author")
         advanceUntilIdle()
 
@@ -738,7 +738,7 @@ class AddEditQuoteViewModelTest {
         )
         advanceUntilIdle()
 
-        viewModel.updateTextLatin("Test")
+        viewModel.updateTextLatin("Test quote!")
         viewModel.updateAuthor("Author")
         advanceUntilIdle()
 
@@ -775,7 +775,7 @@ class AddEditQuoteViewModelTest {
         )
         advanceUntilIdle()
 
-        viewModel.updateTextLatin("Test")
+        viewModel.updateTextLatin("Test quote!")
         viewModel.updateAuthor("Author")
         advanceUntilIdle()
 

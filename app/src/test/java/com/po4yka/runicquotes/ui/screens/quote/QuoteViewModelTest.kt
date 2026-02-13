@@ -225,11 +225,9 @@ class QuoteViewModelTest {
     // ==================== Preferences Change Tests ====================
 
     @Test
-    fun `preferences change triggers quote reload`() = runTest {
+    fun `preferences change updates script without loading flash`() = runTest {
         // Given: ViewModel initialized with one quote
         coEvery { quoteRepository.quoteOfTheDay(RunicScript.ELDER_FUTHARK) } returns testQuote
-        coEvery { quoteRepository.quoteOfTheDay(RunicScript.YOUNGER_FUTHARK) } returns
-            testQuote.copy(id = 2)
 
         viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
         advanceUntilIdle()
@@ -241,11 +239,7 @@ class QuoteViewModelTest {
             preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.YOUNGER_FUTHARK)
             advanceUntilIdle()
 
-            // Then: Loading state emitted
-            val loadingState = awaitItem()
-            assertTrue(loadingState is QuoteUiState.Loading)
-
-            // Then: New quote loaded
+            // Then: State updates immediately without loading
             val successState = awaitItem() as QuoteUiState.Success
             assertEquals(RunicScript.YOUNGER_FUTHARK, successState.selectedScript)
 
@@ -268,7 +262,6 @@ class QuoteViewModelTest {
             preferencesFlow.value = defaultPreferences.copy(selectedFont = "babelstone")
             advanceUntilIdle()
 
-            skipItems(1) // Skip Loading
             val state = awaitItem() as QuoteUiState.Success
             assertEquals("babelstone", state.selectedFont)
 
@@ -477,21 +470,18 @@ class QuoteViewModelTest {
             // First change
             preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.YOUNGER_FUTHARK)
             advanceUntilIdle()
-            awaitItem() // Loading
             val state1 = awaitItem() as QuoteUiState.Success
             assertEquals(RunicScript.YOUNGER_FUTHARK, state1.selectedScript)
 
             // Second change
             preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.CIRTH)
             advanceUntilIdle()
-            awaitItem() // Loading
             val state2 = awaitItem() as QuoteUiState.Success
             assertEquals(RunicScript.CIRTH, state2.selectedScript)
 
             // Third change
             preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.ELDER_FUTHARK)
             advanceUntilIdle()
-            awaitItem() // Loading
             val finalState = awaitItem() as QuoteUiState.Success
             assertEquals(RunicScript.ELDER_FUTHARK, finalState.selectedScript)
 

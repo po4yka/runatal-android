@@ -31,9 +31,14 @@ class UserPreferencesManager @Inject constructor(
                 ?: RunicScript.DEFAULT,
             selectedFont = preferences[SELECTED_FONT] ?: "noto",
             widgetUpdateMode = preferences[WIDGET_UPDATE_MODE] ?: "daily",
+            quoteListFilter = preferences[QUOTE_LIST_FILTER] ?: "all",
+            quoteSearchQuery = preferences[QUOTE_SEARCH_QUERY] ?: "",
+            quoteAuthorFilter = preferences[QUOTE_AUTHOR_FILTER] ?: "",
+            quoteLengthFilter = preferences[QUOTE_LENGTH_FILTER] ?: "any",
             lastQuoteDate = preferences[LAST_QUOTE_DATE] ?: 0L,
             lastDailyQuoteId = preferences[LAST_DAILY_QUOTE_ID] ?: 0L,
             themeMode = preferences[THEME_MODE] ?: "system",
+            themePack = preferences[THEME_PACK] ?: "stone",
             showTransliteration = preferences[SHOW_TRANSLITERATION] ?: true,
             fontSize = preferences[FONT_SIZE] ?: 1.0f
         )
@@ -67,6 +72,42 @@ class UserPreferencesManager @Inject constructor(
     }
 
     /**
+     * Updates quote list base filter.
+     */
+    suspend fun updateQuoteListFilter(filter: String) {
+        dataStore.edit { preferences ->
+            preferences[QUOTE_LIST_FILTER] = filter
+        }
+    }
+
+    /**
+     * Updates quote search query.
+     */
+    suspend fun updateQuoteSearchQuery(query: String) {
+        dataStore.edit { preferences ->
+            preferences[QUOTE_SEARCH_QUERY] = query
+        }
+    }
+
+    /**
+     * Updates quote author filter.
+     */
+    suspend fun updateQuoteAuthorFilter(author: String) {
+        dataStore.edit { preferences ->
+            preferences[QUOTE_AUTHOR_FILTER] = author
+        }
+    }
+
+    /**
+     * Updates quote length filter.
+     */
+    suspend fun updateQuoteLengthFilter(lengthFilter: String) {
+        dataStore.edit { preferences ->
+            preferences[QUOTE_LENGTH_FILTER] = lengthFilter
+        }
+    }
+
+    /**
      * Updates the last quote date.
      */
     suspend fun updateLastQuoteDate(date: Long) {
@@ -90,6 +131,15 @@ class UserPreferencesManager @Inject constructor(
     suspend fun updateThemeMode(mode: String) {
         dataStore.edit { preferences ->
             preferences[THEME_MODE] = mode
+        }
+    }
+
+    /**
+     * Updates the visual theme pack.
+     */
+    suspend fun updateThemePack(themePack: String) {
+        dataStore.edit { preferences ->
+            preferences[THEME_PACK] = themePack
         }
     }
 
@@ -124,9 +174,14 @@ class UserPreferencesManager @Inject constructor(
         private val SELECTED_SCRIPT = stringPreferencesKey("selected_script")
         private val SELECTED_FONT = stringPreferencesKey("selected_font")
         private val WIDGET_UPDATE_MODE = stringPreferencesKey("widget_update_mode")
+        private val QUOTE_LIST_FILTER = stringPreferencesKey("quote_list_filter")
+        private val QUOTE_SEARCH_QUERY = stringPreferencesKey("quote_search_query")
+        private val QUOTE_AUTHOR_FILTER = stringPreferencesKey("quote_author_filter")
+        private val QUOTE_LENGTH_FILTER = stringPreferencesKey("quote_length_filter")
         private val LAST_QUOTE_DATE = longPreferencesKey("last_quote_date")
         private val LAST_DAILY_QUOTE_ID = longPreferencesKey("last_daily_quote_id")
         private val THEME_MODE = stringPreferencesKey("theme_mode")
+        private val THEME_PACK = stringPreferencesKey("theme_pack")
         private val SHOW_TRANSLITERATION = booleanPreferencesKey("show_transliteration")
         private val FONT_SIZE = floatPreferencesKey("font_size")
     }

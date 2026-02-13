@@ -1,6 +1,12 @@
 package com.po4yka.runicquotes.ui.screens.quotelist
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,15 +29,19 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -49,7 +60,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.po4yka.runicquotes.domain.model.Quote
+import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.getRunicText
+import com.po4yka.runicquotes.ui.components.RunicText
 
 /**
  * Screen for browsing all quotes with filtering and management.
@@ -57,7 +70,7 @@ import com.po4yka.runicquotes.domain.model.getRunicText
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuoteListScreen(
-    onNavigateBack: () -> Unit,
+    onNavigateBack: (() -> Unit)? = null,
     onNavigateToAddQuote: () -> Unit,
     onNavigateToEditQuote: (Long) -> Unit,
     viewModel: QuoteListViewModel = hiltViewModel()
@@ -78,17 +91,19 @@ fun QuoteListScreen(
             TopAppBar(
                 title = { Text("Browse Quotes") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
+                    if (onNavigateBack != null) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
                     }
                 }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
+            ExtendedFloatingActionButton(
                 onClick = onNavigateToAddQuote,
                 containerColor = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.testTag("quote_list_add_button")
@@ -97,85 +112,170 @@ fun QuoteListScreen(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Add Quote"
                 )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = "New Quote")
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+        AnimatedVisibility(
+            visible = true,
+            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 8 })
         ) {
-            // Filter chips
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
             ) {
-                items(QuoteFilter.entries) { filter ->
-                    FilterChip(
-                        selected = uiState.currentFilter == filter,
-                        onClick = { viewModel.setFilter(filter) },
-                        label = { Text(filter.displayName) }
-                    )
-                }
-            }
-
-            // Quote list
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else if (uiState.quotes.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = when (uiState.currentFilter) {
-                                QuoteFilter.ALL -> "No quotes available"
-                                QuoteFilter.FAVORITES -> "No favorite quotes yet"
-                                QuoteFilter.USER_CREATED -> "No user-created quotes yet"
-                                QuoteFilter.SYSTEM -> "No system quotes available"
-                            },
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                // Filter chips
+                OutlinedTextField(
+                    value = uiState.searchQuery,
+                    onValueChange = viewModel::updateSearchQuery,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    placeholder = { Text("Search quote text or author") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search"
                         )
-                        if (uiState.currentFilter == QuoteFilter.USER_CREATED) {
-                            Text(
-                                text = "Tap + to create your first quote",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                            )
+                    },
+                    singleLine = true
+                )
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(QuoteFilter.entries) { filter ->
+                        FilterChip(
+                            selected = uiState.currentFilter == filter,
+                            onClick = { viewModel.setFilter(filter) },
+                            label = { Text(filter.displayName) }
+                        )
+                    }
+                }
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        FilterChip(
+                            selected = uiState.selectedAuthor == null,
+                            onClick = { viewModel.updateAuthorFilter(null) },
+                            label = { Text("Any Author") }
+                        )
+                    }
+                    items(uiState.availableAuthors) { author ->
+                        FilterChip(
+                            selected = uiState.selectedAuthor == author,
+                            onClick = { viewModel.updateAuthorFilter(author) },
+                            label = { Text(author) }
+                        )
+                    }
+                }
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(QuoteLengthFilter.entries) { lengthFilter ->
+                        FilterChip(
+                            selected = uiState.lengthFilter == lengthFilter,
+                            onClick = { viewModel.updateLengthFilter(lengthFilter) },
+                            label = { Text(lengthFilter.displayName) }
+                        )
+                    }
+                    item {
+                        if (viewModel.hasSmartFilters(uiState)) {
+                            OutlinedButton(onClick = viewModel::clearSmartFilters) {
+                                Text("Clear smart filters")
+                            }
                         }
                     }
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag("quote_list_lazy"),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(
-                        items = uiState.quotes,
-                        key = { it.id }
-                    ) { quote ->
-                        QuoteListItem(
-                            quote = quote,
-                            selectedScript = uiState.selectedScript,
-                            onToggleFavorite = { viewModel.toggleFavorite(quote) },
-                            onEdit = { onNavigateToEditQuote(quote.id) },
-                            onDelete = { viewModel.deleteQuote(quote.id) }
-                        )
+
+                // Quote list
+                if (uiState.isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else if (uiState.quotes.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "ᚱᚢᚾᛖ",
+                                style = MaterialTheme.typography.displayMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = if (viewModel.hasSmartFilters(uiState)) {
+                                    "No quotes matched your search and smart filters."
+                                } else {
+                                    when (uiState.currentFilter) {
+                                        QuoteFilter.ALL -> "Your quote library is empty for now."
+                                        QuoteFilter.FAVORITES -> "No favorites yet. Mark quotes with the heart icon."
+                                        QuoteFilter.USER_CREATED -> "You have not created quotes yet."
+                                        QuoteFilter.SYSTEM -> "No system quotes available."
+                                    }
+                                },
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+
+                            if (viewModel.hasSmartFilters(uiState)) {
+                                OutlinedButton(onClick = viewModel::clearSmartFilters) {
+                                    Text("Reset Filters")
+                                }
+                            } else if (uiState.currentFilter == QuoteFilter.USER_CREATED ||
+                                uiState.currentFilter == QuoteFilter.ALL
+                            ) {
+                                Text(
+                                    text = "Start your collection with your first custom quote.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                                Button(onClick = onNavigateToAddQuote) {
+                                    Text("Create First Quote")
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag("quote_list_lazy"),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(
+                            items = uiState.quotes,
+                            key = { it.id }
+                        ) { quote ->
+                            QuoteListItem(
+                                quote = quote,
+                                selectedScript = uiState.selectedScript,
+                                selectedFont = uiState.selectedFont,
+                                onToggleFavorite = { viewModel.toggleFavorite(quote) },
+                                onEdit = { onNavigateToEditQuote(quote.id) },
+                                onDelete = { viewModel.deleteQuote(quote.id) }
+                            )
+                        }
                     }
                 }
             }
@@ -186,39 +286,60 @@ fun QuoteListScreen(
 @Composable
 private fun QuoteListItem(
     quote: Quote,
-    selectedScript: com.po4yka.runicquotes.domain.model.RunicScript,
+    selectedScript: RunicScript,
+    selectedFont: String,
     onToggleFavorite: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val elevation by animateDpAsState(
+        targetValue = if (quote.isUserCreated && isPressed) 10.dp else 3.dp,
+        label = "quoteCardElevation"
+    )
+    val yOffset by animateDpAsState(
+        targetValue = if (quote.isUserCreated && isPressed) (-2).dp else 0.dp,
+        label = "quoteCardOffset"
+    )
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .offset(y = yOffset),
         colors = CardDefaults.cardColors(
             containerColor = if (quote.isUserCreated) {
                 MaterialTheme.colorScheme.primaryContainer
             } else {
                 MaterialTheme.colorScheme.surfaceVariant
             }
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(enabled = quote.isUserCreated) { onEdit() }
+                .clickable(
+                    enabled = quote.isUserCreated,
+                    interactionSource = interactionSource,
+                    indication = null
+                ) { onEdit() }
                 .padding(16.dp)
         ) {
             // Runic text
-            Text(
+            RunicText(
                 text = quote.getRunicText(selectedScript),
-                style = MaterialTheme.typography.headlineSmall,
-                fontFamily = FontFamily.Monospace,
+                font = selectedFont,
+                script = selectedScript,
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontFamily = FontFamily.Monospace
+                ),
                 color = if (quote.isUserCreated) {
                     MaterialTheme.colorScheme.onPrimaryContainer
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(8.dp))

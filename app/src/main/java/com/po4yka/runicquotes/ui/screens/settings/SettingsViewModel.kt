@@ -59,6 +59,15 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
+     * Updates the visual theme pack.
+     */
+    fun updateThemePack(themePack: String) {
+        viewModelScope.launch {
+            userPreferencesManager.updateThemePack(themePack)
+        }
+    }
+
+    /**
      * Updates whether to show transliteration.
      */
     fun updateShowTransliteration(show: Boolean) {

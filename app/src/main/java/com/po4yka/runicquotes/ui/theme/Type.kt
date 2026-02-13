@@ -146,3 +146,45 @@ val RunicTypography = Typography(
         letterSpacing = 0.5.sp
     )
 )
+
+/**
+ * Returns typography tuned to a specific visual theme pack.
+ */
+fun typographyForThemePack(themePack: String): Typography = when (themePack) {
+    "parchment" -> RunicTypography.copy(
+        displayLarge = RunicTypography.displayLarge.copy(
+            letterSpacing = 0.1.sp
+        ),
+        titleLarge = RunicTypography.titleLarge.copy(
+            letterSpacing = 0.25.sp
+        ),
+        bodyLarge = RunicTypography.bodyLarge.copy(
+            letterSpacing = 0.65.sp
+        )
+    )
+
+    "night_ink" -> RunicTypography.copy(
+        headlineMedium = RunicTypography.headlineMedium.copy(
+            fontWeight = FontWeight.Bold,
+            letterSpacing = (-0.1).sp
+        ),
+        titleMedium = RunicTypography.titleMedium.copy(
+            letterSpacing = 0.05.sp
+        ),
+        bodyMedium = RunicTypography.bodyMedium.copy(
+            letterSpacing = 0.15.sp
+        )
+    )
+
+    else -> RunicTypography.copy(
+        headlineLarge = RunicTypography.headlineLarge.copy(
+            fontWeight = FontWeight.Bold
+        ),
+        titleMedium = RunicTypography.titleMedium.copy(
+            letterSpacing = 0.2.sp
+        ),
+        bodySmall = RunicTypography.bodySmall.copy(
+            letterSpacing = 0.45.sp
+        )
+    )
+}

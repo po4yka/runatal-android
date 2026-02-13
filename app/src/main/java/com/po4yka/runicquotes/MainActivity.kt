@@ -49,7 +49,10 @@ fun RunicQuotesApp() {
         else -> systemInDarkTheme // "system" or default
     }
 
-    RunicQuotesTheme(darkTheme = darkTheme) {
+    RunicQuotesTheme(
+        darkTheme = darkTheme,
+        themePack = preferences.themePack
+    ) {
         val backStack = rememberSaveable {
             mutableStateListOf<Any>(QuoteRoute)
         }
