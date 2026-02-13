@@ -43,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -89,7 +90,8 @@ fun QuoteListScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onNavigateToAddQuote,
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.testTag("quote_list_add_button")
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
@@ -157,7 +159,9 @@ fun QuoteListScreen(
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag("quote_list_lazy"),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -278,7 +282,10 @@ private fun QuoteListItem(
 
                     // Edit and delete buttons (only for user-created quotes)
                     if (quote.isUserCreated) {
-                        IconButton(onClick = onEdit) {
+                        IconButton(
+                            onClick = onEdit,
+                            modifier = Modifier.testTag("quote_list_edit_button")
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Edit,
                                 contentDescription = "Edit",

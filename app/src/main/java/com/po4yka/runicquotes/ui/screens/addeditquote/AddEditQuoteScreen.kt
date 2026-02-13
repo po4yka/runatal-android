@@ -34,6 +34,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -85,7 +86,8 @@ fun AddEditQuoteScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { viewModel.saveQuote(onNavigateBack) },
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.testTag("add_edit_save_button")
             ) {
                 if (uiState.isSaving) {
                     CircularProgressIndicator(
@@ -115,7 +117,9 @@ fun AddEditQuoteScreen(
                 onValueChange = viewModel::updateTextLatin,
                 label = { Text("Quote Text") },
                 placeholder = { Text("Enter your quote in Latin script...") },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("add_edit_quote_text"),
                 minLines = 3,
                 maxLines = 6,
                 enabled = !uiState.isSaving
@@ -127,7 +131,9 @@ fun AddEditQuoteScreen(
                 onValueChange = viewModel::updateAuthor,
                 label = { Text("Author") },
                 placeholder = { Text("Enter author name...") },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("add_edit_author_text"),
                 singleLine = true,
                 enabled = !uiState.isSaving
             )
