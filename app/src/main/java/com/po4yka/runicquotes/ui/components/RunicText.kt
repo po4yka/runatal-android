@@ -9,6 +9,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
+import com.po4yka.runicquotes.domain.transliteration.CirthGlyphCompat
 import com.po4yka.runicquotes.ui.theme.BabelStoneRunic
 import com.po4yka.runicquotes.ui.theme.BabelStoneRunicRuled
 import com.po4yka.runicquotes.ui.theme.LocalRunicFontScale
@@ -38,6 +39,7 @@ fun RunicText(
     style: TextStyle = LocalTextStyle.current
 ) {
     val runicFontScale = LocalRunicFontScale.current
+    val normalizedText = CirthGlyphCompat.normalizeLegacyPuaGlyphs(text)
 
     val fontFamily = when (font.lowercase()) {
         "babelstone" -> BabelStoneRunic
@@ -71,7 +73,7 @@ fun RunicText(
     val tunedFontSize = baseFontSize * runicFontScale
 
     Text(
-        text = text,
+        text = normalizedText,
         modifier = modifier,
         color = color,
         fontSize = tunedFontSize,

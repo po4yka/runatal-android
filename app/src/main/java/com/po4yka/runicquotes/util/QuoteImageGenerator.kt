@@ -13,6 +13,7 @@ import android.graphics.Shader
 import android.graphics.Typeface
 import androidx.core.content.ContextCompat
 import com.po4yka.runicquotes.R
+import com.po4yka.runicquotes.domain.transliteration.CirthGlyphCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,7 +24,7 @@ import kotlin.math.max
  */
 @Singleton
 class QuoteImageGenerator @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
     private data class ShareStyle(
         val backgroundStart: Int,
@@ -58,6 +59,7 @@ class QuoteImageGenerator @Inject constructor(
         author: String,
         template: ShareTemplate = ShareTemplate.MINIMAL
     ): Bitmap {
+        val normalizedRunicText = CirthGlyphCompat.normalizeLegacyPuaGlyphs(runicText)
         val bitmap = Bitmap.createBitmap(IMAGE_WIDTH, IMAGE_HEIGHT, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val templateStyle = resolveStyle(template)
@@ -123,7 +125,7 @@ class QuoteImageGenerator @Inject constructor(
         var currentY = IMAGE_HEIGHT / 2f
 
         // Draw runic text (wrapped)
-        val runicLines = wrapText(runicText, runicPaint, IMAGE_WIDTH - PADDING * 2)
+        val runicLines = wrapText(normalizedRunicText, runicPaint, IMAGE_WIDTH - PADDING * 2)
         val runicHeight = runicLines.size * RUNIC_TEXT_SIZE * 1.2f
 
         // Draw Latin text (wrapped)

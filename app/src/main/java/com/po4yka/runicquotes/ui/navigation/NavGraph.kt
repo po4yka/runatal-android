@@ -6,8 +6,6 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,7 +45,6 @@ fun NavGraph(
     backStack: SnapshotStateList<Any>,
     hasCompletedOnboarding: Boolean,
     selectedScript: RunicScript,
-    selectedThemePack: String,
     onSelectOnboardingStyle: (RunicScript, String) -> Unit,
     onCompleteOnboarding: () -> Unit
 ) {
@@ -81,14 +78,6 @@ fun NavGraph(
                                 base = motion.shortDurationMillis
                             )
                         )
-                    ) + slideInVertically(
-                        animationSpec = tween(
-                            durationMillis = motion.duration(
-                                reducedMotion = reducedMotion,
-                                base = motion.shortDurationMillis
-                            )
-                        ),
-                        initialOffsetY = { it / 2 }
                     )
                 },
                 exit = if (reducedMotion) {
@@ -101,14 +90,6 @@ fun NavGraph(
                                 base = motion.shortDurationMillis
                             )
                         )
-                    ) + slideOutVertically(
-                        animationSpec = tween(
-                            durationMillis = motion.duration(
-                                reducedMotion = reducedMotion,
-                                base = motion.shortDurationMillis
-                            )
-                        ),
-                        targetOffsetY = { it / 2 }
                     )
                 }
             ) {
@@ -127,48 +108,34 @@ fun NavGraph(
                 rememberViewModelStoreNavEntryDecorator()
             ),
             transitionSpec = {
-                val forward = routeRank(targetState) >= routeRank(initialState)
-                val direction = if (forward) {
-                    slideIntoContainerLeft()
-                } else {
-                    slideIntoContainerRight()
-                }
                 val duration = motion.duration(
                     reducedMotion = reducedMotion,
-                    base = motion.mediumDurationMillis
+                    base = motion.shortDurationMillis
                 )
                 if (duration == 0) {
                     EnterTransition.None togetherWith ExitTransition.None
                 } else {
-                    direction.first(
-                        duration,
-                        motion.standardEasing
-                    ) togetherWith direction.second(
-                        duration,
-                        motion.standardEasing
+                    resolveSceneTransition(
+                        initialState = initialState,
+                        targetState = targetState,
+                        duration = duration,
+                        easing = motion.standardEasing
                     )
                 }
             },
             popTransitionSpec = {
-                val forward = routeRank(targetState) >= routeRank(initialState)
-                val direction = if (forward) {
-                    slideIntoContainerLeft()
-                } else {
-                    slideIntoContainerRight()
-                }
                 val duration = motion.duration(
                     reducedMotion = reducedMotion,
-                    base = motion.mediumDurationMillis
+                    base = motion.shortDurationMillis
                 )
                 if (duration == 0) {
                     EnterTransition.None togetherWith ExitTransition.None
                 } else {
-                    direction.first(
-                        duration,
-                        motion.standardEasing
-                    ) togetherWith direction.second(
-                        duration,
-                        motion.standardEasing
+                    resolveSceneTransition(
+                        initialState = initialState,
+                        targetState = targetState,
+                        duration = duration,
+                        easing = motion.standardEasing
                     )
                 }
             },
@@ -194,7 +161,6 @@ fun NavGraph(
                 entry<OnboardingRoute> {
                     OnboardingScreen(
                         selectedScript = selectedScript,
-                        selectedThemePack = selectedThemePack,
                         onChooseStyle = onSelectOnboardingStyle,
                         onComplete = {
                             onCompleteOnboarding()
@@ -292,6 +258,46 @@ private fun routeRank(scene: Scene<Any>): Int {
         key.contains("AddEditQuoteRoute") -> 3
         key.contains("SettingsRoute") -> 4
         else -> 2
+    }
+}
+
+private fun androidx.compose.animation.AnimatedContentTransitionScope<Scene<Any>>.resolveSceneTransition(
+    initialState: Scene<Any>,
+    targetState: Scene<Any>,
+    duration: Int,
+    easing: androidx.compose.animation.core.Easing
+): androidx.compose.animation.ContentTransform {
+    val initialKind = routeKind(initialState)
+    val targetKind = routeKind(targetState)
+    val shouldUseFade = (initialKind == RouteKind.TOP_LEVEL && targetKind == RouteKind.TOP_LEVEL) ||
+        initialKind == RouteKind.ONBOARDING || targetKind == RouteKind.ONBOARDING
+
+    if (shouldUseFade) {
+        return fadeIn(animationSpec = tween(durationMillis = duration, easing = easing)) togetherWith
+            fadeOut(animationSpec = tween(durationMillis = duration, easing = easing))
+    }
+
+    val forward = routeRank(targetState) >= routeRank(initialState)
+    val direction = if (forward) {
+        slideIntoContainerLeft()
+    } else {
+        slideIntoContainerRight()
+    }
+    return direction.first(duration, easing) togetherWith direction.second(duration, easing)
+}
+
+private enum class RouteKind {
+    ONBOARDING,
+    TOP_LEVEL,
+    DETAIL
+}
+
+private fun routeKind(scene: Scene<Any>): RouteKind {
+    val key = scene.key.toString()
+    return when {
+        key.contains("OnboardingRoute") -> RouteKind.ONBOARDING
+        key.contains("QuoteRoute") || key.contains("QuoteListRoute") || key.contains("SettingsRoute") -> RouteKind.TOP_LEVEL
+        else -> RouteKind.DETAIL
     }
 }
 

@@ -22,7 +22,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class HapticFeedbackManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
     private val vibrator: Vibrator by lazy {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

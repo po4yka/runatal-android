@@ -12,6 +12,7 @@ import android.util.Log
 import android.util.TypedValue
 import androidx.core.content.res.ResourcesCompat
 import com.po4yka.runicquotes.R
+import com.po4yka.runicquotes.domain.transliteration.CirthGlyphCompat
 import java.io.IOException
 
 /**
@@ -50,6 +51,8 @@ object RunicTextRenderer {
         context: Context,
         config: RenderConfig
     ): Bitmap {
+        val normalizedText = CirthGlyphCompat.normalizeLegacyPuaGlyphs(config.text)
+
         // Load the custom font
         val typeface = try {
             ResourcesCompat.getFont(context, config.fontResource)
@@ -79,7 +82,7 @@ object RunicTextRenderer {
 
         // Measure the text
         val bounds = Rect()
-        paint.getTextBounds(config.text, 0, config.text.length, bounds)
+        paint.getTextBounds(normalizedText, 0, normalizedText.length, bounds)
 
         // Calculate bitmap dimensions
         val padding = (textSizePx * PADDING_FACTOR).toInt()
@@ -92,7 +95,7 @@ object RunicTextRenderer {
             // For simplicity, we'll scale down the font
             val scale = config.maxWidth.toFloat() / width
             paint.textSize = textSizePx * scale
-            paint.getTextBounds(config.text, 0, config.text.length, bounds)
+            paint.getTextBounds(normalizedText, 0, normalizedText.length, bounds)
             width = bounds.width() + padding * 2
             height = bounds.height() + padding * 2
         }
@@ -113,7 +116,7 @@ object RunicTextRenderer {
         // Draw text centered
         val x = width / 2f
         val y = height / 2f - (paint.descent() + paint.ascent()) / 2f
-        canvas.drawText(config.text, x, y, paint)
+        canvas.drawText(normalizedText, x, y, paint)
 
         return bitmap
     }

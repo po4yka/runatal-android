@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Button
@@ -49,6 +51,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.ui.components.RunicText
@@ -63,7 +66,6 @@ import com.po4yka.runicquotes.util.rememberHapticFeedback
 @Composable
 fun OnboardingScreen(
     selectedScript: RunicScript,
-    selectedThemePack: String,
     onChooseStyle: (RunicScript, String) -> Unit,
     onComplete: () -> Unit
 ) {
@@ -94,8 +96,6 @@ fun OnboardingScreen(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             OnboardingActionsPanel(
-                selectedScript = selectedScript,
-                selectedThemePack = selectedThemePack,
                 onSkip = {
                     haptics.lightToggle()
                     onComplete()
@@ -125,42 +125,31 @@ fun OnboardingScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 14.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Surface(
-                    shape = shapes.heroCard,
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    tonalElevation = 3.dp,
-                    shadowElevation = 2.dp,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "Choose your runic script style",
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                        Text(
-                            text = "Swipe through cards and set the style that should shape your default quote experience.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    }
-                }
+                Text(
+                    text = "Choose your runic script style",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "Swipe through cards to pick the default style for your quotes.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
                 Text(
                     text = "Swipe to compare scripts",
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                    modifier = Modifier.padding(top = 2.dp)
                 )
 
                 LazyRow(
                     state = listState,
-                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    contentPadding = PaddingValues(horizontal = 0.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(stories, key = { it.script.name }) { story ->
@@ -175,12 +164,9 @@ fun OnboardingScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                        .fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -207,37 +193,38 @@ fun OnboardingScreen(
                     label = "selectedStylePanel"
                 ) { story ->
                     Surface(
-                        shape = shapes.panel,
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        tonalElevation = 2.dp,
+                        shape = shapes.contentCard,
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        tonalElevation = 1.dp,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                            .padding(top = 2.dp)
                     ) {
                         Column(
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
                                 text = "Current selection",
-                                style = MaterialTheme.typography.labelLarge,
+                                style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = "${selectedScriptLabel(story.script)} + ${themeLabel(story.suggestedThemePack)}",
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
                                 text = story.story,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(4.dp))
             }
         }
     }
@@ -245,41 +232,34 @@ fun OnboardingScreen(
 
 @Composable
 private fun OnboardingActionsPanel(
-    selectedScript: RunicScript,
-    selectedThemePack: String,
     onSkip: () -> Unit,
     onContinue: () -> Unit
 ) {
     val shapes = RunicExpressiveTheme.shapes
 
     Surface(
-        shape = shapes.panel,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 6.dp,
-        shadowElevation = 4.dp,
+        shape = shapes.contentCard,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 2.dp,
+        shadowElevation = 1.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
             .testTag("onboarding_actions")
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
             Text(
-                text = "Default style: ${selectedScriptLabel(selectedScript)} + ${themeLabel(selectedThemePack)}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = "You can change this anytime in Settings.",
-                style = MaterialTheme.typography.bodySmall,
+                text = "You can change this style anytime in Settings.",
+                style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
+                    .padding(top = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -293,26 +273,19 @@ private fun OnboardingActionsPanel(
                 }
                 Button(
                     onClick = onContinue,
-                    shape = shapes.heroCard,
+                    shape = shapes.contentCard,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
                     modifier = Modifier
-                        .weight(1.7f)
-                        .height(56.dp)
+                        .weight(1.3f)
+                        .height(52.dp)
                         .testTag("onboarding_finish_button")
                 ) {
                     Text(
-                        text = "Continue with this style",
+                        text = "Continue",
                         style = MaterialTheme.typography.labelLarge
-                    )
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .padding(start = 4.dp)
-                            .size(18.dp)
                     )
                 }
             }
@@ -350,9 +323,8 @@ private fun ScriptStoryCard(
     )
     val scale by animateFloatAsState(
         targetValue = when {
-            selected -> 1f
-            isPressed -> 0.985f
-            else -> 0.965f
+            isPressed -> 0.992f
+            else -> 1f
         },
         animationSpec = tween(
             durationMillis = motion.duration(
@@ -365,7 +337,7 @@ private fun ScriptStoryCard(
     )
     val containerColor by animateColorAsState(
         targetValue = if (selected) {
-            MaterialTheme.colorScheme.primaryContainer
+            MaterialTheme.colorScheme.secondaryContainer
         } else {
             MaterialTheme.colorScheme.surfaceContainerLow
         },
@@ -379,7 +351,7 @@ private fun ScriptStoryCard(
     )
     val borderColor by animateColorAsState(
         targetValue = if (selected) {
-            MaterialTheme.colorScheme.primary
+            MaterialTheme.colorScheme.outline
         } else {
             MaterialTheme.colorScheme.outlineVariant
         },
@@ -392,33 +364,32 @@ private fun ScriptStoryCard(
         label = "onboardingCardBorder"
     )
 
-    val cardShape = if (selected) shapes.heroCard else shapes.collectionCard
+    val cardShape = shapes.collectionCard
 
     Card(
         shape = cardShape,
         colors = CardDefaults.cardColors(containerColor = containerColor),
         elevation = CardDefaults.cardElevation(defaultElevation = elevation),
         modifier = Modifier
-            .width(304.dp)
+            .width(312.dp)
             .graphicsLayer(
                 scaleX = scale,
                 scaleY = scale
             )
             .border(
-                width = if (selected) 2.dp else 1.dp,
+                width = if (selected) 1.5.dp else 1.dp,
                 color = borderColor,
                 shape = cardShape
             )
             .clickable(
                 interactionSource = interactionSource,
-                indication = null,
                 onClick = onSelect
             )
             .testTag("onboarding_${story.script.name.lowercase()}_card")
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -461,17 +432,17 @@ private fun ScriptStoryCard(
             Text(
                 text = story.era,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Surface(
                 shape = shapes.collectionCard,
                 color = if (selected) {
-                    MaterialTheme.colorScheme.tertiaryContainer
+                    MaterialTheme.colorScheme.surfaceContainerHighest
                 } else {
-                    MaterialTheme.colorScheme.surfaceVariant
+                    MaterialTheme.colorScheme.surfaceContainer
                 },
-                tonalElevation = if (selected) 2.dp else 0.dp
+                tonalElevation = if (selected) 1.dp else 0.dp
             ) {
                 Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
                     RunicText(
@@ -479,16 +450,16 @@ private fun ScriptStoryCard(
                         script = story.script,
                         style = if (selected) typeRoles.runicHero else typeRoles.runicCard,
                         color = if (selected) {
-                            MaterialTheme.colorScheme.onTertiaryContainer
+                            MaterialTheme.colorScheme.onSurface
                         } else {
                             MaterialTheme.colorScheme.onSurface
                         }
                     )
                     Text(
-                        text = "Sample transliteration: ${story.sampleLatin}",
-                        style = MaterialTheme.typography.labelMedium,
+                        text = "Sample: ${story.sampleLatin}",
+                        style = MaterialTheme.typography.bodySmall,
                         color = if (selected) {
-                            MaterialTheme.colorScheme.onTertiaryContainer
+                            MaterialTheme.colorScheme.onSurfaceVariant
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         }
@@ -520,7 +491,7 @@ private fun CarouselIndicator(
         repeat(itemCount) { index ->
             val isSelected = index == selectedIndex
             val width by animateDpAsState(
-                targetValue = if (isSelected) 24.dp else 8.dp,
+                targetValue = if (isSelected) 20.dp else 8.dp,
                 animationSpec = tween(
                     durationMillis = motion.duration(
                         reducedMotion = reducedMotion,
