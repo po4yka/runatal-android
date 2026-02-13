@@ -13,6 +13,7 @@ object WidgetStateCache {
     private var cacheDate: LocalDate? = null
     private var cachedScript: String? = null
     private var cachedFont: String? = null
+    private var cachedDisplayMode: String? = null
 
     /**
      * Retrieves cached widget state if valid for current date and preferences.
@@ -25,7 +26,8 @@ object WidgetStateCache {
         // Check if cache is valid
         val isValid = cacheDate == currentDate &&
                 cachedScript == preferences.selectedScript.name &&
-                cachedFont == preferences.selectedFont
+                cachedFont == preferences.selectedFont &&
+                cachedDisplayMode == preferences.widgetDisplayMode
 
         return if (isValid) cachedState else null
     }
@@ -41,6 +43,7 @@ object WidgetStateCache {
         cacheDate = date
         cachedScript = preferences.selectedScript.name
         cachedFont = preferences.selectedFont
+        cachedDisplayMode = preferences.widgetDisplayMode
         cachedState = state
     }
 
@@ -52,6 +55,7 @@ object WidgetStateCache {
         cacheDate = null
         cachedScript = null
         cachedFont = null
+        cachedDisplayMode = null
     }
 
     /**
@@ -64,6 +68,7 @@ object WidgetStateCache {
     fun isValid(currentDate: LocalDate, preferences: UserPreferences): Boolean {
         return cacheDate == currentDate &&
                 cachedScript == preferences.selectedScript.name &&
-                cachedFont == preferences.selectedFont
+                cachedFont == preferences.selectedFont &&
+                cachedDisplayMode == preferences.widgetDisplayMode
     }
 }

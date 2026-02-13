@@ -1,6 +1,7 @@
 package com.po4yka.runicquotes.ui.screens.settings
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Column
@@ -31,6 +32,9 @@ import com.po4yka.runicquotes.R
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.ui.components.SettingItem
 import com.po4yka.runicquotes.ui.components.SettingSection
+import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
+import com.po4yka.runicquotes.ui.widget.WidgetDisplayMode
+import com.po4yka.runicquotes.util.rememberHapticFeedback
 
 /**
  * Settings screen for configuring app preferences.
@@ -42,6 +46,8 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val preferences by viewModel.userPreferences.collectAsState()
+    val haptics = rememberHapticFeedback()
+    val reducedMotion = LocalReduceMotion.current
 
     Scaffold(
         topBar = {
@@ -67,7 +73,11 @@ fun SettingsScreen(
     ) { paddingValues ->
         AnimatedVisibility(
             visible = true,
-            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 6 })
+            enter = if (reducedMotion) {
+                EnterTransition.None
+            } else {
+                fadeIn() + slideInVertically(initialOffsetY = { it / 6 })
+            }
         ) {
             Column(
                 modifier = Modifier
@@ -81,19 +91,28 @@ fun SettingsScreen(
                         title = stringResource(R.string.script_elder_futhark),
                         subtitle = "Elder Futhark (150-800 AD)",
                         selected = preferences.selectedScript == RunicScript.ELDER_FUTHARK,
-                        onClick = { viewModel.updateSelectedScript(RunicScript.ELDER_FUTHARK) }
+                        onClick = {
+                            haptics.lightToggle()
+                            viewModel.updateSelectedScript(RunicScript.ELDER_FUTHARK)
+                        }
                     )
                     SettingItem(
                         title = stringResource(R.string.script_younger_futhark),
                         subtitle = "Younger Futhark (800-1100 AD)",
                         selected = preferences.selectedScript == RunicScript.YOUNGER_FUTHARK,
-                        onClick = { viewModel.updateSelectedScript(RunicScript.YOUNGER_FUTHARK) }
+                        onClick = {
+                            haptics.lightToggle()
+                            viewModel.updateSelectedScript(RunicScript.YOUNGER_FUTHARK)
+                        }
                     )
                     SettingItem(
                         title = stringResource(R.string.script_cirth),
                         subtitle = "Tolkien's Cirth (Angerthas)",
                         selected = preferences.selectedScript == RunicScript.CIRTH,
-                        onClick = { viewModel.updateSelectedScript(RunicScript.CIRTH) }
+                        onClick = {
+                            haptics.lightToggle()
+                            viewModel.updateSelectedScript(RunicScript.CIRTH)
+                        }
                     )
                 }
 
@@ -105,13 +124,19 @@ fun SettingsScreen(
                         title = stringResource(R.string.font_noto_sans),
                         subtitle = "Clean and modern",
                         selected = preferences.selectedFont == "noto",
-                        onClick = { viewModel.updateSelectedFont("noto") }
+                        onClick = {
+                            haptics.lightToggle()
+                            viewModel.updateSelectedFont("noto")
+                        }
                     )
                     SettingItem(
                         title = stringResource(R.string.font_babelstone),
                         subtitle = "Traditional appearance",
                         selected = preferences.selectedFont == "babelstone",
-                        onClick = { viewModel.updateSelectedFont("babelstone") }
+                        onClick = {
+                            haptics.lightToggle()
+                            viewModel.updateSelectedFont("babelstone")
+                        }
                     )
                 }
 
@@ -125,10 +150,29 @@ fun SettingsScreen(
                         trailing = {
                             Switch(
                                 checked = preferences.showTransliteration,
-                                onCheckedChange = { viewModel.updateShowTransliteration(it) }
+                                onCheckedChange = {
+                                    haptics.lightToggle()
+                                    viewModel.updateShowTransliteration(it)
+                                }
                             )
                         }
                     )
+                }
+
+                HorizontalDivider()
+
+                SettingSection(title = "Widget Mode") {
+                    WidgetDisplayMode.entries.forEach { mode ->
+                        SettingItem(
+                            title = mode.displayName,
+                            subtitle = mode.subtitle,
+                            selected = preferences.widgetDisplayMode == mode.persistedValue,
+                            onClick = {
+                                haptics.lightToggle()
+                                viewModel.updateWidgetDisplayMode(mode)
+                            }
+                        )
+                    }
                 }
 
                 HorizontalDivider()
@@ -139,19 +183,28 @@ fun SettingsScreen(
                         title = "Light",
                         subtitle = "Bright UI surfaces",
                         selected = preferences.themeMode == "light",
-                        onClick = { viewModel.updateThemeMode("light") }
+                        onClick = {
+                            haptics.lightToggle()
+                            viewModel.updateThemeMode("light")
+                        }
                     )
                     SettingItem(
                         title = "Dark",
                         subtitle = "Low-light UI surfaces",
                         selected = preferences.themeMode == "dark",
-                        onClick = { viewModel.updateThemeMode("dark") }
+                        onClick = {
+                            haptics.lightToggle()
+                            viewModel.updateThemeMode("dark")
+                        }
                     )
                     SettingItem(
                         title = "System",
                         subtitle = "Follow device appearance",
                         selected = preferences.themeMode == "system",
-                        onClick = { viewModel.updateThemeMode("system") }
+                        onClick = {
+                            haptics.lightToggle()
+                            viewModel.updateThemeMode("system")
+                        }
                     )
                 }
 
@@ -163,19 +216,72 @@ fun SettingsScreen(
                         title = "Stone",
                         subtitle = "Cool mineral tones",
                         selected = preferences.themePack == "stone",
-                        onClick = { viewModel.updateThemePack("stone") }
+                        onClick = {
+                            haptics.lightToggle()
+                            viewModel.updateThemePack("stone")
+                        }
                     )
                     SettingItem(
                         title = "Parchment",
                         subtitle = "Warm manuscript tones",
                         selected = preferences.themePack == "parchment",
-                        onClick = { viewModel.updateThemePack("parchment") }
+                        onClick = {
+                            haptics.lightToggle()
+                            viewModel.updateThemePack("parchment")
+                        }
                     )
                     SettingItem(
                         title = "Night Ink",
                         subtitle = "Deep blue-black contrast",
                         selected = preferences.themePack == "night_ink",
-                        onClick = { viewModel.updateThemePack("night_ink") }
+                        onClick = {
+                            haptics.lightToggle()
+                            viewModel.updateThemePack("night_ink")
+                        }
+                    )
+                }
+
+                HorizontalDivider()
+
+                SettingSection(title = "Accessibility Presets") {
+                    SettingItem(
+                        title = "Large Runes",
+                        subtitle = "Increase rune size across core reading surfaces",
+                        trailing = {
+                            Switch(
+                                checked = preferences.largeRunesEnabled,
+                                onCheckedChange = {
+                                    haptics.lightToggle()
+                                    viewModel.updateLargeRunesEnabled(it)
+                                }
+                            )
+                        }
+                    )
+                    SettingItem(
+                        title = "High Contrast",
+                        subtitle = "Use stronger foreground/background contrast",
+                        trailing = {
+                            Switch(
+                                checked = preferences.highContrastEnabled,
+                                onCheckedChange = {
+                                    haptics.lightToggle()
+                                    viewModel.updateHighContrastEnabled(it)
+                                }
+                            )
+                        }
+                    )
+                    SettingItem(
+                        title = "Reduced Motion",
+                        subtitle = "Minimize transitions and animated reveals",
+                        trailing = {
+                            Switch(
+                                checked = preferences.reducedMotionEnabled,
+                                onCheckedChange = {
+                                    haptics.lightToggle()
+                                    viewModel.updateReducedMotionEnabled(it)
+                                }
+                            )
+                        }
                     )
                 }
             }

@@ -1,6 +1,7 @@
 package com.po4yka.runicquotes.ui.screens.quotelist
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.core.animateDpAsState
@@ -63,12 +64,15 @@ import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.ui.components.RunicText
+import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
+import com.po4yka.runicquotes.util.rememberHapticFeedback
 
 /**
  * Screen for browsing all quotes with filtering and management.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("CyclomaticComplexMethod")
 fun QuoteListScreen(
     onNavigateBack: (() -> Unit)? = null,
     onNavigateToAddQuote: () -> Unit,
@@ -77,6 +81,8 @@ fun QuoteListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val reducedMotion = LocalReduceMotion.current
+    val haptics = rememberHapticFeedback()
 
     // Show error messages
     LaunchedEffect(uiState.errorMessage) {
@@ -104,7 +110,10 @@ fun QuoteListScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = onNavigateToAddQuote,
+                onClick = {
+                    haptics.mediumAction()
+                    onNavigateToAddQuote()
+                },
                 containerColor = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.testTag("quote_list_add_button")
             ) {
@@ -120,7 +129,11 @@ fun QuoteListScreen(
     ) { padding ->
         AnimatedVisibility(
             visible = true,
-            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 8 })
+            enter = if (reducedMotion) {
+                EnterTransition.None
+            } else {
+                fadeIn() + slideInVertically(initialOffsetY = { it / 8 })
+            }
         ) {
             Column(
                 modifier = Modifier
@@ -152,7 +165,10 @@ fun QuoteListScreen(
                     items(QuoteFilter.entries) { filter ->
                         FilterChip(
                             selected = uiState.currentFilter == filter,
-                            onClick = { viewModel.setFilter(filter) },
+                            onClick = {
+                                haptics.lightToggle()
+                                viewModel.setFilter(filter)
+                            },
                             label = { Text(filter.displayName) }
                         )
                     }
@@ -166,14 +182,20 @@ fun QuoteListScreen(
                     item {
                         FilterChip(
                             selected = uiState.selectedAuthor == null,
-                            onClick = { viewModel.updateAuthorFilter(null) },
+                            onClick = {
+                                haptics.lightToggle()
+                                viewModel.updateAuthorFilter(null)
+                            },
                             label = { Text("Any Author") }
                         )
                     }
                     items(uiState.availableAuthors) { author ->
                         FilterChip(
                             selected = uiState.selectedAuthor == author,
-                            onClick = { viewModel.updateAuthorFilter(author) },
+                            onClick = {
+                                haptics.lightToggle()
+                                viewModel.updateAuthorFilter(author)
+                            },
                             label = { Text(author) }
                         )
                     }
@@ -187,13 +209,21 @@ fun QuoteListScreen(
                     items(QuoteLengthFilter.entries) { lengthFilter ->
                         FilterChip(
                             selected = uiState.lengthFilter == lengthFilter,
-                            onClick = { viewModel.updateLengthFilter(lengthFilter) },
+                            onClick = {
+                                haptics.lightToggle()
+                                viewModel.updateLengthFilter(lengthFilter)
+                            },
                             label = { Text(lengthFilter.displayName) }
                         )
                     }
                     item {
                         if (viewModel.hasSmartFilters(uiState)) {
-                            OutlinedButton(onClick = viewModel::clearSmartFilters) {
+                            OutlinedButton(
+                                onClick = {
+                                    haptics.lightToggle()
+                                    viewModel.clearSmartFilters()
+                                }
+                            ) {
                                 Text("Clear smart filters")
                             }
                         }
@@ -238,7 +268,12 @@ fun QuoteListScreen(
                             )
 
                             if (viewModel.hasSmartFilters(uiState)) {
-                                OutlinedButton(onClick = viewModel::clearSmartFilters) {
+                                OutlinedButton(
+                                    onClick = {
+                                        haptics.lightToggle()
+                                        viewModel.clearSmartFilters()
+                                    }
+                                ) {
                                     Text("Reset Filters")
                                 }
                             } else if (uiState.currentFilter == QuoteFilter.USER_CREATED ||
@@ -249,7 +284,12 @@ fun QuoteListScreen(
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
-                                Button(onClick = onNavigateToAddQuote) {
+                                Button(
+                                    onClick = {
+                                        haptics.mediumAction()
+                                        onNavigateToAddQuote()
+                                    }
+                                ) {
                                     Text("Create First Quote")
                                 }
                             }
@@ -271,9 +311,19 @@ fun QuoteListScreen(
                                 quote = quote,
                                 selectedScript = uiState.selectedScript,
                                 selectedFont = uiState.selectedFont,
-                                onToggleFavorite = { viewModel.toggleFavorite(quote) },
-                                onEdit = { onNavigateToEditQuote(quote.id) },
-                                onDelete = { viewModel.deleteQuote(quote.id) }
+                                reducedMotion = reducedMotion,
+                                onToggleFavorite = {
+                                    haptics.lightToggle()
+                                    viewModel.toggleFavorite(quote)
+                                },
+                                onEdit = {
+                                    haptics.mediumAction()
+                                    onNavigateToEditQuote(quote.id)
+                                },
+                                onDelete = {
+                                    haptics.mediumAction()
+                                    viewModel.deleteQuote(quote.id)
+                                }
                             )
                         }
                     }
@@ -284,10 +334,12 @@ fun QuoteListScreen(
 }
 
 @Composable
+@Suppress("CyclomaticComplexMethod")
 private fun QuoteListItem(
     quote: Quote,
     selectedScript: RunicScript,
     selectedFont: String,
+    reducedMotion: Boolean,
     onToggleFavorite: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
@@ -295,11 +347,23 @@ private fun QuoteListItem(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val elevation by animateDpAsState(
-        targetValue = if (quote.isUserCreated && isPressed) 10.dp else 3.dp,
+        targetValue = if (reducedMotion) {
+            3.dp
+        } else if (quote.isUserCreated && isPressed) {
+            10.dp
+        } else {
+            3.dp
+        },
         label = "quoteCardElevation"
     )
     val yOffset by animateDpAsState(
-        targetValue = if (quote.isUserCreated && isPressed) (-2).dp else 0.dp,
+        targetValue = if (reducedMotion) {
+            0.dp
+        } else if (quote.isUserCreated && isPressed) {
+            (-2).dp
+        } else {
+            0.dp
+        },
         label = "quoteCardOffset"
     )
 

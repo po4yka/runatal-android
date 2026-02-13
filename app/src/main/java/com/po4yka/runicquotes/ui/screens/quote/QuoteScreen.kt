@@ -1,6 +1,7 @@
 package com.po4yka.runicquotes.ui.screens.quote
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.core.Animatable
@@ -60,7 +61,9 @@ import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.ui.components.RunicText
+import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.util.ShareTemplate
+import com.po4yka.runicquotes.util.rememberHapticFeedback
 
 /**
  * Quote screen that displays the daily runic quote.
@@ -71,6 +74,8 @@ fun QuoteScreen(
     viewModel: QuoteViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val reducedMotion = LocalReduceMotion.current
+    val haptics = rememberHapticFeedback()
     var showShareDialog by remember { mutableStateOf(false) }
     var selectedShareTemplate by remember { mutableStateOf(ShareTemplate.MINIMAL) }
 
@@ -113,8 +118,15 @@ fun QuoteScreen(
                 is QuoteUiState.Success -> {
                     QuoteContent(
                         state = state,
-                        onToggleFavorite = viewModel::toggleFavorite,
-                        onSelectScript = viewModel::updateSelectedScript
+                        reducedMotion = reducedMotion,
+                        onToggleFavorite = {
+                            haptics.lightToggle()
+                            viewModel.toggleFavorite()
+                        },
+                        onSelectScript = { script ->
+                            haptics.lightToggle()
+                            viewModel.updateSelectedScript(script)
+                        }
                     )
                 }
 
@@ -131,10 +143,15 @@ fun QuoteScreen(
             latinText = successState.quote.textLatin,
             author = successState.quote.author,
             selectedTemplate = selectedShareTemplate,
-            onTemplateSelected = { selectedShareTemplate = it },
+            onTemplateSelected = {
+                haptics.lightToggle()
+                selectedShareTemplate = it
+            },
             onDismiss = { showShareDialog = false },
             onShare = {
+                haptics.mediumAction()
                 viewModel.shareQuoteAsImage(selectedShareTemplate)
+                haptics.successPattern()
                 showShareDialog = false
             }
         )
@@ -144,6 +161,7 @@ fun QuoteScreen(
 @Composable
 private fun QuoteContent(
     state: QuoteUiState.Success,
+    reducedMotion: Boolean,
     onToggleFavorite: () -> Unit,
     onSelectScript: (RunicScript) -> Unit
 ) {
@@ -171,11 +189,15 @@ private fun QuoteContent(
 
         AnimatedVisibility(
             visible = cardVisible,
-            enter = fadeIn(animationSpec = tween(500)) +
-                slideInVertically(
-                    animationSpec = tween(500),
-                    initialOffsetY = { it / 6 }
-                )
+            enter = if (reducedMotion) {
+                EnterTransition.None
+            } else {
+                fadeIn(animationSpec = tween(500)) +
+                    slideInVertically(
+                        animationSpec = tween(500),
+                        initialOffsetY = { it / 6 }
+                    )
+            }
         ) {
             ElevatedCard(
                 shape = RoundedCornerShape(28.dp),
@@ -242,13 +264,17 @@ private fun QuoteContent(
                         HeroRunicText(
                             text = state.quote.getRunicText(state.selectedScript),
                             selectedScript = state.selectedScript,
-                            selectedFont = state.selectedFont
+                            selectedFont = state.selectedFont,
+                            reducedMotion = reducedMotion
                         )
 
                         if (state.showTransliteration) {
                             val transliterationAlpha by animateFloatAsState(
                                 targetValue = 1f,
-                                animationSpec = tween(durationMillis = 600, delayMillis = 300),
+                                animationSpec = tween(
+                                    durationMillis = if (reducedMotion) 0 else 600,
+                                    delayMillis = if (reducedMotion) 0 else 300
+                                ),
                                 label = "transliterationAlpha"
                             )
                             Text(
@@ -285,7 +311,8 @@ private fun QuoteContent(
 private fun HeroRunicText(
     text: String,
     selectedScript: RunicScript,
-    selectedFont: String
+    selectedFont: String,
+    reducedMotion: Boolean
 ) {
     val words = text.split(" ")
 
@@ -308,15 +335,19 @@ private fun HeroRunicText(
                         val alpha = remember(word, char, selectedScript) { Animatable(0f) }
 
                         LaunchedEffect(char, selectedScript) {
-                            val wordStartDelay = wordIndex * word.length * 30
-                            val charDelay = index * 42 + wordStartDelay
-                            alpha.animateTo(
-                                targetValue = 1f,
-                                animationSpec = tween(
-                                    durationMillis = 420,
-                                    delayMillis = charDelay.coerceAtMost(1800)
+                            if (reducedMotion) {
+                                alpha.snapTo(1f)
+                            } else {
+                                val wordStartDelay = wordIndex * word.length * 30
+                                val charDelay = index * 42 + wordStartDelay
+                                alpha.animateTo(
+                                    targetValue = 1f,
+                                    animationSpec = tween(
+                                        durationMillis = 420,
+                                        delayMillis = charDelay.coerceAtMost(1800)
+                                    )
                                 )
-                            )
+                            }
                         }
 
                         RunicText(

@@ -7,7 +7,9 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
@@ -184,7 +186,72 @@ private val NightInkDarkColorScheme = darkColorScheme(
     scrim = Color(0xCC000000)
 )
 
-private fun resolveColorScheme(darkTheme: Boolean, themePack: String): ColorScheme {
+private val HighContrastLightColorScheme = lightColorScheme(
+    primary = Color.Black,
+    onPrimary = Color.White,
+    primaryContainer = Color.White,
+    onPrimaryContainer = Color.Black,
+    secondary = Color.Black,
+    onSecondary = Color.White,
+    secondaryContainer = Color.White,
+    onSecondaryContainer = Color.Black,
+    tertiary = Color.Black,
+    onTertiary = Color.White,
+    tertiaryContainer = Color.White,
+    onTertiaryContainer = Color.Black,
+    background = Color.White,
+    onBackground = Color.Black,
+    surface = Color.White,
+    onSurface = Color.Black,
+    surfaceVariant = Color(0xFFF2F2F2),
+    onSurfaceVariant = Color.Black,
+    outline = Color.Black,
+    outlineVariant = Color(0xFF444444),
+    inverseSurface = Color.Black,
+    inverseOnSurface = Color.White,
+    inversePrimary = Color.White,
+    scrim = Color(0xCC000000)
+)
+
+private val HighContrastDarkColorScheme = darkColorScheme(
+    primary = Color.White,
+    onPrimary = Color.Black,
+    primaryContainer = Color.Black,
+    onPrimaryContainer = Color.White,
+    secondary = Color.White,
+    onSecondary = Color.Black,
+    secondaryContainer = Color.Black,
+    onSecondaryContainer = Color.White,
+    tertiary = Color.White,
+    onTertiary = Color.Black,
+    tertiaryContainer = Color.Black,
+    onTertiaryContainer = Color.White,
+    background = Color.Black,
+    onBackground = Color.White,
+    surface = Color.Black,
+    onSurface = Color.White,
+    surfaceVariant = Color(0xFF1C1C1C),
+    onSurfaceVariant = Color.White,
+    outline = Color.White,
+    outlineVariant = Color(0xFFAAAAAA),
+    inverseSurface = Color.White,
+    inverseOnSurface = Color.Black,
+    inversePrimary = Color.Black,
+    scrim = Color(0xCC000000)
+)
+
+val LocalRunicFontScale = staticCompositionLocalOf { 1.0f }
+val LocalReduceMotion = staticCompositionLocalOf { false }
+
+private fun resolveColorScheme(
+    darkTheme: Boolean,
+    themePack: String,
+    highContrast: Boolean
+): ColorScheme {
+    if (highContrast) {
+        return if (darkTheme) HighContrastDarkColorScheme else HighContrastLightColorScheme
+    }
+
     return when (themePack) {
         "parchment" -> if (darkTheme) ParchmentDarkColorScheme else ParchmentLightColorScheme
         "night_ink" -> if (darkTheme) NightInkDarkColorScheme else NightInkLightColorScheme
@@ -197,15 +264,25 @@ private fun resolveColorScheme(darkTheme: Boolean, themePack: String): ColorSche
  *
  * @param darkTheme Whether to use dark theme
  * @param themePack Visual palette and typography pack
+ * @param runicFontScale Global scale multiplier for runic glyphs
+ * @param highContrast Enable high-contrast palette override
+ * @param reducedMotion Disable non-essential motion
  * @param content The composable content to apply the theme to
  */
 @Composable
 fun RunicQuotesTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     themePack: String = "stone",
+    runicFontScale: Float = 1.0f,
+    highContrast: Boolean = false,
+    reducedMotion: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = resolveColorScheme(darkTheme, themePack)
+    val colorScheme = resolveColorScheme(
+        darkTheme = darkTheme,
+        themePack = themePack,
+        highContrast = highContrast
+    )
 
     val view = LocalView.current
     if (!view.isInEditMode) {
@@ -220,9 +297,14 @@ fun RunicQuotesTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = typographyForThemePack(themePack),
-        content = content
-    )
+    CompositionLocalProvider(
+        LocalRunicFontScale provides runicFontScale,
+        LocalReduceMotion provides reducedMotion
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = typographyForThemePack(themePack),
+            content = content
+        )
+    }
 }

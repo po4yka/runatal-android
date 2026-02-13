@@ -17,6 +17,7 @@ import javax.inject.Singleton
  * Manager for user preferences using Jetpack DataStore.
  */
 @Singleton
+@Suppress("TooManyFunctions")
 class UserPreferencesManager @Inject constructor(
     private val dataStore: DataStore<Preferences>
 ) {
@@ -31,6 +32,7 @@ class UserPreferencesManager @Inject constructor(
                 ?: RunicScript.DEFAULT,
             selectedFont = preferences[SELECTED_FONT] ?: "noto",
             widgetUpdateMode = preferences[WIDGET_UPDATE_MODE] ?: "daily",
+            widgetDisplayMode = preferences[WIDGET_DISPLAY_MODE] ?: "rune_latin",
             quoteListFilter = preferences[QUOTE_LIST_FILTER] ?: "all",
             quoteSearchQuery = preferences[QUOTE_SEARCH_QUERY] ?: "",
             quoteAuthorFilter = preferences[QUOTE_AUTHOR_FILTER] ?: "",
@@ -40,7 +42,10 @@ class UserPreferencesManager @Inject constructor(
             themeMode = preferences[THEME_MODE] ?: "system",
             themePack = preferences[THEME_PACK] ?: "stone",
             showTransliteration = preferences[SHOW_TRANSLITERATION] ?: true,
-            fontSize = preferences[FONT_SIZE] ?: 1.0f
+            fontSize = preferences[FONT_SIZE] ?: 1.0f,
+            largeRunesEnabled = preferences[LARGE_RUNES_ENABLED] ?: false,
+            highContrastEnabled = preferences[HIGH_CONTRAST_ENABLED] ?: false,
+            reducedMotionEnabled = preferences[REDUCED_MOTION_ENABLED] ?: false
         )
     }
 
@@ -68,6 +73,15 @@ class UserPreferencesManager @Inject constructor(
     suspend fun updateWidgetUpdateMode(mode: String) {
         dataStore.edit { preferences ->
             preferences[WIDGET_UPDATE_MODE] = mode
+        }
+    }
+
+    /**
+     * Updates the widget display mode.
+     */
+    suspend fun updateWidgetDisplayMode(mode: String) {
+        dataStore.edit { preferences ->
+            preferences[WIDGET_DISPLAY_MODE] = mode
         }
     }
 
@@ -162,6 +176,33 @@ class UserPreferencesManager @Inject constructor(
     }
 
     /**
+     * Updates large runes accessibility preset.
+     */
+    suspend fun updateLargeRunesEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[LARGE_RUNES_ENABLED] = enabled
+        }
+    }
+
+    /**
+     * Updates high contrast accessibility preset.
+     */
+    suspend fun updateHighContrastEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[HIGH_CONTRAST_ENABLED] = enabled
+        }
+    }
+
+    /**
+     * Updates reduced motion accessibility preset.
+     */
+    suspend fun updateReducedMotionEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[REDUCED_MOTION_ENABLED] = enabled
+        }
+    }
+
+    /**
      * Clears all preferences.
      */
     suspend fun clearPreferences() {
@@ -174,6 +215,7 @@ class UserPreferencesManager @Inject constructor(
         private val SELECTED_SCRIPT = stringPreferencesKey("selected_script")
         private val SELECTED_FONT = stringPreferencesKey("selected_font")
         private val WIDGET_UPDATE_MODE = stringPreferencesKey("widget_update_mode")
+        private val WIDGET_DISPLAY_MODE = stringPreferencesKey("widget_display_mode")
         private val QUOTE_LIST_FILTER = stringPreferencesKey("quote_list_filter")
         private val QUOTE_SEARCH_QUERY = stringPreferencesKey("quote_search_query")
         private val QUOTE_AUTHOR_FILTER = stringPreferencesKey("quote_author_filter")
@@ -184,5 +226,8 @@ class UserPreferencesManager @Inject constructor(
         private val THEME_PACK = stringPreferencesKey("theme_pack")
         private val SHOW_TRANSLITERATION = booleanPreferencesKey("show_transliteration")
         private val FONT_SIZE = floatPreferencesKey("font_size")
+        private val LARGE_RUNES_ENABLED = booleanPreferencesKey("large_runes_enabled")
+        private val HIGH_CONTRAST_ENABLED = booleanPreferencesKey("high_contrast_enabled")
+        private val REDUCED_MOTION_ENABLED = booleanPreferencesKey("reduced_motion_enabled")
     }
 }

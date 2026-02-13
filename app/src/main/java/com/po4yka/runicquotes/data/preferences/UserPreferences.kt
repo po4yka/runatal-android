@@ -22,6 +22,11 @@ data class UserPreferences(
     val widgetUpdateMode: String = "daily",
 
     /**
+     * Widget content mode (rune_only, rune_latin, daily_random_tap).
+     */
+    val widgetDisplayMode: String = "rune_latin",
+
+    /**
      * Persisted quote list base filter (all, favorites, user_created, system).
      */
     val quoteListFilter: String = "all",
@@ -69,5 +74,20 @@ data class UserPreferences(
     /**
      * Font size multiplier for runic text.
      */
-    val fontSize: Float = 1.0f
+    val fontSize: Float = 1.0f,
+
+    /**
+     * Accessibility preset: larger runes across primary reading surfaces.
+     */
+    val largeRunesEnabled: Boolean = false,
+
+    /**
+     * Accessibility preset: high contrast colors for stronger legibility.
+     */
+    val highContrastEnabled: Boolean = false,
+
+    /**
+     * Accessibility preset: reduce non-essential motion.
+     */
+    val reducedMotionEnabled: Boolean = false
 )

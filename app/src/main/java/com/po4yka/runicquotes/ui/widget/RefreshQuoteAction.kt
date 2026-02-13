@@ -18,6 +18,7 @@ class RefreshQuoteAction : ActionCallback {
     ) {
         // Clear caches to force fresh data
         WidgetStateCache.clear()
+        WidgetInteractionState.requestRandomQuote()
 
         // Update the specific widget that was clicked
         RunicQuoteWidget().update(context, glanceId)

@@ -8,11 +8,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 import com.po4yka.runicquotes.ui.theme.BabelStoneRunic
 import com.po4yka.runicquotes.ui.theme.BabelStoneRunicRuled
+import com.po4yka.runicquotes.ui.theme.LocalRunicFontScale
 import com.po4yka.runicquotes.ui.theme.NotoSansRunic
 import com.po4yka.runicquotes.domain.model.RunicScript
-import androidx.compose.ui.unit.sp
 
 /**
  * Composable for displaying text in runic fonts.
@@ -36,6 +37,8 @@ fun RunicText(
     textAlign: TextAlign? = null,
     style: TextStyle = LocalTextStyle.current
 ) {
+    val runicFontScale = LocalRunicFontScale.current
+
     val fontFamily = when (font.lowercase()) {
         "babelstone" -> BabelStoneRunic
         "babelstone_ruled" -> BabelStoneRunicRuled
@@ -53,10 +56,10 @@ fun RunicText(
             RunicScript.ELDER_FUTHARK -> 44.sp
             RunicScript.YOUNGER_FUTHARK -> 42.sp
             RunicScript.CIRTH -> 46.sp
-        }
+        } * runicFontScale
     )
 
-    val tunedFontSize = if (fontSize != TextUnit.Unspecified) {
+    val baseFontSize = if (fontSize != TextUnit.Unspecified) {
         fontSize
     } else {
         when (script) {
@@ -65,6 +68,7 @@ fun RunicText(
             RunicScript.CIRTH -> 35.sp
         }
     }
+    val tunedFontSize = baseFontSize * runicFontScale
 
     Text(
         text = text,

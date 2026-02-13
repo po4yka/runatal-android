@@ -137,6 +137,10 @@ class HapticFeedback(
     }
 
     fun click() {
+        lightToggle()
+    }
+
+    fun lightToggle() {
         view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
     }
 
@@ -144,7 +148,22 @@ class HapticFeedback(
         view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
     }
 
+    fun mediumAction() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            vibrator.vibrate(
+                VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK)
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(30)
+        }
+    }
+
     fun success() {
+        successPattern()
+    }
+
+    fun successPattern() {
         val timings = longArrayOf(0, 50, 50, 100)
         val amplitudes = intArrayOf(0, 128, 0, 255)
         vibrator.vibrate(

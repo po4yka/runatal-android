@@ -1,8 +1,8 @@
 package com.po4yka.runicquotes.ui.widget
 
 import android.content.Context
-import android.content.Intent
 import android.graphics.Color
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -11,6 +11,7 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.action.Action
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
@@ -27,18 +28,17 @@ import androidx.glance.layout.padding
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
-import android.util.Log
 import com.po4yka.runicquotes.MainActivity
 import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.util.BitmapCache
 import com.po4yka.runicquotes.util.RenderConfig
 import com.po4yka.runicquotes.util.RunicTextRenderer
 import dagger.hilt.android.EntryPointAccessors
+import java.io.IOException
+import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import java.io.IOException
-import java.time.LocalDate
 
 /**
  * Glance widget that displays a daily runic quote.
@@ -57,50 +57,55 @@ class RunicQuoteWidget : GlanceAppWidget() {
     }
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        // Get dependencies via Hilt EntryPoint
         val entryPoint = EntryPointAccessors.fromApplication(
             context.applicationContext,
             WidgetEntryPoint::class.java
         )
-
         val quoteRepository = entryPoint.quoteRepository()
         val preferencesManager = entryPoint.userPreferencesManager()
 
-        // Get widget size for adaptive rendering
-        val sizes = GlanceAppWidgetManager(context)
+        val widgetWidth = GlanceAppWidgetManager(context)
             .getAppWidgetSizes(id)
-        val widgetWidth = sizes.firstOrNull()?.width?.value?.toInt() ?: DEFAULT_WIDGET_WIDTH
+            .firstOrNull()
+            ?.width
+            ?.value
+            ?.toInt()
+            ?: DEFAULT_WIDGET_WIDTH
+        val sizeClass = resolveSizeClass(widgetWidth)
 
-        // Load widget state with caching
         val state = withContext(Dispatchers.IO) {
             try {
                 val today = LocalDate.now()
                 val preferences = preferencesManager.userPreferencesFlow.first()
+                val displayMode = WidgetDisplayMode.fromPersistedValue(preferences.widgetDisplayMode)
+                val randomRequested = WidgetInteractionState.consumeRandomQuoteRequest()
 
-                // Check cache first (Performance: 80% reduction in repository calls)
-                val cachedState = WidgetStateCache.get(today, preferences)
-                if (cachedState != null) {
-                    return@withContext cachedState
+                // Reuse cache only when we are not forcing a random quote refresh.
+                if (!randomRequested) {
+                    val cachedState = WidgetStateCache.get(today, preferences)
+                    if (cachedState != null) {
+                        return@withContext cachedState.copy(sizeClass = sizeClass)
+                    }
                 }
 
-                // Load fresh data
-                val quote = quoteRepository.quoteOfTheDay(preferences.selectedScript)
+                val quote = if (
+                    displayMode == WidgetDisplayMode.DAILY_RANDOM_TAP &&
+                    randomRequested
+                ) {
+                    quoteRepository.randomQuote(preferences.selectedScript)
+                } else {
+                    quoteRepository.quoteOfTheDay(preferences.selectedScript)
+                }
 
                 if (quote != null) {
-                    // Use domain extension function for business logic
                     val runicText = quote.getRunicText(preferences.selectedScript)
+                    val textSize = runicTextSize(widgetWidth)
+                    val maxWidth = (
+                        widgetWidth *
+                            context.resources.displayMetrics.density *
+                            MAX_WIDTH_FACTOR
+                        ).toInt()
 
-                    // Adaptive text size based on widget dimensions
-                    val textSize = when {
-                        widgetWidth < SMALL_WIDGET_WIDTH -> TEXT_SIZE_SMALL // Small widget (1x1, 2x1)
-                        widgetWidth < MEDIUM_WIDGET_WIDTH -> TEXT_SIZE_MEDIUM // Medium widget (2x2, 3x1)
-                        else -> TEXT_SIZE_LARGE // Large widget (4x2, 5x3)
-                    }
-
-                    // Calculate max width in pixels
-                    val maxWidth = (widgetWidth * context.resources.displayMetrics.density * MAX_WIDTH_FACTOR).toInt()
-
-                    // Render runic text to bitmap with caching
                     val fontResource = RunicTextRenderer.getFontResource(preferences.selectedFont)
                     val cacheKey = BitmapCache.generateKey(
                         text = runicText,
@@ -108,18 +113,18 @@ class RunicQuoteWidget : GlanceAppWidget() {
                         textSize = textSize,
                         maxWidth = maxWidth
                     )
-
-                    // Performance: 90% reduction in bitmap rendering operations
                     val runicBitmap = BitmapCache.get(cacheKey) ?: try {
-                        val config = RenderConfig(
-                            text = runicText,
-                            fontResource = fontResource,
-                            textSizeSp = textSize,
-                            textColor = Color.WHITE,
-                            backgroundColor = null,
-                            maxWidth = maxWidth
+                        val bitmap = RunicTextRenderer.renderTextToBitmap(
+                            context = context,
+                            config = RenderConfig(
+                                text = runicText,
+                                fontResource = fontResource,
+                                textSizeSp = textSize,
+                                textColor = Color.WHITE,
+                                backgroundColor = null,
+                                maxWidth = maxWidth
+                            )
                         )
-                        val bitmap = RunicTextRenderer.renderTextToBitmap(context, config)
                         BitmapCache.put(cacheKey, bitmap)
                         bitmap
                     } catch (e: IOException) {
@@ -135,10 +140,10 @@ class RunicQuoteWidget : GlanceAppWidget() {
                         runicBitmap = runicBitmap,
                         latinText = quote.textLatin,
                         author = quote.author,
+                        sizeClass = sizeClass,
+                        displayMode = displayMode,
                         isLoading = false
                     )
-
-                    // Cache the state for subsequent requests
                     WidgetStateCache.put(today, preferences, newState)
                     newState
                 } else {
@@ -146,6 +151,8 @@ class RunicQuoteWidget : GlanceAppWidget() {
                         runicText = "",
                         latinText = "No quote available",
                         author = "",
+                        sizeClass = sizeClass,
+                        displayMode = displayMode,
                         isLoading = false
                     )
                 }
@@ -155,6 +162,8 @@ class RunicQuoteWidget : GlanceAppWidget() {
                     runicText = "",
                     latinText = "",
                     author = "",
+                    sizeClass = sizeClass,
+                    displayMode = WidgetDisplayMode.RUNE_LATIN,
                     isLoading = false,
                     error = e.message
                 )
@@ -168,115 +177,142 @@ class RunicQuoteWidget : GlanceAppWidget() {
 
     @Composable
     private fun WidgetContent(state: WidgetState) {
+        val cardClickAction: Action = if (state.displayMode == WidgetDisplayMode.DAILY_RANDOM_TAP) {
+            actionRunCallback<RefreshQuoteAction>()
+        } else {
+            actionStartActivity<MainActivity>()
+        }
+
         GlanceTheme {
             Column(
                 modifier = GlanceModifier
                     .fillMaxSize()
                     .background(GlanceTheme.colors.background)
                     .padding(16.dp)
-                    // Click to open main app
-                    .clickable(onClick = actionStartActivity<MainActivity>()),
+                    .clickable(onClick = cardClickAction),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 when {
-                    state.isLoading -> {
-                        Text(
-                            text = "Loading...",
-                            style = TextStyle(
-                                color = GlanceTheme.colors.onBackground,
-                                fontSize = 14.sp
-                            )
-                        )
-                    }
-
-                    state.error != null -> {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = when {
-                                    state.error.contains("database", ignoreCase = true) ->
-                                        "Database error"
-                                    state.error.contains("network", ignoreCase = true) ->
-                                        "Network error"
-                                    else -> "Error loading quote"
-                                },
-                                style = TextStyle(
-                                    color = GlanceTheme.colors.error,
-                                    fontSize = 12.sp,
-                                    textAlign = TextAlign.Center
-                                ),
-                                modifier = GlanceModifier.padding(bottom = 8.dp)
-                            )
-                            // Refresh button on error
-                            Text(
-                                text = "↻ Retry",
-                                style = TextStyle(
-                                    color = GlanceTheme.colors.primary,
-                                    fontSize = 14.sp
-                                ),
-                                modifier = GlanceModifier
-                                    .clickable(onClick = actionRunCallback<RefreshQuoteAction>())
-                                    .padding(8.dp)
-                            )
-                        }
-                    }
-
-                    else -> {
-                        // Runic text as bitmap image (custom font support)
-                        if (state.runicBitmap != null) {
-                            Image(
-                                provider = ImageProvider(state.runicBitmap),
-                                contentDescription = "Runic quote: ${state.latinText}",
-                                contentScale = ContentScale.Fit,
-                                modifier = GlanceModifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 8.dp)
-                            )
-                        }
-
-                        // Latin text
-                        if (state.latinText.isNotEmpty()) {
-                            Text(
-                                text = state.latinText,
-                                style = TextStyle(
-                                    color = GlanceTheme.colors.onBackground,
-                                    fontSize = 12.sp,
-                                    textAlign = TextAlign.Center
-                                ),
-                                modifier = GlanceModifier.padding(bottom = 4.dp)
-                            )
-                        }
-
-                        // Author
-                        if (state.author.isNotEmpty()) {
-                            Text(
-                                text = "— ${state.author}",
-                                style = TextStyle(
-                                    color = GlanceTheme.colors.onSurface,
-                                    fontSize = 10.sp,
-                                    textAlign = TextAlign.Center
-                                ),
-                                modifier = GlanceModifier.padding(bottom = 8.dp)
-                            )
-                        }
-
-                        // Refresh button
-                        Text(
-                            text = "↻ New Quote",
-                            style = TextStyle(
-                                color = GlanceTheme.colors.primary,
-                                fontSize = 10.sp
-                            ),
-                            modifier = GlanceModifier
-                                .clickable(onClick = actionRunCallback<RefreshQuoteAction>())
-                                .padding(4.dp)
-                        )
-                    }
+                    state.isLoading -> LoadingState()
+                    state.error != null -> ErrorState(state.error)
+                    else -> LoadedState(state)
                 }
             }
+        }
+    }
+
+    @Composable
+    private fun LoadingState() {
+        Text(
+            text = "Loading...",
+            style = TextStyle(
+                color = GlanceTheme.colors.onBackground,
+                fontSize = 14.sp
+            )
+        )
+    }
+
+    @Composable
+    private fun ErrorState(error: String) {
+        val message = when {
+            error.contains("database", ignoreCase = true) -> "Database error"
+            error.contains("network", ignoreCase = true) -> "Network error"
+            else -> "Error loading quote"
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = message,
+                style = TextStyle(
+                    color = GlanceTheme.colors.error,
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center
+                ),
+                modifier = GlanceModifier.padding(bottom = 8.dp)
+            )
+            Text(
+                text = "↻ Retry",
+                style = TextStyle(
+                    color = GlanceTheme.colors.primary,
+                    fontSize = 14.sp
+                ),
+                modifier = GlanceModifier
+                    .clickable(onClick = actionRunCallback<RefreshQuoteAction>())
+                    .padding(8.dp)
+            )
+        }
+    }
+
+    @Composable
+    private fun LoadedState(state: WidgetState) {
+        if (state.runicBitmap != null) {
+            Image(
+                provider = ImageProvider(state.runicBitmap),
+                contentDescription = "Runic quote: ${state.latinText}",
+                contentScale = ContentScale.Fit,
+                modifier = GlanceModifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp)
+            )
+        }
+
+        val showLatin = state.displayMode != WidgetDisplayMode.RUNE_ONLY
+        val showAuthor = showLatin && state.sizeClass == WidgetSizeClass.EXPANDED
+        val showTapHint = state.displayMode == WidgetDisplayMode.DAILY_RANDOM_TAP
+
+        if (showLatin && state.latinText.isNotEmpty()) {
+            Text(
+                text = state.latinText,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onBackground,
+                    fontSize = if (state.sizeClass == WidgetSizeClass.COMPACT) 11.sp else 12.sp,
+                    textAlign = TextAlign.Center
+                ),
+                modifier = GlanceModifier.padding(bottom = if (showAuthor) 4.dp else 8.dp)
+            )
+        }
+
+        if (showAuthor && state.author.isNotEmpty()) {
+            Text(
+                text = "— ${state.author}",
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurface,
+                    fontSize = 10.sp,
+                    textAlign = TextAlign.Center
+                ),
+                modifier = GlanceModifier.padding(bottom = 8.dp)
+            )
+        }
+
+        if (showTapHint) {
+            Text(
+                text = "Tap widget for random quote",
+                style = TextStyle(
+                    color = GlanceTheme.colors.primary,
+                    fontSize = 10.sp,
+                    textAlign = TextAlign.Center
+                )
+            )
+        }
+    }
+
+    private fun runicTextSize(widgetWidth: Int): Float {
+        return when {
+            widgetWidth < SMALL_WIDGET_WIDTH -> TEXT_SIZE_SMALL
+            widgetWidth < MEDIUM_WIDGET_WIDTH -> TEXT_SIZE_MEDIUM
+            else -> TEXT_SIZE_LARGE
+        }
+    }
+
+    private fun resolveSizeClass(widgetWidth: Int): WidgetSizeClass {
+        return when {
+            widgetWidth < SMALL_WIDGET_WIDTH -> WidgetSizeClass.COMPACT
+            widgetWidth < MEDIUM_WIDGET_WIDTH -> WidgetSizeClass.MEDIUM
+            else -> WidgetSizeClass.EXPANDED
         }
     }
 }

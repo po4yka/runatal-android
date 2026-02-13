@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.po4yka.runicquotes.data.preferences.UserPreferences
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.ui.widget.WidgetDisplayMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -82,6 +83,42 @@ class SettingsViewModel @Inject constructor(
     fun updateFontSize(size: Float) {
         viewModelScope.launch {
             userPreferencesManager.updateFontSize(size)
+        }
+    }
+
+    /**
+     * Updates widget content mode.
+     */
+    fun updateWidgetDisplayMode(mode: WidgetDisplayMode) {
+        viewModelScope.launch {
+            userPreferencesManager.updateWidgetDisplayMode(mode.persistedValue)
+        }
+    }
+
+    /**
+     * Toggles large runes accessibility preset.
+     */
+    fun updateLargeRunesEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesManager.updateLargeRunesEnabled(enabled)
+        }
+    }
+
+    /**
+     * Toggles high contrast accessibility preset.
+     */
+    fun updateHighContrastEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesManager.updateHighContrastEnabled(enabled)
+        }
+    }
+
+    /**
+     * Toggles reduced motion accessibility preset.
+     */
+    fun updateReducedMotionEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesManager.updateReducedMotionEnabled(enabled)
         }
     }
 }

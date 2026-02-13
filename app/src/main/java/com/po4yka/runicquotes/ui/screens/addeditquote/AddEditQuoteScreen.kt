@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
+import com.po4yka.runicquotes.util.rememberHapticFeedback
 
 /**
  * Screen for adding or editing a user-created quote.
@@ -55,6 +56,7 @@ fun AddEditQuoteScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val haptics = rememberHapticFeedback()
 
     LaunchedEffect(quoteId) {
         viewModel.initializeQuoteIfNeeded(quoteId)
@@ -88,7 +90,11 @@ fun AddEditQuoteScreen(
             FloatingActionButton(
                 onClick = {
                     if (uiState.canSave && !uiState.isSaving) {
-                        viewModel.saveQuote(onNavigateBack)
+                        haptics.mediumAction()
+                        viewModel.saveQuote {
+                            haptics.successPattern()
+                            onNavigateBack()
+                        }
                     }
                 },
                 containerColor = MaterialTheme.colorScheme.primary,
@@ -183,7 +189,10 @@ fun AddEditQuoteScreen(
                 RunicScript.entries.forEach { script ->
                     FilterChip(
                         selected = uiState.selectedScript == script,
-                        onClick = { viewModel.updateSelectedScript(script) },
+                        onClick = {
+                            haptics.lightToggle()
+                            viewModel.updateSelectedScript(script)
+                        },
                         label = { Text(script.displayName) },
                         enabled = !uiState.isSaving
                     )
