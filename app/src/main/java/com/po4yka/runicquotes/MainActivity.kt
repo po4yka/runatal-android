@@ -59,6 +59,18 @@ fun RunicQuotesApp() {
         val backStack = rememberSaveable {
             mutableStateListOf<Any>(QuoteRoute)
         }
-        NavGraph(backStack = backStack)
+        NavGraph(
+            backStack = backStack,
+            hasCompletedOnboarding = preferences.hasCompletedOnboarding,
+            selectedScript = preferences.selectedScript,
+            selectedThemePack = preferences.themePack,
+            onSelectOnboardingStyle = { script, themePack ->
+                settingsViewModel.updateSelectedScript(script)
+                settingsViewModel.updateThemePack(themePack)
+            },
+            onCompleteOnboarding = {
+                settingsViewModel.completeOnboarding()
+            }
+        )
     }
 }

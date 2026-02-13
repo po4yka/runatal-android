@@ -121,4 +121,13 @@ class SettingsViewModel @Inject constructor(
             userPreferencesManager.updateReducedMotionEnabled(enabled)
         }
     }
+
+    /**
+     * Marks onboarding as completed.
+     */
+    fun completeOnboarding() {
+        viewModelScope.launch {
+            userPreferencesManager.updateHasCompletedOnboarding(true)
+        }
+    }
 }

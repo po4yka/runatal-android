@@ -64,11 +64,19 @@ class QuoteListViewModel @Inject constructor(
                         QuoteFilter.SYSTEM -> allQuotes.filter { !it.isUserCreated }
                     }
 
+                    val collectionCounts = QuoteCollection.entries.associateWith { collection ->
+                        baseQuotes.count { quote -> quote.matchesCollection(collection) }
+                    }
+
+                    val collectionFilteredQuotes = baseQuotes.filter { quote ->
+                        quote.matchesCollection(state.selectedCollection)
+                    }
+
                     val quoteSearch = state.searchQuery.trim().lowercase(Locale.getDefault())
                     val filteredBySearch = if (quoteSearch.isEmpty()) {
-                        baseQuotes
+                        collectionFilteredQuotes
                     } else {
-                        baseQuotes.filter { quote ->
+                        collectionFilteredQuotes.filter { quote ->
                             quote.textLatin.lowercase(Locale.getDefault()).contains(quoteSearch) ||
                                 quote.author.lowercase(Locale.getDefault()).contains(quoteSearch)
                         }
@@ -91,7 +99,8 @@ class QuoteListViewModel @Inject constructor(
 
                     state.copy(
                         quotes = filteredQuotes,
-                        availableAuthors = allQuotes.map { it.author }.distinct().sorted(),
+                        availableAuthors = collectionFilteredQuotes.map { it.author }.distinct().sorted(),
+                        collectionCounts = collectionCounts,
                         selectedScript = prefs.selectedScript,
                         selectedFont = prefs.selectedFont,
                         isLoading = false
@@ -160,6 +169,16 @@ class QuoteListViewModel @Inject constructor(
     }
 
     /**
+     * Updates quote collection filter and persists it.
+     */
+    fun setCollection(collection: QuoteCollection) {
+        _uiState.update { it.copy(selectedCollection = collection) }
+        viewModelScope.launch {
+            userPreferencesManager.updateQuoteCollectionFilter(collection.persistedValue)
+        }
+    }
+
+    /**
      * Clears all smart filters and persists defaults.
      */
     fun clearSmartFilters() {
@@ -167,13 +186,15 @@ class QuoteListViewModel @Inject constructor(
             it.copy(
                 searchQuery = "",
                 selectedAuthor = null,
-                lengthFilter = QuoteLengthFilter.ANY
+                lengthFilter = QuoteLengthFilter.ANY,
+                selectedCollection = QuoteCollection.ALL
             )
         }
         viewModelScope.launch {
             userPreferencesManager.updateQuoteSearchQuery("")
             userPreferencesManager.updateQuoteAuthorFilter("")
             userPreferencesManager.updateQuoteLengthFilter(QuoteLengthFilter.ANY.persistedValue)
+            userPreferencesManager.updateQuoteCollectionFilter(QuoteCollection.ALL.persistedValue)
         }
     }
 
@@ -232,7 +253,8 @@ class QuoteListViewModel @Inject constructor(
     fun hasSmartFilters(state: QuoteListUiState): Boolean {
         return state.searchQuery.isNotBlank() ||
             state.selectedAuthor != null ||
-            state.lengthFilter != QuoteLengthFilter.ANY
+            state.lengthFilter != QuoteLengthFilter.ANY ||
+            state.selectedCollection != QuoteCollection.ALL
     }
 
     private suspend fun restorePersistedFilters() {
@@ -242,7 +264,8 @@ class QuoteListViewModel @Inject constructor(
                 currentFilter = QuoteFilter.fromPersistedValue(prefs.quoteListFilter),
                 searchQuery = prefs.quoteSearchQuery,
                 selectedAuthor = prefs.quoteAuthorFilter.ifBlank { null },
-                lengthFilter = QuoteLengthFilter.fromPersistedValue(prefs.quoteLengthFilter)
+                lengthFilter = QuoteLengthFilter.fromPersistedValue(prefs.quoteLengthFilter),
+                selectedCollection = QuoteCollection.fromPersistedValue(prefs.quoteCollectionFilter)
             )
         }
     }
@@ -257,6 +280,8 @@ data class QuoteListUiState(
     val searchQuery: String = "",
     val selectedAuthor: String? = null,
     val lengthFilter: QuoteLengthFilter = QuoteLengthFilter.ANY,
+    val selectedCollection: QuoteCollection = QuoteCollection.ALL,
+    val collectionCounts: Map<QuoteCollection, Int> = emptyMap(),
     val availableAuthors: List<String> = emptyList(),
     val selectedScript: RunicScript = RunicScript.ELDER_FUTHARK,
     val selectedFont: String = "noto",
@@ -279,6 +304,74 @@ enum class QuoteFilter(
     companion object {
         fun fromPersistedValue(value: String): QuoteFilter {
             return entries.firstOrNull { it.persistedValue == value } ?: ALL
+        }
+    }
+}
+
+/**
+ * Curated collections for faster browsing.
+ */
+enum class QuoteCollection(
+    val displayName: String,
+    val persistedValue: String,
+    val subtitle: String,
+    val coverRunes: String
+) {
+    ALL(
+        displayName = "All",
+        persistedValue = "all",
+        subtitle = "Everything in your library",
+        coverRunes = "ᚱᚢᚾᛖ"
+    ),
+    MOTIVATION(
+        displayName = "Motivation",
+        persistedValue = "motivation",
+        subtitle = "Momentum and action",
+        coverRunes = "ᛗᛟᛏᛁᚢ"
+    ),
+    STOIC(
+        displayName = "Stoic",
+        persistedValue = "stoic",
+        subtitle = "Calm and perspective",
+        coverRunes = "ᛋᛏᛟᛁᚲ"
+    ),
+    TOLKIEN(
+        displayName = "Tolkien",
+        persistedValue = "tolkien",
+        subtitle = "Middle-earth voice",
+        coverRunes = "ᛏᛟᛚᚲᛁᛖᚾ"
+    );
+
+    companion object {
+        fun fromPersistedValue(value: String): QuoteCollection {
+            return entries.firstOrNull { it.persistedValue == value } ?: ALL
+        }
+    }
+}
+
+private fun Quote.matchesCollection(collection: QuoteCollection): Boolean {
+    val authorNormalized = author.lowercase(Locale.getDefault())
+    val textNormalized = textLatin.lowercase(Locale.getDefault())
+
+    return when (collection) {
+        QuoteCollection.ALL -> true
+        QuoteCollection.MOTIVATION -> {
+            authorNormalized in setOf("steve jobs", "albert einstein") ||
+                listOf("work", "opportunity", "journey", "step", "begins").any {
+                    textNormalized.contains(it)
+                }
+        }
+
+        QuoteCollection.STOIC -> {
+            authorNormalized in setOf("lao tzu", "epictetus", "seneca", "marcus aurelius") ||
+                listOf("difficulty", "yourself", "journey", "middle").any {
+                    textNormalized.contains(it)
+                }
+        }
+
+        QuoteCollection.TOLKIEN -> {
+            authorNormalized.contains("tolkien") ||
+                listOf("wander", "lost", "middle-earth").any { textNormalized.contains(it) }
         }
     }
 }

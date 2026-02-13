@@ -14,6 +14,12 @@ import kotlinx.serialization.Serializable
 data object QuoteRoute
 
 /**
+ * Onboarding screen - introduces scripts and lets users pick a default style.
+ */
+@Serializable
+data object OnboardingRoute
+
+/**
  * Settings screen - allows users to configure preferences.
  */
 @Serializable

@@ -1,6 +1,7 @@
 package com.po4yka.runicquotes.ui.navigation
 
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -24,6 +25,12 @@ class NavigationFlowTest {
     fun userCanNavigateThroughQuoteManagementRoutes() {
         val quoteText = "UI route quote ${System.currentTimeMillis()}"
         val quoteAuthor = "Route Tester"
+
+        composeRule.waitForIdle()
+        if (composeRule.onAllNodesWithTag("onboarding_finish_button").fetchSemanticsNodes().isNotEmpty()) {
+            composeRule.onNodeWithTag("onboarding_finish_button")
+                .performClick()
+        }
 
         composeRule.onNodeWithTag("tab_library")
             .performClick()

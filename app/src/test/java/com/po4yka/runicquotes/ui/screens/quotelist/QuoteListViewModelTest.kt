@@ -47,8 +47,8 @@ class QuoteListViewModelTest {
     private val testQuotes = listOf(
         Quote(
             id = 1,
-            textLatin = "System quote 1",
-            author = "Author 1",
+            textLatin = "Great work begins with one step.",
+            author = "Steve Jobs",
             runicElder = "ᛏᛖᛋᛏ",
             runicYounger = "ᛏᛖᛋᛏ",
             runicCirth = "\uE088\uE0C9\uE09C\uE088",
@@ -57,8 +57,8 @@ class QuoteListViewModelTest {
         ),
         Quote(
             id = 2,
-            textLatin = "User quote 1",
-            author = "Author 2",
+            textLatin = "Not all those who wander are lost.",
+            author = "J.R.R. Tolkien",
             runicElder = "ᚦᛖᛋᛏ",
             runicYounger = "ᚦᛖᛋᛏ",
             runicCirth = "\uE088\uE0B4\uE0C9\uE09C\uE088",
@@ -67,8 +67,8 @@ class QuoteListViewModelTest {
         ),
         Quote(
             id = 3,
-            textLatin = "System quote 2",
-            author = "Author 3",
+            textLatin = "In the middle of difficulty lies opportunity.",
+            author = "Lao Tzu",
             runicElder = "ᚹᛟᚱᛞ",
             runicYounger = "ᚹᛟᚱᛞ",
             runicCirth = "\uE0B8\uE0CB\uE0A0\uE089",
@@ -114,6 +114,7 @@ class QuoteListViewModelTest {
         coEvery { userPreferencesManager.updateQuoteSearchQuery(any()) } returns Unit
         coEvery { userPreferencesManager.updateQuoteAuthorFilter(any()) } returns Unit
         coEvery { userPreferencesManager.updateQuoteLengthFilter(any()) } returns Unit
+        coEvery { userPreferencesManager.updateQuoteCollectionFilter(any()) } returns Unit
     }
 
     @After
@@ -257,6 +258,56 @@ class QuoteListViewModelTest {
             assertEquals(QuoteFilter.SYSTEM, state.currentFilter)
             assertEquals(systemQuotes.size, state.quotes.size)
             assertTrue(state.quotes.all { !it.isUserCreated })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `setCollection to TOLKIEN shows Tolkien quotes`() = runTest {
+        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
+        advanceUntilIdle()
+
+        viewModel.setCollection(QuoteCollection.TOLKIEN)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertEquals(QuoteCollection.TOLKIEN, state.selectedCollection)
+            assertEquals(1, state.quotes.size)
+            assertTrue(state.quotes.all { it.author.contains("Tolkien") })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `clearSmartFilters resets collection to ALL`() = runTest {
+        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
+        advanceUntilIdle()
+
+        viewModel.setCollection(QuoteCollection.STOIC)
+        advanceUntilIdle()
+        viewModel.clearSmartFilters()
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertEquals(QuoteCollection.ALL, state.selectedCollection)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        coVerify { userPreferencesManager.updateQuoteCollectionFilter("all") }
+    }
+
+    @Test
+    fun `restores persisted quote collection filter`() = runTest {
+        preferencesFlow.value = defaultPreferences.copy(quoteCollectionFilter = "tolkien")
+
+        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertEquals(QuoteCollection.TOLKIEN, state.selectedCollection)
             cancelAndIgnoreRemainingEvents()
         }
     }

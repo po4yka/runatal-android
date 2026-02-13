@@ -47,6 +47,11 @@ data class UserPreferences(
     val quoteLengthFilter: String = "any",
 
     /**
+     * Persisted quote collection filter (all, motivation, stoic, tolkien).
+     */
+    val quoteCollectionFilter: String = "all",
+
+    /**
      * The last date a quote was displayed (in epoch days).
      */
     val lastQuoteDate: Long = 0L,
@@ -89,5 +94,10 @@ data class UserPreferences(
     /**
      * Accessibility preset: reduce non-essential motion.
      */
-    val reducedMotionEnabled: Boolean = false
+    val reducedMotionEnabled: Boolean = false,
+
+    /**
+     * Whether onboarding has been completed.
+     */
+    val hasCompletedOnboarding: Boolean = false
 )

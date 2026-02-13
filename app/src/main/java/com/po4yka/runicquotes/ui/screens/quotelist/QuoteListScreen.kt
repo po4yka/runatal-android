@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -156,6 +157,25 @@ fun QuoteListScreen(
                     },
                     singleLine = true
                 )
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(QuoteCollection.entries) { collection ->
+                        CollectionCoverCard(
+                            collection = collection,
+                            count = uiState.collectionCounts[collection] ?: 0,
+                            selected = uiState.selectedCollection == collection,
+                            selectedFont = uiState.selectedFont,
+                            onClick = {
+                                haptics.lightToggle()
+                                viewModel.setCollection(collection)
+                            }
+                        )
+                    }
+                }
 
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -329,6 +349,60 @@ fun QuoteListScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CollectionCoverCard(
+    collection: QuoteCollection,
+    count: Int,
+    selected: Boolean,
+    selectedFont: String,
+    onClick: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            }
+        ),
+        modifier = Modifier
+            .width(176.dp)
+            .clickable(onClick = onClick)
+            .testTag("collection_card_${collection.persistedValue}")
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = collection.displayName,
+                style = MaterialTheme.typography.titleMedium
+            )
+            RunicText(
+                text = collection.coverRunes,
+                font = selectedFont,
+                script = RunicScript.ELDER_FUTHARK,
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Text(
+                text = collection.subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "$count quotes",
+                style = MaterialTheme.typography.labelLarge,
+                color = if (selected) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
+            )
         }
     }
 }

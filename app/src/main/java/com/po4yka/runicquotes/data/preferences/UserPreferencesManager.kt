@@ -37,6 +37,7 @@ class UserPreferencesManager @Inject constructor(
             quoteSearchQuery = preferences[QUOTE_SEARCH_QUERY] ?: "",
             quoteAuthorFilter = preferences[QUOTE_AUTHOR_FILTER] ?: "",
             quoteLengthFilter = preferences[QUOTE_LENGTH_FILTER] ?: "any",
+            quoteCollectionFilter = preferences[QUOTE_COLLECTION_FILTER] ?: "all",
             lastQuoteDate = preferences[LAST_QUOTE_DATE] ?: 0L,
             lastDailyQuoteId = preferences[LAST_DAILY_QUOTE_ID] ?: 0L,
             themeMode = preferences[THEME_MODE] ?: "system",
@@ -45,7 +46,8 @@ class UserPreferencesManager @Inject constructor(
             fontSize = preferences[FONT_SIZE] ?: 1.0f,
             largeRunesEnabled = preferences[LARGE_RUNES_ENABLED] ?: false,
             highContrastEnabled = preferences[HIGH_CONTRAST_ENABLED] ?: false,
-            reducedMotionEnabled = preferences[REDUCED_MOTION_ENABLED] ?: false
+            reducedMotionEnabled = preferences[REDUCED_MOTION_ENABLED] ?: false,
+            hasCompletedOnboarding = preferences[HAS_COMPLETED_ONBOARDING] ?: false
         )
     }
 
@@ -118,6 +120,15 @@ class UserPreferencesManager @Inject constructor(
     suspend fun updateQuoteLengthFilter(lengthFilter: String) {
         dataStore.edit { preferences ->
             preferences[QUOTE_LENGTH_FILTER] = lengthFilter
+        }
+    }
+
+    /**
+     * Updates quote collection filter.
+     */
+    suspend fun updateQuoteCollectionFilter(collectionFilter: String) {
+        dataStore.edit { preferences ->
+            preferences[QUOTE_COLLECTION_FILTER] = collectionFilter
         }
     }
 
@@ -203,6 +214,15 @@ class UserPreferencesManager @Inject constructor(
     }
 
     /**
+     * Updates onboarding completion flag.
+     */
+    suspend fun updateHasCompletedOnboarding(completed: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[HAS_COMPLETED_ONBOARDING] = completed
+        }
+    }
+
+    /**
      * Clears all preferences.
      */
     suspend fun clearPreferences() {
@@ -220,6 +240,7 @@ class UserPreferencesManager @Inject constructor(
         private val QUOTE_SEARCH_QUERY = stringPreferencesKey("quote_search_query")
         private val QUOTE_AUTHOR_FILTER = stringPreferencesKey("quote_author_filter")
         private val QUOTE_LENGTH_FILTER = stringPreferencesKey("quote_length_filter")
+        private val QUOTE_COLLECTION_FILTER = stringPreferencesKey("quote_collection_filter")
         private val LAST_QUOTE_DATE = longPreferencesKey("last_quote_date")
         private val LAST_DAILY_QUOTE_ID = longPreferencesKey("last_daily_quote_id")
         private val THEME_MODE = stringPreferencesKey("theme_mode")
@@ -229,5 +250,6 @@ class UserPreferencesManager @Inject constructor(
         private val LARGE_RUNES_ENABLED = booleanPreferencesKey("large_runes_enabled")
         private val HIGH_CONTRAST_ENABLED = booleanPreferencesKey("high_contrast_enabled")
         private val REDUCED_MOTION_ENABLED = booleanPreferencesKey("reduced_motion_enabled")
+        private val HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
     }
 }
