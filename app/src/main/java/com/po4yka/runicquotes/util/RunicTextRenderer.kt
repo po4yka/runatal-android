@@ -6,7 +6,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Rect
 import android.graphics.Typeface
 import android.util.Log
 import android.util.TypedValue
@@ -14,6 +13,8 @@ import androidx.core.content.res.ResourcesCompat
 import com.po4yka.runicquotes.R
 import com.po4yka.runicquotes.domain.transliteration.CirthGlyphCompat
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.ceil
 
 /**
  * Configuration for rendering runic text to bitmaps.
@@ -39,6 +40,7 @@ object RunicTextRenderer {
     private const val TAG = "RunicTextRenderer"
     private const val PADDING_FACTOR = 0.2f
     private const val MIN_BITMAP_SIZE = 1
+    private val typefaceCache = ConcurrentHashMap<Int, Typeface>()
 
     /**
      * Renders runic text to a bitmap using the specified configuration.
@@ -53,16 +55,7 @@ object RunicTextRenderer {
     ): Bitmap {
         val normalizedText = CirthGlyphCompat.normalizeLegacyPuaGlyphs(config.text)
 
-        // Load the custom font
-        val typeface = try {
-            ResourcesCompat.getFont(context, config.fontResource)
-        } catch (e: IOException) {
-            Log.e(TAG, "Failed to load font resource ${config.fontResource}", e)
-            Typeface.DEFAULT
-        } catch (e: Resources.NotFoundException) {
-            Log.e(TAG, "Font resource ${config.fontResource} not found", e)
-            Typeface.DEFAULT
-        }
+        val typeface = loadTypeface(context, config.fontResource)
 
         // Convert SP to pixels using TypedValue (scaledDensity is deprecated)
         val textSizePx = TypedValue.applyDimension(
@@ -80,25 +73,22 @@ object RunicTextRenderer {
             textAlign = Paint.Align.CENTER
         }
 
-        // Measure the text
-        val bounds = Rect()
-        paint.getTextBounds(normalizedText, 0, normalizedText.length, bounds)
-
-        // Calculate bitmap dimensions
         val padding = (textSizePx * PADDING_FACTOR).toInt()
-        var width = bounds.width() + padding * 2
-        var height = bounds.height() + padding * 2
+        var measuredTextWidth = paint.measureText(normalizedText)
 
         // Apply max width if specified
-        if (config.maxWidth > 0 && width > config.maxWidth) {
-            // Need to wrap text or scale down
-            // For simplicity, we'll scale down the font
-            val scale = config.maxWidth.toFloat() / width
-            paint.textSize = textSizePx * scale
-            paint.getTextBounds(normalizedText, 0, normalizedText.length, bounds)
-            width = bounds.width() + padding * 2
-            height = bounds.height() + padding * 2
+        if (config.maxWidth > 0) {
+            val drawableWidth = (config.maxWidth - (padding * 2)).coerceAtLeast(MIN_BITMAP_SIZE)
+            if (measuredTextWidth > drawableWidth) {
+                val scale = drawableWidth / measuredTextWidth
+                paint.textSize = textSizePx * scale
+                measuredTextWidth = paint.measureText(normalizedText)
+            }
         }
+
+        val fontMetrics = paint.fontMetricsInt
+        var width = ceil(measuredTextWidth.toDouble()).toInt() + padding * 2
+        var height = (fontMetrics.descent - fontMetrics.ascent) + padding * 2
 
         // Ensure minimum size
         width = width.coerceAtLeast(MIN_BITMAP_SIZE)
@@ -119,6 +109,23 @@ object RunicTextRenderer {
         canvas.drawText(normalizedText, x, y, paint)
 
         return bitmap
+    }
+
+    private fun loadTypeface(context: Context, fontResource: Int): Typeface {
+        typefaceCache[fontResource]?.let { return it }
+
+        val loaded = try {
+            ResourcesCompat.getFont(context, fontResource)
+        } catch (e: IOException) {
+            Log.e(TAG, "Failed to load font resource $fontResource", e)
+            null
+        } catch (e: Resources.NotFoundException) {
+            Log.e(TAG, "Font resource $fontResource not found", e)
+            null
+        } ?: Typeface.DEFAULT
+
+        typefaceCache[fontResource] = loaded
+        return loaded
     }
 
     /**

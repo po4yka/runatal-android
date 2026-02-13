@@ -64,7 +64,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
-import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
@@ -345,7 +344,7 @@ private fun QuoteContent(
                         Spacer(modifier = Modifier.height(18.dp))
 
                         HeroRunicText(
-                            text = state.quote.getRunicText(state.selectedScript),
+                            text = state.runicText,
                             selectedScript = state.selectedScript,
                             selectedFont = state.selectedFont,
                             reducedMotion = reducedMotion

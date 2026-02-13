@@ -33,6 +33,7 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.po4yka.runicquotes.MainActivity
 import com.po4yka.runicquotes.domain.model.getRunicText
+import com.po4yka.runicquotes.domain.transliteration.CirthGlyphCompat
 import com.po4yka.runicquotes.util.BitmapCache
 import com.po4yka.runicquotes.util.RenderConfig
 import com.po4yka.runicquotes.util.RunicTextRenderer
@@ -115,6 +116,7 @@ class RunicQuoteWidget : GlanceAppWidget() {
 
                 if (quote != null) {
                     val runicText = quote.getRunicText(preferences.selectedScript)
+                    val normalizedRunicText = CirthGlyphCompat.normalizeLegacyPuaGlyphs(runicText)
                     val textSize = runicTextSize(widgetWidth, widgetHeight)
                     val maxWidth = (
                         widgetWidth *
@@ -124,7 +126,7 @@ class RunicQuoteWidget : GlanceAppWidget() {
 
                     val fontResource = RunicTextRenderer.getFontResource(preferences.selectedFont)
                     val cacheKey = BitmapCache.generateKey(
-                        text = runicText,
+                        text = normalizedRunicText,
                         fontResource = fontResource,
                         textSize = textSize,
                         maxWidth = maxWidth
@@ -133,7 +135,7 @@ class RunicQuoteWidget : GlanceAppWidget() {
                         val bitmap = RunicTextRenderer.renderTextToBitmap(
                             context = context,
                             config = RenderConfig(
-                                text = runicText,
+                                text = normalizedRunicText,
                                 fontResource = fontResource,
                                 textSizeSp = textSize,
                                 textColor = palette.runicText,
@@ -152,7 +154,7 @@ class RunicQuoteWidget : GlanceAppWidget() {
                     }
 
                     val newState = WidgetState(
-                        runicText = runicText,
+                        runicText = normalizedRunicText,
                         runicBitmap = runicBitmap,
                         latinText = quote.textLatin,
                         author = quote.author,

@@ -702,6 +702,7 @@ private fun QuoteListItem(
     val shapes = RunicExpressiveTheme.shapes
     val elevations = RunicExpressiveTheme.elevations
     val typeRoles = RunicTypeRoles.current
+    val runicText = remember(quote, selectedScript) { quote.getRunicText(selectedScript) }
     val elevation = if (reducedMotion) elevations.card else elevations.raisedCard
     val yOffset = 0.dp
 
@@ -725,7 +726,7 @@ private fun QuoteListItem(
                 .padding(16.dp)
         ) {
             RunicText(
-                text = quote.getRunicText(selectedScript),
+                text = runicText,
                 font = selectedFont,
                 script = selectedScript,
                 style = typeRoles.runicCard,

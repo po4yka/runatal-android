@@ -35,6 +35,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -43,7 +44,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -90,15 +94,30 @@ fun OnboardingScreen(
     val selectedStory = remember(stories, selectedScript) {
         stories.firstOrNull { it.script == selectedScript } ?: stories.first()
     }
+    var currentStepIndex by rememberSaveable { mutableIntStateOf(OnboardingStep.WELCOME.ordinal) }
+    val onboardingStep = OnboardingStep.entries[currentStepIndex]
 
     Scaffold(
         modifier = Modifier.testTag("onboarding_screen"),
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             OnboardingActionsPanel(
+                currentStep = onboardingStep,
                 onSkip = {
                     haptics.lightToggle()
                     onComplete()
+                },
+                onBack = {
+                    if (currentStepIndex > 0) {
+                        haptics.lightToggle()
+                        currentStepIndex -= 1
+                    }
+                },
+                onNext = {
+                    if (currentStepIndex < OnboardingStep.entries.lastIndex) {
+                        haptics.mediumAction()
+                        currentStepIndex += 1
+                    }
                 },
                 onContinue = {
                     haptics.successPattern()
@@ -129,60 +148,13 @@ fun OnboardingScreen(
                     .padding(horizontal = 16.dp, vertical = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Text(
-                    text = "Choose your runic script style",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onBackground
+                OnboardingProgressHeader(
+                    currentStep = onboardingStep,
+                    totalSteps = OnboardingStep.entries.size
                 )
-                Text(
-                    text = "Swipe through cards to pick the default style for your quotes.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Text(
-                    text = "Swipe to compare scripts",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-
-                LazyRow(
-                    state = listState,
-                    contentPadding = PaddingValues(horizontal = 0.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(stories, key = { it.script.name }) { story ->
-                        ScriptStoryCard(
-                            story = story,
-                            selected = selectedScript == story.script,
-                            onSelect = {
-                                haptics.mediumAction()
-                                onChooseStyle(story.script, story.suggestedThemePack)
-                            }
-                        )
-                    }
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    CarouselIndicator(
-                        itemCount = stories.size,
-                        selectedIndex = visibleStoryIndex
-                    )
-                    Text(
-                        text = "${visibleStoryIndex + 1} of ${stories.size}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
 
                 Crossfade(
-                    targetState = selectedStory,
+                    targetState = onboardingStep,
                     animationSpec = tween(
                         durationMillis = motion.duration(
                             reducedMotion = reducedMotion,
@@ -190,38 +162,86 @@ fun OnboardingScreen(
                         ),
                         easing = motion.emphasizedEasing
                     ),
-                    label = "selectedStylePanel"
-                ) { story ->
-                    Surface(
-                        shape = shapes.contentCard,
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        tonalElevation = 1.dp,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 2.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = "Current selection",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "${selectedScriptLabel(story.script)} + ${themeLabel(story.suggestedThemePack)}",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = story.story,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                    label = "onboardingStepContent"
+                ) { step ->
+                    when (step) {
+                        OnboardingStep.WELCOME -> WelcomeStepCard()
+                        OnboardingStep.SCRIPT -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                Text(
+                                    text = "Swipe to compare scripts",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                                LazyRow(
+                                    state = listState,
+                                    contentPadding = PaddingValues(horizontal = 0.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    items(stories, key = { it.script.name }) { story ->
+                                        ScriptStoryCard(
+                                            story = story,
+                                            selected = selectedScript == story.script,
+                                            onSelect = {
+                                                haptics.mediumAction()
+                                                onChooseStyle(story.script, story.suggestedThemePack)
+                                            }
+                                        )
+                                    }
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CarouselIndicator(
+                                        itemCount = stories.size,
+                                        selectedIndex = visibleStoryIndex
+                                    )
+                                    Text(
+                                        text = "${visibleStoryIndex + 1} of ${stories.size}",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                Surface(
+                                    shape = shapes.contentCard,
+                                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    tonalElevation = 1.dp,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = "Current selection",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = "${selectedScriptLabel(selectedStory.script)} + ${themeLabel(selectedStory.suggestedThemePack)}",
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            text = selectedStory.story,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
                         }
+
+                        OnboardingStep.FINISH -> FinishStepCard(
+                            selectedStory = selectedStory
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.height(4.dp))
@@ -230,12 +250,177 @@ fun OnboardingScreen(
     }
 }
 
+private enum class OnboardingStep {
+    WELCOME,
+    SCRIPT,
+    FINISH
+}
+
+@Composable
+private fun OnboardingProgressHeader(
+    currentStep: OnboardingStep,
+    totalSteps: Int
+) {
+    val stepIndex = currentStep.ordinal + 1
+    val title = when (currentStep) {
+        OnboardingStep.WELCOME -> "Welcome to Runic Quotes"
+        OnboardingStep.SCRIPT -> "Choose your runic script"
+        OnboardingStep.FINISH -> "Review and start"
+    }
+    val subtitle = when (currentStep) {
+        OnboardingStep.WELCOME -> "Set up your quote experience in 3 quick steps."
+        OnboardingStep.SCRIPT -> "Pick the script style that will shape your default quotes."
+        OnboardingStep.FINISH -> "Confirm your defaults and jump into the app."
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Step $stepIndex of $totalSteps",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "${(stepIndex * 100) / totalSteps}%",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        LinearProgressIndicator(
+            progress = { stepIndex / totalSteps.toFloat() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(MaterialTheme.shapes.extraLarge),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun WelcomeStepCard() {
+    val shapes = RunicExpressiveTheme.shapes
+    Surface(
+        shape = shapes.contentCard,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        tonalElevation = 1.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Before you start",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            OnboardingBullet(text = "Choose the runic script for your default quotes.")
+            OnboardingBullet(text = "Apply a matching palette automatically.")
+            OnboardingBullet(text = "You can change everything later in Settings.")
+        }
+    }
+}
+
+@Composable
+private fun OnboardingBullet(text: String) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            text = "•",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
+private fun FinishStepCard(selectedStory: ScriptStory) {
+    val shapes = RunicExpressiveTheme.shapes
+    val typeRoles = RunicTypeRoles.current
+    Surface(
+        shape = shapes.contentCard,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        tonalElevation = 1.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Default style",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "${selectedScriptLabel(selectedStory.script)} + ${themeLabel(selectedStory.suggestedThemePack)}",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            Surface(
+                shape = shapes.collectionCard,
+                color = MaterialTheme.colorScheme.surfaceContainer
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    RunicText(
+                        text = selectedStory.sampleRunes,
+                        script = selectedStory.script,
+                        style = typeRoles.runicCard,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = selectedStory.sampleLatin,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Text(
+                text = selectedStory.story,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
 @Composable
 private fun OnboardingActionsPanel(
+    currentStep: OnboardingStep,
     onSkip: () -> Unit,
+    onBack: () -> Unit,
+    onNext: () -> Unit,
     onContinue: () -> Unit
 ) {
     val shapes = RunicExpressiveTheme.shapes
+    val isFirstStep = currentStep == OnboardingStep.WELCOME
+    val isLastStep = currentStep == OnboardingStep.FINISH
 
     Surface(
         shape = shapes.contentCard,
@@ -251,7 +436,11 @@ private fun OnboardingActionsPanel(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
             Text(
-                text = "You can change this style anytime in Settings.",
+                text = if (isLastStep) {
+                    "Looks good. Start using the app with this setup."
+                } else {
+                    "You can change any onboarding choice later in Settings."
+                },
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -264,15 +453,15 @@ private fun OnboardingActionsPanel(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TextButton(
-                    onClick = onSkip,
+                    onClick = if (isFirstStep) onSkip else onBack,
                     modifier = Modifier
                         .weight(1f)
-                        .testTag("onboarding_skip_button")
+                        .testTag(if (isFirstStep) "onboarding_skip_button" else "onboarding_back_button")
                 ) {
-                    Text("Skip for now")
+                    Text(if (isFirstStep) "Skip" else "Back")
                 }
                 Button(
-                    onClick = onContinue,
+                    onClick = if (isLastStep) onContinue else onNext,
                     shape = shapes.contentCard,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -281,11 +470,14 @@ private fun OnboardingActionsPanel(
                     modifier = Modifier
                         .weight(1.3f)
                         .height(52.dp)
-                        .testTag("onboarding_finish_button")
+                        .testTag(if (isLastStep) "onboarding_finish_button" else "onboarding_next_button")
                 ) {
                     Text(
-                        text = "Continue",
-                        style = MaterialTheme.typography.labelLarge
+                        text = when (currentStep) {
+                            OnboardingStep.WELCOME -> "Start setup"
+                            OnboardingStep.SCRIPT -> "Next"
+                            OnboardingStep.FINISH -> "Start using app"
+                        }
                     )
                 }
             }

@@ -8,7 +8,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
-import android.graphics.Rect
 import android.graphics.Shader
 import android.graphics.Typeface
 import androidx.core.content.ContextCompat
@@ -17,7 +16,6 @@ import com.po4yka.runicquotes.domain.transliteration.CirthGlyphCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.max
 
 /**
  * Generates images from quotes for sharing.
@@ -193,25 +191,40 @@ class QuoteImageGenerator @Inject constructor(
      * Wraps text to fit within a given width.
      */
     private fun wrapText(text: String, paint: Paint, maxWidth: Int): List<String> {
+        if (text.isEmpty()) {
+            return emptyList()
+        }
+
         val words = text.split(" ")
         val lines = mutableListOf<String>()
-        var currentLine = ""
+        val lineBuilder = StringBuilder(text.length)
+        val spaceWidth = paint.measureText(" ")
+        var currentLineWidth = 0f
 
         words.forEach { word ->
-            val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
-            val bounds = Rect()
-            paint.getTextBounds(testLine, 0, testLine.length, bounds)
-
-            if (bounds.width() > maxWidth && currentLine.isNotEmpty()) {
-                lines.add(currentLine)
-                currentLine = word
+            val wordWidth = paint.measureText(word)
+            val widthWithWord = if (lineBuilder.isEmpty()) {
+                wordWidth
             } else {
-                currentLine = testLine
+                currentLineWidth + spaceWidth + wordWidth
+            }
+
+            if (lineBuilder.isNotEmpty() && widthWithWord > maxWidth) {
+                lines.add(lineBuilder.toString())
+                lineBuilder.clear()
+                lineBuilder.append(word)
+                currentLineWidth = wordWidth
+            } else {
+                if (lineBuilder.isNotEmpty()) {
+                    lineBuilder.append(' ')
+                }
+                lineBuilder.append(word)
+                currentLineWidth = widthWithWord
             }
         }
 
-        if (currentLine.isNotEmpty()) {
-            lines.add(currentLine)
+        if (lineBuilder.isNotEmpty()) {
+            lines.add(lineBuilder.toString())
         }
 
         return lines
