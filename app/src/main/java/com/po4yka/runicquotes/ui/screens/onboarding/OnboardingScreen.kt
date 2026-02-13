@@ -74,7 +74,7 @@ fun OnboardingScreen(
     onComplete: () -> Unit
 ) {
     val haptics = rememberHapticFeedback()
-    val stories = rememberScriptStories()
+    val stories = SCRIPT_STORIES
     val shapes = RunicExpressiveTheme.shapes
     val motion = RunicExpressiveTheme.motion
     val reducedMotion = LocalReduceMotion.current
@@ -726,37 +726,35 @@ private data class ScriptStory(
     val suggestedThemePack: String
 )
 
-private fun rememberScriptStories(): List<ScriptStory> {
-    return listOf(
-        ScriptStory(
-            script = RunicScript.ELDER_FUTHARK,
-            title = "Elder Futhark",
-            era = "Early Germanic era (ca. 150-800 AD)",
-            sampleRunes = "ᚨᚾᛞ ᛏᚺᛖ ᚱᚢᚾᛖᛋ",
-            sampleLatin = "and the runes",
-            story = "Crisp, archaeological letterforms that feel traditional and grounded.",
-            suggestedThemePack = "stone"
-        ),
-        ScriptStory(
-            script = RunicScript.YOUNGER_FUTHARK,
-            title = "Younger Futhark",
-            era = "Viking Age (ca. 800-1100 AD)",
-            sampleRunes = "ᚢᛁᚴᛁᚾᚴ ᛊᛏᛁᛚ",
-            sampleLatin = "Viking style",
-            story = "Compact and direct forms that read cleanly in short, punchy quotes.",
-            suggestedThemePack = "night_ink"
-        ),
-        ScriptStory(
-            script = RunicScript.CIRTH,
-            title = "Cirth",
-            era = "Tolkien-inspired runes (Middle-earth)",
-            sampleRunes = "\uE088\uE0B4\uE0CB\uE09C \uE0B8\uE0CA\uE0A8\uE0A8",
-            sampleLatin = "Not all who wander",
-            story = "Literary and atmospheric, built for a fantasy-forward reading style.",
-            suggestedThemePack = "parchment"
-        )
+private val SCRIPT_STORIES = listOf(
+    ScriptStory(
+        script = RunicScript.ELDER_FUTHARK,
+        title = "Elder Futhark",
+        era = "Early Germanic era (ca. 150-800 AD)",
+        sampleRunes = "ᚨᚾᛞ ᛏᚺᛖ ᚱᚢᚾᛖᛋ",
+        sampleLatin = "and the runes",
+        story = "Crisp, archaeological letterforms that feel traditional and grounded.",
+        suggestedThemePack = "stone"
+    ),
+    ScriptStory(
+        script = RunicScript.YOUNGER_FUTHARK,
+        title = "Younger Futhark",
+        era = "Viking Age (ca. 800-1100 AD)",
+        sampleRunes = "ᚢᛁᚴᛁᚾᚴ ᛊᛏᛁᛚ",
+        sampleLatin = "Viking style",
+        story = "Compact and direct forms that read cleanly in short, punchy quotes.",
+        suggestedThemePack = "night_ink"
+    ),
+    ScriptStory(
+        script = RunicScript.CIRTH,
+        title = "Cirth",
+        era = "Tolkien-inspired runes (Middle-earth)",
+        sampleRunes = "\uE088\uE0B4\uE0CB\uE09C \uE0B8\uE0CA\uE0A8\uE0A8",
+        sampleLatin = "Not all who wander",
+        story = "Literary and atmospheric, built for a fantasy-forward reading style.",
+        suggestedThemePack = "parchment"
     )
-}
+)
 
 private fun selectedScriptLabel(script: RunicScript): String {
     return when (script) {

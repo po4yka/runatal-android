@@ -28,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -39,6 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.R
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.ui.components.SettingItem
@@ -59,7 +59,7 @@ fun SettingsScreen(
     onNavigateBack: (() -> Unit)? = null,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
-    val preferences by viewModel.userPreferences.collectAsState()
+    val preferences by viewModel.userPreferences.collectAsStateWithLifecycle()
     val haptics = rememberHapticFeedback()
     val reducedMotion = LocalReduceMotion.current
     val motion = RunicExpressiveTheme.motion

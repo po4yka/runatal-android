@@ -6,11 +6,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.ui.navigation.NavGraph
 import com.po4yka.runicquotes.ui.navigation.QuoteRoute
 import com.po4yka.runicquotes.ui.screens.settings.SettingsViewModel
@@ -39,7 +39,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun RunicQuotesApp() {
     val settingsViewModel: SettingsViewModel = hiltViewModel()
-    val preferences by settingsViewModel.userPreferences.collectAsState()
+    val preferences by settingsViewModel.userPreferences.collectAsStateWithLifecycle()
     val systemInDarkTheme = isSystemInDarkTheme()
 
     // Determine dark theme based on preferences

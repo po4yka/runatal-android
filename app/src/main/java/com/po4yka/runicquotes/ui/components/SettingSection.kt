@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun SettingSection(
     title: String,
-    subtitle: String? = null,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
     content: @Composable () -> Unit
 ) {
     val shapes = RunicExpressiveTheme.shapes

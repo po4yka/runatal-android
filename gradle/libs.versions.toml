@@ -71,6 +71,7 @@ lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecycle-viewm
 
 # Lifecycle
 lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
+lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 
 # AndroidX Core

@@ -46,7 +46,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -62,6 +61,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.ui.components.RunicText
@@ -80,7 +80,7 @@ fun QuoteScreen(
     onBrowseLibrary: (() -> Unit)? = null,
     viewModel: QuoteViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val reducedMotion = LocalReduceMotion.current
     val haptics = rememberHapticFeedback()
     var showShareDialog by remember { mutableStateOf(false) }
@@ -406,7 +406,35 @@ private fun HeroRunicText(
     val motion = RunicExpressiveTheme.motion
     val shapes = RunicExpressiveTheme.shapes
     val typeRoles = RunicTypeRoles.current
-    val words = text.split(" ")
+    val scriptFontSize = when (selectedScript) {
+        RunicScript.ELDER_FUTHARK -> 34.sp
+        RunicScript.YOUNGER_FUTHARK -> 32.sp
+        RunicScript.CIRTH -> 36.sp
+    }
+
+    if (reducedMotion) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shapes.panel)
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.8f))
+                .padding(vertical = 18.dp, horizontal = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            RunicText(
+                text = text,
+                font = selectedFont,
+                script = selectedScript,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                style = typeRoles.runicHero,
+                fontSize = scriptFontSize
+            )
+        }
+        return
+    }
+
+    val words = remember(text) { text.split(" ") }
 
     Column(
         modifier = Modifier
@@ -427,20 +455,16 @@ private fun HeroRunicText(
                         val alpha = remember(word, char, selectedScript) { Animatable(0f) }
 
                         LaunchedEffect(char, selectedScript) {
-                            if (reducedMotion) {
-                                alpha.snapTo(1f)
-                            } else {
-                                val wordStartDelay = wordIndex * word.length * motion.revealStepMillis
-                                val charDelay = index * motion.revealStepMillis + wordStartDelay
-                                alpha.animateTo(
-                                    targetValue = 1f,
-                                    animationSpec = tween(
-                                        durationMillis = motion.longDurationMillis,
-                                        delayMillis = charDelay.coerceAtMost(motion.maxRevealDelayMillis),
-                                        easing = motion.standardEasing
-                                    )
+                            val wordStartDelay = wordIndex * word.length * motion.revealStepMillis
+                            val charDelay = index * motion.revealStepMillis + wordStartDelay
+                            alpha.animateTo(
+                                targetValue = 1f,
+                                animationSpec = tween(
+                                    durationMillis = motion.longDurationMillis,
+                                    delayMillis = charDelay.coerceAtMost(motion.maxRevealDelayMillis),
+                                    easing = motion.standardEasing
                                 )
-                            }
+                            )
                         }
 
                         RunicText(
@@ -450,11 +474,7 @@ private fun HeroRunicText(
                             modifier = Modifier.alpha(alpha.value),
                             textAlign = TextAlign.Center,
                             style = typeRoles.runicHero,
-                            fontSize = when (selectedScript) {
-                                RunicScript.ELDER_FUTHARK -> 34.sp
-                                RunicScript.YOUNGER_FUTHARK -> 32.sp
-                                RunicScript.CIRTH -> 36.sp
-                            }
+                            fontSize = scriptFontSize
                         )
                     }
                 }
