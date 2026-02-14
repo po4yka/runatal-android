@@ -14,11 +14,11 @@ object CirthGlyphCompat {
         text.forEachIndexed { index, char ->
             val mapped = mapLegacyPuaChar(char)
             if (mapped != char) {
-                if (builder == null) {
-                    builder = StringBuilder(text.length)
-                    builder?.append(text, 0, index)
+                val b = builder ?: StringBuilder(text.length).also {
+                    it.append(text, 0, index)
+                    builder = it
                 }
-                builder?.append(mapped)
+                b.append(mapped)
             } else {
                 builder?.append(char)
             }
