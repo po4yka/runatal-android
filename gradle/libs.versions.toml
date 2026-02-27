@@ -1,6 +1,6 @@
 [versions]
 kotlin = "2.3.10"
-ksp = "2.3.5"
+ksp = "2.3.6"
 agp = "9.0.1"
 compose-bom = "2026.02.00"
 hilt = "2.59.1"
