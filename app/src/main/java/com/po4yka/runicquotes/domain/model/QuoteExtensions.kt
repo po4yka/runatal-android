@@ -12,16 +12,15 @@ import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
  * If pre-computed runic text exists, uses it; otherwise transliterates on the fly.
  *
  * @param script The runic script to get text for
+ * @param transliterationFactory Factory for on-the-fly transliteration when pre-computed text is absent
  * @return The runic text in the specified script
  */
-fun Quote.getRunicText(script: RunicScript): String {
-    // Try to get pre-computed runic text
+fun Quote.getRunicText(script: RunicScript, transliterationFactory: TransliterationFactory): String {
     val precomputedText = when (script) {
         RunicScript.ELDER_FUTHARK -> runicElder
         RunicScript.YOUNGER_FUTHARK -> runicYounger
         RunicScript.CIRTH -> runicCirth
     }
 
-    // If pre-computed text exists, use it; otherwise transliterate on the fly
-    return precomputedText ?: TransliterationFactory.transliterate(textLatin, script)
+    return precomputedText ?: transliterationFactory.transliterate(textLatin, script)
 }

@@ -8,9 +8,7 @@ import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
-import com.po4yka.runicquotes.domain.transliteration.CirthTransliterator
-import com.po4yka.runicquotes.domain.transliteration.ElderFutharkTransliterator
-import com.po4yka.runicquotes.domain.transliteration.YoungerFutharkTransliterator
+import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,9 +27,7 @@ import javax.inject.Inject
 class AddEditQuoteViewModel @Inject constructor(
     private val quoteRepository: QuoteRepository,
     private val userPreferencesManager: UserPreferencesManager,
-    private val elderFutharkTransliterator: ElderFutharkTransliterator,
-    private val youngerFutharkTransliterator: YoungerFutharkTransliterator,
-    private val cirthTransliterator: CirthTransliterator,
+    private val transliterationFactory: TransliterationFactory,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -199,9 +195,9 @@ class AddEditQuoteViewModel @Inject constructor(
         val text = _uiState.value.textLatin
         _uiState.update {
             it.copy(
-                runicElderPreview = elderFutharkTransliterator.transliterate(text),
-                runicYoungerPreview = youngerFutharkTransliterator.transliterate(text),
-                runicCirthPreview = cirthTransliterator.transliterate(text)
+                runicElderPreview = transliterationFactory.transliterate(text, RunicScript.ELDER_FUTHARK),
+                runicYoungerPreview = transliterationFactory.transliterate(text, RunicScript.YOUNGER_FUTHARK),
+                runicCirthPreview = transliterationFactory.transliterate(text, RunicScript.CIRTH)
             )
         }
     }

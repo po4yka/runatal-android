@@ -8,6 +8,7 @@ import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.getRunicText
+import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import com.po4yka.runicquotes.util.QuoteShareManager
 import com.po4yka.runicquotes.util.ShareTemplate
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -30,7 +31,8 @@ import javax.inject.Inject
 class QuoteViewModel @Inject constructor(
     private val quoteRepository: QuoteRepository,
     private val userPreferencesManager: UserPreferencesManager,
-    private val quoteShareManager: QuoteShareManager
+    private val quoteShareManager: QuoteShareManager,
+    private val transliterationFactory: TransliterationFactory
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<QuoteUiState>(QuoteUiState.Loading)
@@ -64,7 +66,7 @@ class QuoteViewModel @Inject constructor(
         try {
             val resolvedPreferences = preferences ?: userPreferencesManager.userPreferencesFlow.first()
 
-            val quote = quoteRepository.quoteOfTheDay(resolvedPreferences.selectedScript)
+            val quote = quoteRepository.quoteOfTheDay()
 
             if (quote != null) {
                 currentQuote = quote
@@ -90,7 +92,7 @@ class QuoteViewModel @Inject constructor(
             try {
                 val preferences = userPreferencesManager.userPreferencesFlow.first()
 
-                val quote = quoteRepository.randomQuote(preferences.selectedScript)
+                val quote = quoteRepository.randomQuote()
 
                 if (quote != null) {
                     currentQuote = quote
@@ -186,7 +188,7 @@ class QuoteViewModel @Inject constructor(
     }
 
     private fun emitSuccessState(quote: Quote, preferences: UserPreferences) {
-        val runicText = quote.getRunicText(preferences.selectedScript)
+        val runicText = quote.getRunicText(preferences.selectedScript, transliterationFactory)
         _uiState.update {
             QuoteUiState.Success(
                 quote = quote,

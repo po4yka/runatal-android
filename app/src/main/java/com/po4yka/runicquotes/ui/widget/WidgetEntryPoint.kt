@@ -2,6 +2,7 @@ package com.po4yka.runicquotes.ui.widget
 
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
+import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
@@ -15,4 +16,5 @@ import dagger.hilt.components.SingletonComponent
 interface WidgetEntryPoint {
     fun quoteRepository(): QuoteRepository
     fun userPreferencesManager(): UserPreferencesManager
+    fun transliterationFactory(): TransliterationFactory
 }

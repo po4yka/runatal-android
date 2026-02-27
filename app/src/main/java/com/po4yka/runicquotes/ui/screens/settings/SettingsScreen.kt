@@ -46,7 +46,7 @@ import com.po4yka.runicquotes.ui.components.SettingSection
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.widget.WidgetDisplayMode
-import com.po4yka.runicquotes.ui.widget.WidgetSyncManager
+import com.po4yka.runicquotes.RunicQuotesApplication
 import com.po4yka.runicquotes.ui.widget.WidgetUpdateMode
 import com.po4yka.runicquotes.util.rememberHapticFeedback
 
@@ -279,7 +279,7 @@ fun SettingsScreen(
                                 onClick = {
                                     haptics.lightToggle()
                                     viewModel.updateSelectedScript(RunicScript.ELDER_FUTHARK)
-                                    WidgetSyncManager.refreshAllAsync(context)
+                                    RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
                                 }
                             )
                         }
@@ -291,7 +291,7 @@ fun SettingsScreen(
                                 onClick = {
                                     haptics.lightToggle()
                                     viewModel.updateSelectedScript(RunicScript.YOUNGER_FUTHARK)
-                                    WidgetSyncManager.refreshAllAsync(context)
+                                    RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
                                 }
                             )
                         }
@@ -303,7 +303,7 @@ fun SettingsScreen(
                                 onClick = {
                                     haptics.lightToggle()
                                     viewModel.updateSelectedScript(RunicScript.CIRTH)
-                                    WidgetSyncManager.refreshAllAsync(context)
+                                    RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
                                 }
                             )
                         }
@@ -323,7 +323,7 @@ fun SettingsScreen(
                                 onClick = {
                                     haptics.lightToggle()
                                     viewModel.updateSelectedFont("noto")
-                                    WidgetSyncManager.refreshAllAsync(context)
+                                    RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
                                 }
                             )
                         }
@@ -335,7 +335,7 @@ fun SettingsScreen(
                                 onClick = {
                                     haptics.lightToggle()
                                     viewModel.updateSelectedFont("babelstone")
-                                    WidgetSyncManager.refreshAllAsync(context)
+                                    RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
                                 }
                             )
                         }
@@ -389,7 +389,7 @@ fun SettingsScreen(
                                     onClick = {
                                         haptics.lightToggle()
                                         viewModel.updateWidgetDisplayMode(mode)
-                                        WidgetSyncManager.refreshAllAsync(context)
+                                        RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
                                     }
                                 )
                             }
@@ -410,7 +410,7 @@ fun SettingsScreen(
                                     onClick = {
                                         haptics.lightToggle()
                                         viewModel.updateWidgetUpdateMode(updateMode)
-                                        WidgetSyncManager.refreshAndRescheduleAsync(context)
+                                        RunicQuotesApplication.widgetSyncManager(context).refreshAndRescheduleAsync(context)
                                     }
                                 )
                             }
@@ -437,7 +437,7 @@ fun SettingsScreen(
                                 onClick = {
                                     haptics.lightToggle()
                                     viewModel.updateThemeMode("light")
-                                    WidgetSyncManager.refreshAllAsync(context)
+                                    RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
                                 }
                             )
                         }
@@ -449,7 +449,7 @@ fun SettingsScreen(
                                 onClick = {
                                     haptics.lightToggle()
                                     viewModel.updateThemeMode("dark")
-                                    WidgetSyncManager.refreshAllAsync(context)
+                                    RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
                                 }
                             )
                         }
@@ -461,7 +461,7 @@ fun SettingsScreen(
                                 onClick = {
                                     haptics.lightToggle()
                                     viewModel.updateThemeMode("system")
-                                    WidgetSyncManager.refreshAllAsync(context)
+                                    RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
                                 }
                             )
                         }
@@ -484,7 +484,7 @@ fun SettingsScreen(
                                     {
                                         haptics.lightToggle()
                                         viewModel.updateDynamicColorEnabled(!preferences.dynamicColorEnabled)
-                                        WidgetSyncManager.refreshAllAsync(context)
+                                        RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
                                     }
                                 } else {
                                     null
@@ -495,7 +495,7 @@ fun SettingsScreen(
                                         onCheckedChange = {
                                             haptics.lightToggle()
                                             viewModel.updateDynamicColorEnabled(it)
-                                            WidgetSyncManager.refreshAllAsync(context)
+                                            RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
                                         },
                                         enabled = dynamicColorSupported
                                     )
@@ -517,7 +517,7 @@ fun SettingsScreen(
                                 onClick = {
                                     haptics.lightToggle()
                                     viewModel.updateThemePack("stone")
-                                    WidgetSyncManager.refreshAllAsync(context)
+                                    RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
                                 }
                             )
                         }
@@ -529,7 +529,7 @@ fun SettingsScreen(
                                 onClick = {
                                     haptics.lightToggle()
                                     viewModel.updateThemePack("parchment")
-                                    WidgetSyncManager.refreshAllAsync(context)
+                                    RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
                                 }
                             )
                         }
@@ -541,7 +541,7 @@ fun SettingsScreen(
                                 onClick = {
                                     haptics.lightToggle()
                                     viewModel.updateThemePack("night_ink")
-                                    WidgetSyncManager.refreshAllAsync(context)
+                                    RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
                                 }
                             )
                         }
@@ -585,7 +585,7 @@ fun SettingsScreen(
                                 onClick = {
                                     haptics.lightToggle()
                                     viewModel.updateHighContrastEnabled(!preferences.highContrastEnabled)
-                                    WidgetSyncManager.refreshAllAsync(context)
+                                    RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
                                 },
                                 trailing = {
                                     Switch(
@@ -593,7 +593,7 @@ fun SettingsScreen(
                                         onCheckedChange = {
                                             haptics.lightToggle()
                                             viewModel.updateHighContrastEnabled(it)
-                                            WidgetSyncManager.refreshAllAsync(context)
+                                            RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
                                         }
                                     )
                                 }

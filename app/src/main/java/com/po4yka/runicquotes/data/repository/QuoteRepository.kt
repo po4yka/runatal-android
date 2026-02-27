@@ -1,7 +1,6 @@
 package com.po4yka.runicquotes.data.repository
 
 import com.po4yka.runicquotes.domain.model.Quote
-import com.po4yka.runicquotes.domain.model.RunicScript
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -17,15 +16,15 @@ interface QuoteRepository {
     suspend fun seedIfNeeded()
 
     /**
-     * Gets the quote of the day for the specified script.
+     * Gets the quote of the day.
      * This returns a consistent quote for the current day.
      */
-    suspend fun quoteOfTheDay(script: RunicScript): Quote?
+    suspend fun quoteOfTheDay(): Quote?
 
     /**
-     * Gets a random quote for the specified script.
+     * Gets a random quote.
      */
-    suspend fun randomQuote(script: RunicScript): Quote?
+    suspend fun randomQuote(): Quote?
 
     /**
      * Gets all quotes as a Flow for reactive updates.

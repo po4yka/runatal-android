@@ -34,6 +34,7 @@ import androidx.glance.unit.ColorProvider
 import com.po4yka.runicquotes.MainActivity
 import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.domain.transliteration.CirthGlyphCompat
+import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import com.po4yka.runicquotes.util.BitmapCache
 import com.po4yka.runicquotes.util.RenderConfig
 import com.po4yka.runicquotes.util.RunicTextRenderer
@@ -70,6 +71,7 @@ class RunicQuoteWidget : GlanceAppWidget() {
         )
         val quoteRepository = entryPoint.quoteRepository()
         val preferencesManager = entryPoint.userPreferencesManager()
+        val transliterationFactory = entryPoint.transliterationFactory()
 
         val widgetKey = id.toString()
         val widgetSize = GlanceAppWidgetManager(context)
@@ -109,13 +111,13 @@ class RunicQuoteWidget : GlanceAppWidget() {
                     displayMode == WidgetDisplayMode.DAILY_RANDOM_TAP &&
                     randomRequested
                 ) {
-                    quoteRepository.randomQuote(preferences.selectedScript)
+                    quoteRepository.randomQuote()
                 } else {
-                    quoteRepository.quoteOfTheDay(preferences.selectedScript)
+                    quoteRepository.quoteOfTheDay()
                 }
 
                 if (quote != null) {
-                    val runicText = quote.getRunicText(preferences.selectedScript)
+                    val runicText = quote.getRunicText(preferences.selectedScript, transliterationFactory)
                     val normalizedRunicText = CirthGlyphCompat.normalizeLegacyPuaGlyphs(runicText)
                     val textSize = runicTextSize(widgetWidth, widgetHeight)
                     val maxWidth = (

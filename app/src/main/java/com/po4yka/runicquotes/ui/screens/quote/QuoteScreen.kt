@@ -58,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -67,6 +68,7 @@ import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
+import com.po4yka.runicquotes.ui.theme.RunicQuotesTheme
 import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
 import com.po4yka.runicquotes.util.ShareTemplate
 import com.po4yka.runicquotes.util.rememberHapticFeedback
@@ -105,19 +107,25 @@ fun QuoteScreen(
             }
         }
     ) { paddingValues ->
+        val colorScheme = MaterialTheme.colorScheme
+        val backgroundGradient = remember(
+            colorScheme.background,
+            colorScheme.secondaryContainer,
+            colorScheme.tertiaryContainer
+        ) {
+            Brush.verticalGradient(
+                listOf(
+                    colorScheme.background,
+                    colorScheme.secondaryContainer.copy(alpha = 0.22f),
+                    colorScheme.tertiaryContainer.copy(alpha = 0.14f),
+                    colorScheme.background
+                )
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.22f),
-                            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.14f),
-                            MaterialTheme.colorScheme.background
-                        )
-                    )
-                )
+                .background(brush = backgroundGradient)
                 .padding(paddingValues)
         ) {
             when (val state = uiState) {
@@ -406,6 +414,10 @@ private fun HeroRunicText(
     val motion = RunicExpressiveTheme.motion
     val shapes = RunicExpressiveTheme.shapes
     val typeRoles = RunicTypeRoles.current
+    val colorScheme = MaterialTheme.colorScheme
+    val panelBackground = remember(colorScheme.surfaceContainerHighest) {
+        colorScheme.surfaceContainerHighest.copy(alpha = 0.8f)
+    }
     val scriptFontSize = when (selectedScript) {
         RunicScript.ELDER_FUTHARK -> 34.sp
         RunicScript.YOUNGER_FUTHARK -> 32.sp
@@ -417,7 +429,7 @@ private fun HeroRunicText(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(shapes.panel)
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.8f))
+                .background(panelBackground)
                 .padding(vertical = 18.dp, horizontal = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -440,7 +452,7 @@ private fun HeroRunicText(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shapes.panel)
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.8f))
+            .background(panelBackground)
             .padding(vertical = 18.dp, horizontal = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -643,6 +655,10 @@ private fun SharePreviewCard(
 ) {
     val shapes = RunicExpressiveTheme.shapes
     val typeRoles = RunicTypeRoles.current
+    val colorScheme = MaterialTheme.colorScheme
+    val highContrastAuthorColor = remember(colorScheme.inverseOnSurface) {
+        colorScheme.inverseOnSurface.copy(alpha = 0.75f)
+    }
     val (backgroundBrush, textColor, authorColor) = when (template) {
         ShareTemplate.MINIMAL -> Triple(
             Brush.verticalGradient(
@@ -674,7 +690,7 @@ private fun SharePreviewCard(
                 )
             ),
             MaterialTheme.colorScheme.inverseOnSurface,
-            MaterialTheme.colorScheme.inverseOnSurface.copy(alpha = 0.75f)
+            highContrastAuthorColor
         )
     }
 
@@ -711,5 +727,30 @@ private fun SharePreviewCard(
                 overflow = TextOverflow.Ellipsis
             )
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun QuoteScreenErrorPreview() {
+    RunicQuotesTheme {
+        ErrorContent(
+            message = "Network error occurred",
+            onRetry = {},
+            onRandom = {},
+            onBrowseLibrary = null
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun QuoteScreenEmptyPreview() {
+    RunicQuotesTheme {
+        EmptyContent(
+            onRetry = {},
+            onRandom = {},
+            onBrowseLibrary = null
+        )
     }
 }

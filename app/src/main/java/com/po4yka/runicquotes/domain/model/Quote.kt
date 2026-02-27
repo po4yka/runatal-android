@@ -14,5 +14,5 @@ data class Quote(
     val runicCirth: String?,
     val isUserCreated: Boolean = false,
     val isFavorite: Boolean = false,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = 0L
 )

@@ -162,9 +162,11 @@ comments:
   CommentOverPrivateFunction:
     active: false
   UndocumentedPublicClass:
-    active: false
+    active: true
+    excludes: ['**/test/**', '**/androidTest/**', '**/ui/**/*Screen.kt']
   UndocumentedPublicFunction:
-    active: false
+    active: true
+    excludes: ['**/test/**', '**/androidTest/**', '**/ui/**/*Screen.kt']
 
 exceptions:
   active: true

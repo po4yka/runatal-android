@@ -81,6 +81,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.getRunicText
+import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
@@ -430,6 +431,7 @@ fun QuoteListScreen(
                                         quote = quote,
                                         selectedScript = uiState.selectedScript,
                                         selectedFont = uiState.selectedFont,
+                                        transliterationFactory = viewModel.transliterationFactory,
                                         reducedMotion = reducedMotion,
                                         onToggleFavorite = {
                                             haptics.lightToggle()
@@ -694,6 +696,7 @@ private fun QuoteListItem(
     quote: Quote,
     selectedScript: RunicScript,
     selectedFont: String,
+    transliterationFactory: TransliterationFactory,
     reducedMotion: Boolean,
     onToggleFavorite: () -> Unit,
     onEdit: () -> Unit,
@@ -702,7 +705,7 @@ private fun QuoteListItem(
     val shapes = RunicExpressiveTheme.shapes
     val elevations = RunicExpressiveTheme.elevations
     val typeRoles = RunicTypeRoles.current
-    val runicText = remember(quote, selectedScript) { quote.getRunicText(selectedScript) }
+    val runicText = remember(quote, selectedScript) { quote.getRunicText(selectedScript, transliterationFactory) }
     val elevation = if (reducedMotion) elevations.card else elevations.raisedCard
     val yOffset = 0.dp
 

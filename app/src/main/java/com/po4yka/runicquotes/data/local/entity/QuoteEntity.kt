@@ -1,6 +1,7 @@
 package com.po4yka.runicquotes.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
@@ -16,7 +17,13 @@ import androidx.room.PrimaryKey
  * @property isFavorite True if this quote is marked as favorite
  * @property createdAt Timestamp when the quote was created (epoch milliseconds)
  */
-@Entity(tableName = "quotes")
+@Entity(
+    tableName = "quotes",
+    indices = [
+        Index(value = ["isUserCreated"]),
+        Index(value = ["isFavorite"])
+    ]
+)
 data class QuoteEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val textLatin: String,
@@ -26,5 +33,5 @@ data class QuoteEntity(
     val runicCirth: String? = null,
     val isUserCreated: Boolean = false,
     val isFavorite: Boolean = false,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = 0L
 )

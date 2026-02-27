@@ -12,8 +12,8 @@ import com.po4yka.runicquotes.data.local.entity.QuoteEntity
  */
 @Database(
     entities = [QuoteEntity::class],
-    version = 2,
-    exportSchema = false
+    version = 3,
+    exportSchema = true
 )
 abstract class RunicQuotesDatabase : RoomDatabase() {
 
@@ -29,7 +29,6 @@ abstract class RunicQuotesDatabase : RoomDatabase() {
          */
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // Add new columns with default values
                 db.execSQL(
                     "ALTER TABLE quotes ADD COLUMN isUserCreated INTEGER NOT NULL DEFAULT 0"
                 )
@@ -38,6 +37,21 @@ abstract class RunicQuotesDatabase : RoomDatabase() {
                 )
                 db.execSQL(
                     "ALTER TABLE quotes ADD COLUMN createdAt INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+        }
+
+        /**
+         * Migration from version 2 to version 3.
+         * Adds indices on isUserCreated and isFavorite for query performance.
+         */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_quotes_isUserCreated ON quotes (isUserCreated)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_quotes_isFavorite ON quotes (isFavorite)"
                 )
             }
         }

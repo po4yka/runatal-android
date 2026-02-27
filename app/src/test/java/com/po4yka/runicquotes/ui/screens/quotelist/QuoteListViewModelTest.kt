@@ -1,6 +1,7 @@
 package com.po4yka.runicquotes.ui.screens.quotelist
 
 import app.cash.turbine.test
+import com.google.common.truth.Truth.assertThat
 import com.po4yka.runicquotes.data.preferences.UserPreferences
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
@@ -20,11 +21,6 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.IOException
@@ -49,8 +45,8 @@ class QuoteListViewModelTest {
             id = 1,
             textLatin = "Great work begins with one step.",
             author = "Steve Jobs",
-            runicElder = "ᛏᛖᛋᛏ",
-            runicYounger = "ᛏᛖᛋᛏ",
+            runicElder = "\u16CF\u16D6\u16CA\u16CF",
+            runicYounger = "\u16CF\u16D6\u16CA\u16CF",
             runicCirth = "\uE088\uE0C9\uE09C\uE088",
             isUserCreated = false,
             isFavorite = false
@@ -59,8 +55,8 @@ class QuoteListViewModelTest {
             id = 2,
             textLatin = "Not all those who wander are lost.",
             author = "J.R.R. Tolkien",
-            runicElder = "ᚦᛖᛋᛏ",
-            runicYounger = "ᚦᛖᛋᛏ",
+            runicElder = "\u16A6\u16D6\u16CA\u16CF",
+            runicYounger = "\u16A6\u16D6\u16CA\u16CF",
             runicCirth = "\uE088\uE0B4\uE0C9\uE09C\uE088",
             isUserCreated = true,
             isFavorite = true
@@ -69,8 +65,8 @@ class QuoteListViewModelTest {
             id = 3,
             textLatin = "In the middle of difficulty lies opportunity.",
             author = "Lao Tzu",
-            runicElder = "ᚹᛟᚱᛞ",
-            runicYounger = "ᚹᛟᚱᛞ",
+            runicElder = "\u16B9\u16DF\u16B1\u16DE",
+            runicYounger = "\u16B9\u16DF\u16B1\u16DE",
             runicCirth = "\uE0B8\uE0CB\uE0A0\uE089",
             isUserCreated = false,
             isFavorite = true
@@ -133,20 +129,20 @@ class QuoteListViewModelTest {
         viewModel.uiState.test {
             // Initial state before coroutine runs
             val initialState = awaitItem()
-            assertFalse(initialState.isLoading)
-            assertEquals(emptyList<Quote>(), initialState.quotes)
+            assertThat(initialState.isLoading).isFalse()
+            assertThat(initialState.quotes).isEqualTo(emptyList<Quote>())
 
             // Advance to execute the init coroutine
             advanceUntilIdle()
 
             // Loading state is set
             val loadingState = awaitItem()
-            assertTrue(loadingState.isLoading)
+            assertThat(loadingState.isLoading).isTrue()
 
             // Then combine emits with loaded quotes
             val loadedState = awaitItem()
-            assertFalse(loadedState.isLoading)
-            assertEquals(testQuotes.size, loadedState.quotes.size)
+            assertThat(loadedState.isLoading).isFalse()
+            assertThat(loadedState.quotes).hasSize(testQuotes.size)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -160,9 +156,9 @@ class QuoteListViewModelTest {
         // Then: Quotes are loaded with ALL filter
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(testQuotes.size, state.quotes.size)
-            assertEquals(QuoteFilter.ALL, state.currentFilter)
-            assertFalse(state.isLoading)
+            assertThat(state.quotes).hasSize(testQuotes.size)
+            assertThat(state.currentFilter).isEqualTo(QuoteFilter.ALL)
+            assertThat(state.isLoading).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -176,7 +172,7 @@ class QuoteListViewModelTest {
         // Then: Preferences are applied
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(RunicScript.ELDER_FUTHARK, state.selectedScript)
+            assertThat(state.selectedScript).isEqualTo(RunicScript.ELDER_FUTHARK)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -196,8 +192,8 @@ class QuoteListViewModelTest {
         // Then: All quotes are shown
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(QuoteFilter.ALL, state.currentFilter)
-            assertEquals(testQuotes.size, state.quotes.size)
+            assertThat(state.currentFilter).isEqualTo(QuoteFilter.ALL)
+            assertThat(state.quotes).hasSize(testQuotes.size)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -215,9 +211,9 @@ class QuoteListViewModelTest {
         // Then: Only user-created quotes are shown
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(QuoteFilter.USER_CREATED, state.currentFilter)
-            assertEquals(userQuotes.size, state.quotes.size)
-            assertTrue(state.quotes.all { it.isUserCreated })
+            assertThat(state.currentFilter).isEqualTo(QuoteFilter.USER_CREATED)
+            assertThat(state.quotes).hasSize(userQuotes.size)
+            assertThat(state.quotes.all { it.isUserCreated }).isTrue()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -235,9 +231,9 @@ class QuoteListViewModelTest {
         // Then: Only favorite quotes are shown
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(QuoteFilter.FAVORITES, state.currentFilter)
-            assertEquals(favoriteQuotes.size, state.quotes.size)
-            assertTrue(state.quotes.all { it.isFavorite })
+            assertThat(state.currentFilter).isEqualTo(QuoteFilter.FAVORITES)
+            assertThat(state.quotes).hasSize(favoriteQuotes.size)
+            assertThat(state.quotes.all { it.isFavorite }).isTrue()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -255,9 +251,9 @@ class QuoteListViewModelTest {
         // Then: Only system quotes are shown
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(QuoteFilter.SYSTEM, state.currentFilter)
-            assertEquals(systemQuotes.size, state.quotes.size)
-            assertTrue(state.quotes.all { !it.isUserCreated })
+            assertThat(state.currentFilter).isEqualTo(QuoteFilter.SYSTEM)
+            assertThat(state.quotes).hasSize(systemQuotes.size)
+            assertThat(state.quotes.all { !it.isUserCreated }).isTrue()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -272,9 +268,9 @@ class QuoteListViewModelTest {
 
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(QuoteCollection.TOLKIEN, state.selectedCollection)
-            assertEquals(1, state.quotes.size)
-            assertTrue(state.quotes.all { it.author.contains("Tolkien") })
+            assertThat(state.selectedCollection).isEqualTo(QuoteCollection.TOLKIEN)
+            assertThat(state.quotes).hasSize(1)
+            assertThat(state.quotes.all { it.author.contains("Tolkien") }).isTrue()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -291,7 +287,7 @@ class QuoteListViewModelTest {
 
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(QuoteCollection.ALL, state.selectedCollection)
+            assertThat(state.selectedCollection).isEqualTo(QuoteCollection.ALL)
             cancelAndIgnoreRemainingEvents()
         }
 
@@ -307,7 +303,7 @@ class QuoteListViewModelTest {
 
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(QuoteCollection.TOLKIEN, state.selectedCollection)
+            assertThat(state.selectedCollection).isEqualTo(QuoteCollection.TOLKIEN)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -327,7 +323,7 @@ class QuoteListViewModelTest {
             // Loading state then loaded state
             awaitItem() // isLoading = true
             val allState = awaitItem() // isLoading = false with ALL quotes
-            assertEquals(testQuotes.size, allState.quotes.size)
+            assertThat(allState.quotes).hasSize(testQuotes.size)
 
             // Switch to FAVORITES
             viewModel.setFilter(QuoteFilter.FAVORITES)
@@ -335,21 +331,21 @@ class QuoteListViewModelTest {
             val filterUpdate1 = awaitItem() // Direct update from setFilter
             advanceUntilIdle()
             val favoritesState = awaitItem() // Combine re-emits with filtered data
-            assertEquals(favoriteQuotes.size, favoritesState.quotes.size)
+            assertThat(favoritesState.quotes).hasSize(favoriteQuotes.size)
 
             // Switch to USER_CREATED
             viewModel.setFilter(QuoteFilter.USER_CREATED)
             awaitItem() // Direct update from setFilter
             advanceUntilIdle()
             val userState = awaitItem() // Combine re-emits with filtered data
-            assertEquals(userQuotes.size, userState.quotes.size)
+            assertThat(userState.quotes).hasSize(userQuotes.size)
 
             // Switch to SYSTEM
             viewModel.setFilter(QuoteFilter.SYSTEM)
             awaitItem() // Direct update from setFilter
             advanceUntilIdle()
             val systemState = awaitItem() // Combine re-emits with filtered data
-            assertEquals(systemQuotes.size, systemState.quotes.size)
+            assertThat(systemState.quotes).hasSize(systemQuotes.size)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -388,8 +384,8 @@ class QuoteListViewModelTest {
         // Then: Error message is set
         viewModel.uiState.test {
             val state = awaitItem()
-            assertNotNull(state.errorMessage)
-            assertTrue(state.errorMessage!!.contains("Failed to update favorite"))
+            assertThat(state.errorMessage).isNotNull()
+            assertThat(state.errorMessage).contains("Failed to update favorite")
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -408,8 +404,8 @@ class QuoteListViewModelTest {
         // Then: Error message is set
         viewModel.uiState.test {
             val state = awaitItem()
-            assertNotNull(state.errorMessage)
-            assertTrue(state.errorMessage!!.contains("Invalid state"))
+            assertThat(state.errorMessage).isNotNull()
+            assertThat(state.errorMessage).contains("Invalid state")
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -447,8 +443,8 @@ class QuoteListViewModelTest {
         // Then: Error message is set
         viewModel.uiState.test {
             val state = awaitItem()
-            assertNotNull(state.errorMessage)
-            assertTrue(state.errorMessage!!.contains("Failed to delete quote"))
+            assertThat(state.errorMessage).isNotNull()
+            assertThat(state.errorMessage).contains("Failed to delete quote")
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -467,8 +463,8 @@ class QuoteListViewModelTest {
         // Then: Error message is set
         viewModel.uiState.test {
             val state = awaitItem()
-            assertNotNull(state.errorMessage)
-            assertTrue(state.errorMessage!!.contains("Invalid state"))
+            assertThat(state.errorMessage).isNotNull()
+            assertThat(state.errorMessage).contains("Invalid state")
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -488,13 +484,13 @@ class QuoteListViewModelTest {
         // When: Clearing error
         viewModel.uiState.test {
             val stateWithError = awaitItem()
-            assertNotNull(stateWithError.errorMessage)
+            assertThat(stateWithError.errorMessage).isNotNull()
 
             viewModel.clearError()
             advanceUntilIdle()
 
             val stateWithoutError = awaitItem()
-            assertNull(stateWithoutError.errorMessage)
+            assertThat(stateWithoutError.errorMessage).isNull()
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -513,13 +509,13 @@ class QuoteListViewModelTest {
         viewModel.uiState.test {
             // Initial state before loading starts
             val initialState = awaitItem()
-            assertFalse(initialState.isLoading)
+            assertThat(initialState.isLoading).isFalse()
 
             advanceUntilIdle()
 
             // Loading starts but combine never emits because flows are empty
             val loadingState = awaitItem()
-            assertTrue(loadingState.isLoading) // Still loading because combine never completes
+            assertThat(loadingState.isLoading).isTrue() // Still loading because combine never completes
 
             // No more emissions since combine never emits
             expectNoEvents()
@@ -538,7 +534,7 @@ class QuoteListViewModelTest {
         viewModel.uiState.test {
             // Initial state
             val initial = awaitItem()
-            assertEquals(RunicScript.ELDER_FUTHARK, initial.selectedScript)
+            assertThat(initial.selectedScript).isEqualTo(RunicScript.ELDER_FUTHARK)
 
             // When: Preferences change
             preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.YOUNGER_FUTHARK)
@@ -546,7 +542,7 @@ class QuoteListViewModelTest {
 
             // Then: State reflects new script
             val updated = awaitItem()
-            assertEquals(RunicScript.YOUNGER_FUTHARK, updated.selectedScript)
+            assertThat(updated.selectedScript).isEqualTo(RunicScript.YOUNGER_FUTHARK)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -561,15 +557,15 @@ class QuoteListViewModelTest {
         viewModel.uiState.test {
             // Initial state
             val initial = awaitItem()
-            assertEquals(3, initial.quotes.size)
+            assertThat(initial.quotes).hasSize(3)
 
             // When: Quotes flow updates
             val newQuotes = testQuotes + Quote(
                 id = 4,
                 textLatin = "New quote",
                 author = "New author",
-                runicElder = "ᚾᛖᚹ",
-                runicYounger = "ᚾᛖᚹ",
+                runicElder = "\u16BE\u16D6\u16B9",
+                runicYounger = "\u16BE\u16D6\u16B9",
                 runicCirth = "\uE0B4\uE0C9\uE0B8",
                 isUserCreated = false,
                 isFavorite = false
@@ -579,7 +575,7 @@ class QuoteListViewModelTest {
 
             // Then: State reflects new quotes
             val updated = awaitItem()
-            assertEquals(4, updated.quotes.size)
+            assertThat(updated.quotes).hasSize(4)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -601,8 +597,8 @@ class QuoteListViewModelTest {
         // Then: State contains empty list
         viewModel.uiState.test {
             val state = awaitItem()
-            assertTrue(state.quotes.isEmpty())
-            assertFalse(state.isLoading)
+            assertThat(state.quotes).isEmpty()
+            assertThat(state.isLoading).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -620,8 +616,8 @@ class QuoteListViewModelTest {
         // Then: No user-created quotes in result
         viewModel.uiState.test {
             val state = awaitItem()
-            assertTrue(state.quotes.none { it.isUserCreated })
-            assertEquals(2, state.quotes.size) // Only 2 system quotes
+            assertThat(state.quotes.none { it.isUserCreated }).isTrue()
+            assertThat(state.quotes).hasSize(2) // Only 2 system quotes
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -640,20 +636,20 @@ class QuoteListViewModelTest {
             viewModel.toggleFavorite(testQuotes[0])
             advanceUntilIdle()
             val state1 = awaitItem()
-            assertTrue(state1.errorMessage!!.contains("Toggle error"))
+            assertThat(state1.errorMessage).contains("Toggle error")
 
             // Clear error
             viewModel.clearError()
             advanceUntilIdle()
             val clearedState = awaitItem()
-            assertNull(clearedState.errorMessage)
+            assertThat(clearedState.errorMessage).isNull()
 
             // Second error: delete quote
             coEvery { quoteRepository.deleteUserQuote(any()) } throws IOException("Delete error")
             viewModel.deleteQuote(1L)
             advanceUntilIdle()
             val state2 = awaitItem()
-            assertTrue(state2.errorMessage!!.contains("Delete error"))
+            assertThat(state2.errorMessage).contains("Delete error")
 
             cancelAndIgnoreRemainingEvents()
         }

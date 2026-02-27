@@ -1,8 +1,8 @@
 package com.po4yka.runicquotes.data.repository
 
+import com.google.common.truth.Truth.assertThat
 import com.po4yka.runicquotes.data.local.dao.QuoteDao
 import com.po4yka.runicquotes.data.local.entity.QuoteEntity
-import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.util.TimeProvider
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -13,10 +13,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.time.LocalDate
@@ -52,15 +48,15 @@ class QuoteRepositoryImplTest {
             id = 1,
             textLatin = "Test quote 1",
             author = "Author 1",
-            runicElder = "ᛏᛖᛋᛏ",
-            runicYounger = "ᛏᛖᛋᛏ",
+            runicElder = "\u16CF\u16D6\u16CA\u16CF",
+            runicYounger = "\u16CF\u16D6\u16CA\u16CF",
             runicCirth = "\uE088\uE0C9\uE09C\uE088"
         ),
         QuoteEntity(
             id = 2,
             textLatin = "Test quote 2",
             author = "Author 2",
-            runicElder = "ᚦᛖᛋᛏ",
+            runicElder = "\u16A6\u16D6\u16CA\u16CF",
             runicYounger = null,
             runicCirth = null
         ),
@@ -68,7 +64,7 @@ class QuoteRepositoryImplTest {
             id = 3,
             textLatin = "Test quote 3",
             author = "Author 3",
-            runicElder = "ᚹᛟᚱᛞ",
+            runicElder = "\u16B9\u16DF\u16B1\u16DE",
             runicYounger = null,
             runicCirth = null
         )
@@ -137,12 +133,12 @@ class QuoteRepositoryImplTest {
         coEvery { quoteDao.getAll() } returns testQuotes
 
         // When: Getting quote of the day multiple times on same day
-        val quote1 = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
-        val quote2 = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+        val quote1 = repository.quoteOfTheDay()
+        val quote2 = repository.quoteOfTheDay()
 
         // Then: Same quote is returned
-        assertEquals(quote1?.id, quote2?.id)
-        assertEquals(quote1?.textLatin, quote2?.textLatin)
+        assertThat(quote2?.id).isEqualTo(quote1?.id)
+        assertThat(quote2?.textLatin).isEqualTo(quote1?.textLatin)
     }
 
     @Test
@@ -153,11 +149,11 @@ class QuoteRepositoryImplTest {
         coEvery { quoteDao.getAll() } returns testQuotes
 
         // When: Getting quote of the day
-        val quote = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+        val quote = repository.quoteOfTheDay()
 
         // Then: Quote index matches dayOfYear % size (5 % 3 = 2)
         val expectedIndex = 2
-        assertEquals(testQuotes[expectedIndex].id, quote?.id)
+        assertThat(quote?.id).isEqualTo(testQuotes[expectedIndex].id)
     }
 
     @Test
@@ -168,10 +164,10 @@ class QuoteRepositoryImplTest {
         coEvery { quoteDao.getAll() } returns emptyList()
 
         // When: Getting quote of the day
-        val quote = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+        val quote = repository.quoteOfTheDay()
 
         // Then: Returns null
-        assertNull(quote)
+        assertThat(quote).isNull()
     }
 
     @Test
@@ -182,11 +178,11 @@ class QuoteRepositoryImplTest {
         coEvery { quoteDao.getAll() } returns testQuotes
 
         // When: Getting quote of the day
-        val quote = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+        val quote = repository.quoteOfTheDay()
 
         // Then: Seeding happened and quote returned
         coVerify { quoteDao.insertAll(any()) }
-        assertNotNull(quote)
+        assertThat(quote).isNotNull()
     }
 
     @Test
@@ -197,19 +193,19 @@ class QuoteRepositoryImplTest {
         coEvery { quoteDao.getAll() } returns testQuotes
 
         // When: Getting quote of the day
-        val quote = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+        val quote = repository.quoteOfTheDay()
 
         // Then: Domain model properties match entity (7 % 3 = 1)
-        assertNotNull(quote)
+        assertThat(quote).isNotNull()
         val expectedIndex = 1
         val expectedEntity = testQuotes[expectedIndex]
 
-        assertEquals(expectedEntity.id, quote?.id)
-        assertEquals(expectedEntity.textLatin, quote?.textLatin)
-        assertEquals(expectedEntity.author, quote?.author)
-        assertEquals(expectedEntity.runicElder, quote?.runicElder)
-        assertEquals(expectedEntity.runicYounger, quote?.runicYounger)
-        assertEquals(expectedEntity.runicCirth, quote?.runicCirth)
+        assertThat(quote?.id).isEqualTo(expectedEntity.id)
+        assertThat(quote?.textLatin).isEqualTo(expectedEntity.textLatin)
+        assertThat(quote?.author).isEqualTo(expectedEntity.author)
+        assertThat(quote?.runicElder).isEqualTo(expectedEntity.runicElder)
+        assertThat(quote?.runicYounger).isEqualTo(expectedEntity.runicYounger)
+        assertThat(quote?.runicCirth).isEqualTo(expectedEntity.runicCirth)
     }
 
     // ==================== Random Quote Tests ====================
@@ -221,12 +217,12 @@ class QuoteRepositoryImplTest {
         coEvery { quoteDao.getRandom() } returns testQuotes[1]
 
         // When: Getting random quote
-        val quote = repository.randomQuote(RunicScript.ELDER_FUTHARK)
+        val quote = repository.randomQuote()
 
         // Then: Quote is returned
-        assertNotNull(quote)
-        assertEquals(testQuotes[1].id, quote?.id)
-        assertEquals(testQuotes[1].textLatin, quote?.textLatin)
+        assertThat(quote).isNotNull()
+        assertThat(quote?.id).isEqualTo(testQuotes[1].id)
+        assertThat(quote?.textLatin).isEqualTo(testQuotes[1].textLatin)
     }
 
     @Test
@@ -237,10 +233,10 @@ class QuoteRepositoryImplTest {
         coEvery { quoteDao.getRandom() } returns null
 
         // When: Getting random quote
-        val quote = repository.randomQuote(RunicScript.ELDER_FUTHARK)
+        val quote = repository.randomQuote()
 
         // Then: Returns null
-        assertNull(quote)
+        assertThat(quote).isNull()
     }
 
     @Test
@@ -251,11 +247,11 @@ class QuoteRepositoryImplTest {
         coEvery { quoteDao.getRandom() } returns testQuotes[0]
 
         // When: Getting random quote
-        val quote = repository.randomQuote(RunicScript.ELDER_FUTHARK)
+        val quote = repository.randomQuote()
 
         // Then: Seeding happened
         coVerify { quoteDao.insertAll(any()) }
-        assertNotNull(quote)
+        assertThat(quote).isNotNull()
     }
 
     // ==================== Get All Quotes Flow Tests ====================
@@ -269,11 +265,11 @@ class QuoteRepositoryImplTest {
         val quotes = repository.getAllQuotesFlow().first()
 
         // Then: Domain models are returned
-        assertEquals(testQuotes.size, quotes.size)
-        assertEquals(testQuotes[0].id, quotes[0].id)
-        assertEquals(testQuotes[0].textLatin, quotes[0].textLatin)
-        assertEquals(testQuotes[1].id, quotes[1].id)
-        assertEquals(testQuotes[2].id, quotes[2].id)
+        assertThat(quotes).hasSize(testQuotes.size)
+        assertThat(quotes[0].id).isEqualTo(testQuotes[0].id)
+        assertThat(quotes[0].textLatin).isEqualTo(testQuotes[0].textLatin)
+        assertThat(quotes[1].id).isEqualTo(testQuotes[1].id)
+        assertThat(quotes[2].id).isEqualTo(testQuotes[2].id)
     }
 
     @Test
@@ -285,7 +281,7 @@ class QuoteRepositoryImplTest {
         val quotes = repository.getAllQuotesFlow().first()
 
         // Then: Empty list returned
-        assertTrue(quotes.isEmpty())
+        assertThat(quotes).isEmpty()
     }
 
     @Test
@@ -299,12 +295,12 @@ class QuoteRepositoryImplTest {
 
         // Then: All fields are mapped correctly
         val domainQuote = quotes[0]
-        assertEquals(quote.id, domainQuote.id)
-        assertEquals(quote.textLatin, domainQuote.textLatin)
-        assertEquals(quote.author, domainQuote.author)
-        assertEquals(quote.runicElder, domainQuote.runicElder)
-        assertEquals(quote.runicYounger, domainQuote.runicYounger)
-        assertEquals(quote.runicCirth, domainQuote.runicCirth)
+        assertThat(domainQuote.id).isEqualTo(quote.id)
+        assertThat(domainQuote.textLatin).isEqualTo(quote.textLatin)
+        assertThat(domainQuote.author).isEqualTo(quote.author)
+        assertThat(domainQuote.runicElder).isEqualTo(quote.runicElder)
+        assertThat(domainQuote.runicYounger).isEqualTo(quote.runicYounger)
+        assertThat(domainQuote.runicCirth).isEqualTo(quote.runicCirth)
     }
 
     // ==================== Get All Quotes Tests ====================
@@ -318,10 +314,10 @@ class QuoteRepositoryImplTest {
         val quotes = repository.getAllQuotes()
 
         // Then: All quotes returned as domain models
-        assertEquals(testQuotes.size, quotes.size)
-        assertEquals(testQuotes[0].id, quotes[0].id)
-        assertEquals(testQuotes[1].id, quotes[1].id)
-        assertEquals(testQuotes[2].id, quotes[2].id)
+        assertThat(quotes).hasSize(testQuotes.size)
+        assertThat(quotes[0].id).isEqualTo(testQuotes[0].id)
+        assertThat(quotes[1].id).isEqualTo(testQuotes[1].id)
+        assertThat(quotes[2].id).isEqualTo(testQuotes[2].id)
     }
 
     @Test
@@ -333,7 +329,7 @@ class QuoteRepositoryImplTest {
         val quotes = repository.getAllQuotes()
 
         // Then: Empty list returned
-        assertTrue(quotes.isEmpty())
+        assertThat(quotes).isEmpty()
     }
 
     // ==================== Get Quote Count Tests ====================
@@ -347,7 +343,7 @@ class QuoteRepositoryImplTest {
         val count = repository.getQuoteCount()
 
         // Then: Correct count returned
-        assertEquals(42, count)
+        assertThat(count).isEqualTo(42)
     }
 
     @Test
@@ -359,7 +355,7 @@ class QuoteRepositoryImplTest {
         val count = repository.getQuoteCount()
 
         // Then: Zero returned
-        assertEquals(0, count)
+        assertThat(count).isEqualTo(0)
     }
 
     // ==================== Domain Mapping Tests ====================
@@ -379,14 +375,14 @@ class QuoteRepositoryImplTest {
         coEvery { quoteDao.getRandom() } returns entity
 
         // When: Getting random quote
-        val quote = repository.randomQuote(RunicScript.ELDER_FUTHARK)
+        val quote = repository.randomQuote()
 
         // Then: Null fields are preserved
-        assertNotNull(quote)
-        assertEquals(99L, quote?.id)
-        assertNull(quote?.runicElder)
-        assertNull(quote?.runicYounger)
-        assertNull(quote?.runicCirth)
+        assertThat(quote).isNotNull()
+        assertThat(quote?.id).isEqualTo(99L)
+        assertThat(quote?.runicElder).isNull()
+        assertThat(quote?.runicYounger).isNull()
+        assertThat(quote?.runicCirth).isNull()
     }
 
     @Test
@@ -396,39 +392,39 @@ class QuoteRepositoryImplTest {
             id = 100,
             textLatin = "Complete",
             author = "Author",
-            runicElder = "ᛖᛚᛞᛖᚱ",
-            runicYounger = "ᚤᛟᚢᛜᛖᚱ",
+            runicElder = "\u16D6\u16DA\u16DE\u16D6\u16B1",
+            runicYounger = "\u16C1\u16DF\u16A2\u16BE\u16D6\u16B1",
             runicCirth = "\uE0C9\uE0C8\uE0A0\uE088"
         )
         coEvery { quoteDao.getCount() } returns 1
         coEvery { quoteDao.getRandom() } returns entity
 
         // When: Getting random quote
-        val quote = repository.randomQuote(RunicScript.ELDER_FUTHARK)
+        val quote = repository.randomQuote()
 
         // Then: All fields are mapped
-        assertNotNull(quote)
-        assertEquals("ᛖᛚᛞᛖᚱ", quote?.runicElder)
-        assertEquals("ᚤᛟᚢᛜᛖᚱ", quote?.runicYounger)
-        assertEquals("\uE0C9\uE0C8\uE0A0\uE088", quote?.runicCirth)
+        assertThat(quote).isNotNull()
+        assertThat(quote?.runicElder).isEqualTo("\u16D6\u16DA\u16DE\u16D6\u16B1")
+        assertThat(quote?.runicYounger).isEqualTo("\u16C1\u16DF\u16A2\u16BE\u16D6\u16B1")
+        assertThat(quote?.runicCirth).isEqualTo("\uE0C9\uE0C8\uE0A0\uE088")
     }
 
-    // ==================== Script Parameter Tests ====================
+    // ==================== Consistency Tests ====================
 
     @Test
-    fun `quoteOfTheDay ignores script parameter (uses business logic in domain)`() = runTest {
+    fun `quoteOfTheDay returns same quote on repeated calls for same day`() = runTest {
         // Given: Database with quotes
         coEvery { quoteDao.getCount() } returns 3
         coEvery { quoteDao.getAll() } returns testQuotes
 
-        // When: Getting quote with different scripts
-        val elderQuote = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
-        val youngerQuote = repository.quoteOfTheDay(RunicScript.YOUNGER_FUTHARK)
-        val cirthQuote = repository.quoteOfTheDay(RunicScript.CIRTH)
+        // When: Getting quote multiple times
+        val quote1 = repository.quoteOfTheDay()
+        val quote2 = repository.quoteOfTheDay()
+        val quote3 = repository.quoteOfTheDay()
 
-        // Then: Same quote returned (script is handled in domain layer)
-        assertEquals(elderQuote?.id, youngerQuote?.id)
-        assertEquals(elderQuote?.id, cirthQuote?.id)
+        // Then: Same quote returned each time
+        assertThat(quote2?.id).isEqualTo(quote1?.id)
+        assertThat(quote3?.id).isEqualTo(quote1?.id)
     }
 
     // ==================== Edge Cases ====================
@@ -441,11 +437,11 @@ class QuoteRepositoryImplTest {
         coEvery { quoteDao.getAll() } returns singleQuote
 
         // When: Getting quote of the day
-        val quote = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+        val quote = repository.quoteOfTheDay()
 
         // Then: That one quote is returned
-        assertNotNull(quote)
-        assertEquals(singleQuote[0].id, quote?.id)
+        assertThat(quote).isNotNull()
+        assertThat(quote?.id).isEqualTo(singleQuote[0].id)
     }
 
     @Test
@@ -456,7 +452,7 @@ class QuoteRepositoryImplTest {
                 id = it.toLong(),
                 textLatin = "Quote $it",
                 author = "Author $it",
-                runicElder = "ᚱᚢᚾᛖ",
+                runicElder = "\u16B1\u16A2\u16BE\u16D6",
                 runicYounger = null,
                 runicCirth = null
             )
@@ -465,11 +461,11 @@ class QuoteRepositoryImplTest {
         coEvery { quoteDao.getAll() } returns manyQuotes
 
         // When: Getting quote of the day
-        val quote = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+        val quote = repository.quoteOfTheDay()
 
         // Then: Valid quote is returned
-        assertNotNull(quote)
-        assertTrue(quote!!.id in 1L..1000L)
+        assertThat(quote).isNotNull()
+        assertThat(quote!!.id).isIn(1L..1000L)
     }
 
     @Test
@@ -480,11 +476,11 @@ class QuoteRepositoryImplTest {
         coEvery { quoteDao.getAll() } returns testQuotes
 
         // When: Getting quote (day of year will be moduloed by 3)
-        val quote = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+        val quote = repository.quoteOfTheDay()
 
         // Then: Index is within valid range (365 % 3 = 2)
-        assertNotNull(quote)
-        assertEquals(testQuotes[365 % 3].id, quote?.id)
+        assertThat(quote).isNotNull()
+        assertThat(quote?.id).isEqualTo(testQuotes[365 % 3].id)
     }
 
     @Test
@@ -495,18 +491,18 @@ class QuoteRepositoryImplTest {
 
         // When: Getting quotes for different days
         timeProvider.setDayOfYear(1)
-        val quote1 = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+        val quote1 = repository.quoteOfTheDay()
 
         timeProvider.setDayOfYear(2)
-        val quote2 = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+        val quote2 = repository.quoteOfTheDay()
 
         timeProvider.setDayOfYear(3)
-        val quote3 = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+        val quote3 = repository.quoteOfTheDay()
 
         // Then: Different quotes are returned based on modulo
-        assertEquals(testQuotes[1].id, quote1?.id) // 1 % 3 = 1
-        assertEquals(testQuotes[2].id, quote2?.id) // 2 % 3 = 2
-        assertEquals(testQuotes[0].id, quote3?.id) // 3 % 3 = 0
+        assertThat(quote1?.id).isEqualTo(testQuotes[1].id) // 1 % 3 = 1
+        assertThat(quote2?.id).isEqualTo(testQuotes[2].id) // 2 % 3 = 2
+        assertThat(quote3?.id).isEqualTo(testQuotes[0].id) // 3 % 3 = 0
     }
 
     @Test
@@ -517,14 +513,14 @@ class QuoteRepositoryImplTest {
         coEvery { quoteDao.getAll() } returns testQuotes
 
         // When: Getting quote multiple times on same day
-        val quote1 = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
-        val quote2 = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
-        val quote3 = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+        val quote1 = repository.quoteOfTheDay()
+        val quote2 = repository.quoteOfTheDay()
+        val quote3 = repository.quoteOfTheDay()
 
         // Then: All return same quote (10 % 3 = 1)
-        assertEquals(testQuotes[1].id, quote1?.id)
-        assertEquals(quote1?.id, quote2?.id)
-        assertEquals(quote1?.id, quote3?.id)
+        assertThat(quote1?.id).isEqualTo(testQuotes[1].id)
+        assertThat(quote2?.id).isEqualTo(quote1?.id)
+        assertThat(quote3?.id).isEqualTo(quote1?.id)
     }
 
     @Test
@@ -539,11 +535,11 @@ class QuoteRepositoryImplTest {
         coEvery { quoteDao.getAll() } returns fiveQuotes
 
         // When: Getting quote for day 366
-        val quote = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+        val quote = repository.quoteOfTheDay()
 
         // Then: Valid quote is returned (366 % 5 = 1)
-        assertNotNull(quote)
-        assertEquals(fiveQuotes[1].id, quote?.id)
+        assertThat(quote).isNotNull()
+        assertThat(quote?.id).isEqualTo(fiveQuotes[1].id)
     }
 
     @Test
@@ -555,8 +551,8 @@ class QuoteRepositoryImplTest {
         timeProvider.setDayOfYear(100)
         coEvery { quoteDao.getCount() } returns 1
         coEvery { quoteDao.getAll() } returns singleQuote
-        val quote = repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
-        assertEquals(singleQuote[0].id, quote?.id)
+        val quote = repository.quoteOfTheDay()
+        assertThat(quote?.id).isEqualTo(singleQuote[0].id)
     }
 
     @Test
@@ -568,9 +564,9 @@ class QuoteRepositoryImplTest {
         coEvery { quoteDao.getRandom() } returns testQuotes[0]
 
         // When: Multiple operations that call seedIfNeeded
-        repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
-        repository.randomQuote(RunicScript.ELDER_FUTHARK)
-        repository.quoteOfTheDay(RunicScript.ELDER_FUTHARK)
+        repository.quoteOfTheDay()
+        repository.randomQuote()
+        repository.quoteOfTheDay()
 
         // Then: insertAll is called only once due to isSeeded flag
         coVerify(exactly = 1) { quoteDao.insertAll(any()) }

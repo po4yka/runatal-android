@@ -51,23 +51,11 @@
 # ====================================================================================================
 # JETPACK COMPOSE
 # ====================================================================================================
-# Keep Compose runtime classes
--keep class androidx.compose.runtime.** { *; }
--keep class androidx.compose.ui.** { *; }
--keep class androidx.compose.foundation.** { *; }
--keep class androidx.compose.material3.** { *; }
+# R8 handles Compose natively via consumer rules shipped with the Compose libraries.
+# Only keep what the consumer rules do not already cover.
 
-# Keep @Composable functions
--keep @androidx.compose.runtime.Composable class * { *; }
--keepclassmembers class * {
-    @androidx.compose.runtime.Composable *;
-}
-
-# Keep Compose compiler metadata
+# Keep Compose compiler metadata for reflection
 -keepattributes RuntimeVisibleAnnotations
-
-# Keep Material 3 icon classes
--keep class androidx.compose.material.icons.** { *; }
 
 # ====================================================================================================
 # HILT / DAGGER

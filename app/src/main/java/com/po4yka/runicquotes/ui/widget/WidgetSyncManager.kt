@@ -14,17 +14,14 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
  * Coordinates widget refreshes and WorkManager scheduling.
+ * Requires an externally-managed CoroutineScope tied to the application lifecycle.
  */
-object WidgetSyncManager {
-
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+class WidgetSyncManager(private val scope: CoroutineScope) {
 
     fun refreshAllAsync(context: Context) {
         scope.launch {

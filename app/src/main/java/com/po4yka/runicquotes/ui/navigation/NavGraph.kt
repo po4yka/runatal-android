@@ -18,9 +18,12 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.scene.Scene
@@ -210,7 +213,11 @@ private fun TopLevelBottomBar(
         NavigationBarItem(
             selected = currentRoute is QuoteRoute,
             onClick = { switchTopLevelRoute(backStack, QuoteRoute) },
-            icon = { Text("ᚱ") },
+            icon = {
+                Box(modifier = Modifier.semantics { contentDescription = "Daily Rune" }) {
+                    Text("ᚱ")
+                }
+            },
             label = { Text("Daily") },
             modifier = Modifier.testTag("tab_daily")
         )
@@ -249,6 +256,9 @@ private fun switchTopLevelRoute(backStack: SnapshotStateList<Any>, route: Any) {
     backStack.add(route)
 }
 
+// Navigation 3 Scene keys contain the route class name.
+// String matching is the idiomatic approach since Scene<Any> doesn't expose
+// the original typed route object in transition specs.
 private fun routeRank(scene: Scene<Any>): Int {
     val key = scene.key.toString()
     return when {

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import com.po4yka.runicquotes.RunicQuotesApplication
 
 /**
  * Receiver for the Runic Quote widget.
@@ -15,12 +16,12 @@ class RunicQuoteWidgetReceiver : GlanceAppWidgetReceiver() {
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
-        WidgetSyncManager.refreshAndRescheduleAsync(context)
+        RunicQuotesApplication.widgetSyncManager(context).refreshAndRescheduleAsync(context)
     }
 
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
-        WidgetSyncManager.cancelSchedule(context)
+        RunicQuotesApplication.widgetSyncManager(context).cancelSchedule(context)
         WidgetStateCache.clear()
         WidgetInteractionState.clear()
     }
@@ -32,7 +33,7 @@ class RunicQuoteWidgetReceiver : GlanceAppWidgetReceiver() {
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_DATE_CHANGED -> {
                 WidgetStateCache.clear()
-                WidgetSyncManager.refreshAndRescheduleAsync(context)
+                RunicQuotesApplication.widgetSyncManager(context).refreshAndRescheduleAsync(context)
             }
         }
     }

@@ -1,11 +1,16 @@
 package com.po4yka.runicquotes.ui.screens.quote
 
 import app.cash.turbine.test
+import com.google.common.truth.Truth.assertThat
 import com.po4yka.runicquotes.data.preferences.UserPreferences
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.domain.transliteration.CirthTransliterator
+import com.po4yka.runicquotes.domain.transliteration.ElderFutharkTransliterator
+import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
+import com.po4yka.runicquotes.domain.transliteration.YoungerFutharkTransliterator
 import com.po4yka.runicquotes.util.QuoteShareManager
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -20,8 +25,6 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.IOException
@@ -38,6 +41,7 @@ class QuoteViewModelTest {
     private lateinit var quoteRepository: QuoteRepository
     private lateinit var userPreferencesManager: UserPreferencesManager
     private lateinit var quoteShareManager: QuoteShareManager
+    private lateinit var transliterationFactory: TransliterationFactory
     private lateinit var viewModel: QuoteViewModel
 
     private val testDispatcher = StandardTestDispatcher()
@@ -46,8 +50,8 @@ class QuoteViewModelTest {
         id = 1,
         textLatin = "Test quote",
         author = "Test Author",
-        runicElder = "ᛏᛖᛋᛏ",
-        runicYounger = "ᛏᛖᛋᛏ",
+        runicElder = "\u16CF\u16D6\u16CA\u16CF",
+        runicYounger = "\u16CF\u16D6\u16CA\u16CF",
         runicCirth = "\uE088\uE0C9\uE09C\uE088"
     )
 
@@ -68,6 +72,13 @@ class QuoteViewModelTest {
         userPreferencesManager = mockk()
         quoteShareManager = mockk(relaxed = true)
 
+        // Create real TransliterationFactory with real transliterators
+        transliterationFactory = TransliterationFactory(
+            ElderFutharkTransliterator(),
+            YoungerFutharkTransliterator(),
+            CirthTransliterator()
+        )
+
         // Set up preferences flow
         preferencesFlow = MutableStateFlow(defaultPreferences)
         every { userPreferencesManager.userPreferencesFlow } returns preferencesFlow
@@ -83,22 +94,22 @@ class QuoteViewModelTest {
     @Test
     fun `viewModel initializes with Loading state`() = runTest {
         // Given: Repository will return a quote
-        coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
 
         // When: ViewModel is created
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
 
         // Then: Initial state is Loading
         viewModel.uiState.test {
             val initialState = awaitItem()
-            assertTrue(initialState is QuoteUiState.Loading)
+            assertThat(initialState).isInstanceOf(QuoteUiState.Loading::class.java)
 
             // Advance to allow initialization to complete
             advanceUntilIdle()
 
             // Should transition to Success
             val successState = awaitItem()
-            assertTrue(successState is QuoteUiState.Success)
+            assertThat(successState).isInstanceOf(QuoteUiState.Success::class.java)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -107,17 +118,17 @@ class QuoteViewModelTest {
     @Test
     fun `viewModel loads quote of the day on initialization`() = runTest {
         // Given: Repository returns a quote
-        coEvery { quoteRepository.quoteOfTheDay(RunicScript.ELDER_FUTHARK) } returns testQuote
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
 
         // When: ViewModel is created
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
         advanceUntilIdle()
 
         // Then: Quote is loaded
         viewModel.uiState.test {
             val state = awaitItem()
-            assertTrue(state is QuoteUiState.Success)
-            assertEquals(testQuote, (state as QuoteUiState.Success).quote)
+            assertThat(state).isInstanceOf(QuoteUiState.Success::class.java)
+            assertThat((state as QuoteUiState.Success).quote).isEqualTo(testQuote)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -127,23 +138,23 @@ class QuoteViewModelTest {
     @Test
     fun `successful quote load emits Success state with correct data`() = runTest {
         // Given: Repository returns a quote
-        coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
 
         // When: ViewModel loads quote
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
         advanceUntilIdle()
 
         // Then: Success state contains all expected data
         viewModel.uiState.test {
             val state = awaitItem() as QuoteUiState.Success
 
-            assertEquals(testQuote.id, state.quote.id)
-            assertEquals(testQuote.textLatin, state.quote.textLatin)
-            assertEquals(testQuote.author, state.quote.author)
-            assertEquals("ᛏᛖᛋᛏ", state.runicText)
-            assertEquals(RunicScript.ELDER_FUTHARK, state.selectedScript)
-            assertEquals("noto", state.selectedFont)
-            assertTrue(state.showTransliteration)
+            assertThat(state.quote.id).isEqualTo(testQuote.id)
+            assertThat(state.quote.textLatin).isEqualTo(testQuote.textLatin)
+            assertThat(state.quote.author).isEqualTo(testQuote.author)
+            assertThat(state.runicText).isEqualTo("\u16CF\u16D6\u16CA\u16CF")
+            assertThat(state.selectedScript).isEqualTo(RunicScript.ELDER_FUTHARK)
+            assertThat(state.selectedFont).isEqualTo("noto")
+            assertThat(state.showTransliteration).isTrue()
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -152,17 +163,17 @@ class QuoteViewModelTest {
     @Test
     fun `Success state uses domain extension for runic text`() = runTest {
         // Given: Quote with Elder Futhark text
-        val quote = testQuote.copy(runicElder = "ᚱᚢᚾᛖ")
-        coEvery { quoteRepository.quoteOfTheDay(any()) } returns quote
+        val quote = testQuote.copy(runicElder = "\u16B1\u16A2\u16BE\u16D6")
+        coEvery { quoteRepository.quoteOfTheDay() } returns quote
 
         // When: ViewModel loads quote
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
         advanceUntilIdle()
 
         // Then: Runic text from domain extension is used
         viewModel.uiState.test {
             val state = awaitItem() as QuoteUiState.Success
-            assertEquals("ᚱᚢᚾᛖ", state.runicText)
+            assertThat(state.runicText).isEqualTo("\u16B1\u16A2\u16BE\u16D6")
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -172,16 +183,16 @@ class QuoteViewModelTest {
     @Test
     fun `repository returning null emits Empty state`() = runTest {
         // Given: Repository returns null
-        coEvery { quoteRepository.quoteOfTheDay(any()) } returns null
+        coEvery { quoteRepository.quoteOfTheDay() } returns null
 
         // When: ViewModel loads quote
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
         advanceUntilIdle()
 
         // Then: Empty state is emitted
         viewModel.uiState.test {
             val state = awaitItem()
-            assertTrue(state is QuoteUiState.Empty)
+            assertThat(state).isInstanceOf(QuoteUiState.Empty::class.java)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -191,16 +202,16 @@ class QuoteViewModelTest {
     @Test
     fun `repository throwing exception emits Error state`() = runTest {
         // Given: Repository throws IOException
-        coEvery { quoteRepository.quoteOfTheDay(any()) } throws IOException("Database error")
+        coEvery { quoteRepository.quoteOfTheDay() } throws IOException("Database error")
 
         // When: ViewModel loads quote
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
         advanceUntilIdle()
 
         // Then: Error state with message is emitted
         viewModel.uiState.test {
             val state = awaitItem() as QuoteUiState.Error
-            assertEquals("Database error", state.message)
+            assertThat(state.message).isEqualTo("Database error")
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -208,16 +219,16 @@ class QuoteViewModelTest {
     @Test
     fun `error state handles exception without message`() = runTest {
         // Given: IOException without message
-        coEvery { quoteRepository.quoteOfTheDay(any()) } throws IOException()
+        coEvery { quoteRepository.quoteOfTheDay() } throws IOException()
 
         // When: ViewModel loads quote
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
         advanceUntilIdle()
 
         // Then: Generic error message is used
         viewModel.uiState.test {
             val state = awaitItem() as QuoteUiState.Error
-            assertEquals("Failed to load quote", state.message)
+            assertThat(state.message).isEqualTo("Failed to load quote")
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -227,9 +238,9 @@ class QuoteViewModelTest {
     @Test
     fun `preferences change updates script without loading flash`() = runTest {
         // Given: ViewModel initialized with one quote
-        coEvery { quoteRepository.quoteOfTheDay(RunicScript.ELDER_FUTHARK) } returns testQuote
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
 
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
         advanceUntilIdle()
 
         // When: Preferences change to different script
@@ -241,7 +252,7 @@ class QuoteViewModelTest {
 
             // Then: State updates immediately without loading
             val successState = awaitItem() as QuoteUiState.Success
-            assertEquals(RunicScript.YOUNGER_FUTHARK, successState.selectedScript)
+            assertThat(successState.selectedScript).isEqualTo(RunicScript.YOUNGER_FUTHARK)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -250,9 +261,9 @@ class QuoteViewModelTest {
     @Test
     fun `font preference change is reflected in state`() = runTest {
         // Given: ViewModel initialized
-        coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
 
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
         advanceUntilIdle()
 
         // When: Font preference changes
@@ -263,7 +274,7 @@ class QuoteViewModelTest {
             advanceUntilIdle()
 
             val state = awaitItem() as QuoteUiState.Success
-            assertEquals("babelstone", state.selectedFont)
+            assertThat(state.selectedFont).isEqualTo("babelstone")
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -274,11 +285,11 @@ class QuoteViewModelTest {
     @Test
     fun `getRandomQuote loads random quote successfully`() = runTest {
         // Given: ViewModel initialized with daily quote
-        coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
         val randomQuote = testQuote.copy(id = 99, textLatin = "Random quote")
-        coEvery { quoteRepository.randomQuote(any()) } returns randomQuote
+        coEvery { quoteRepository.randomQuote() } returns randomQuote
 
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
         advanceUntilIdle()
 
         // When: Getting random quote
@@ -290,12 +301,12 @@ class QuoteViewModelTest {
 
             // Then: Loading emitted
             val loadingState = awaitItem()
-            assertTrue(loadingState is QuoteUiState.Loading)
+            assertThat(loadingState).isInstanceOf(QuoteUiState.Loading::class.java)
 
             // Then: Random quote loaded
             val successState = awaitItem() as QuoteUiState.Success
-            assertEquals(99L, successState.quote.id)
-            assertEquals("Random quote", successState.quote.textLatin)
+            assertThat(successState.quote.id).isEqualTo(99L)
+            assertThat(successState.quote.textLatin).isEqualTo("Random quote")
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -304,10 +315,10 @@ class QuoteViewModelTest {
     @Test
     fun `getRandomQuote handles null result`() = runTest {
         // Given: Repository returns null for random quote
-        coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
-        coEvery { quoteRepository.randomQuote(any()) } returns null
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
+        coEvery { quoteRepository.randomQuote() } returns null
 
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
         advanceUntilIdle()
 
         // When: Getting random quote
@@ -319,7 +330,7 @@ class QuoteViewModelTest {
 
             skipItems(1) // Skip Loading
             val state = awaitItem()
-            assertTrue(state is QuoteUiState.Empty)
+            assertThat(state).isInstanceOf(QuoteUiState.Empty::class.java)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -328,10 +339,10 @@ class QuoteViewModelTest {
     @Test
     fun `getRandomQuote handles errors`() = runTest {
         // Given: Repository throws IOException
-        coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
-        coEvery { quoteRepository.randomQuote(any()) } throws IOException("Random error")
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
+        coEvery { quoteRepository.randomQuote() } throws IOException("Random error")
 
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
         advanceUntilIdle()
 
         // When: Getting random quote
@@ -343,7 +354,7 @@ class QuoteViewModelTest {
 
             skipItems(1) // Skip Loading
             val state = awaitItem() as QuoteUiState.Error
-            assertEquals("Random error", state.message)
+            assertThat(state.message).isEqualTo("Random error")
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -354,9 +365,9 @@ class QuoteViewModelTest {
     @Test
     fun `refreshQuote reloads quote of the day`() = runTest {
         // Given: ViewModel initialized
-        coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
 
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
         advanceUntilIdle()
 
         // When: Refreshing quote
@@ -368,10 +379,10 @@ class QuoteViewModelTest {
 
             // Then: Loading and Success states emitted
             val loadingState = awaitItem()
-            assertTrue(loadingState is QuoteUiState.Loading)
+            assertThat(loadingState).isInstanceOf(QuoteUiState.Loading::class.java)
 
             val successState = awaitItem()
-            assertTrue(successState is QuoteUiState.Success)
+            assertThat(successState).isInstanceOf(QuoteUiState.Success::class.java)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -380,9 +391,9 @@ class QuoteViewModelTest {
     @Test
     fun `refreshQuote calls repository`() = runTest {
         // Given: ViewModel initialized
-        coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
 
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
         advanceUntilIdle()
 
         // When: Refreshing quote
@@ -390,23 +401,28 @@ class QuoteViewModelTest {
         advanceUntilIdle()
 
         // Then: Repository is called at least twice (init + refresh)
-        coVerify(atLeast = 2) { quoteRepository.quoteOfTheDay(any()) }
+        coVerify(atLeast = 2) { quoteRepository.quoteOfTheDay() }
     }
 
     // ==================== Script-Specific Tests ====================
 
     @Test
-    fun `different scripts use correct repository parameter`() = runTest {
+    fun `different scripts render correct runic text`() = runTest {
         // Given: Younger Futhark preference
         preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.YOUNGER_FUTHARK)
-        coEvery { quoteRepository.quoteOfTheDay(RunicScript.YOUNGER_FUTHARK) } returns testQuote
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
 
         // When: ViewModel loads quote
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
         advanceUntilIdle()
 
-        // Then: Repository called with correct script
-        coVerify { quoteRepository.quoteOfTheDay(RunicScript.YOUNGER_FUTHARK) }
+        // Then: Repository called and correct script applied
+        coVerify { quoteRepository.quoteOfTheDay() }
+        viewModel.uiState.test {
+            val state = awaitItem() as QuoteUiState.Success
+            assertThat(state.selectedScript).isEqualTo(RunicScript.YOUNGER_FUTHARK)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
@@ -414,17 +430,17 @@ class QuoteViewModelTest {
         // Given: Cirth preference
         val cirthQuote = testQuote.copy(runicCirth = "\uE0C9\uE0C8\uE0A0\uE088")
         preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.CIRTH)
-        coEvery { quoteRepository.quoteOfTheDay(RunicScript.CIRTH) } returns cirthQuote
+        coEvery { quoteRepository.quoteOfTheDay() } returns cirthQuote
 
         // When: ViewModel loads quote
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
         advanceUntilIdle()
 
         // Then: Cirth text is used
         viewModel.uiState.test {
             val state = awaitItem() as QuoteUiState.Success
-            assertEquals(RunicScript.CIRTH, state.selectedScript)
-            assertEquals("\uE0C9\uE0C8\uE0A0\uE088", state.runicText)
+            assertThat(state.selectedScript).isEqualTo(RunicScript.CIRTH)
+            assertThat(state.runicText).isEqualTo("\uE0C9\uE0C8\uE0A0\uE088")
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -439,16 +455,16 @@ class QuoteViewModelTest {
             runicYounger = null,
             runicCirth = null
         )
-        coEvery { quoteRepository.quoteOfTheDay(any()) } returns quoteWithNulls
+        coEvery { quoteRepository.quoteOfTheDay() } returns quoteWithNulls
 
         // When: ViewModel loads quote
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
         advanceUntilIdle()
 
         // Then: Runic text is generated from domain transliteration
         viewModel.uiState.test {
             val state = awaitItem() as QuoteUiState.Success
-            assertTrue(state.runicText.isNotEmpty()) // Transliterated text
+            assertThat(state.runicText).isNotEmpty() // Transliterated text
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -456,34 +472,34 @@ class QuoteViewModelTest {
     @Test
     fun `multiple rapid preference changes are handled correctly`() = runTest {
         // Given: ViewModel initialized
-        coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
 
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
         advanceUntilIdle()
 
         // When: Multiple rapid preference changes
         viewModel.uiState.test {
             // Initial state
             val initial = awaitItem()
-            assertTrue(initial is QuoteUiState.Success)
+            assertThat(initial).isInstanceOf(QuoteUiState.Success::class.java)
 
             // First change
             preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.YOUNGER_FUTHARK)
             advanceUntilIdle()
             val state1 = awaitItem() as QuoteUiState.Success
-            assertEquals(RunicScript.YOUNGER_FUTHARK, state1.selectedScript)
+            assertThat(state1.selectedScript).isEqualTo(RunicScript.YOUNGER_FUTHARK)
 
             // Second change
             preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.CIRTH)
             advanceUntilIdle()
             val state2 = awaitItem() as QuoteUiState.Success
-            assertEquals(RunicScript.CIRTH, state2.selectedScript)
+            assertThat(state2.selectedScript).isEqualTo(RunicScript.CIRTH)
 
             // Third change
             preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.ELDER_FUTHARK)
             advanceUntilIdle()
             val finalState = awaitItem() as QuoteUiState.Success
-            assertEquals(RunicScript.ELDER_FUTHARK, finalState.selectedScript)
+            assertThat(finalState.selectedScript).isEqualTo(RunicScript.ELDER_FUTHARK)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -492,20 +508,20 @@ class QuoteViewModelTest {
     @Test
     fun `state transitions follow correct order from loading to success`() = runTest {
         // Given: Repository will return a quote after delay
-        coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
 
         // When: ViewModel is created
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
 
         // Then: States transition in expected order
         viewModel.uiState.test {
             val loadingState = awaitItem()
-            assertTrue("First state should be Loading", loadingState is QuoteUiState.Loading)
+            assertThat(loadingState).isInstanceOf(QuoteUiState.Loading::class.java)
 
             advanceUntilIdle()
 
             val successState = awaitItem()
-            assertTrue("Second state should be Success", successState is QuoteUiState.Success)
+            assertThat(successState).isInstanceOf(QuoteUiState.Success::class.java)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -514,24 +530,24 @@ class QuoteViewModelTest {
     @Test
     fun `state transitions from success to loading to success on refresh`() = runTest {
         // Given: ViewModel initialized with quote
-        coEvery { quoteRepository.quoteOfTheDay(any()) } returns testQuote
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
 
-        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager)
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
         advanceUntilIdle()
 
         // When: Refreshing
         viewModel.uiState.test {
             val initialSuccess = awaitItem()
-            assertTrue("Should start in Success", initialSuccess is QuoteUiState.Success)
+            assertThat(initialSuccess).isInstanceOf(QuoteUiState.Success::class.java)
 
             viewModel.refreshQuote()
             advanceUntilIdle()
 
             val loading = awaitItem()
-            assertTrue("Should transition to Loading", loading is QuoteUiState.Loading)
+            assertThat(loading).isInstanceOf(QuoteUiState.Loading::class.java)
 
             val finalSuccess = awaitItem()
-            assertTrue("Should return to Success", finalSuccess is QuoteUiState.Success)
+            assertThat(finalSuccess).isInstanceOf(QuoteUiState.Success::class.java)
 
             cancelAndIgnoreRemainingEvents()
         }

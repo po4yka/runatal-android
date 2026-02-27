@@ -28,7 +28,10 @@ object DatabaseModule {
             RunicQuotesDatabase::class.java,
             "runic_quotes.db"
         )
-            .addMigrations(RunicQuotesDatabase.MIGRATION_1_2)
+            .addMigrations(
+                RunicQuotesDatabase.MIGRATION_1_2,
+                RunicQuotesDatabase.MIGRATION_2_3
+            )
             .build()
     }
 

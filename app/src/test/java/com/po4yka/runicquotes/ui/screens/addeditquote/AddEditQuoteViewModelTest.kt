@@ -2,6 +2,7 @@ package com.po4yka.runicquotes.ui.screens.addeditquote
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import com.google.common.truth.Truth.assertThat
 import com.po4yka.runicquotes.data.preferences.UserPreferences
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
@@ -9,6 +10,7 @@ import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.transliteration.CirthTransliterator
 import com.po4yka.runicquotes.domain.transliteration.ElderFutharkTransliterator
+import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import com.po4yka.runicquotes.domain.transliteration.YoungerFutharkTransliterator
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -23,11 +25,6 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.IOException
@@ -43,9 +40,7 @@ class AddEditQuoteViewModelTest {
 
     private lateinit var quoteRepository: QuoteRepository
     private lateinit var userPreferencesManager: UserPreferencesManager
-    private lateinit var elderFutharkTransliterator: ElderFutharkTransliterator
-    private lateinit var youngerFutharkTransliterator: YoungerFutharkTransliterator
-    private lateinit var cirthTransliterator: CirthTransliterator
+    private lateinit var transliterationFactory: TransliterationFactory
     private lateinit var savedStateHandle: SavedStateHandle
     private lateinit var viewModel: AddEditQuoteViewModel
 
@@ -61,8 +56,8 @@ class AddEditQuoteViewModelTest {
         id = 1,
         textLatin = "Test quote",
         author = "Test Author",
-        runicElder = "ᛏᛖᛋᛏ ᛩᚢᛟᛏᛖ",
-        runicYounger = "ᛏᛖᛋᛏ ᛩᚢᛟᛏᛖ",
+        runicElder = "\u16CF\u16D6\u16CA\u16CF \u16B2\u16A2\u16DF\u16CF\u16D6",
+        runicYounger = "\u16CF\u16D6\u16CA\u16CF \u16B2\u16A2\u16DF\u16CF\u16D6",
         runicCirth = "\uE088\uE0C9\uE09C\uE088",
         isUserCreated = true,
         isFavorite = false
@@ -78,10 +73,12 @@ class AddEditQuoteViewModelTest {
         quoteRepository = mockk()
         userPreferencesManager = mockk()
 
-        // Create real transliterators
-        elderFutharkTransliterator = ElderFutharkTransliterator()
-        youngerFutharkTransliterator = YoungerFutharkTransliterator()
-        cirthTransliterator = CirthTransliterator()
+        // Create real TransliterationFactory with real transliterators
+        transliterationFactory = TransliterationFactory(
+            ElderFutharkTransliterator(),
+            YoungerFutharkTransliterator(),
+            CirthTransliterator()
+        )
 
         // Set up preferences flow
         preferencesFlow = MutableStateFlow(defaultPreferences)
@@ -104,9 +101,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -114,14 +109,14 @@ class AddEditQuoteViewModelTest {
         // Then: State is empty
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals("", state.textLatin)
-            assertEquals("", state.author)
-            assertEquals("", state.runicElderPreview)
-            assertEquals("", state.runicYoungerPreview)
-            assertEquals("", state.runicCirthPreview)
-            assertFalse(state.isEditing)
-            assertFalse(state.isSaving)
-            assertNull(state.errorMessage)
+            assertThat(state.textLatin).isEqualTo("")
+            assertThat(state.author).isEqualTo("")
+            assertThat(state.runicElderPreview).isEqualTo("")
+            assertThat(state.runicYoungerPreview).isEqualTo("")
+            assertThat(state.runicCirthPreview).isEqualTo("")
+            assertThat(state.isEditing).isFalse()
+            assertThat(state.isSaving).isFalse()
+            assertThat(state.errorMessage).isNull()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -135,9 +130,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -145,7 +138,7 @@ class AddEditQuoteViewModelTest {
         // Then: Preferences are loaded
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(RunicScript.ELDER_FUTHARK, state.selectedScript)
+            assertThat(state.selectedScript).isEqualTo(RunicScript.ELDER_FUTHARK)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -162,9 +155,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -172,12 +163,12 @@ class AddEditQuoteViewModelTest {
         // Then: Quote is loaded and previews generated
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(testQuote.textLatin, state.textLatin)
-            assertEquals(testQuote.author, state.author)
-            assertTrue(state.isEditing)
-            assertTrue(state.runicElderPreview.isNotEmpty())
-            assertTrue(state.runicYoungerPreview.isNotEmpty())
-            assertTrue(state.runicCirthPreview.isNotEmpty())
+            assertThat(state.textLatin).isEqualTo(testQuote.textLatin)
+            assertThat(state.author).isEqualTo(testQuote.author)
+            assertThat(state.isEditing).isTrue()
+            assertThat(state.runicElderPreview).isNotEmpty()
+            assertThat(state.runicYoungerPreview).isNotEmpty()
+            assertThat(state.runicCirthPreview).isNotEmpty()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -193,9 +184,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -203,9 +192,9 @@ class AddEditQuoteViewModelTest {
         // Then: Quote is not loaded (system quotes can't be edited)
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals("", state.textLatin)
-            assertEquals("", state.author)
-            assertFalse(state.isEditing)
+            assertThat(state.textLatin).isEqualTo("")
+            assertThat(state.author).isEqualTo("")
+            assertThat(state.isEditing).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -220,9 +209,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -230,9 +217,9 @@ class AddEditQuoteViewModelTest {
         // Then: Empty state
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals("", state.textLatin)
-            assertEquals("", state.author)
-            assertFalse(state.isEditing)
+            assertThat(state.textLatin).isEqualTo("")
+            assertThat(state.author).isEqualTo("")
+            assertThat(state.isEditing).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -246,9 +233,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -261,10 +246,10 @@ class AddEditQuoteViewModelTest {
         // Then: Text and previews are updated
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(newText, state.textLatin)
-            assertTrue(state.runicElderPreview.isNotEmpty())
-            assertTrue(state.runicYoungerPreview.isNotEmpty())
-            assertTrue(state.runicCirthPreview.isNotEmpty())
+            assertThat(state.textLatin).isEqualTo(newText)
+            assertThat(state.runicElderPreview).isNotEmpty()
+            assertThat(state.runicYoungerPreview).isNotEmpty()
+            assertThat(state.runicCirthPreview).isNotEmpty()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -276,9 +261,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -293,10 +276,10 @@ class AddEditQuoteViewModelTest {
         // Then: Previews are empty
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals("", state.textLatin)
-            assertEquals("", state.runicElderPreview)
-            assertEquals("", state.runicYoungerPreview)
-            assertEquals("", state.runicCirthPreview)
+            assertThat(state.textLatin).isEqualTo("")
+            assertThat(state.runicElderPreview).isEqualTo("")
+            assertThat(state.runicYoungerPreview).isEqualTo("")
+            assertThat(state.runicCirthPreview).isEqualTo("")
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -308,9 +291,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -323,8 +304,8 @@ class AddEditQuoteViewModelTest {
         // Then: Previews are generated
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(textWithSpecialChars, state.textLatin)
-            assertTrue(state.runicElderPreview.isNotEmpty())
+            assertThat(state.textLatin).isEqualTo(textWithSpecialChars)
+            assertThat(state.runicElderPreview).isNotEmpty()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -338,9 +319,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -353,7 +332,7 @@ class AddEditQuoteViewModelTest {
         // Then: Author is updated
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(newAuthor, state.author)
+            assertThat(state.author).isEqualTo(newAuthor)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -365,9 +344,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -385,8 +362,8 @@ class AddEditQuoteViewModelTest {
 
             // Then: Runic preview unchanged
             val stateAfter = awaitItem()
-            assertEquals(previewBefore, stateAfter.runicElderPreview)
-            assertEquals("New Author", stateAfter.author)
+            assertThat(stateAfter.runicElderPreview).isEqualTo(previewBefore)
+            assertThat(stateAfter.author).isEqualTo("New Author")
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -401,9 +378,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -415,7 +390,7 @@ class AddEditQuoteViewModelTest {
         // Then: Script is updated
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(RunicScript.YOUNGER_FUTHARK, state.selectedScript)
+            assertThat(state.selectedScript).isEqualTo(RunicScript.YOUNGER_FUTHARK)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -427,9 +402,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -437,17 +410,17 @@ class AddEditQuoteViewModelTest {
         viewModel.uiState.test {
             // Initial
             val initial = awaitItem()
-            assertEquals(RunicScript.ELDER_FUTHARK, initial.selectedScript)
+            assertThat(initial.selectedScript).isEqualTo(RunicScript.ELDER_FUTHARK)
 
             // Younger Futhark
             viewModel.updateSelectedScript(RunicScript.YOUNGER_FUTHARK)
             val younger = awaitItem()
-            assertEquals(RunicScript.YOUNGER_FUTHARK, younger.selectedScript)
+            assertThat(younger.selectedScript).isEqualTo(RunicScript.YOUNGER_FUTHARK)
 
             // Cirth
             viewModel.updateSelectedScript(RunicScript.CIRTH)
             val cirth = awaitItem()
-            assertEquals(RunicScript.CIRTH, cirth.selectedScript)
+            assertThat(cirth.selectedScript).isEqualTo(RunicScript.CIRTH)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -462,9 +435,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -479,9 +450,9 @@ class AddEditQuoteViewModelTest {
         // Then: Error is shown and callback not invoked
         viewModel.uiState.test {
             val state = awaitItem()
-            assertNotNull(state.errorMessage)
-            assertTrue(state.errorMessage!!.contains("cannot be empty"))
-            assertFalse(callbackInvoked)
+            assertThat(state.errorMessage).isNotNull()
+            assertThat(state.errorMessage).contains("cannot be empty")
+            assertThat(callbackInvoked).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -493,9 +464,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -510,9 +479,9 @@ class AddEditQuoteViewModelTest {
         // Then: Error is shown and callback not invoked
         viewModel.uiState.test {
             val state = awaitItem()
-            assertNotNull(state.errorMessage)
-            assertTrue(state.errorMessage!!.contains("cannot be empty"))
-            assertFalse(callbackInvoked)
+            assertThat(state.errorMessage).isNotNull()
+            assertThat(state.errorMessage).contains("cannot be empty")
+            assertThat(callbackInvoked).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -524,9 +493,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -542,8 +509,8 @@ class AddEditQuoteViewModelTest {
         // Then: Error is shown
         viewModel.uiState.test {
             val state = awaitItem()
-            assertNotNull(state.errorMessage)
-            assertFalse(callbackInvoked)
+            assertThat(state.errorMessage).isNotNull()
+            assertThat(callbackInvoked).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -557,9 +524,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -576,7 +541,7 @@ class AddEditQuoteViewModelTest {
 
         // Then: Quote is saved and callback invoked
         coVerify { quoteRepository.saveUserQuote(any()) }
-        assertTrue(callbackInvoked)
+        assertThat(callbackInvoked).isTrue()
     }
 
     @Test
@@ -592,9 +557,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -608,10 +571,10 @@ class AddEditQuoteViewModelTest {
         advanceUntilIdle()
 
         // Then: All runic fields are populated
-        assertNotNull(savedQuote)
-        assertTrue(savedQuote!!.runicElder?.isNotEmpty() == true)
-        assertTrue(savedQuote!!.runicYounger?.isNotEmpty() == true)
-        assertTrue(savedQuote!!.runicCirth?.isNotEmpty() == true)
+        assertThat(savedQuote).isNotNull()
+        assertThat(savedQuote!!.runicElder?.isNotEmpty() == true).isTrue()
+        assertThat(savedQuote!!.runicYounger?.isNotEmpty() == true).isTrue()
+        assertThat(savedQuote!!.runicCirth?.isNotEmpty() == true).isTrue()
     }
 
     @Test
@@ -627,9 +590,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -643,9 +604,9 @@ class AddEditQuoteViewModelTest {
         advanceUntilIdle()
 
         // Then: Text is trimmed
-        assertNotNull(savedQuote)
-        assertEquals("Test quote", savedQuote!!.textLatin)
-        assertEquals("Test Author", savedQuote!!.author)
+        assertThat(savedQuote).isNotNull()
+        assertThat(savedQuote!!.textLatin).isEqualTo("Test quote")
+        assertThat(savedQuote!!.author).isEqualTo("Test Author")
     }
 
     @Test
@@ -657,9 +618,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -671,17 +630,17 @@ class AddEditQuoteViewModelTest {
         // When: Saving quote
         viewModel.uiState.test {
             val initial = awaitItem()
-            assertFalse(initial.isSaving)
+            assertThat(initial.isSaving).isFalse()
 
             viewModel.saveQuote { }
 
             val saving = awaitItem()
-            assertTrue(saving.isSaving)
+            assertThat(saving.isSaving).isTrue()
 
             advanceUntilIdle()
 
             val saved = awaitItem()
-            assertFalse(saved.isSaving)
+            assertThat(saved.isSaving).isFalse()
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -699,9 +658,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -717,7 +674,7 @@ class AddEditQuoteViewModelTest {
 
         // Then: Quote is saved with original ID
         coVerify { quoteRepository.saveUserQuote(match { it.id == 1L }) }
-        assertTrue(callbackInvoked)
+        assertThat(callbackInvoked).isTrue()
     }
 
     // ==================== Error Handling Tests ====================
@@ -731,9 +688,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -751,10 +706,10 @@ class AddEditQuoteViewModelTest {
         // Then: Error message is set and callback not invoked
         viewModel.uiState.test {
             val state = awaitItem()
-            assertNotNull(state.errorMessage)
-            assertTrue(state.errorMessage!!.contains("Failed to save quote"))
-            assertFalse(state.isSaving)
-            assertFalse(callbackInvoked)
+            assertThat(state.errorMessage).isNotNull()
+            assertThat(state.errorMessage).contains("Failed to save quote")
+            assertThat(state.isSaving).isFalse()
+            assertThat(callbackInvoked).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -768,9 +723,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -788,9 +741,9 @@ class AddEditQuoteViewModelTest {
         // Then: Error message is set
         viewModel.uiState.test {
             val state = awaitItem()
-            assertNotNull(state.errorMessage)
-            assertTrue(state.errorMessage!!.contains("Invalid state"))
-            assertFalse(callbackInvoked)
+            assertThat(state.errorMessage).isNotNull()
+            assertThat(state.errorMessage).contains("Invalid state")
+            assertThat(callbackInvoked).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -802,9 +755,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -816,13 +767,13 @@ class AddEditQuoteViewModelTest {
         // When: Clearing error
         viewModel.uiState.test {
             val stateWithError = awaitItem()
-            assertNotNull(stateWithError.errorMessage)
+            assertThat(stateWithError.errorMessage).isNotNull()
 
             viewModel.clearError()
             advanceUntilIdle()
 
             val stateWithoutError = awaitItem()
-            assertNull(stateWithoutError.errorMessage)
+            assertThat(stateWithoutError.errorMessage).isNull()
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -837,9 +788,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -847,7 +796,7 @@ class AddEditQuoteViewModelTest {
         viewModel.uiState.test {
             // Initial state
             val initial = awaitItem()
-            assertEquals(RunicScript.ELDER_FUTHARK, initial.selectedScript)
+            assertThat(initial.selectedScript).isEqualTo(RunicScript.ELDER_FUTHARK)
 
             // When: Preferences change
             preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.CIRTH)
@@ -855,7 +804,7 @@ class AddEditQuoteViewModelTest {
 
             // Then: State reflects new script
             val updated = awaitItem()
-            assertEquals(RunicScript.CIRTH, updated.selectedScript)
+            assertThat(updated.selectedScript).isEqualTo(RunicScript.CIRTH)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -870,9 +819,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -887,8 +834,8 @@ class AddEditQuoteViewModelTest {
         // Then: Final preview matches final text
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals("ABCD", state.textLatin)
-            assertTrue(state.runicElderPreview.isNotEmpty())
+            assertThat(state.textLatin).isEqualTo("ABCD")
+            assertThat(state.runicElderPreview).isNotEmpty()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -900,9 +847,7 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -915,10 +860,10 @@ class AddEditQuoteViewModelTest {
         // Then: Previews are generated
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(longText, state.textLatin)
-            assertTrue(state.runicElderPreview.length > longText.length / 2) // Rough check
-            assertTrue(state.runicYoungerPreview.isNotEmpty())
-            assertTrue(state.runicCirthPreview.isNotEmpty())
+            assertThat(state.textLatin).isEqualTo(longText)
+            assertThat(state.runicElderPreview.length).isGreaterThan(longText.length / 2) // Rough check
+            assertThat(state.runicYoungerPreview).isNotEmpty()
+            assertThat(state.runicCirthPreview).isNotEmpty()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -930,23 +875,21 @@ class AddEditQuoteViewModelTest {
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
-            elderFutharkTransliterator,
-            youngerFutharkTransliterator,
-            cirthTransliterator,
+            transliterationFactory,
             savedStateHandle
         )
         advanceUntilIdle()
 
         // When: Setting text with unicode
-        val unicodeText = "Café naïve résumé"
+        val unicodeText = "Caf\u00E9 na\u00EFve r\u00E9sum\u00E9"
         viewModel.updateTextLatin(unicodeText)
         advanceUntilIdle()
 
         // Then: Previews are generated
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(unicodeText, state.textLatin)
-            assertTrue(state.runicElderPreview.isNotEmpty())
+            assertThat(state.textLatin).isEqualTo(unicodeText)
+            assertThat(state.runicElderPreview).isNotEmpty()
             cancelAndIgnoreRemainingEvents()
         }
     }

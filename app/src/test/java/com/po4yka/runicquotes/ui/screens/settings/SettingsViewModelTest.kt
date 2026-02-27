@@ -1,6 +1,7 @@
 package com.po4yka.runicquotes.ui.screens.settings
 
 import app.cash.turbine.test
+import com.google.common.truth.Truth.assertThat
 import com.po4yka.runicquotes.data.preferences.UserPreferences
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.domain.model.RunicScript
@@ -17,9 +18,6 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -93,7 +91,7 @@ class SettingsViewModelTest {
         // Then: Initial preferences are exposed
         viewModel.userPreferences.test {
             val preferences = awaitItem()
-            assertEquals(defaultPreferences, preferences)
+            assertThat(preferences).isEqualTo(defaultPreferences)
         }
     }
 
@@ -104,14 +102,14 @@ class SettingsViewModelTest {
             val prefs = awaitItem()
 
             // Then: All default values are present
-            assertEquals(RunicScript.ELDER_FUTHARK, prefs.selectedScript)
-            assertEquals("noto", prefs.selectedFont)
-            assertEquals("daily", prefs.widgetUpdateMode)
-            assertEquals(0L, prefs.lastQuoteDate)
-            assertEquals(0L, prefs.lastDailyQuoteId)
-            assertEquals("system", prefs.themeMode)
-            assertTrue(prefs.showTransliteration)
-            assertEquals(1.0f, prefs.fontSize, 0.001f)
+            assertThat(prefs.selectedScript).isEqualTo(RunicScript.ELDER_FUTHARK)
+            assertThat(prefs.selectedFont).isEqualTo("noto")
+            assertThat(prefs.widgetUpdateMode).isEqualTo("daily")
+            assertThat(prefs.lastQuoteDate).isEqualTo(0L)
+            assertThat(prefs.lastDailyQuoteId).isEqualTo(0L)
+            assertThat(prefs.themeMode).isEqualTo("system")
+            assertThat(prefs.showTransliteration).isTrue()
+            assertThat(prefs.fontSize).isWithin(0.001f).of(1.0f)
         }
     }
 
@@ -139,7 +137,7 @@ class SettingsViewModelTest {
 
             // Then: Flow emits updated value
             val updatedPrefs = awaitItem()
-            assertEquals(RunicScript.YOUNGER_FUTHARK, updatedPrefs.selectedScript)
+            assertThat(updatedPrefs.selectedScript).isEqualTo(RunicScript.YOUNGER_FUTHARK)
         }
     }
 
@@ -148,14 +146,14 @@ class SettingsViewModelTest {
         viewModel.userPreferences.test {
             // Given: Initial state
             val initial = awaitItem()
-            assertEquals(RunicScript.ELDER_FUTHARK, initial.selectedScript)
+            assertThat(initial.selectedScript).isEqualTo(RunicScript.ELDER_FUTHARK)
 
             // When: Updating to Cirth
             viewModel.updateSelectedScript(RunicScript.CIRTH)
 
             // Then: Preferences reflect change
             val updated = awaitItem()
-            assertEquals(RunicScript.CIRTH, updated.selectedScript)
+            assertThat(updated.selectedScript).isEqualTo(RunicScript.CIRTH)
         }
     }
 
@@ -170,7 +168,7 @@ class SettingsViewModelTest {
         // Then: Final value is applied
         viewModel.userPreferences.test {
             val prefs = awaitItem()
-            assertEquals(RunicScript.ELDER_FUTHARK, prefs.selectedScript)
+            assertThat(prefs.selectedScript).isEqualTo(RunicScript.ELDER_FUTHARK)
         }
     }
 
@@ -198,7 +196,7 @@ class SettingsViewModelTest {
 
             // Then: Flow emits updated value
             val updatedPrefs = awaitItem()
-            assertEquals("babelstone", updatedPrefs.selectedFont)
+            assertThat(updatedPrefs.selectedFont).isEqualTo("babelstone")
         }
     }
 
@@ -236,7 +234,7 @@ class SettingsViewModelTest {
 
             // Then: Flow emits updated value
             val updatedPrefs = awaitItem()
-            assertEquals("dark", updatedPrefs.themeMode)
+            assertThat(updatedPrefs.themeMode).isEqualTo("dark")
         }
     }
 
@@ -251,7 +249,7 @@ class SettingsViewModelTest {
 
             // Then: Preferences reflect change
             val updated = awaitItem()
-            assertEquals("light", updated.themeMode)
+            assertThat(updated.themeMode).isEqualTo("light")
         }
     }
 
@@ -264,7 +262,7 @@ class SettingsViewModelTest {
         // Then: Preferences reflect change
         viewModel.userPreferences.test {
             val prefs = awaitItem()
-            assertEquals("system", prefs.themeMode)
+            assertThat(prefs.themeMode).isEqualTo("system")
         }
     }
 
@@ -292,7 +290,7 @@ class SettingsViewModelTest {
 
             // Then: Flow emits updated value
             val updatedPrefs = awaitItem()
-            assertFalse(updatedPrefs.showTransliteration)
+            assertThat(updatedPrefs.showTransliteration).isFalse()
         }
     }
 
@@ -306,13 +304,13 @@ class SettingsViewModelTest {
             viewModel.updateShowTransliteration(false)
             advanceUntilIdle()
             val prefs1 = awaitItem()
-            assertFalse(prefs1.showTransliteration)
+            assertThat(prefs1.showTransliteration).isFalse()
 
             // When: Toggling back to true
             viewModel.updateShowTransliteration(true)
             advanceUntilIdle()
             val prefs2 = awaitItem()
-            assertTrue(prefs2.showTransliteration)
+            assertThat(prefs2.showTransliteration).isTrue()
         }
     }
 
@@ -340,7 +338,7 @@ class SettingsViewModelTest {
 
             // Then: Flow emits updated value
             val updatedPrefs = awaitItem()
-            assertEquals(1.5f, updatedPrefs.fontSize, 0.001f)
+            assertThat(updatedPrefs.fontSize).isWithin(0.001f).of(1.5f)
         }
     }
 
@@ -356,7 +354,7 @@ class SettingsViewModelTest {
 
             // Then: Value is updated
             val updated = awaitItem()
-            assertEquals(0.5f, updated.fontSize, 0.001f)
+            assertThat(updated.fontSize).isWithin(0.001f).of(0.5f)
         }
     }
 
@@ -372,7 +370,7 @@ class SettingsViewModelTest {
 
             // Then: Value is updated
             val updated = awaitItem()
-            assertEquals(2.5f, updated.fontSize, 0.001f)
+            assertThat(updated.fontSize).isWithin(0.001f).of(2.5f)
         }
     }
 
@@ -402,11 +400,11 @@ class SettingsViewModelTest {
 
             // Then: All updates are reflected in final state
             val final = awaitItem()
-            assertEquals(RunicScript.YOUNGER_FUTHARK, final.selectedScript)
-            assertEquals("babelstone", final.selectedFont)
-            assertEquals("dark", final.themeMode)
-            assertFalse(final.showTransliteration)
-            assertEquals(1.2f, final.fontSize, 0.001f)
+            assertThat(final.selectedScript).isEqualTo(RunicScript.YOUNGER_FUTHARK)
+            assertThat(final.selectedFont).isEqualTo("babelstone")
+            assertThat(final.themeMode).isEqualTo("dark")
+            assertThat(final.showTransliteration).isFalse()
+            assertThat(final.fontSize).isWithin(0.001f).of(1.2f)
         }
     }
 
@@ -434,7 +432,7 @@ class SettingsViewModelTest {
 
             // Then: Final value is applied
             val final = awaitItem()
-            assertEquals(1.5f, final.fontSize, 0.001f)
+            assertThat(final.fontSize).isWithin(0.001f).of(1.5f)
         }
     }
 
@@ -452,13 +450,13 @@ class SettingsViewModelTest {
 
             // Then: Preferences are updated
             val updated = awaitItem()
-            assertEquals(RunicScript.CIRTH, updated.selectedScript)
+            assertThat(updated.selectedScript).isEqualTo(RunicScript.CIRTH)
         }
 
         // Then: New collectors see the updated state
         viewModel.userPreferences.test {
             val prefs = awaitItem()
-            assertEquals(RunicScript.CIRTH, prefs.selectedScript)
+            assertThat(prefs.selectedScript).isEqualTo(RunicScript.CIRTH)
         }
     }
 
@@ -467,13 +465,13 @@ class SettingsViewModelTest {
         // When: Collecting from multiple points
         viewModel.userPreferences.test {
             val prefs = awaitItem()
-            assertEquals(RunicScript.ELDER_FUTHARK, prefs.selectedScript)
+            assertThat(prefs.selectedScript).isEqualTo(RunicScript.ELDER_FUTHARK)
             expectNoEvents()
         }
 
         viewModel.userPreferences.test {
             val prefs = awaitItem()
-            assertEquals(RunicScript.ELDER_FUTHARK, prefs.selectedScript)
+            assertThat(prefs.selectedScript).isEqualTo(RunicScript.ELDER_FUTHARK)
         }
 
         // Both collectors see the same initial state
@@ -495,7 +493,7 @@ class SettingsViewModelTest {
 
             // Then: Value is set (only one emission because values are the same)
             val updated = awaitItem()
-            assertEquals("dark", updated.themeMode)
+            assertThat(updated.themeMode).isEqualTo("dark")
 
             // And preferences manager was called each time
             coVerify(exactly = 3) { userPreferencesManager.updateThemeMode("dark") }
@@ -514,7 +512,7 @@ class SettingsViewModelTest {
 
             // Then: Value is updated (validation is in data layer)
             val updated = awaitItem()
-            assertEquals(0f, updated.fontSize, 0.001f)
+            assertThat(updated.fontSize).isWithin(0.001f).of(0f)
         }
     }
 

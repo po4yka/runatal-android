@@ -3,7 +3,6 @@ package com.po4yka.runicquotes.data.repository
 import com.po4yka.runicquotes.data.local.dao.QuoteDao
 import com.po4yka.runicquotes.data.local.entity.QuoteEntity
 import com.po4yka.runicquotes.domain.model.Quote
-import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.util.TimeProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -33,7 +32,7 @@ class QuoteRepositoryImpl @Inject constructor(
         isSeeded = true
     }
 
-    override suspend fun quoteOfTheDay(script: RunicScript): Quote? {
+    override suspend fun quoteOfTheDay(): Quote? {
         // Ensure database is seeded
         seedIfNeeded()
 
@@ -48,7 +47,7 @@ class QuoteRepositoryImpl @Inject constructor(
         return allQuotes[index].toDomain()
     }
 
-    override suspend fun randomQuote(script: RunicScript): Quote? {
+    override suspend fun randomQuote(): Quote? {
         seedIfNeeded()
         return quoteDao.getRandom()?.toDomain()
     }
