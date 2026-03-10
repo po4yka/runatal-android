@@ -20,7 +20,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -92,6 +96,7 @@ fun AboutScreen(
                     LinkItem(
                         title = "Source Code",
                         subtitle = "github.com/runatal",
+                        leadingIcon = Icons.Filled.Code,
                         onClick = {
                             context.startActivity(
                                 Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/runatal"))
@@ -105,6 +110,7 @@ fun AboutScreen(
                     LinkItem(
                         title = "Privacy Policy",
                         subtitle = "runatal.app/privacy",
+                        leadingIcon = Icons.Filled.Description,
                         onClick = {
                             context.startActivity(
                                 Intent(
@@ -120,7 +126,8 @@ fun AboutScreen(
                     )
                     LinkItem(
                         title = "Acknowledgments",
-                        subtitle = "Contributors & translators"
+                        subtitle = "Contributors & translators",
+                        leadingIcon = Icons.Filled.FavoriteBorder
                     )
                 }
             }
@@ -167,52 +174,58 @@ private fun AppHeader(
     versionName: String,
     versionCode: Int
 ) {
-    Column(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = MaterialTheme.shapes.medium
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(vertical = 16.dp)
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Rune icon
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(vertical = 8.dp)
             ) {
-                Text(
-                    text = "\u16B1",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                // Rune icon
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "\u16B1",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = "Runatal",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Text(
+                        text = "v$versionName (build $versionCode)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(
-                    text = "Runatal",
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Text(
-                    text = "v$versionName (build $versionCode)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
 
-        Text(
-            text = "Transliterates quotes into ancient runic scripts. " +
-                "Built for lovers of Norse mythology and runic writing.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Start,
-            modifier = Modifier.fillMaxWidth()
-        )
+            Text(
+                text = "Transliterates quotes into ancient runic scripts. " +
+                    "Built for lovers of Norse mythology and runic writing.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Start,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }
 
@@ -220,6 +233,7 @@ private fun AppHeader(
 private fun LinkItem(
     title: String,
     subtitle: String,
+    leadingIcon: ImageVector? = null,
     onClick: (() -> Unit)? = null
 ) {
     Row(
@@ -229,6 +243,15 @@ private fun LinkItem(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (leadingIcon != null) {
+            Icon(
+                imageVector = leadingIcon,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
@@ -242,7 +265,7 @@ private fun LinkItem(
         }
         if (onClick != null) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                imageVector = Icons.Filled.OpenInNew,
                 contentDescription = "Open link",
                 modifier = Modifier.size(18.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
