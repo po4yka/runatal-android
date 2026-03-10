@@ -1,3 +1,6 @@
+# Ralph orchestration
+.ralph/
+
 # Gradle files
 .gradle/
 build/
