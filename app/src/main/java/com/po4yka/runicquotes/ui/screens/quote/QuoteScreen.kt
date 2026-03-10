@@ -366,7 +366,8 @@ private fun TodayContent(
                 RecentQuoteCard(
                     runicText = item.runicText,
                     latinText = item.quote.textLatin,
-                    author = item.quote.author
+                    author = item.quote.author,
+                    isFavorite = item.quote.isFavorite
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
@@ -624,7 +625,8 @@ private fun ActionButtonsRow(
 private fun RecentQuoteCard(
     runicText: String,
     latinText: String,
-    author: String
+    author: String,
+    isFavorite: Boolean
 ) {
     val shapes = RunicExpressiveTheme.shapes
     val typeRoles = RunicTypeRoles.current
@@ -636,35 +638,48 @@ private fun RecentQuoteCard(
         ),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(17.dp)
         ) {
-            Text(
-                text = runicText,
-                style = typeRoles.runicCard,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = runicText,
+                    style = typeRoles.runicCard,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-            Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
-            Text(
-                text = latinText,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+                Text(
+                    text = latinText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-            Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
-            Text(
-                text = author,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+                Text(
+                    text = author,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (isFavorite) {
+                Icon(
+                    imageVector = Icons.Filled.Favorite,
+                    contentDescription = "Saved",
+                    modifier = Modifier
+                        .size(16.dp)
+                        .align(Alignment.BottomEnd),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }
