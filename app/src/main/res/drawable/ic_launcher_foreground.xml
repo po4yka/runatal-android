@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:translateX="39.7"
+        android:translateY="28"
+        android:scaleX="0.74"
+        android:scaleY="0.74">
+        <!-- Raido rune: vertical stem -->
+        <path
+            android:pathData="M3.465,3.465V66.819"
+            android:strokeColor="#C8CED6"
+            android:strokeWidth="6.929"
+            android:strokeLineCap="round" />
+        <!-- Raido rune: angular branch -->
+        <path
+            android:pathData="M3.465,3.465L31.182,19.304L3.465,35.142"
+            android:strokeColor="#C8CED6"
+            android:strokeWidth="6.929"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <!-- Raido rune: diagonal leg -->
+        <path
+            android:pathData="M3.465,35.142L35.142,66.819"
+            android:strokeColor="#C8CED6"
+            android:strokeWidth="6.929"
+            android:strokeLineCap="round" />
+    </group>
+</vector>
