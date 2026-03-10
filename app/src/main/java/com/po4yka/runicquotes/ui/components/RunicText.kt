@@ -37,6 +37,8 @@ fun RunicText(
     script: RunicScript = RunicScript.DEFAULT,
     color: Color = Color.Unspecified,
     fontSize: TextUnit = TextUnit.Unspecified,
+    overrideLetterSpacing: TextUnit? = null,
+    overrideLineHeight: TextUnit? = null,
     textAlign: TextAlign? = null,
     style: TextStyle = LocalTextStyle.current
 ) {
@@ -57,16 +59,16 @@ fun RunicText(
 
     val tunedStyle = style.copy(
         fontFamily = fontFamily,
-        letterSpacing = when (script) {
+        letterSpacing = overrideLetterSpacing ?: when (script) {
             RunicScript.ELDER_FUTHARK -> 0.35.sp
             RunicScript.YOUNGER_FUTHARK -> 0.15.sp
             RunicScript.CIRTH -> 0.25.sp
         },
-        lineHeight = when (script) {
+        lineHeight = (overrideLineHeight ?: when (script) {
             RunicScript.ELDER_FUTHARK -> 44.sp
             RunicScript.YOUNGER_FUTHARK -> 42.sp
             RunicScript.CIRTH -> 46.sp
-        } * runicFontScale
+        }) * runicFontScale
     )
 
     val baseFontSize = if (fontSize != TextUnit.Unspecified) {

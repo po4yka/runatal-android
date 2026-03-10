@@ -2,11 +2,13 @@ package com.po4yka.runicquotes.ui.screens.onboarding
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,19 +16,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -38,13 +39,20 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.domain.transliteration.CirthTransliterator
+import com.po4yka.runicquotes.domain.transliteration.ElderFutharkTransliterator
+import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
+import com.po4yka.runicquotes.domain.transliteration.YoungerFutharkTransliterator
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
@@ -52,7 +60,7 @@ import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
 import com.po4yka.runicquotes.util.rememberHapticFeedback
 
 /**
- * First-run onboarding with story cards for each runic script.
+ * First-run onboarding aligned to the Runatal Figma flow.
  */
 @Composable
 fun OnboardingScreen(
@@ -72,10 +80,10 @@ fun OnboardingScreen(
 
     Scaffold(
         modifier = Modifier.testTag("onboarding_screen"),
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = MaterialTheme.colorScheme.surface,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            OnboardingBottomButton(
+            OnboardingFooter(
                 currentStep = onboardingStep,
                 onAction = {
                     when (onboardingStep) {
@@ -83,10 +91,12 @@ fun OnboardingScreen(
                             haptics.mediumAction()
                             currentStepIndex = OnboardingStep.SCRIPT.ordinal
                         }
+
                         OnboardingStep.SCRIPT -> {
                             haptics.mediumAction()
                             currentStepIndex = OnboardingStep.FINISH.ordinal
                         }
+
                         OnboardingStep.FINISH -> {
                             haptics.successPattern()
                             onComplete()
@@ -99,45 +109,43 @@ fun OnboardingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.38f),
-                            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.24f),
-                            MaterialTheme.colorScheme.background
-                        )
-                    )
-                )
+                .background(MaterialTheme.colorScheme.surface)
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OnboardingStepHeader(currentStep = onboardingStep, selectedScript = selectedScript)
+            OnboardingStepHeader(
+                currentStep = onboardingStep,
+                selectedScript = selectedScript
+            )
 
-            Crossfade(
-                targetState = onboardingStep,
-                animationSpec = tween(
-                    durationMillis = motion.duration(
-                        reducedMotion = reducedMotion,
-                        base = motion.mediumDurationMillis
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                Crossfade(
+                    targetState = onboardingStep,
+                    animationSpec = tween(
+                        durationMillis = motion.duration(
+                            reducedMotion = reducedMotion,
+                            base = motion.mediumDurationMillis
+                        ),
+                        easing = motion.emphasizedEasing
                     ),
-                    easing = motion.emphasizedEasing
-                ),
-                label = "onboardingStepContent"
-            ) { step ->
-                when (step) {
-                    OnboardingStep.WELCOME -> WelcomeFeatures()
-                    OnboardingStep.SCRIPT -> ScriptSelectionList(
-                        stories = stories,
-                        selectedScript = selectedScript,
-                        onSelect = { story ->
-                            haptics.mediumAction()
-                            onChooseStyle(story.script, story.suggestedThemePack)
-                        }
-                    )
-                    OnboardingStep.FINISH -> FirstRuneCard(selectedStory = selectedStory)
+                    label = "onboardingStepContent"
+                ) { step ->
+                    when (step) {
+                        OnboardingStep.WELCOME -> WelcomeFeatures()
+                        OnboardingStep.SCRIPT -> ScriptSelectionList(
+                            stories = stories,
+                            selectedScript = selectedScript,
+                            onSelect = { story ->
+                                haptics.mediumAction()
+                                onChooseStyle(story.script, story.suggestedThemePack)
+                            }
+                        )
+
+                        OnboardingStep.FINISH -> FirstRuneCard(selectedStory = selectedStory)
+                    }
                 }
             }
         }
@@ -151,7 +159,10 @@ private enum class OnboardingStep {
 }
 
 @Composable
-private fun OnboardingStepHeader(currentStep: OnboardingStep, selectedScript: RunicScript) {
+private fun OnboardingStepHeader(
+    currentStep: OnboardingStep,
+    selectedScript: RunicScript
+) {
     val title = when (currentStep) {
         OnboardingStep.WELCOME -> "Welcome to Runatal"
         OnboardingStep.SCRIPT -> "Choose Your Script"
@@ -160,20 +171,23 @@ private fun OnboardingStepHeader(currentStep: OnboardingStep, selectedScript: Ru
     val subtitle = when (currentStep) {
         OnboardingStep.WELCOME -> "Ancient wisdom rendered in runic scripts."
         OnboardingStep.SCRIPT -> "Select a default runic writing system. You can always switch later."
-        OnboardingStep.FINISH -> "Here's your first quote, translated into " +
-            "${selectedScriptLabel(selectedScript)}."
+        OnboardingStep.FINISH -> {
+            "Here's your first quote, translated into ${selectedScriptLabel(selectedScript)}."
+        }
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(
+        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 40.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
+            style = MaterialTheme.typography.headlineLarge,
+            color = MaterialTheme.colorScheme.onSurface
         )
         Text(
             text = subtitle,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
@@ -181,11 +195,16 @@ private fun OnboardingStepHeader(currentStep: OnboardingStep, selectedScript: Ru
 
 @Composable
 private fun WelcomeFeatures() {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(start = 20.dp, end = 20.dp, top = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         FeatureRow(
             icon = Icons.Default.DateRange,
             title = "Daily rune wisdom",
-            description = "A new runic quote each day in Elder Futhark, Younger Futhark, or Cirth."
+            description = "A new rune quote each day in Elder Futhark, Younger Futhark, or Cirth."
         )
         FeatureRow(
             icon = Icons.Default.Create,
@@ -201,113 +220,50 @@ private fun WelcomeFeatures() {
 }
 
 @Composable
-private fun FeatureRow(icon: ImageVector, title: String, description: String) {
+private fun FeatureRow(
+    icon: ImageVector,
+    title: String,
+    description: String
+) {
     Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.Top
     ) {
-        Surface(
-            shape = MaterialTheme.shapes.medium,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            modifier = Modifier.size(48.dp)
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(MaterialTheme.shapes.large)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)),
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = title,
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(18.dp)
+            )
         }
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = description,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-    }
-}
-
-@Composable
-private fun FirstRuneCard(selectedStory: ScriptStory) {
-    val shapes = RunicExpressiveTheme.shapes
-    val typeRoles = RunicTypeRoles.current
-    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
-        Surface(
-            shape = shapes.contentCard,
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            tonalElevation = 1.dp,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                RunicText(
-                    text = selectedStory.sampleRunes,
-                    script = selectedStory.script,
-                    style = typeRoles.runicHero,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "\"${selectedStory.sampleLatin}\"",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = selectedStory.story,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        Text(
-            text = selectedScriptLabel(selectedStory.script),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun OnboardingBottomButton(
-    currentStep: OnboardingStep,
-    onAction: () -> Unit
-) {
-    val shapes = RunicExpressiveTheme.shapes
-    val buttonText = when (currentStep) {
-        OnboardingStep.WELCOME -> "Get Started"
-        OnboardingStep.SCRIPT -> "Continue"
-        OnboardingStep.FINISH -> "Enter Runatal"
-    }
-    val testTag = when (currentStep) {
-        OnboardingStep.WELCOME -> "onboarding_next_button"
-        OnboardingStep.SCRIPT -> "onboarding_next_button"
-        OnboardingStep.FINISH -> "onboarding_finish_button"
-    }
-
-    Button(
-        onClick = onAction,
-        shape = shapes.contentCard,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp)
-            .height(52.dp)
-            .testTag(testTag)
-    ) {
-        Text(text = buttonText)
     }
 }
 
@@ -318,8 +274,11 @@ private fun ScriptSelectionList(
     onSelect: (ScriptStory) -> Unit
 ) {
     Column(
-        modifier = Modifier.selectableGroup(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(start = 20.dp, end = 20.dp, top = 18.dp)
+            .selectableGroup(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         stories.forEach { story ->
             ScriptOptionCard(
@@ -337,14 +296,29 @@ private fun ScriptOptionCard(
     selected: Boolean,
     onSelect: () -> Unit
 ) {
-    val shapes = RunicExpressiveTheme.shapes
-    val typeRoles = RunicTypeRoles.current
+    val containerColor = if (selected) {
+        MaterialTheme.colorScheme.surfaceContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerLow
+    }
+    val borderColor = if (selected) {
+        MaterialTheme.colorScheme.outlineVariant
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+    }
+    val runicColor = if (selected) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
     Surface(
-        shape = shapes.contentCard,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        tonalElevation = if (selected) 2.dp else 1.dp,
+        shape = MaterialTheme.shapes.large,
+        color = containerColor,
+        border = BorderStroke(1.dp, borderColor),
         modifier = Modifier
             .fillMaxWidth()
+            .height(126.dp)
             .selectable(
                 selected = selected,
                 onClick = onSelect,
@@ -352,40 +326,269 @@ private fun ScriptOptionCard(
             )
             .testTag("onboarding_${story.script.name.lowercase()}_card")
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = story.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = story.era,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                RunicText(
-                    text = story.sampleRunes,
-                    script = story.script,
-                    style = typeRoles.runicCard,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "*${story.sampleLatin}*",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (selected) {
+                Box(
+                    modifier = Modifier
+                        .padding(vertical = 12.dp)
+                        .width(3.dp)
+                        .height(100.dp)
+                        .align(Alignment.TopStart)
+                        .clip(MaterialTheme.shapes.extraSmall)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
                 )
             }
-            RadioButton(selected = selected, onClick = null)
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 17.dp, vertical = 16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = story.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    SelectionIndicator(selected = selected)
+                }
+
+                Spacer(modifier = Modifier.height(5.dp))
+
+                Text(
+                    text = story.era,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)
+                        .clip(MaterialTheme.shapes.medium)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.45f))
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RunicText(
+                            text = story.sampleRunes,
+                            script = story.script,
+                            color = runicColor,
+                            fontSize = 16.sp,
+                            overrideLetterSpacing = 0.96.sp,
+                            overrideLineHeight = 24.sp,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "\"${story.sampleLatin}\"",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontStyle = FontStyle.Italic,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun SelectionIndicator(selected: Boolean) {
+    Box(
+        modifier = Modifier
+            .size(22.dp)
+            .clip(MaterialTheme.shapes.extraLarge)
+            .background(Color.Transparent)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(MaterialTheme.shapes.extraLarge)
+                .background(Color.Transparent)
+                .padding(0.dp)
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(MaterialTheme.shapes.extraLarge)
+                .background(Color.Transparent)
+        )
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            shape = MaterialTheme.shapes.extraLarge,
+            color = Color.Transparent,
+            border = BorderStroke(
+                width = 2.dp,
+                color = if (selected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.outline
+                }
+            )
+        ) {}
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .align(Alignment.Center)
+                    .clip(MaterialTheme.shapes.extraLarge)
+                    .background(MaterialTheme.colorScheme.primary)
+                )
+        }
+    }
+}
+
+@Composable
+private fun FirstRuneCard(selectedStory: ScriptStory) {
+    val revealRunes = remember(selectedStory.script) {
+        onboardingTransliterationFactory.transliterate(ONBOARDING_REVEAL_QUOTE, selectedStory.script)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 18.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 22.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                RunicText(
+                    text = revealRunes,
+                    script = selectedStory.script,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 17.sp,
+                    overrideLetterSpacing = 0.68.sp,
+                    overrideLineHeight = 30.sp,
+                    style = RunicTypeRoles.current.runicCollection
+                )
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                )
+                Text(
+                    text = "\"$ONBOARDING_REVEAL_QUOTE\"",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontStyle = FontStyle.Italic,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "- $ONBOARDING_REVEAL_AUTHOR",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = selectedScriptLabel(selectedStory.script),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OnboardingFooter(
+    currentStep: OnboardingStep,
+    onAction: () -> Unit
+) {
+    val buttonText = when (currentStep) {
+        OnboardingStep.WELCOME -> "Get Started"
+        OnboardingStep.SCRIPT -> "Continue"
+        OnboardingStep.FINISH -> "Enter Runatal"
+    }
+    val testTag = when (currentStep) {
+        OnboardingStep.WELCOME -> "onboarding_next_button"
+        OnboardingStep.SCRIPT -> "onboarding_next_button"
+        OnboardingStep.FINISH -> "onboarding_finish_button"
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+    ) {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+        OnboardingProgressIndicator(currentStep = currentStep)
+        Button(
+            onClick = onAction,
+            shape = MaterialTheme.shapes.medium,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .height(48.dp)
+                .testTag(testTag)
+        ) {
+            Text(
+                text = buttonText,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        Spacer(modifier = Modifier.height(32.dp))
+    }
+}
+
+@Composable
+private fun OnboardingProgressIndicator(currentStep: OnboardingStep) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 21.dp, bottom = 22.dp),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Row(
+            modifier = Modifier.width(56.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OnboardingProgressDot(active = currentStep == OnboardingStep.WELCOME)
+            OnboardingProgressDot(active = currentStep == OnboardingStep.SCRIPT)
+            OnboardingProgressDot(active = currentStep == OnboardingStep.FINISH)
+        }
+    }
+}
+
+@Composable
+private fun RowScope.OnboardingProgressDot(active: Boolean) {
+    if (active) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(8.dp)
+                .clip(MaterialTheme.shapes.extraLarge)
+                .background(MaterialTheme.colorScheme.primary)
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(MaterialTheme.shapes.extraLarge)
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+        )
     }
 }
 
@@ -395,7 +598,6 @@ private data class ScriptStory(
     val era: String,
     val sampleRunes: String,
     val sampleLatin: String,
-    val story: String,
     val suggestedThemePack: String
 )
 
@@ -403,30 +605,36 @@ private val SCRIPT_STORIES = listOf(
     ScriptStory(
         script = RunicScript.ELDER_FUTHARK,
         title = "Elder Futhark",
-        era = "24 runes - Germanic & East - 2nd-8th century",
-        sampleRunes = "ᚨᚾᛞ ᛏᚺᛖ ᚱᚢᚾᛖᛋ",
-        sampleLatin = "and the runes",
-        story = "Crisp, archaeological letterforms that feel traditional and grounded.",
+        era = "24 runes · Germanic tribes · 2nd-8th century",
+        sampleRunes = "ᚹᛁᛊᛞᛟᛗ",
+        sampleLatin = "Wisdom",
         suggestedThemePack = "stone"
     ),
     ScriptStory(
         script = RunicScript.YOUNGER_FUTHARK,
         title = "Younger Futhark",
-        era = "16 runes - Viking Age - 9th-11th century",
-        sampleRunes = "ᚢᛁᚴᛁᚾᚴ ᛊᛏᛁᛚ",
-        sampleLatin = "Viking style",
-        story = "Compact and direct forms that read cleanly in short, punchy quotes.",
+        era = "16 runes · Viking Age · 9th-11th century",
+        sampleRunes = "ᚢᛁᛋᛏᚢᛘ",
+        sampleLatin = "Wisdom",
         suggestedThemePack = "night_ink"
     ),
     ScriptStory(
         script = RunicScript.CIRTH,
         title = "Cirth (Angerthas)",
-        era = "Tolkien's rune system - Literary",
-        sampleRunes = "\uE088\uE0B4\uE0CB\uE09C \uE0B8\uE0CA\uE0A8\uE0A8",
-        sampleLatin = "Not all who wander",
-        story = "Literary and atmospheric, built for a fantasy-forward reading style.",
+        era = "Tolkien's rune system · Literary",
+        sampleRunes = "\uE0B8\uE0C8\uE09C\uE089\uE0CC\uE0B0",
+        sampleLatin = "Wisdom",
         suggestedThemePack = "parchment"
     )
+)
+
+private const val ONBOARDING_REVEAL_QUOTE = "Not all those who wander are lost."
+private const val ONBOARDING_REVEAL_AUTHOR = "J.R.R. Tolkien"
+
+private val onboardingTransliterationFactory = TransliterationFactory(
+    elderFutharkTransliterator = ElderFutharkTransliterator(),
+    youngerFutharkTransliterator = YoungerFutharkTransliterator(),
+    cirthTransliterator = CirthTransliterator()
 )
 
 private fun selectedScriptLabel(script: RunicScript): String {
@@ -436,4 +644,3 @@ private fun selectedScriptLabel(script: RunicScript): String {
         RunicScript.CIRTH -> "Cirth"
     }
 }
-
