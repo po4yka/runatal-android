@@ -10,6 +10,11 @@ import kotlinx.coroutines.flow.Flow
 interface QuotePackRepository {
 
     /**
+     * Seeds the database with quote pack data if empty.
+     */
+    suspend fun seedIfNeeded()
+
+    /**
      * Gets all quote packs as a reactive Flow.
      */
     fun getAllPacksFlow(): Flow<List<QuotePack>>

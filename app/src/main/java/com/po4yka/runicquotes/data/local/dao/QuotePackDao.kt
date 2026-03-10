@@ -65,4 +65,10 @@ interface QuotePackDao {
      */
     @Delete
     suspend fun delete(pack: QuotePackEntity)
+
+    /**
+     * Get the total number of packs in the database.
+     */
+    @Query("SELECT COUNT(*) FROM quote_packs")
+    suspend fun getCount(): Int
 }
