@@ -118,9 +118,9 @@ class AddEditQuoteViewModel @Inject constructor(
     }
 
     /**
-     * Saves the quote to the database.
+     * Saves the quote to the database and shows confirmation.
      */
-    fun saveQuote(onSuccess: () -> Unit) {
+    fun saveQuote() {
         viewModelScope.launch {
             val state = _uiState.value
 
@@ -157,10 +157,10 @@ class AddEditQuoteViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isSaving = false,
-                        hasUnsavedChanges = false
+                        hasUnsavedChanges = false,
+                        showConfirmation = true
                     )
                 }
-                onSuccess()
             } catch (e: IOException) {
                 Log.e(TAG, "IO error saving quote", e)
                 _uiState.update {
@@ -178,6 +178,44 @@ class AddEditQuoteViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+
+    /**
+     * Deletes the current quote being edited.
+     */
+    fun deleteQuote(onSuccess: () -> Unit) {
+        if (quoteId == 0L) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDeleting = true) }
+            try {
+                quoteRepository.deleteUserQuote(quoteId)
+                onSuccess()
+            } catch (e: IOException) {
+                Log.e(TAG, "IO error deleting quote", e)
+                _uiState.update {
+                    it.copy(
+                        isDeleting = false,
+                        errorMessage = "Failed to delete quote: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Resets the form for creating another quote after confirmation.
+     */
+    fun resetForNewQuote() {
+        quoteId = 0L
+        loadedQuoteId = null
+        initialTextLatin = ""
+        initialAuthor = ""
+        _uiState.update {
+            AddEditQuoteUiState(
+                selectedScript = it.selectedScript,
+                selectedFont = it.selectedFont
+            )
         }
     }
 
@@ -219,13 +257,6 @@ class AddEditQuoteViewModel @Inject constructor(
             else -> null
         }
 
-        val confidence = computeTransliterationConfidence(state.textLatin)
-        val confidenceHint = when {
-            state.textLatin.isBlank() -> "Start typing to compute transliteration confidence."
-            confidence >= 90 -> "Excellent transliteration compatibility."
-            confidence >= 70 -> "Good coverage. Some characters may map approximately."
-            else -> "Low compatibility. Reduce symbols/numbers for cleaner runes."
-        }
         val hasUnsavedChanges = if (state.isEditing) {
             state.textLatin.trim() != initialTextLatin.trim() ||
                 state.author.trim() != initialAuthor.trim()
@@ -239,8 +270,6 @@ class AddEditQuoteViewModel @Inject constructor(
                 authorError = authorError,
                 quoteCharCount = state.textLatin.length,
                 authorCharCount = state.author.length,
-                transliterationConfidence = confidence,
-                confidenceHint = confidenceHint,
                 hasUnsavedChanges = hasUnsavedChanges,
                 canSave = quoteTextError == null &&
                     authorError == null &&
@@ -249,19 +278,6 @@ class AddEditQuoteViewModel @Inject constructor(
         }
     }
 
-    private fun computeTransliterationConfidence(text: String): Int {
-        val letters = text.filter { it.isLetter() }
-        if (letters.isEmpty()) {
-            return 100
-        }
-
-        val supportedLetters = letters.count { char ->
-            val lower = char.lowercaseChar()
-            lower in 'a'..'z'
-        }
-
-        return (supportedLetters * 100) / letters.length
-    }
 }
 
 /**
@@ -277,13 +293,13 @@ data class AddEditQuoteUiState(
     val authorError: String? = null,
     val quoteCharCount: Int = 0,
     val authorCharCount: Int = 0,
-    val transliterationConfidence: Int = 100,
-    val confidenceHint: String = "Start typing to compute transliteration confidence.",
     val selectedScript: RunicScript = RunicScript.ELDER_FUTHARK,
     val selectedFont: String = "noto",
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
+    val isDeleting: Boolean = false,
     val hasUnsavedChanges: Boolean = false,
     val canSave: Boolean = false,
+    val showConfirmation: Boolean = false,
     val errorMessage: String? = null
 )

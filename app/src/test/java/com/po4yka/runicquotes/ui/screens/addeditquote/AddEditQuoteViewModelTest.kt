@@ -440,19 +440,18 @@ class AddEditQuoteViewModelTest {
         )
         advanceUntilIdle()
 
-        var callbackInvoked = false
         viewModel.updateAuthor("Test Author")
 
         // When: Saving with empty text
-        viewModel.saveQuote { callbackInvoked = true }
+        viewModel.saveQuote()
         advanceUntilIdle()
 
-        // Then: Error is shown and callback not invoked
+        // Then: Error is shown and confirmation not triggered
         viewModel.uiState.test {
             val state = awaitItem()
             assertThat(state.errorMessage).isNotNull()
             assertThat(state.errorMessage).contains("cannot be empty")
-            assertThat(callbackInvoked).isFalse()
+            assertThat(state.showConfirmation).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -469,19 +468,18 @@ class AddEditQuoteViewModelTest {
         )
         advanceUntilIdle()
 
-        var callbackInvoked = false
         viewModel.updateTextLatin("Test quote")
 
         // When: Saving with empty author
-        viewModel.saveQuote { callbackInvoked = true }
+        viewModel.saveQuote()
         advanceUntilIdle()
 
-        // Then: Error is shown and callback not invoked
+        // Then: Error is shown and confirmation not triggered
         viewModel.uiState.test {
             val state = awaitItem()
             assertThat(state.errorMessage).isNotNull()
             assertThat(state.errorMessage).contains("cannot be empty")
-            assertThat(callbackInvoked).isFalse()
+            assertThat(state.showConfirmation).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -498,19 +496,18 @@ class AddEditQuoteViewModelTest {
         )
         advanceUntilIdle()
 
-        var callbackInvoked = false
         viewModel.updateTextLatin("   ")
         viewModel.updateAuthor("Test Author")
 
         // When: Saving with blank text
-        viewModel.saveQuote { callbackInvoked = true }
+        viewModel.saveQuote()
         advanceUntilIdle()
 
         // Then: Error is shown
         viewModel.uiState.test {
             val state = awaitItem()
             assertThat(state.errorMessage).isNotNull()
-            assertThat(callbackInvoked).isFalse()
+            assertThat(state.showConfirmation).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -533,15 +530,17 @@ class AddEditQuoteViewModelTest {
         viewModel.updateAuthor("Test Author")
         advanceUntilIdle()
 
-        var callbackInvoked = false
-
         // When: Saving quote
-        viewModel.saveQuote { callbackInvoked = true }
+        viewModel.saveQuote()
         advanceUntilIdle()
 
-        // Then: Quote is saved and callback invoked
+        // Then: Quote is saved and confirmation shown
         coVerify { quoteRepository.saveUserQuote(any()) }
-        assertThat(callbackInvoked).isTrue()
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertThat(state.showConfirmation).isTrue()
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
@@ -567,7 +566,7 @@ class AddEditQuoteViewModelTest {
         advanceUntilIdle()
 
         // When: Saving quote
-        viewModel.saveQuote { }
+        viewModel.saveQuote()
         advanceUntilIdle()
 
         // Then: All runic fields are populated
@@ -600,7 +599,7 @@ class AddEditQuoteViewModelTest {
         advanceUntilIdle()
 
         // When: Saving quote
-        viewModel.saveQuote { }
+        viewModel.saveQuote()
         advanceUntilIdle()
 
         // Then: Text is trimmed
@@ -632,7 +631,7 @@ class AddEditQuoteViewModelTest {
             val initial = awaitItem()
             assertThat(initial.isSaving).isFalse()
 
-            viewModel.saveQuote { }
+            viewModel.saveQuote()
 
             val saving = awaitItem()
             assertThat(saving.isSaving).isTrue()
@@ -666,15 +665,17 @@ class AddEditQuoteViewModelTest {
         viewModel.updateTextLatin("Updated quote")
         advanceUntilIdle()
 
-        var callbackInvoked = false
-
         // When: Saving quote
-        viewModel.saveQuote { callbackInvoked = true }
+        viewModel.saveQuote()
         advanceUntilIdle()
 
-        // Then: Quote is saved with original ID
+        // Then: Quote is saved with original ID and confirmation shown
         coVerify { quoteRepository.saveUserQuote(match { it.id == 1L }) }
-        assertThat(callbackInvoked).isTrue()
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertThat(state.showConfirmation).isTrue()
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     // ==================== Error Handling Tests ====================
@@ -697,19 +698,17 @@ class AddEditQuoteViewModelTest {
         viewModel.updateAuthor("Author")
         advanceUntilIdle()
 
-        var callbackInvoked = false
-
         // When: Saving quote
-        viewModel.saveQuote { callbackInvoked = true }
+        viewModel.saveQuote()
         advanceUntilIdle()
 
-        // Then: Error message is set and callback not invoked
+        // Then: Error message is set and confirmation not shown
         viewModel.uiState.test {
             val state = awaitItem()
             assertThat(state.errorMessage).isNotNull()
             assertThat(state.errorMessage).contains("Failed to save quote")
             assertThat(state.isSaving).isFalse()
-            assertThat(callbackInvoked).isFalse()
+            assertThat(state.showConfirmation).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -732,10 +731,8 @@ class AddEditQuoteViewModelTest {
         viewModel.updateAuthor("Author")
         advanceUntilIdle()
 
-        var callbackInvoked = false
-
         // When: Saving quote
-        viewModel.saveQuote { callbackInvoked = true }
+        viewModel.saveQuote()
         advanceUntilIdle()
 
         // Then: Error message is set
@@ -743,7 +740,7 @@ class AddEditQuoteViewModelTest {
             val state = awaitItem()
             assertThat(state.errorMessage).isNotNull()
             assertThat(state.errorMessage).contains("Invalid state")
-            assertThat(callbackInvoked).isFalse()
+            assertThat(state.showConfirmation).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -761,7 +758,7 @@ class AddEditQuoteViewModelTest {
         advanceUntilIdle()
 
         // Trigger validation error
-        viewModel.saveQuote { }
+        viewModel.saveQuote()
         advanceUntilIdle()
 
         // When: Clearing error

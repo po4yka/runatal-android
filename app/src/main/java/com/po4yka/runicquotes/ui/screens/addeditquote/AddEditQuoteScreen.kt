@@ -1,71 +1,55 @@
 package com.po4yka.runicquotes.ui.screens.addeditquote
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.ui.components.RunicText
+import com.po4yka.runicquotes.ui.components.SegmentedControl
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.util.rememberHapticFeedback
 
-/**
- * Screen for adding or editing a user-created quote.
- * Features live runic preview as the user types.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditQuoteScreen(
@@ -75,24 +59,8 @@ fun AddEditQuoteScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    val haptics = rememberHapticFeedback()
-    val shapes = RunicExpressiveTheme.shapes
-    val motion = RunicExpressiveTheme.motion
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     var showDiscardDialog by remember { mutableStateOf(false) }
-    val saveEnabled = uiState.canSave && !uiState.isSaving
-
-    fun requestExit() {
-        if (uiState.hasUnsavedChanges && !uiState.isSaving) {
-            showDiscardDialog = true
-        } else {
-            onNavigateBack()
-        }
-    }
-
-    BackHandler(enabled = uiState.hasUnsavedChanges && !uiState.isSaving) {
-        requestExit()
-    }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(quoteId) {
         viewModel.initializeQuoteIfNeeded(quoteId)
@@ -105,69 +73,107 @@ fun AddEditQuoteScreen(
         }
     }
 
+    if (uiState.showConfirmation) {
+        ConfirmationContent(
+            uiState = uiState,
+            snackbarHostState = snackbarHostState,
+            onViewInLibrary = onNavigateBack,
+            onCreateAnother = viewModel::resetForNewQuote
+        )
+        return
+    }
+
+    val requestExit = {
+        if (uiState.hasUnsavedChanges && !uiState.isSaving) {
+            showDiscardDialog = true
+        } else {
+            onNavigateBack()
+        }
+    }
+
+    BackHandler(enabled = uiState.hasUnsavedChanges && !uiState.isSaving) {
+        requestExit()
+    }
+
+    EditorContent(
+        uiState = uiState,
+        snackbarHostState = snackbarHostState,
+        onNavigateBack = { requestExit() },
+        onSave = viewModel::saveQuote,
+        onUpdateText = viewModel::updateTextLatin,
+        onUpdateAuthor = viewModel::updateAuthor,
+        onUpdateScript = viewModel::updateSelectedScript,
+        onRequestDelete = { showDeleteDialog = true }
+    )
+
+    if (showDiscardDialog) {
+        DiscardDialog(
+            onDiscard = {
+                showDiscardDialog = false
+                onNavigateBack()
+            },
+            onDismiss = { showDiscardDialog = false }
+        )
+    }
+
+    if (showDeleteDialog) {
+        DeleteDialog(
+            onDelete = {
+                showDeleteDialog = false
+                viewModel.deleteQuote(onNavigateBack)
+            },
+            onDismiss = { showDeleteDialog = false }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditorContent(
+    uiState: AddEditQuoteUiState,
+    snackbarHostState: SnackbarHostState,
+    onNavigateBack: () -> Unit,
+    onSave: () -> Unit,
+    onUpdateText: (String) -> Unit,
+    onUpdateAuthor: (String) -> Unit,
+    onUpdateScript: (RunicScript) -> Unit,
+    onRequestDelete: () -> Unit
+) {
+    val haptics = rememberHapticFeedback()
+    val saveEnabled = uiState.canSave && !uiState.isSaving
+
     Scaffold(
-        modifier = Modifier
-            .nestedScroll(scrollBehavior.nestedScrollConnection)
-            .imePadding(),
+        modifier = Modifier.imePadding(),
         topBar = {
-            MediumTopAppBar(
+            CenterAlignedTopAppBar(
                 title = {
-                    Text(if (uiState.isEditing) "Edit Quote" else "Add Quote")
+                    Text(if (uiState.isEditing) "Edit Quote" else "Create Quote")
                 },
                 navigationIcon = {
-                    IconButton(onClick = { requestExit() }) {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                ),
-                scrollBehavior = scrollBehavior
-            )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                text = {
-                    Text(if (uiState.isSaving) "Saving..." else "Save Quote")
-                },
-                icon = {
-                    if (uiState.isSaving) {
-                        CircularProgressIndicator(
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
+                actions = {
+                    IconButton(
+                        onClick = {
+                            haptics.mediumAction()
+                            onSave()
+                        },
+                        enabled = saveEnabled
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Check,
-                            contentDescription = null
+                            contentDescription = "Save"
                         )
                     }
                 },
-                onClick = {
-                    if (saveEnabled) {
-                        haptics.mediumAction()
-                        viewModel.saveQuote {
-                            haptics.successPattern()
-                            onNavigateBack()
-                        }
-                    }
-                },
-                expanded = true,
-                containerColor = if (saveEnabled) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant
-                },
-                contentColor = if (saveEnabled) {
-                    MaterialTheme.colorScheme.onPrimary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                modifier = Modifier.testTag("add_edit_save_button")
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -175,178 +181,168 @@ fun AddEditQuoteScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.22f),
-                            MaterialTheme.colorScheme.background
-                        )
-                    )
-                )
                 .padding(padding)
-                .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 90.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Surface(
-                shape = shapes.panel,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                tonalElevation = 2.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = if (uiState.isEditing) {
-                            "Refine your quote and preview the rune rendering live."
-                        } else {
-                            "Write your quote and tune how it transliterates into runes."
-                        },
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = if (uiState.hasUnsavedChanges) {
-                            "Unsaved changes"
-                        } else {
-                            "All changes saved"
-                        },
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (uiState.hasUnsavedChanges) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.height(4.dp))
 
-            OutlinedTextField(
+            ScriptSelector(
+                selectedScript = uiState.selectedScript,
+                onScriptSelected = { script ->
+                    haptics.lightToggle()
+                    onUpdateScript(script)
+                },
+                enabled = !uiState.isSaving
+            )
+
+            RunicPreviewSection(uiState = uiState)
+
+            QuoteTextField(
                 value = uiState.textLatin,
-                onValueChange = viewModel::updateTextLatin,
-                label = { Text("Quote Text") },
-                placeholder = { Text("Enter your quote in Latin script...") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("add_edit_quote_text"),
-                minLines = 3,
-                maxLines = 6,
-                isError = uiState.quoteTextError != null,
-                supportingText = {
-                    val helper = uiState.quoteTextError
-                        ?: "Keep it concise and readable in rune form."
-                    Text(
-                        text = "$helper (${uiState.quoteCharCount}/280)",
-                        color = if (uiState.quoteTextError != null) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                    )
-                },
+                onValueChange = onUpdateText,
+                error = uiState.quoteTextError,
+                charCount = uiState.quoteCharCount,
                 enabled = !uiState.isSaving
             )
 
-            OutlinedTextField(
+            AuthorTextField(
                 value = uiState.author,
-                onValueChange = viewModel::updateAuthor,
-                label = { Text("Author") },
-                placeholder = { Text("Enter author name...") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("add_edit_author_text"),
-                singleLine = true,
-                isError = uiState.authorError != null,
-                supportingText = {
-                    val helper = uiState.authorError ?: "Who said this quote?"
-                    Text(
-                        text = "$helper (${uiState.authorCharCount}/60)",
-                        color = if (uiState.authorError != null) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                    )
-                },
+                onValueChange = onUpdateAuthor,
+                error = uiState.authorError,
+                charCount = uiState.authorCharCount,
                 enabled = !uiState.isSaving
             )
 
-            Text(
-                text = "Preview Script",
-                style = MaterialTheme.typography.titleMedium
+            Spacer(modifier = Modifier.height(8.dp))
+
+            SaveButton(
+                uiState = uiState,
+                saveEnabled = saveEnabled,
+                onSave = {
+                    haptics.mediumAction()
+                    onSave()
+                }
             )
 
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(RunicScript.entries) { script ->
-                    FilterChip(
-                        selected = uiState.selectedScript == script,
-                        onClick = {
-                            haptics.lightToggle()
-                            viewModel.updateSelectedScript(script)
-                        },
-                        label = { Text(script.displayName) },
-                        enabled = !uiState.isSaving
-                    )
+            if (uiState.isEditing) {
+                TextButton(
+                    onClick = onRequestDelete,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    enabled = !uiState.isDeleting
+                ) {
+                    Text("Delete Quote")
                 }
             }
 
-            LivePreviewSection(
-                uiState = uiState,
-                animationDurationMillis = motion.mediumDurationMillis
-            )
-
-            Text(
-                text = "All Scripts Preview",
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            ScriptPreviewCard(
-                title = "Elder Futhark",
-                script = RunicScript.ELDER_FUTHARK,
-                runicText = uiState.runicElderPreview,
-                selectedFont = uiState.selectedFont
-            )
-            ScriptPreviewCard(
-                title = "Younger Futhark",
-                script = RunicScript.YOUNGER_FUTHARK,
-                runicText = uiState.runicYoungerPreview,
-                selectedFont = uiState.selectedFont
-            )
-            ScriptPreviewCard(
-                title = "Cirth (Angerthas)",
-                script = RunicScript.CIRTH,
-                runicText = uiState.runicCirthPreview,
-                selectedFont = uiState.selectedFont
-            )
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
+}
 
-    if (showDiscardDialog) {
-        AlertDialog(
-            onDismissRequest = { showDiscardDialog = false },
-            title = { Text("Discard changes?") },
-            text = { Text("You have unsaved changes. If you leave now, they will be lost.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDiscardDialog = false
-                        onNavigateBack()
-                    }
-                ) {
-                    Text("Discard")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDiscardDialog = false }) {
-                    Text("Keep editing")
+@Composable
+private fun SaveButton(
+    uiState: AddEditQuoteUiState,
+    saveEnabled: Boolean,
+    onSave: () -> Unit
+) {
+    Button(
+        onClick = onSave,
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("add_edit_save_button"),
+        enabled = saveEnabled,
+        shape = RunicExpressiveTheme.shapes.segmentedControl
+    ) {
+        Text(
+            text = when {
+                uiState.isSaving -> "Saving..."
+                uiState.isEditing -> "Save Changes"
+                else -> "Create Quote"
+            }
+        )
+    }
+}
+
+@Composable
+private fun DiscardDialog(
+    onDiscard: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Discard changes?") },
+        text = { Text("You have unsaved changes. If you leave now, they will be lost.") },
+        confirmButton = {
+            TextButton(onClick = onDiscard) {
+                Text("Discard")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Keep editing")
+            }
+        }
+    )
+}
+
+@Composable
+private fun DeleteDialog(
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val haptics = rememberHapticFeedback()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete quote?") },
+        text = { Text("This action cannot be undone.") },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    haptics.mediumAction()
+                    onDelete()
+                },
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text("Delete")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+private fun ScriptSelector(
+    selectedScript: RunicScript,
+    onScriptSelected: (RunicScript) -> Unit,
+    enabled: Boolean
+) {
+    val scripts = RunicScript.entries
+    val segments = scripts.map { it.displayName }
+    val selectedIndex = scripts.indexOf(selectedScript)
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Preview",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        SegmentedControl(
+            segments = segments,
+            selectedIndex = selectedIndex,
+            onSegmentSelected = { index ->
+                if (enabled) {
+                    onScriptSelected(scripts[index])
                 }
             }
         )
@@ -354,48 +350,188 @@ fun AddEditQuoteScreen(
 }
 
 @Composable
-private fun LivePreviewSection(
-    uiState: AddEditQuoteUiState,
-    animationDurationMillis: Int
-) {
-    val shapes = RunicExpressiveTheme.shapes
-    val progress by animateFloatAsState(
-        targetValue = uiState.transliterationConfidence / 100f,
-        animationSpec = tween(durationMillis = animationDurationMillis),
-        label = "transliterationConfidenceProgress"
-    )
-    val confidenceColor by animateColorAsState(
-        targetValue = when {
-            uiState.transliterationConfidence >= 90 -> MaterialTheme.colorScheme.primary
-            uiState.transliterationConfidence >= 70 -> MaterialTheme.colorScheme.tertiary
-            else -> MaterialTheme.colorScheme.error
-        },
-        animationSpec = tween(durationMillis = animationDurationMillis),
-        label = "transliterationConfidenceColor"
-    )
+private fun RunicPreviewSection(uiState: AddEditQuoteUiState) {
+    val previewText = when (uiState.selectedScript) {
+        RunicScript.ELDER_FUTHARK -> uiState.runicElderPreview
+        RunicScript.YOUNGER_FUTHARK -> uiState.runicYoungerPreview
+        RunicScript.CIRTH -> uiState.runicCirthPreview
+    }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = shapes.contentCard,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        if (previewText.isNotEmpty()) {
+            RunicText(
+                text = previewText,
+                script = uiState.selectedScript,
+                font = uiState.selectedFont,
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.fillMaxWidth()
+            )
+        } else {
+            RunicText(
+                text = "\u16B1\u16A2\u16BE\u16D6",
+                script = uiState.selectedScript,
+                font = uiState.selectedFont,
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        if (uiState.textLatin.isNotBlank()) {
             Text(
-                text = "Live Preview",
-                style = MaterialTheme.typography.titleSmall,
+                text = "\u201C${uiState.textLatin.trim()}\u201D",
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-
-            val previewText = when (uiState.selectedScript) {
-                RunicScript.ELDER_FUTHARK -> uiState.runicElderPreview
-                RunicScript.YOUNGER_FUTHARK -> uiState.runicYoungerPreview
-                RunicScript.CIRTH -> uiState.runicCirthPreview
+            if (uiState.author.isNotBlank()) {
+                Text(
+                    text = "\u2014 ${uiState.author.trim()}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun QuoteTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    error: String?,
+    charCount: Int,
+    enabled: Boolean
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = "Quote Text",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = { Text("Enter your quote in Latin script...") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("add_edit_quote_text"),
+            minLines = 3,
+            maxLines = 6,
+            isError = error != null,
+            supportingText = {
+                val helper = error ?: "$charCount/280"
+                Text(
+                    text = helper,
+                    color = if (error != null) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+            },
+            enabled = enabled
+        )
+    }
+}
+
+@Composable
+private fun AuthorTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    error: String?,
+    charCount: Int,
+    enabled: Boolean
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = "Author",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = { Text("Enter author name...") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("add_edit_author_text"),
+            singleLine = true,
+            isError = error != null,
+            supportingText = {
+                val helper = error ?: "$charCount/60"
+                Text(
+                    text = helper,
+                    color = if (error != null) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+            },
+            enabled = enabled
+        )
+    }
+}
+
+@Composable
+private fun ConfirmationContent(
+    uiState: AddEditQuoteUiState,
+    snackbarHostState: SnackbarHostState,
+    onViewInLibrary: () -> Unit,
+    onCreateAnother: () -> Unit
+) {
+    val previewText = when (uiState.selectedScript) {
+        RunicScript.ELDER_FUTHARK -> uiState.runicElderPreview
+        RunicScript.YOUNGER_FUTHARK -> uiState.runicYoungerPreview
+        RunicScript.CIRTH -> uiState.runicCirthPreview
+    }
+
+    LaunchedEffect(Unit) {
+        snackbarHostState.showSnackbar("Quote saved successfully")
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Quote created",
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Added to your library and ready to share.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
 
             if (previewText.isNotEmpty()) {
                 RunicText(
@@ -406,82 +542,31 @@ private fun LivePreviewSection(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.fillMaxWidth()
                 )
-            } else {
-                RunicText(
-                    text = "ᚱᚢᚾᛖ",
-                    script = uiState.selectedScript,
-                    font = uiState.selectedFont,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Type to see runic preview...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    text = "\u2014 ${uiState.author.trim()}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Transliteration Confidence: ${uiState.transliterationConfidence}%",
-                style = MaterialTheme.typography.labelLarge,
-                color = confidenceColor
-            )
-            LinearProgressIndicator(
-                progress = { progress },
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = onViewInLibrary,
                 modifier = Modifier.fillMaxWidth(),
-                color = confidenceColor,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-            Text(
-                text = uiState.confidenceHint,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
-            )
-        }
-    }
-}
+                shape = RunicExpressiveTheme.shapes.segmentedControl
+            ) {
+                Text("View in Library")
+            }
 
-@Composable
-private fun ScriptPreviewCard(
-    title: String,
-    script: RunicScript,
-    runicText: String,
-    selectedFont: String
-) {
-    val shapes = RunicExpressiveTheme.shapes
+            Spacer(modifier = Modifier.height(8.dp))
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = shapes.collectionCard,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-            )
-
-            if (runicText.isNotEmpty()) {
-                RunicText(
-                    text = runicText,
-                    script = script,
-                    font = selectedFont,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            } else {
-                Text(
-                    text = "—",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
-                )
+            TextButton(
+                onClick = onCreateAnother,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Create Another")
             }
         }
     }
