@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
@@ -64,6 +65,7 @@ import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.ui.components.BottomSheetAction
 import com.po4yka.runicquotes.ui.components.EmptyState
 import com.po4yka.runicquotes.ui.components.ErrorState
+import com.po4yka.runicquotes.ui.components.NotificationPermissionDialog
 import com.po4yka.runicquotes.ui.components.RunicBottomSheet
 import com.po4yka.runicquotes.ui.components.SegmentedControl
 import com.po4yka.runicquotes.ui.components.RunicText
@@ -89,12 +91,14 @@ import java.util.Locale
 fun QuoteScreen(
     onNavigateToHistory: () -> Unit = {},
     onNavigateToEditQuote: (Long) -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
     onBrowseLibrary: (() -> Unit)? = null,
     viewModel: QuoteViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val haptics = rememberHapticFeedback()
     var showBottomSheet by remember { mutableStateOf(false) }
+    var showNotificationDialog by remember { mutableStateOf(false) }
 
     Scaffold { paddingValues ->
         Box(
@@ -126,7 +130,8 @@ fun QuoteScreen(
                         viewModel.updateSelectedScript(script)
                     },
                     onNavigateToHistory = onNavigateToHistory,
-                    onShowActions = { showBottomSheet = true }
+                    onShowActions = { showBottomSheet = true },
+                    onNotificationClick = { showNotificationDialog = true }
                 )
 
                 is QuoteUiState.Error -> ErrorState(
@@ -190,6 +195,16 @@ fun QuoteScreen(
             )
         }
     }
+
+    if (showNotificationDialog) {
+        NotificationPermissionDialog(
+            onConfirm = {
+                showNotificationDialog = false
+                onNavigateToNotifications()
+            },
+            onDismiss = { showNotificationDialog = false }
+        )
+    }
 }
 
 @Composable
@@ -200,7 +215,8 @@ private fun TodayContent(
     onNewQuote: () -> Unit,
     onSelectScript: (RunicScript) -> Unit,
     onNavigateToHistory: () -> Unit,
-    onShowActions: () -> Unit
+    onShowActions: () -> Unit,
+    onNotificationClick: () -> Unit
 ) {
     val reducedMotion = LocalReduceMotion.current
     val motion = RunicExpressiveTheme.motion
@@ -244,12 +260,21 @@ private fun TodayContent(
                     style = MaterialTheme.typography.headlineSmall
                 )
             }
-            IconButton(onClick = onShowActions) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Quote actions",
-                    modifier = Modifier.size(18.dp)
-                )
+            Row {
+                IconButton(onClick = onNotificationClick) {
+                    Icon(
+                        imageVector = Icons.Outlined.Notifications,
+                        contentDescription = "Notification settings",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                IconButton(onClick = onShowActions) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Quote actions",
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
 
