@@ -231,7 +231,11 @@ fun NavGraph(
                     ArchiveScreen()
                 }
                 entry<ReferencesRoute> {
-                    ReferencesScreen()
+                    ReferencesScreen(
+                        onNavigateToRuneDetail = { runeId ->
+                            backStack.add(RuneDetailRoute(runeId))
+                        }
+                    )
                 }
                 entry<RuneDetailRoute> { route ->
                     RuneDetailScreen(runeId = route.runeId)
