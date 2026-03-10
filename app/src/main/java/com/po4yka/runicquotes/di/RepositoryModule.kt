@@ -1,7 +1,13 @@
 package com.po4yka.runicquotes.di
 
+import com.po4yka.runicquotes.data.repository.ArchiveRepository
+import com.po4yka.runicquotes.data.repository.ArchiveRepositoryImpl
+import com.po4yka.runicquotes.data.repository.QuotePackRepository
+import com.po4yka.runicquotes.data.repository.QuotePackRepositoryImpl
 import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.data.repository.QuoteRepositoryImpl
+import com.po4yka.runicquotes.data.repository.RuneReferenceRepository
+import com.po4yka.runicquotes.data.repository.RuneReferenceRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -20,4 +26,22 @@ abstract class RepositoryModule {
     abstract fun bindQuoteRepository(
         impl: QuoteRepositoryImpl
     ): QuoteRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindQuotePackRepository(
+        impl: QuotePackRepositoryImpl
+    ): QuotePackRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindArchiveRepository(
+        impl: ArchiveRepositoryImpl
+    ): ArchiveRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindRuneReferenceRepository(
+        impl: RuneReferenceRepositoryImpl
+    ): RuneReferenceRepository
 }
