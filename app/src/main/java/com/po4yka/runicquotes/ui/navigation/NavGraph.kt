@@ -242,8 +242,10 @@ fun NavGraph(
                         onNavigateBack = { backStack.removeLastOrNull() }
                     )
                 }
-                entry<ShareRoute> { route ->
-                    ShareScreen(quoteId = route.quoteId)
+                entry<ShareRoute> {
+                    ShareScreen(
+                        onNavigateBack = { backStack.removeLastOrNull() }
+                    )
                 }
                 entry<TranslationRoute> {
                     TranslationScreen()

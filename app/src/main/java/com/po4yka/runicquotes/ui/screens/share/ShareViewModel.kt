@@ -1,0 +1,110 @@
+package com.po4yka.runicquotes.ui.screens.share
+
+import android.util.Log
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.po4yka.runicquotes.data.repository.QuoteRepository
+import com.po4yka.runicquotes.domain.model.Quote
+import com.po4yka.runicquotes.util.QuoteShareManager
+import com.po4yka.runicquotes.util.ShareTemplate
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.io.IOException
+import javax.inject.Inject
+
+/**
+ * ViewModel for the share quote screen.
+ */
+@HiltViewModel
+class ShareViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    private val quoteRepository: QuoteRepository,
+    private val quoteShareManager: QuoteShareManager
+) : ViewModel() {
+
+    private val quoteId: Long = checkNotNull(savedStateHandle.get<Long>("quoteId"))
+
+    private val _uiState = MutableStateFlow<ShareUiState>(ShareUiState.Loading)
+    val uiState: StateFlow<ShareUiState> = _uiState.asStateFlow()
+
+    private val _selectedTemplate = MutableStateFlow(ShareTemplate.MINIMAL)
+    val selectedTemplate: StateFlow<ShareTemplate> = _selectedTemplate.asStateFlow()
+
+    /** @suppress */
+    companion object {
+        private const val TAG = "ShareViewModel"
+    }
+
+    init {
+        loadQuote()
+    }
+
+    private fun loadQuote() {
+        viewModelScope.launch {
+            _uiState.value = ShareUiState.Loading
+            try {
+                val quote = quoteRepository.getQuoteById(quoteId)
+                if (quote != null) {
+                    _uiState.value = ShareUiState.Success(quote)
+                } else {
+                    _uiState.value = ShareUiState.Error("Quote not found")
+                }
+            } catch (e: IOException) {
+                Log.e(TAG, "IO error loading quote", e)
+                _uiState.value = ShareUiState.Error("Failed to load quote: ${e.message}")
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Invalid state loading quote", e)
+                _uiState.value = ShareUiState.Error("Invalid state: ${e.message}")
+            }
+        }
+    }
+
+    /** Selects a share template style. */
+    fun selectTemplate(template: ShareTemplate) {
+        _selectedTemplate.update { template }
+    }
+
+    /** Shares the quote as plain text. */
+    fun shareAsText() {
+        val quote = (uiState.value as? ShareUiState.Success)?.quote ?: return
+        quoteShareManager.shareQuoteText(quote.textLatin, quote.author)
+    }
+
+    /** Shares the quote as a styled image. */
+    fun shareAsImage() {
+        val quote = (uiState.value as? ShareUiState.Success)?.quote ?: return
+        val runicText = quote.runicElder ?: quote.textLatin
+        viewModelScope.launch {
+            quoteShareManager.shareQuoteAsImage(
+                runicText = runicText,
+                latinText = quote.textLatin,
+                author = quote.author,
+                template = _selectedTemplate.value
+            )
+        }
+    }
+
+    /** Retries loading the quote after an error. */
+    fun retry() {
+        loadQuote()
+    }
+}
+
+/**
+ * UI state for the share screen.
+ */
+sealed interface ShareUiState {
+    /** Quote data is being loaded. */
+    data object Loading : ShareUiState
+
+    /** Quote loaded successfully. */
+    data class Success(val quote: Quote) : ShareUiState
+
+    /** An error occurred while loading the quote. */
+    data class Error(val message: String) : ShareUiState
+}
