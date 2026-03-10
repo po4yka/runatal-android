@@ -6,6 +6,7 @@ import com.po4yka.runicquotes.data.seed.QuotePackSeedData
 import com.po4yka.runicquotes.domain.model.QuotePack
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.text.Normalizer
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,11 +22,24 @@ class QuotePackRepositoryImpl @Inject constructor(
     private var isSeeded = false
 
     override suspend fun seedIfNeeded() {
-        if (isSeeded || quotePackDao.getCount() > 0) {
+        if (isSeeded) {
             return
         }
 
-        quotePackDao.insertAll(QuotePackSeedData.getInitialPacks())
+        val canonicalPacks = QuotePackSeedData.getInitialPacks()
+        val existingPacks = quotePackDao.getAll()
+
+        val syncedPacks = canonicalPacks.map { canonical ->
+            val existing = existingPacks.firstOrNull { existing ->
+                existing.id == canonical.id ||
+                    existing.coverRune == canonical.coverRune ||
+                    normalizeName(existing.name) == normalizeName(canonical.name)
+            }
+
+            canonical.copy(isInLibrary = existing?.isInLibrary ?: canonical.isInLibrary)
+        }
+
+        quotePackDao.insertAll(syncedPacks)
         isSeeded = true
     }
 
@@ -84,4 +98,11 @@ class QuotePackRepositoryImpl @Inject constructor(
         quoteCount = quoteCount,
         isInLibrary = isInLibrary
     )
+
+    private fun normalizeName(value: String): String {
+        return Normalizer.normalize(value, Normalizer.Form.NFD)
+            .replace("\\p{Mn}+".toRegex(), "")
+            .replace("[^a-zA-Z0-9]+".toRegex(), "")
+            .lowercase()
+    }
 }

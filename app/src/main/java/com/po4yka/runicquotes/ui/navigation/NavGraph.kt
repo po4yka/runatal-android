@@ -358,6 +358,7 @@ private fun EntryProviderScope<Any>.topLevelEntries(
     }
     entry<PacksRoute> {
         PacksScreen(
+            onNavigateBack = { backStack.removeLastOrNull() },
             onNavigateToPackDetail = { packId ->
                 backStack.add(PackDetailRoute(packId))
             }
@@ -378,6 +379,10 @@ private fun EntryProviderScope<Any>.detailEntries(
     entry<PackDetailRoute> { route ->
         PackDetailScreen(
             onNavigateBack = { backStack.removeLastOrNull() },
+            onViewLibrary = {
+                backStack.clear()
+                backStack.add(QuoteListRoute)
+            },
             packId = route.packId
         )
     }

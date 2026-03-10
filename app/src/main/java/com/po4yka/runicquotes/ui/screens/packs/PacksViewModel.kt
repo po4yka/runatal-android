@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
-import java.util.Locale
+import java.text.Normalizer
 import javax.inject.Inject
 
 /**
@@ -54,10 +54,12 @@ class PacksViewModel @Inject constructor(
                 val filtered = if (query.isBlank()) {
                     allPacks
                 } else {
-                    val q = query.trim().lowercase(Locale.getDefault())
+                    val q = normalize(query)
                     allPacks.filter { pack ->
-                        pack.name.lowercase(Locale.getDefault()).contains(q) ||
-                            pack.description.lowercase(Locale.getDefault()).contains(q)
+                        val source = PackPresentationCatalog.sourceLabel(pack)
+                        normalize(pack.name).contains(q) ||
+                            normalize(pack.description).contains(q) ||
+                            normalize(source).contains(q)
                     }
                 }
 
@@ -120,6 +122,12 @@ class PacksViewModel @Inject constructor(
      */
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    private fun normalize(value: String): String {
+        return Normalizer.normalize(value, Normalizer.Form.NFD)
+            .replace("\\p{Mn}+".toRegex(), "")
+            .lowercase()
     }
 }
 

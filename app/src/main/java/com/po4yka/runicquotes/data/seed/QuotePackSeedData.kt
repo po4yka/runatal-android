@@ -10,43 +10,52 @@ internal object QuotePackSeedData {
 
     fun getInitialPacks(): List<QuotePackEntity> = listOf(
         QuotePackEntity(
-            name = "Havamal Selections",
-            description = "Timeless verses from the Words of the High One, " +
-                "offering guidance on wisdom, hospitality, and the art of living.",
+            id = 1,
+            name = "Hávamál Selections",
+            description = "Verses from the Words of the High One — Odin's counsel " +
+                "on wisdom, hospitality, and caution.",
             coverRune = "\u16BA",
+            quoteCount = 24,
+            isInLibrary = false
+        ),
+        QuotePackEntity(
+            id = 2,
+            name = "Elder Voices",
+            description = "Core teachings drawn from Elder Futhark lore and early rune traditions.",
+            coverRune = "\u16A0",
+            quoteCount = 18,
+            isInLibrary = true
+        ),
+        QuotePackEntity(
+            id = 3,
+            name = "Path of the Wanderer",
+            description = "Journeys, discovery, and the lessons found on unfamiliar roads.",
+            coverRune = "\u16B1",
             quoteCount = 12,
             isInLibrary = false
         ),
         QuotePackEntity(
-            name = "Elder Voices",
-            description = "Ancient proverbs and sayings passed down through " +
-                "generations of Norse oral tradition.",
-            coverRune = "\u16A8",
-            quoteCount = 8,
-            isInLibrary = false
-        ),
-        QuotePackEntity(
-            name = "Path of the Wanderer",
-            description = "Reflections on journey, discovery, and the wisdom " +
-                "found along the open road.",
-            coverRune = "\u16B1",
-            quoteCount = 10,
-            isInLibrary = false
-        ),
-        QuotePackEntity(
-            name = "Wisdom of the North",
-            description = "A broad collection of Norse philosophical insights " +
-                "on fate, honor, courage, and the natural world.",
-            coverRune = "\u16DF",
+            id = 4,
+            name = "Hearthfire Wisdom",
+            description = "Home, kinship, generosity, and the warmth of shared meals.",
+            coverRune = "\u16B2",
             quoteCount = 15,
             isInLibrary = false
         ),
         QuotePackEntity(
-            name = "Runic Meditations",
-            description = "Contemplative passages for quiet reflection, " +
-                "centered on the mystical power of the runes.",
-            coverRune = "\u16C1",
-            quoteCount = 6,
+            id = 5,
+            name = "Seasonal Runes",
+            description = "Quotes aligned to solstices, equinoxes, and the turning year.",
+            coverRune = "\u16CA",
+            quoteCount = 8,
+            isInLibrary = true
+        ),
+        QuotePackEntity(
+            id = 6,
+            name = "Warrior's Counsel",
+            description = "Strength, resolve, and endurance for the path ahead.",
+            coverRune = "\u16CF",
+            quoteCount = 16,
             isInLibrary = false
         )
     )

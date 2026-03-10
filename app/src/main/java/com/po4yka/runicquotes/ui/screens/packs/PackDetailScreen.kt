@@ -1,36 +1,49 @@
 package com.po4yka.runicquotes.ui.screens.packs
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -39,159 +52,407 @@ import com.po4yka.runicquotes.ui.components.ErrorState
 import com.po4yka.runicquotes.ui.components.SkeletonCard
 import com.po4yka.runicquotes.ui.components.SkeletonCircle
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
+import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PackDetailScreen(
     onNavigateBack: () -> Unit = {},
+    onViewLibrary: () -> Unit = {},
     packId: Long = 0L,
     viewModel: PackDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val feedbackMessage by viewModel.feedbackMessage.collectAsStateWithLifecycle()
 
-    LaunchedEffect(packId) { viewModel.initializePackIfNeeded(packId) }
+    LaunchedEffect(packId) {
+        viewModel.initializePackIfNeeded(packId)
+    }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        PackDetailTopBar(uiState = uiState, onNavigateBack = onNavigateBack)
-
-        when (val state = uiState) {
-            is PackDetailUiState.Loading -> PackDetailLoadingSkeleton()
-            is PackDetailUiState.Error -> ErrorState(
-                title = "Something Went Wrong",
-                description = state.message,
-                onRetry = viewModel::retry,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(vertical = 48.dp)
-            )
-            is PackDetailUiState.Success -> PackDetailContent(
-                pack = state.pack,
-                onToggleLibrary = viewModel::toggleLibrary
-            )
+    LaunchedEffect(feedbackMessage) {
+        if (feedbackMessage != null) {
+            delay(2800)
+            viewModel.clearFeedback()
         }
     }
-}
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PackDetailTopBar(uiState: PackDetailUiState, onNavigateBack: () -> Unit) {
-    val title = (uiState as? PackDetailUiState.Success)?.pack?.name ?: "Pack Detail"
-    TopAppBar(
-        title = { Text(title) },
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Navigate back"
-                )
-            }
-        }
-    )
-}
-
-@Composable
-private fun PackDetailContent(pack: QuotePack, onToggleLibrary: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.height(24.dp))
-
+    Scaffold(
+        topBar = {
+            PackDetailTopBar(
+                onNavigateBack = onNavigateBack
+            )
+        },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+    ) { padding ->
         Box(
             modifier = Modifier
-                .size(96.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.secondaryContainer)
-                .semantics { contentDescription = "Cover rune: ${pack.coverRune}" },
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            when (val state = uiState) {
+                is PackDetailUiState.Loading -> PackDetailLoadingSkeleton(
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                is PackDetailUiState.Error -> ErrorState(
+                    title = "Something Went Wrong",
+                    description = state.message,
+                    onRetry = viewModel::retry,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(vertical = 48.dp)
+                )
+
+                is PackDetailUiState.Success -> PackDetailContent(
+                    pack = state.pack,
+                    onToggleLibrary = viewModel::toggleLibrary
+                )
+            }
+
+            AnimatedVisibility(
+                visible = feedbackMessage != null,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 16.dp, vertical = 20.dp)
+            ) {
+                feedbackMessage?.let { message ->
+                    PackFeedbackBanner(
+                        message = message,
+                        onViewLibrary = onViewLibrary
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PackDetailTopBar(onNavigateBack: () -> Unit) {
+    Surface(color = MaterialTheme.colorScheme.background) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        ) {
+            IconButton(
+                onClick = onNavigateBack,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .size(42.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back"
+                )
+            }
+
+            Spacer(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(42.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PackDetailContent(
+    pack: QuotePack,
+    onToggleLibrary: () -> Unit
+) {
+    val previewQuotes = PackPresentationCatalog.previewQuotes(pack)
+    val sourceLabel = PackPresentationCatalog.sourceLabel(pack)
+    val readTimeLabel = PackPresentationCatalog.readTimeLabel(pack)
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        item {
+            PackHeroCard(
+                pack = pack,
+                sourceLabel = sourceLabel,
+                readTimeLabel = readTimeLabel,
+                onToggleLibrary = onToggleLibrary
+            )
+        }
+
+        item {
+            Text(
+                text = "Quotes in this pack",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        items(previewQuotes) { quote ->
+            PackQuoteCard(quote = quote)
+        }
+    }
+}
+
+@Composable
+private fun PackHeroCard(
+    pack: QuotePack,
+    sourceLabel: String,
+    readTimeLabel: String,
+    onToggleLibrary: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(22.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.85f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                        .semantics { contentDescription = "Cover rune: ${pack.coverRune}" },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = pack.coverRune,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = pack.name,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = sourceLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Text(
+                text = pack.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                PackMetaPill(text = "${pack.quoteCount} quotes")
+                Text(
+                    text = "·",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = readTimeLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Surface(
+                    onClick = onToggleLibrary,
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (pack.isInLibrary) {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (pack.isInLibrary) Icons.Default.Check else Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(15.dp),
+                            tint = if (pack.isInLibrary) {
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onPrimary
+                            }
+                        )
+                        Text(
+                            text = if (pack.isInLibrary) "In Library" else "Add to Library",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                            color = if (pack.isInLibrary) {
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onPrimary
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PackMetaPill(text: String) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+        )
+    }
+}
+
+@Composable
+private fun PackQuoteCard(quote: PackPreviewQuote) {
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = if (quote.isHighlighted) {
+            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+        } else {
+            MaterialTheme.colorScheme.surfaceContainer
+        },
+        border = BorderStroke(
+            1.dp,
+            if (quote.isHighlighted) {
+                MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f)
+            } else {
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f)
+            }
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 15.dp, vertical = 13.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = quote.rune,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = quote.label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Text(
+                text = quote.text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun PackFeedbackBanner(
+    message: String,
+    onViewLibrary: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        shadowElevation = 8.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = pack.coverRune,
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
             )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = pack.name,
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = pack.description,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "${pack.quoteCount} quotes",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        LibraryToggleButton(isInLibrary = pack.isInLibrary, onClick = onToggleLibrary)
-    }
-}
-
-@Composable
-private fun LibraryToggleButton(isInLibrary: Boolean, onClick: () -> Unit) {
-    if (isInLibrary) {
-        OutlinedButton(
-            onClick = onClick,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(
-                imageVector = Icons.Default.Star,
-                contentDescription = "In Library",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp)
+            Text(
+                text = "View",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable(onClick = onViewLibrary)
+                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                    .semantics { contentDescription = "View library" }
             )
-            Spacer(modifier = Modifier.size(8.dp))
-            Text("In Library")
-        }
-    } else {
-        Button(
-            onClick = onClick,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(
-                imageVector = Icons.Default.Star,
-                contentDescription = "Add to Library",
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.size(8.dp))
-            Text("Add to Library")
         }
     }
 }
 
 @Composable
-private fun PackDetailLoadingSkeleton() {
+private fun PackDetailLoadingSkeleton(modifier: Modifier = Modifier) {
     val brush = rememberShimmerBrush()
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
-        SkeletonCircle(size = 96.dp, brush = brush)
-        SkeletonCard(height = 32.dp, brush = brush, modifier = Modifier.fillMaxWidth(0.6f))
-        SkeletonCard(height = 48.dp, brush = brush)
-        SkeletonCard(height = 48.dp, brush = brush)
+        item {
+            Surface(
+                shape = RoundedCornerShape(22.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLow
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        SkeletonCircle(size = 48.dp, brush = brush)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            SkeletonCard(height = 24.dp, brush = brush, modifier = Modifier.fillMaxWidth(0.5f))
+                            SkeletonCard(height = 16.dp, brush = brush, modifier = Modifier.fillMaxWidth(0.35f))
+                        }
+                    }
+                    SkeletonCard(height = 56.dp, brush = brush)
+                    SkeletonCard(height = 40.dp, brush = brush)
+                }
+            }
+        }
+
+        item {
+            SkeletonCard(height = 24.dp, brush = brush, modifier = Modifier.fillMaxWidth(0.36f))
+        }
+
+        items(4) {
+            SkeletonCard(height = 104.dp, brush = brush)
+        }
     }
 }

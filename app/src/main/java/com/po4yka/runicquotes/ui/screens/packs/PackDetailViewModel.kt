@@ -30,6 +30,9 @@ class PackDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<PackDetailUiState>(PackDetailUiState.Loading)
     val uiState: StateFlow<PackDetailUiState> = _uiState.asStateFlow()
 
+    private val _feedbackMessage = MutableStateFlow<String?>(null)
+    val feedbackMessage: StateFlow<String?> = _feedbackMessage.asStateFlow()
+
     /** @suppress */
     companion object {
         private const val TAG = "PackDetailViewModel"
@@ -54,6 +57,7 @@ class PackDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = PackDetailUiState.Loading
             try {
+                quotePackRepository.seedIfNeeded()
                 val pack = quotePackRepository.getPackById(packId)
                 if (pack != null) {
                     _uiState.value = PackDetailUiState.Success(pack)
@@ -80,12 +84,24 @@ class PackDetailViewModel @Inject constructor(
                 val updated = current.copy(isInLibrary = !current.isInLibrary)
                 quotePackRepository.updatePack(updated)
                 _uiState.update { PackDetailUiState.Success(updated) }
+                _feedbackMessage.value = if (updated.isInLibrary) {
+                    "${updated.quoteCount} quotes added to library"
+                } else {
+                    "${updated.name} removed from library"
+                }
             } catch (e: IOException) {
                 Log.e(TAG, "IO error toggling library status", e)
             } catch (e: IllegalStateException) {
                 Log.e(TAG, "Invalid state toggling library status", e)
             }
         }
+    }
+
+    /**
+     * Clears transient feedback after it has been displayed.
+     */
+    fun clearFeedback() {
+        _feedbackMessage.value = null
     }
 
     /**

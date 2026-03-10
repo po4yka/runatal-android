@@ -16,9 +16,15 @@ import kotlinx.coroutines.flow.Flow
 interface QuotePackDao {
 
     /**
+     * Get all quote packs immediately.
+     */
+    @Query("SELECT * FROM quote_packs ORDER BY id ASC")
+    suspend fun getAll(): List<QuotePackEntity>
+
+    /**
      * Get all quote packs as a reactive Flow.
      */
-    @Query("SELECT * FROM quote_packs ORDER BY name ASC")
+    @Query("SELECT * FROM quote_packs ORDER BY id ASC")
     fun getAllFlow(): Flow<List<QuotePackEntity>>
 
     /**
@@ -30,7 +36,7 @@ interface QuotePackDao {
     /**
      * Get packs that the user has added to their library.
      */
-    @Query("SELECT * FROM quote_packs WHERE isInLibrary = 1 ORDER BY name ASC")
+    @Query("SELECT * FROM quote_packs WHERE isInLibrary = 1 ORDER BY id ASC")
     fun getLibraryPacksFlow(): Flow<List<QuotePackEntity>>
 
     /**
@@ -38,7 +44,7 @@ interface QuotePackDao {
      */
     @Query(
         "SELECT * FROM quote_packs WHERE name LIKE '%' || :query || '%' " +
-            "OR description LIKE '%' || :query || '%' ORDER BY name ASC"
+            "OR description LIKE '%' || :query || '%' ORDER BY id ASC"
     )
     fun search(query: String): Flow<List<QuotePackEntity>>
 
