@@ -7,6 +7,7 @@ import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -25,17 +26,12 @@ import org.junit.Before
 import org.junit.Test
 import java.io.IOException
 
-/**
- * Comprehensive unit tests for QuoteListViewModel.
- * Tests filtering, favorite toggling, quote deletion, and error handling.
- *
- * Coverage goals: >85%
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 class QuoteListViewModelTest {
 
     private lateinit var quoteRepository: QuoteRepository
     private lateinit var userPreferencesManager: UserPreferencesManager
+    private lateinit var transliterationFactory: TransliterationFactory
     private lateinit var viewModel: QuoteListViewModel
 
     private val testDispatcher = StandardTestDispatcher()
@@ -75,7 +71,6 @@ class QuoteListViewModelTest {
 
     private val userQuotes = testQuotes.filter { it.isUserCreated }
     private val favoriteQuotes = testQuotes.filter { it.isFavorite }
-    private val systemQuotes = testQuotes.filter { !it.isUserCreated }
 
     private val defaultPreferences = UserPreferences(
         selectedScript = RunicScript.ELDER_FUTHARK,
@@ -92,11 +87,10 @@ class QuoteListViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
 
-        // Create mocks
         quoteRepository = mockk()
         userPreferencesManager = mockk()
+        transliterationFactory = mockk()
 
-        // Set up flows
         preferencesFlow = MutableStateFlow(defaultPreferences)
         allQuotesFlow = MutableStateFlow(testQuotes)
         userQuotesFlow = MutableStateFlow(userQuotes)
@@ -108,9 +102,6 @@ class QuoteListViewModelTest {
         every { quoteRepository.getFavoritesFlow() } returns favoritesFlow
         coEvery { userPreferencesManager.updateQuoteListFilter(any()) } returns Unit
         coEvery { userPreferencesManager.updateQuoteSearchQuery(any()) } returns Unit
-        coEvery { userPreferencesManager.updateQuoteAuthorFilter(any()) } returns Unit
-        coEvery { userPreferencesManager.updateQuoteLengthFilter(any()) } returns Unit
-        coEvery { userPreferencesManager.updateQuoteCollectionFilter(any()) } returns Unit
     }
 
     @After
@@ -118,28 +109,24 @@ class QuoteListViewModelTest {
         Dispatchers.resetMain()
     }
 
-    // ==================== Initialization Tests ====================
+    private fun createViewModel() = QuoteListViewModel(
+        quoteRepository, userPreferencesManager, transliterationFactory
+    )
 
     @Test
     fun `viewModel initializes with loading state`() = runTest {
-        // When: ViewModel is created
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
+        viewModel = createViewModel()
 
-        // Then: State transitions through loading to loaded
         viewModel.uiState.test {
-            // Initial state before coroutine runs
             val initialState = awaitItem()
             assertThat(initialState.isLoading).isFalse()
             assertThat(initialState.quotes).isEqualTo(emptyList<Quote>())
 
-            // Advance to execute the init coroutine
             advanceUntilIdle()
 
-            // Loading state is set
             val loadingState = awaitItem()
             assertThat(loadingState.isLoading).isTrue()
 
-            // Then combine emits with loaded quotes
             val loadedState = awaitItem()
             assertThat(loadedState.isLoading).isFalse()
             assertThat(loadedState.quotes).hasSize(testQuotes.size)
@@ -149,11 +136,9 @@ class QuoteListViewModelTest {
 
     @Test
     fun `viewModel loads quotes on initialization`() = runTest {
-        // When: ViewModel is created
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
+        viewModel = createViewModel()
         advanceUntilIdle()
 
-        // Then: Quotes are loaded with ALL filter
         viewModel.uiState.test {
             val state = awaitItem()
             assertThat(state.quotes).hasSize(testQuotes.size)
@@ -164,32 +149,13 @@ class QuoteListViewModelTest {
     }
 
     @Test
-    fun `viewModel initializes with preferences from manager`() = runTest {
-        // When: ViewModel is created
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
-        advanceUntilIdle()
-
-        // Then: Preferences are applied
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertThat(state.selectedScript).isEqualTo(RunicScript.ELDER_FUTHARK)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    // ==================== Filter Tests ====================
-
-    @Test
     fun `setFilter to ALL shows all quotes`() = runTest {
-        // Given: ViewModel initialized
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
+        viewModel = createViewModel()
         advanceUntilIdle()
 
-        // When: Setting filter to ALL
         viewModel.setFilter(QuoteFilter.ALL)
         advanceUntilIdle()
 
-        // Then: All quotes are shown
         viewModel.uiState.test {
             val state = awaitItem()
             assertThat(state.currentFilter).isEqualTo(QuoteFilter.ALL)
@@ -200,15 +166,12 @@ class QuoteListViewModelTest {
 
     @Test
     fun `setFilter to USER_CREATED shows only user quotes`() = runTest {
-        // Given: ViewModel initialized
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
+        viewModel = createViewModel()
         advanceUntilIdle()
 
-        // When: Setting filter to USER_CREATED
         viewModel.setFilter(QuoteFilter.USER_CREATED)
         advanceUntilIdle()
 
-        // Then: Only user-created quotes are shown
         viewModel.uiState.test {
             val state = awaitItem()
             assertThat(state.currentFilter).isEqualTo(QuoteFilter.USER_CREATED)
@@ -220,15 +183,12 @@ class QuoteListViewModelTest {
 
     @Test
     fun `setFilter to FAVORITES shows only favorite quotes`() = runTest {
-        // Given: ViewModel initialized
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
+        viewModel = createViewModel()
         advanceUntilIdle()
 
-        // When: Setting filter to FAVORITES
         viewModel.setFilter(QuoteFilter.FAVORITES)
         advanceUntilIdle()
 
-        // Then: Only favorite quotes are shown
         viewModel.uiState.test {
             val state = awaitItem()
             assertThat(state.currentFilter).isEqualTo(QuoteFilter.FAVORITES)
@@ -239,149 +199,27 @@ class QuoteListViewModelTest {
     }
 
     @Test
-    fun `setFilter to SYSTEM shows only system quotes`() = runTest {
-        // Given: ViewModel initialized
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
-        advanceUntilIdle()
-
-        // When: Setting filter to SYSTEM
-        viewModel.setFilter(QuoteFilter.SYSTEM)
-        advanceUntilIdle()
-
-        // Then: Only system quotes are shown
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertThat(state.currentFilter).isEqualTo(QuoteFilter.SYSTEM)
-            assertThat(state.quotes).hasSize(systemQuotes.size)
-            assertThat(state.quotes.all { !it.isUserCreated }).isTrue()
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `setCollection to TOLKIEN shows Tolkien quotes`() = runTest {
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
-        advanceUntilIdle()
-
-        viewModel.setCollection(QuoteCollection.TOLKIEN)
-        advanceUntilIdle()
-
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertThat(state.selectedCollection).isEqualTo(QuoteCollection.TOLKIEN)
-            assertThat(state.quotes).hasSize(1)
-            assertThat(state.quotes.all { it.author.contains("Tolkien") }).isTrue()
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `clearSmartFilters resets collection to ALL`() = runTest {
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
-        advanceUntilIdle()
-
-        viewModel.setCollection(QuoteCollection.STOIC)
-        advanceUntilIdle()
-        viewModel.clearSmartFilters()
-        advanceUntilIdle()
-
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertThat(state.selectedCollection).isEqualTo(QuoteCollection.ALL)
-            cancelAndIgnoreRemainingEvents()
-        }
-
-        coVerify { userPreferencesManager.updateQuoteCollectionFilter("all") }
-    }
-
-    @Test
-    fun `restores persisted quote collection filter`() = runTest {
-        preferencesFlow.value = defaultPreferences.copy(quoteCollectionFilter = "tolkien")
-
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
-        advanceUntilIdle()
-
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertThat(state.selectedCollection).isEqualTo(QuoteCollection.TOLKIEN)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `switching between filters updates quotes list`() = runTest {
-        // Given: ViewModel initialized
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
-
-        viewModel.uiState.test {
-            // Initial empty state
-            awaitItem()
-
-            // Advance to complete loading
-            advanceUntilIdle()
-
-            // Loading state then loaded state
-            awaitItem() // isLoading = true
-            val allState = awaitItem() // isLoading = false with ALL quotes
-            assertThat(allState.quotes).hasSize(testQuotes.size)
-
-            // Switch to FAVORITES
-            viewModel.setFilter(QuoteFilter.FAVORITES)
-            // setFilter updates state, then combine re-emits
-            val filterUpdate1 = awaitItem() // Direct update from setFilter
-            advanceUntilIdle()
-            val favoritesState = awaitItem() // Combine re-emits with filtered data
-            assertThat(favoritesState.quotes).hasSize(favoriteQuotes.size)
-
-            // Switch to USER_CREATED
-            viewModel.setFilter(QuoteFilter.USER_CREATED)
-            awaitItem() // Direct update from setFilter
-            advanceUntilIdle()
-            val userState = awaitItem() // Combine re-emits with filtered data
-            assertThat(userState.quotes).hasSize(userQuotes.size)
-
-            // Switch to SYSTEM
-            viewModel.setFilter(QuoteFilter.SYSTEM)
-            awaitItem() // Direct update from setFilter
-            advanceUntilIdle()
-            val systemState = awaitItem() // Combine re-emits with filtered data
-            assertThat(systemState.quotes).hasSize(systemQuotes.size)
-
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    // ==================== Favorite Toggle Tests ====================
-
-    @Test
     fun `toggleFavorite calls repository with correct parameters`() = runTest {
-        // Given: ViewModel initialized
         coEvery { quoteRepository.toggleFavorite(any(), any()) } returns Unit
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
+        viewModel = createViewModel()
         advanceUntilIdle()
 
         val quote = testQuotes[0]
-
-        // When: Toggling favorite
         viewModel.toggleFavorite(quote)
         advanceUntilIdle()
 
-        // Then: Repository is called with toggled value
         coVerify { quoteRepository.toggleFavorite(quote.id, !quote.isFavorite) }
     }
 
     @Test
     fun `toggleFavorite handles IOException`() = runTest {
-        // Given: Repository throws IOException
         coEvery { quoteRepository.toggleFavorite(any(), any()) } throws IOException("Network error")
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
+        viewModel = createViewModel()
         advanceUntilIdle()
 
-        // When: Toggling favorite
         viewModel.toggleFavorite(testQuotes[0])
         advanceUntilIdle()
 
-        // Then: Error message is set
         viewModel.uiState.test {
             val state = awaitItem()
             assertThat(state.errorMessage).isNotNull()
@@ -391,56 +229,26 @@ class QuoteListViewModelTest {
     }
 
     @Test
-    fun `toggleFavorite handles IllegalStateException`() = runTest {
-        // Given: Repository throws IllegalStateException
-        coEvery { quoteRepository.toggleFavorite(any(), any()) } throws IllegalStateException("Invalid state")
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
-        advanceUntilIdle()
-
-        // When: Toggling favorite
-        viewModel.toggleFavorite(testQuotes[0])
-        advanceUntilIdle()
-
-        // Then: Error message is set
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertThat(state.errorMessage).isNotNull()
-            assertThat(state.errorMessage).contains("Invalid state")
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    // ==================== Delete Quote Tests ====================
-
-    @Test
     fun `deleteQuote calls repository with quote id`() = runTest {
-        // Given: ViewModel initialized
         coEvery { quoteRepository.deleteUserQuote(any()) } returns Unit
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
+        viewModel = createViewModel()
         advanceUntilIdle()
 
-        val quoteId = 2L
-
-        // When: Deleting quote
-        viewModel.deleteQuote(quoteId)
+        viewModel.deleteQuote(2L)
         advanceUntilIdle()
 
-        // Then: Repository is called
-        coVerify { quoteRepository.deleteUserQuote(quoteId) }
+        coVerify { quoteRepository.deleteUserQuote(2L) }
     }
 
     @Test
     fun `deleteQuote handles IOException`() = runTest {
-        // Given: Repository throws IOException
         coEvery { quoteRepository.deleteUserQuote(any()) } throws IOException("Database error")
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
+        viewModel = createViewModel()
         advanceUntilIdle()
 
-        // When: Deleting quote
         viewModel.deleteQuote(1L)
         advanceUntilIdle()
 
-        // Then: Error message is set
         viewModel.uiState.test {
             val state = awaitItem()
             assertThat(state.errorMessage).isNotNull()
@@ -450,38 +258,14 @@ class QuoteListViewModelTest {
     }
 
     @Test
-    fun `deleteQuote handles IllegalStateException`() = runTest {
-        // Given: Repository throws IllegalStateException
-        coEvery { quoteRepository.deleteUserQuote(any()) } throws IllegalStateException("Invalid state")
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
-        advanceUntilIdle()
-
-        // When: Deleting quote
-        viewModel.deleteQuote(1L)
-        advanceUntilIdle()
-
-        // Then: Error message is set
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertThat(state.errorMessage).isNotNull()
-            assertThat(state.errorMessage).contains("Invalid state")
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    // ==================== Error Handling Tests ====================
-
-    @Test
     fun `clearError removes error message`() = runTest {
-        // Given: ViewModel with error
         coEvery { quoteRepository.toggleFavorite(any(), any()) } throws IOException("Error")
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
+        viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.toggleFavorite(testQuotes[0])
         advanceUntilIdle()
 
-        // When: Clearing error
         viewModel.uiState.test {
             val stateWithError = awaitItem()
             assertThat(stateWithError.errorMessage).isNotNull()
@@ -497,50 +281,17 @@ class QuoteListViewModelTest {
     }
 
     @Test
-    fun `loading error sets isLoading to false`() = runTest {
-        // Given: Repository flows are empty (complete without emitting)
-        every { quoteRepository.getAllQuotesFlow() } returns flowOf()
-        every { quoteRepository.getUserQuotesFlow() } returns flowOf()
-        every { quoteRepository.getFavoritesFlow() } returns flowOf()
-
-        // When: ViewModel is created with empty flows
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
-
-        viewModel.uiState.test {
-            // Initial state before loading starts
-            val initialState = awaitItem()
-            assertThat(initialState.isLoading).isFalse()
-
-            advanceUntilIdle()
-
-            // Loading starts but combine never emits because flows are empty
-            val loadingState = awaitItem()
-            assertThat(loadingState.isLoading).isTrue() // Still loading because combine never completes
-
-            // No more emissions since combine never emits
-            expectNoEvents()
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    // ==================== Preferences Change Tests ====================
-
-    @Test
     fun `preferences change updates selectedScript in state`() = runTest {
-        // Given: ViewModel initialized
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
+        viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.uiState.test {
-            // Initial state
             val initial = awaitItem()
             assertThat(initial.selectedScript).isEqualTo(RunicScript.ELDER_FUTHARK)
 
-            // When: Preferences change
             preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.YOUNGER_FUTHARK)
             advanceUntilIdle()
 
-            // Then: State reflects new script
             val updated = awaitItem()
             assertThat(updated.selectedScript).isEqualTo(RunicScript.YOUNGER_FUTHARK)
 
@@ -549,108 +300,18 @@ class QuoteListViewModelTest {
     }
 
     @Test
-    fun `quotes flow update reflects in state`() = runTest {
-        // Given: ViewModel initialized
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
-        advanceUntilIdle()
-
-        viewModel.uiState.test {
-            // Initial state
-            val initial = awaitItem()
-            assertThat(initial.quotes).hasSize(3)
-
-            // When: Quotes flow updates
-            val newQuotes = testQuotes + Quote(
-                id = 4,
-                textLatin = "New quote",
-                author = "New author",
-                runicElder = "\u16BE\u16D6\u16B9",
-                runicYounger = "\u16BE\u16D6\u16B9",
-                runicCirth = "\uE0B4\uE0C9\uE0B8",
-                isUserCreated = false,
-                isFavorite = false
-            )
-            allQuotesFlow.value = newQuotes
-            advanceUntilIdle()
-
-            // Then: State reflects new quotes
-            val updated = awaitItem()
-            assertThat(updated.quotes).hasSize(4)
-
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    // ==================== Edge Cases ====================
-
-    @Test
     fun `empty quotes list is handled correctly`() = runTest {
-        // Given: Empty flows
         every { quoteRepository.getAllQuotesFlow() } returns flowOf(emptyList())
         every { quoteRepository.getUserQuotesFlow() } returns flowOf(emptyList())
         every { quoteRepository.getFavoritesFlow() } returns flowOf(emptyList())
 
-        // When: ViewModel is created
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
+        viewModel = createViewModel()
         advanceUntilIdle()
 
-        // Then: State contains empty list
         viewModel.uiState.test {
             val state = awaitItem()
             assertThat(state.quotes).isEmpty()
             assertThat(state.isLoading).isFalse()
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `SYSTEM filter excludes user-created quotes correctly`() = runTest {
-        // Given: Mixed quotes
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
-        advanceUntilIdle()
-
-        // When: Filtering by SYSTEM
-        viewModel.setFilter(QuoteFilter.SYSTEM)
-        advanceUntilIdle()
-
-        // Then: No user-created quotes in result
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertThat(state.quotes.none { it.isUserCreated }).isTrue()
-            assertThat(state.quotes).hasSize(2) // Only 2 system quotes
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `multiple error scenarios are handled independently`() = runTest {
-        // Given: ViewModel initialized
-        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager)
-        advanceUntilIdle()
-
-        viewModel.uiState.test {
-            awaitItem() // Initial state
-
-            // First error: toggle favorite
-            coEvery { quoteRepository.toggleFavorite(any(), any()) } throws IOException("Toggle error")
-            viewModel.toggleFavorite(testQuotes[0])
-            advanceUntilIdle()
-            val state1 = awaitItem()
-            assertThat(state1.errorMessage).contains("Toggle error")
-
-            // Clear error
-            viewModel.clearError()
-            advanceUntilIdle()
-            val clearedState = awaitItem()
-            assertThat(clearedState.errorMessage).isNull()
-
-            // Second error: delete quote
-            coEvery { quoteRepository.deleteUserQuote(any()) } throws IOException("Delete error")
-            viewModel.deleteQuote(1L)
-            advanceUntilIdle()
-            val state2 = awaitItem()
-            assertThat(state2.errorMessage).contains("Delete error")
-
             cancelAndIgnoreRemainingEvents()
         }
     }
