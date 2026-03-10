@@ -69,6 +69,7 @@ import com.po4yka.runicquotes.ui.screens.references.ReferencesScreen
 import com.po4yka.runicquotes.ui.screens.references.RuneDetailScreen
 import com.po4yka.runicquotes.ui.screens.settings.SettingsScreen
 import com.po4yka.runicquotes.ui.screens.share.ShareScreen
+import com.po4yka.runicquotes.ui.screens.translation.TranslationAccuracyScreen
 import com.po4yka.runicquotes.ui.screens.translation.TranslationScreen
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
@@ -410,7 +411,16 @@ private fun EntryProviderScope<Any>.detailEntries(
         )
     }
     entry<TranslationRoute> {
-        TranslationScreen()
+        TranslationScreen(
+            onNavigateBack = { backStack.removeLastOrNull() },
+            onNavigateToAccuracyContext = { backStack.add(TranslationAccuracyRoute) }
+        )
+    }
+    entry<TranslationAccuracyRoute> {
+        TranslationAccuracyScreen(
+            onNavigateBack = { backStack.removeLastOrNull() },
+            onNavigateToReferences = { backStack.add(ReferencesRoute) }
+        )
     }
     entry<ProfileRoute> {
         ProfileScreen(
@@ -477,9 +487,10 @@ private val routeRankMap = mapOf(
     "RuneDetailRoute" to 10,
     "ShareRoute" to 11,
     "TranslationRoute" to 12,
-    "ProfileRoute" to 13,
-    "NotificationSettingsRoute" to 14,
-    "AboutRoute" to 15
+    "TranslationAccuracyRoute" to 13,
+    "ProfileRoute" to 14,
+    "NotificationSettingsRoute" to 15,
+    "AboutRoute" to 16
 )
 
 private fun routeRank(scene: Scene<Any>): Int {

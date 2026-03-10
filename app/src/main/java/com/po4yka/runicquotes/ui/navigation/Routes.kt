@@ -94,6 +94,12 @@ data class ShareRoute(val quoteId: Long)
 data object TranslationRoute
 
 /**
+ * Accuracy and context screen for translation caveats and history.
+ */
+@Serializable
+data object TranslationAccuracyRoute
+
+/**
  * Profile screen - user stats and data overview.
  */
 @Serializable

@@ -1,9 +1,11 @@
 package com.po4yka.runicquotes.ui.screens.translation
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.po4yka.runicquotes.data.repository.RuneReferenceRepository
-import com.po4yka.runicquotes.domain.model.RuneReference
+import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
+import com.po4yka.runicquotes.data.repository.QuoteRepository
+import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
@@ -11,94 +13,179 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.IOException
 import javax.inject.Inject
 
 /**
- * ViewModel for the translation screen providing real-time transliteration.
+ * ViewModel for the translation screen, including saving transliterations to the library.
  */
 @HiltViewModel
 class TranslationViewModel @Inject constructor(
     private val transliterationFactory: TransliterationFactory,
-    private val runeReferenceRepository: RuneReferenceRepository
+    private val quoteRepository: QuoteRepository,
+    private val userPreferencesManager: UserPreferencesManager
 ) : ViewModel() {
 
     private val _inputText = MutableStateFlow("")
     private val _selectedScript = MutableStateFlow(RunicScript.DEFAULT)
+    private val _isSaving = MutableStateFlow(false)
+    private val _feedbackMessage = MutableStateFlow<String?>(null)
+
+    /** @suppress */
+    companion object {
+        private const val TAG = "TranslationViewModel"
+        private const val MAX_INPUT_LENGTH = 280
+        private const val DEFAULT_TRANSLATION_AUTHOR = "Runatal"
+    }
 
     init {
-        viewModelScope.launch { runeReferenceRepository.seedIfNeeded() }
+        viewModelScope.launch {
+            userPreferencesManager.userPreferencesFlow.collectLatest { preferences ->
+                _selectedScript.value = preferences.selectedScript
+            }
+        }
     }
+
+    val feedbackMessage: StateFlow<String?> = _feedbackMessage.asStateFlow()
 
     val uiState: StateFlow<TranslationUiState> = combine(
         _inputText,
         _selectedScript,
-        runeReferenceRepository.getRunesByScriptFlow(RunicScript.ELDER_FUTHARK.toDbKey()),
-        runeReferenceRepository.getRunesByScriptFlow(RunicScript.YOUNGER_FUTHARK.toDbKey()),
-        runeReferenceRepository.getRunesByScriptFlow(RunicScript.CIRTH.toDbKey())
-    ) { input, script, elder, younger, cirth ->
-        val (transliterated, errorMessage) = if (input.isBlank()) {
-            "" to null
-        } else {
-            @Suppress("TooGenericExceptionCaught")
-            try {
-                transliterationFactory.transliterate(input, script) to null
-            } catch (e: Exception) {
-                "" to (e.message ?: "Transliteration failed")
-            }
-        }
-        val runes = when (script) {
-            RunicScript.ELDER_FUTHARK -> elder
-            RunicScript.YOUNGER_FUTHARK -> younger
-            RunicScript.CIRTH -> cirth
-        }
+        _isSaving
+    ) { inputText, selectedScript, isSaving ->
+        val bundle = transliterateBundle(inputText)
+        val selectedOutput = bundle.outputFor(selectedScript)
+
         TranslationUiState(
-            inputText = input,
-            transliteratedText = transliterated,
-            selectedScript = script,
-            runeCharacters = runes,
-            isRunesLoaded = true,
-            errorMessage = errorMessage
+            inputText = inputText,
+            transliteratedText = selectedOutput,
+            selectedScript = selectedScript,
+            outputGlyphCount = selectedOutput.glyphCount(),
+            inputCharacterCount = inputText.length,
+            canSave = inputText.trim().isNotEmpty() && !isSaving && bundle.errorMessage == null,
+            isSaving = isSaving,
+            errorMessage = bundle.errorMessage
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), TranslationUiState())
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000L),
+        initialValue = TranslationUiState()
+    )
 
     /**
-     * Updates the input text and triggers transliteration.
+     * Updates the source text with the Figma-defined 280 character cap.
      */
     fun updateInputText(text: String) {
-        _inputText.value = text
+        _inputText.value = text.take(MAX_INPUT_LENGTH)
     }
 
     /**
-     * Selects a runic script for transliteration.
+     * Selects the active output script and persists it as the preferred script.
      */
     fun selectScript(script: RunicScript) {
         _selectedScript.value = script
+        viewModelScope.launch {
+            userPreferencesManager.updateSelectedScript(script)
+        }
     }
 
     /**
-     * Clears the input text field.
+     * Rotates to the next script. Used by the compact Figma quick action.
+     */
+    fun cycleScript() {
+        val scripts = RunicScript.entries
+        val nextIndex = (scripts.indexOf(_selectedScript.value) + 1) % scripts.size
+        selectScript(scripts[nextIndex])
+    }
+
+    /**
+     * Clears the entered source text.
      */
     fun clearInput() {
         _inputText.value = ""
     }
 
     /**
-     * Retriggers transliteration by toggling the input text.
+     * Saves the current transliteration bundle as a user-created quote.
      */
-    fun retryTransliteration() {
-        val current = _inputText.value
-        _inputText.value = ""
-        _inputText.value = current
+    fun saveToLibrary() {
+        val state = uiState.value
+        if (!state.canSave) {
+            return
+        }
+
+        viewModelScope.launch {
+            _isSaving.value = true
+            try {
+                val input = state.inputText.trim()
+                val bundle = transliterateBundle(input)
+                val quote = Quote(
+                    id = 0L,
+                    textLatin = input,
+                    author = DEFAULT_TRANSLATION_AUTHOR,
+                    runicElder = bundle.outputFor(RunicScript.ELDER_FUTHARK),
+                    runicYounger = bundle.outputFor(RunicScript.YOUNGER_FUTHARK),
+                    runicCirth = bundle.outputFor(RunicScript.CIRTH),
+                    isUserCreated = true,
+                    isFavorite = false,
+                    createdAt = System.currentTimeMillis()
+                )
+
+                quoteRepository.saveUserQuote(quote)
+                _feedbackMessage.value = "Saved to library"
+            } catch (exception: IOException) {
+                Log.e(TAG, "IO error saving translation", exception)
+                _feedbackMessage.value = "Failed to save translation"
+            } catch (exception: IllegalStateException) {
+                Log.e(TAG, "Invalid state saving translation", exception)
+                _feedbackMessage.value = "Invalid translation state"
+            } finally {
+                _isSaving.value = false
+            }
+        }
+    }
+
+    /**
+     * Clears the transient snackbar feedback message after it is shown.
+     */
+    fun clearFeedback() {
+        _feedbackMessage.value = null
+    }
+
+    @Suppress("TooGenericExceptionCaught")
+    private fun transliterateBundle(inputText: String): TransliterationBundle {
+        if (inputText.isBlank()) {
+            return TransliterationBundle()
+        }
+
+        return try {
+            TransliterationBundle(
+                elder = transliterationFactory.transliterate(inputText, RunicScript.ELDER_FUTHARK),
+                younger = transliterationFactory.transliterate(inputText, RunicScript.YOUNGER_FUTHARK),
+                cirth = transliterationFactory.transliterate(inputText, RunicScript.CIRTH)
+            )
+        } catch (exception: Exception) {
+            TransliterationBundle(errorMessage = exception.message ?: "Transliteration failed")
+        }
     }
 }
 
-private fun RunicScript.toDbKey(): String = when (this) {
-    RunicScript.ELDER_FUTHARK -> "elder_futhark"
-    RunicScript.YOUNGER_FUTHARK -> "younger_futhark"
-    RunicScript.CIRTH -> "cirth"
+private data class TransliterationBundle(
+    val elder: String = "",
+    val younger: String = "",
+    val cirth: String = "",
+    val errorMessage: String? = null
+) {
+    fun outputFor(script: RunicScript): String = when (script) {
+        RunicScript.ELDER_FUTHARK -> elder
+        RunicScript.YOUNGER_FUTHARK -> younger
+        RunicScript.CIRTH -> cirth
+    }
 }
 
 /**
@@ -108,10 +195,14 @@ data class TranslationUiState(
     val inputText: String = "",
     val transliteratedText: String = "",
     val selectedScript: RunicScript = RunicScript.DEFAULT,
-    val runeCharacters: List<RuneReference> = emptyList(),
-    val isRunesLoaded: Boolean = false,
+    val outputGlyphCount: Int = 0,
+    val inputCharacterCount: Int = 0,
+    val canSave: Boolean = false,
+    val isSaving: Boolean = false,
     val errorMessage: String? = null
 ) {
     /** Display name for the currently selected script. */
     val scriptDisplayName: String get() = selectedScript.displayName
 }
+
+private fun String.glyphCount(): Int = count { character -> !character.isWhitespace() }

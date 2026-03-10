@@ -3,265 +3,479 @@ package com.po4yka.runicquotes.ui.screens.translation
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.po4yka.runicquotes.domain.model.RuneReference
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.segmentLabel
-import com.po4yka.runicquotes.ui.components.ErrorState
-import com.po4yka.runicquotes.ui.components.SegmentedControl
-import com.po4yka.runicquotes.ui.components.SkeletonRect
-import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
-import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
+import com.po4yka.runicquotes.ui.components.RunicText
+import kotlinx.coroutines.launch
 
 @Composable
 fun TranslationScreen(
+    onNavigateBack: () -> Unit = {},
+    onNavigateToAccuracyContext: () -> Unit = {},
     viewModel: TranslationViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val feedbackMessage by viewModel.feedbackMessage.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-    ) {
-        TranslationHeader()
-        TranslationInput(
-            text = uiState.inputText,
-            onTextChange = viewModel::updateInputText,
-            onClear = viewModel::clearInput
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        ScriptSelector(
-            selectedScript = uiState.selectedScript,
-            onSelectScript = viewModel::selectScript
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        val errorMessage = uiState.errorMessage
-        if (errorMessage != null) {
-            ErrorState(
-                title = "Transliteration Failed",
-                description = errorMessage,
-                onRetry = viewModel::retryTransliteration,
-                modifier = Modifier.padding(vertical = 24.dp)
-            )
-        } else {
-            TranslationResult(
-                transliteratedText = uiState.transliteratedText,
-                scriptName = uiState.scriptDisplayName,
-                onCopy = { copyToClipboard(context, uiState.transliteratedText) }
-            )
+    LaunchedEffect(feedbackMessage) {
+        feedbackMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.clearFeedback()
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        RuneGrid(
-            runes = uiState.runeCharacters,
-            isLoaded = uiState.isRunesLoaded
-        )
-        Spacer(modifier = Modifier.height(16.dp))
+    }
+
+    Scaffold(
+        topBar = {
+            TranslationTopBar(onNavigateBack = onNavigateBack)
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            TranslationScriptSelector(
+                selectedScript = uiState.selectedScript,
+                onSelectScript = viewModel::selectScript
+            )
+
+            TranslationSectionLabel("English text")
+
+            TranslationInputCard(
+                text = uiState.inputText,
+                characterCount = uiState.inputCharacterCount,
+                focusRequester = focusRequester,
+                onTextChange = viewModel::updateInputText
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
+
+            TranslationOutputHeader(
+                title = if (uiState.inputText.isBlank()) "Runic output" else uiState.scriptDisplayName,
+                hasOutput = uiState.transliteratedText.isNotBlank(),
+                onCopy = {
+                    copyToClipboard(context, uiState.transliteratedText)
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Copied to clipboard")
+                    }
+                }
+            )
+
+            TranslationOutputCard(
+                outputText = uiState.transliteratedText,
+                selectedScript = uiState.selectedScript,
+                glyphCount = uiState.outputGlyphCount,
+                errorMessage = uiState.errorMessage
+            )
+
+            TranslationActionRow(
+                hasInput = uiState.inputText.isNotBlank(),
+                isSaving = uiState.isSaving,
+                canSave = uiState.canSave,
+                onCycleScript = viewModel::cycleScript,
+                onFocusInput = {
+                    focusRequester.requestFocus()
+                },
+                onClear = {
+                    focusManager.clearFocus(force = true)
+                    viewModel.clearInput()
+                },
+                onSave = {
+                    focusManager.clearFocus(force = true)
+                    viewModel.saveToLibrary()
+                }
+            )
+
+            AccuracyContextLink(
+                onClick = onNavigateToAccuracyContext
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+        }
     }
 }
 
 @Composable
-private fun TranslationHeader() {
-    Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
-        Text(
-            text = "Translate",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "Transliterate text into runic script",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun TranslationInput(
-    text: String,
-    onTextChange: (String) -> Unit,
-    onClear: () -> Unit
-) {
-    OutlinedTextField(
-        value = text,
-        onValueChange = onTextChange,
+private fun TranslationTopBar(onNavigateBack: () -> Unit) {
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        placeholder = { Text("Enter text to transliterate...") },
-        trailingIcon = {
-            if (text.isNotEmpty()) {
-                IconButton(onClick = onClear) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Clear input"
-                    )
-                }
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .height(54.dp)
+    ) {
+        IconButton(
+            onClick = onNavigateBack,
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .size(42.dp)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back"
+            )
+        }
+
+        Text(
+            text = "Translate",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.align(Alignment.Center)
+        )
+
+        Surface(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .size(42.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
+            onClick = onNavigateBack
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close"
+                )
             }
-        },
-        minLines = 2,
-        maxLines = 4,
-        shape = RunicExpressiveTheme.shapes.segmentedControl
-    )
+        }
+    }
 }
 
 @Composable
-private fun ScriptSelector(
+private fun TranslationScriptSelector(
     selectedScript: RunicScript,
     onSelectScript: (RunicScript) -> Unit
 ) {
-    val scripts = RunicScript.entries
-    SegmentedControl(
-        segments = scripts.map { it.segmentLabel },
-        selectedIndex = scripts.indexOf(selectedScript),
-        onSegmentSelected = { index -> onSelectScript(scripts[index]) },
-        modifier = Modifier.padding(horizontal = 16.dp)
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(1.dp),
+            horizontalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            RunicScript.entries.forEachIndexed { index, script ->
+                val isSelected = script == selectedScript
+                val background = if (isSelected) {
+                    MaterialTheme.colorScheme.secondaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerLow
+                }
+                val textColor = if (isSelected) {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(
+                            when (index) {
+                                0 -> RoundedCornerShape(topStart = 11.dp, bottomStart = 11.dp)
+                                RunicScript.entries.lastIndex -> RoundedCornerShape(topEnd = 11.dp, bottomEnd = 11.dp)
+                                else -> RoundedCornerShape(0.dp)
+                            }
+                        )
+                        .background(background)
+                        .clickable { onSelectScript(script) }
+                        .semantics {
+                            role = Role.Tab
+                            selected = isSelected
+                        }
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (isSelected) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp),
+                            tint = textColor
+                        )
+                        Spacer(modifier = Modifier.size(4.dp))
+                    }
+                    Text(
+                        text = script.segmentLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = textColor
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TranslationSectionLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 2.dp)
     )
 }
 
 @Composable
-private fun TranslationResult(
-    transliteratedText: String,
-    scriptName: String,
-    onCopy: () -> Unit
+private fun TranslationInputCard(
+    text: String,
+    characterCount: Int,
+    focusRequester: FocusRequester,
+    onTextChange: (String) -> Unit
 ) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        Text(
-            text = "Result",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RunicExpressiveTheme.shapes.contentCard,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer
-            )
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = if (text.isBlank()) 126.dp else 104.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            if (transliteratedText.isNotEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Text(
-                        text = transliteratedText,
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f)
-                    )
-                    IconButton(
-                        onClick = onCopy,
-                        modifier = Modifier.semantics {
-                            contentDescription = "Copy transliteration"
-                        }
+            BasicTextField(
+                value = text,
+                onValueChange = onTextChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontStyle = FontStyle.Italic,
+                    lineHeight = 24.sp
+                ),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.secondary),
+                minLines = 2,
+                maxLines = 4,
+                decorationBox = { innerTextField ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 52.dp)
                     ) {
-                        Text(
-                            text = "\u2398",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        if (text.isBlank()) {
+                            Text(
+                                text = "Enter English text to translate…",
+                                style = MaterialTheme.typography.bodyLarge.copy(fontStyle = FontStyle.Italic),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        innerTextField()
                     }
                 }
-                Text(
-                    text = scriptName,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
-                )
-            } else {
-                Text(
-                    text = "Transliterated runes will appear here",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
+            )
+
+            Text(
+                text = "$characterCount / 280",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.End)
+            )
         }
     }
 }
 
 @Composable
-private fun RuneGrid(runes: List<RuneReference>, isLoaded: Boolean) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+private fun TranslationOutputHeader(
+    title: String,
+    hasOutput: Boolean,
+    onCopy: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Text(
-            text = "Rune Characters",
-            style = MaterialTheme.typography.titleSmall,
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        if (!isLoaded) {
-            RuneGridSkeleton()
-        } else if (runes.isNotEmpty()) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
-                contentPadding = PaddingValues(0.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.height(((runes.size / 4 + 1) * 88).dp)
+
+        if (hasOutput) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(onClick = onCopy)
+                    .padding(horizontal = 2.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
-                items(runes, key = { it.id }) { rune ->
-                    RuneCell(rune = rune)
-                }
+                Icon(
+                    imageVector = Icons.Default.ContentCopy,
+                    contentDescription = "Copy output",
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Copy",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
 }
 
 @Composable
-private fun RuneGridSkeleton() {
-    val brush = rememberShimmerBrush()
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        repeat(3) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                repeat(4) {
-                    SkeletonRect(
-                        modifier = Modifier.size(80.dp),
-                        height = 80.dp,
-                        brush = brush
+private fun TranslationOutputCard(
+    outputText: String,
+    selectedScript: RunicScript,
+    glyphCount: Int,
+    errorMessage: String?
+) {
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
+    ) {
+        when {
+            errorMessage != null -> Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Transliteration failed",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Text(
+                    text = errorMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            outputText.isBlank() -> Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(316.dp)
+                    .padding(horizontal = 16.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                RunicText(
+                    text = "\u16A0\u16A2\u16A6\u16A8\u16B1\u16B2",
+                    script = RunicScript.ELDER_FUTHARK,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 28.sp,
+                    overrideLineHeight = 34.sp
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "Translation will appear here",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            else -> Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                RunicText(
+                    text = outputText,
+                    script = selectedScript,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 28.sp,
+                    overrideLineHeight = 36.sp
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        text = "$glyphCount glyphs",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 8.dp)
                     )
                 }
             }
@@ -270,29 +484,117 @@ private fun RuneGridSkeleton() {
 }
 
 @Composable
-private fun RuneCell(rune: RuneReference) {
-    Box(
-        modifier = Modifier
-            .clip(RunicExpressiveTheme.shapes.contentCard)
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .semantics { contentDescription = "${rune.name}: ${rune.pronunciation}" }
-            .size(80.dp),
-        contentAlignment = Alignment.Center
+private fun TranslationActionRow(
+    hasInput: Boolean,
+    isSaving: Boolean,
+    canSave: Boolean,
+    onCycleScript: () -> Unit,
+    onFocusInput: () -> Unit,
+    onClear: () -> Unit,
+    onSave: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        TranslationActionButton(
+            text = if (hasInput) "Clear" else "Script",
+            modifier = Modifier.weight(0.95f),
+            emphasized = false,
+            enabled = true,
+            onClick = if (hasInput) onClear else onCycleScript
+        )
+        TranslationActionButton(
+            text = if (hasInput) "Save to library" else "Translate",
+            modifier = Modifier.weight(2.05f),
+            emphasized = true,
+            enabled = if (hasInput) canSave else true,
+            trailingProgress = isSaving,
+            onClick = if (hasInput) onSave else onFocusInput
+        )
+    }
+}
+
+@Composable
+private fun TranslationActionButton(
+    text: String,
+    modifier: Modifier,
+    emphasized: Boolean,
+    enabled: Boolean,
+    trailingProgress: Boolean = false,
+    onClick: () -> Unit
+) {
+    val background = when {
+        emphasized && enabled -> MaterialTheme.colorScheme.secondary
+        emphasized -> MaterialTheme.colorScheme.surfaceContainerHighest
+        else -> MaterialTheme.colorScheme.surfaceContainerLow
+    }
+    val contentColor = when {
+        emphasized && enabled -> MaterialTheme.colorScheme.onSecondary
+        emphasized -> MaterialTheme.colorScheme.onSurfaceVariant
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+
+    Surface(
+        modifier = modifier.height(48.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = background,
+        onClick = onClick,
+        enabled = enabled
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (trailingProgress) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = contentColor
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+            }
             Text(
-                text = rune.character,
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
+                text = text,
+                style = MaterialTheme.typography.titleMedium,
+                color = contentColor
             )
-            Text(
-                text = rune.name,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+        }
+    }
+}
+
+@Composable
+private fun AccuracyContextLink(onClick: () -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(
+                    text = "Accuracy & context",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Modern conventions, limitations, and historical notes",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "Open accuracy and context",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
