@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
@@ -63,6 +64,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.ui.components.BottomSheetAction
+import com.po4yka.runicquotes.ui.components.CoachMarkStep
+import com.po4yka.runicquotes.ui.components.CoachMarksDialog
 import com.po4yka.runicquotes.ui.components.EmptyState
 import com.po4yka.runicquotes.ui.components.ErrorState
 import com.po4yka.runicquotes.ui.components.NotificationPermissionDialog
@@ -99,6 +102,7 @@ fun QuoteScreen(
     val haptics = rememberHapticFeedback()
     var showBottomSheet by remember { mutableStateOf(false) }
     var showNotificationDialog by remember { mutableStateOf(false) }
+    var showCoachMarks by remember { mutableStateOf(false) }
 
     Scaffold { paddingValues ->
         Box(
@@ -187,6 +191,10 @@ fun QuoteScreen(
                     onNavigateToEditQuote(state.quote.id)
                     showBottomSheet = false
                 },
+                onQuickTour = {
+                    showCoachMarks = true
+                    showBottomSheet = false
+                },
                 onDelete = {
                     haptics.mediumAction()
                     viewModel.deleteQuote()
@@ -203,6 +211,16 @@ fun QuoteScreen(
                 onNavigateToNotifications()
             },
             onDismiss = { showNotificationDialog = false }
+        )
+    }
+
+    if (showCoachMarks) {
+        CoachMarksDialog(
+            steps = listOf(
+                CoachMarkStep(1, "Switch Scripts", "Tap to transliterate into Elder Futhark, Younger Futhark or Cirth"),
+                CoachMarkStep(2, "Save Favorites", "Tap the heart to save quotes you love to your Library")
+            ),
+            onDismiss = { showCoachMarks = false }
         )
     }
 }
@@ -703,6 +721,7 @@ private fun QuoteActionsBottomSheet(
     onShare: () -> Unit,
     onCopy: () -> Unit,
     onEdit: () -> Unit,
+    onQuickTour: () -> Unit,
     onDelete: () -> Unit
 ) {
     val actions = listOf(
@@ -733,6 +752,12 @@ private fun QuoteActionsBottomSheet(
             title = "Edit",
             subtitle = "Modify this quote",
             onClick = onEdit
+        ),
+        BottomSheetAction(
+            icon = Icons.Outlined.Info,
+            title = "Quick Tour",
+            subtitle = "Learn about key features",
+            onClick = onQuickTour
         ),
         BottomSheetAction(
             icon = Icons.Default.Delete,
