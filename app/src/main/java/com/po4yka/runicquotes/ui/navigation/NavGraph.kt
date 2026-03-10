@@ -259,7 +259,9 @@ fun NavGraph(
                     )
                 }
                 entry<AboutRoute> {
-                    AboutScreen()
+                    AboutScreen(
+                        onNavigateBack = { backStack.removeLastOrNull() }
+                    )
                 }
             }
         )
