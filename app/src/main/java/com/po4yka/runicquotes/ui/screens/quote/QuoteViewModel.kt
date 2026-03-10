@@ -219,6 +219,14 @@ class QuoteViewModel @Inject constructor(
         }
     }
 
+    /** Toggles whether the Latin transliteration is visible on quote surfaces. */
+    fun toggleTransliterationVisibility() {
+        viewModelScope.launch {
+            val currentPreferences = userPreferencesManager.userPreferencesFlow.first()
+            userPreferencesManager.updateShowTransliteration(!currentPreferences.showTransliteration)
+        }
+    }
+
     private fun applyPreferencesToCurrentQuote(preferences: UserPreferences) {
         val quote = currentQuote ?: return
         emitSuccessState(quote, preferences)

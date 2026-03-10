@@ -26,8 +26,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -95,17 +98,12 @@ import java.util.Locale
 @Composable
 fun QuoteScreen(
     onNavigateToHistory: () -> Unit = {},
-    onNavigateToEditQuote: (Long) -> Unit = {},
-    onNavigateToNotifications: () -> Unit = {},
     onNavigateToShare: (Long) -> Unit = {},
     onBrowseLibrary: (() -> Unit)? = null,
     viewModel: QuoteViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val haptics = rememberHapticFeedback()
-    var showBottomSheet by remember { mutableStateOf(false) }
-    var showNotificationDialog by remember { mutableStateOf(false) }
-    var showCoachMarks by remember { mutableStateOf(false) }
 
     Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0)) { paddingValues ->
         Box(
@@ -132,13 +130,15 @@ fun QuoteScreen(
                         haptics.mediumAction()
                         viewModel.getRandomQuote()
                     },
+                    onToggleTransliteration = {
+                        haptics.lightToggle()
+                        viewModel.toggleTransliterationVisibility()
+                    },
                     onSelectScript = { script ->
                         haptics.lightToggle()
                         viewModel.updateSelectedScript(script)
                     },
-                    onNavigateToHistory = onNavigateToHistory,
-                    onShowActions = { showBottomSheet = true },
-                    onNotificationClick = { showNotificationDialog = true }
+                    onNavigateToHistory = onNavigateToHistory
                 )
 
                 is QuoteUiState.Error -> ErrorState(
@@ -167,65 +167,6 @@ fun QuoteScreen(
             }
         }
     }
-
-    if (showBottomSheet) {
-        val state = uiState
-        if (state is QuoteUiState.Success) {
-            QuoteActionsBottomSheet(
-                isFavorite = state.quote.isFavorite,
-                onDismiss = { showBottomSheet = false },
-                onToggleFavorite = {
-                    haptics.lightToggle()
-                    viewModel.toggleFavorite()
-                    showBottomSheet = false
-                },
-                onShare = {
-                    haptics.mediumAction()
-                    onNavigateToShare(state.quote.id)
-                    showBottomSheet = false
-                },
-                onCopy = {
-                    haptics.lightToggle()
-                    viewModel.copyQuoteText()
-                    showBottomSheet = false
-                },
-                onEdit = {
-                    haptics.mediumAction()
-                    onNavigateToEditQuote(state.quote.id)
-                    showBottomSheet = false
-                },
-                onQuickTour = {
-                    showCoachMarks = true
-                    showBottomSheet = false
-                },
-                onDelete = {
-                    haptics.mediumAction()
-                    viewModel.deleteQuote()
-                    showBottomSheet = false
-                }
-            )
-        }
-    }
-
-    if (showNotificationDialog) {
-        NotificationPermissionDialog(
-            onConfirm = {
-                showNotificationDialog = false
-                onNavigateToNotifications()
-            },
-            onDismiss = { showNotificationDialog = false }
-        )
-    }
-
-    if (showCoachMarks) {
-        CoachMarksDialog(
-            steps = listOf(
-                CoachMarkStep(1, "Switch Scripts", "Tap to transliterate into Elder Futhark, Younger Futhark or Cirth"),
-                CoachMarkStep(2, "Save Favorites", "Tap the heart to save quotes you love to your Library")
-            ),
-            onDismiss = { showCoachMarks = false }
-        )
-    }
 }
 
 @Composable
@@ -234,15 +175,12 @@ private fun TodayContent(
     onToggleFavorite: () -> Unit,
     onShare: () -> Unit,
     onNewQuote: () -> Unit,
+    onToggleTransliteration: () -> Unit,
     onSelectScript: (RunicScript) -> Unit,
-    onNavigateToHistory: () -> Unit,
-    onShowActions: () -> Unit,
-    onNotificationClick: () -> Unit
+    onNavigateToHistory: () -> Unit
 ) {
-    val reducedMotion = LocalReduceMotion.current
     val motion = RunicExpressiveTheme.motion
-    val shapes = RunicExpressiveTheme.shapes
-    val typeRoles = RunicTypeRoles.current
+    val reducedMotion = LocalReduceMotion.current
     val scrollState = rememberScrollState()
     var cardVisible by remember(state.quote.id) { mutableStateOf(false) }
     LaunchedEffect(state.quote.id) { cardVisible = true }
@@ -262,9 +200,8 @@ private fun TodayContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = 20.dp, vertical = 14.dp)
     ) {
-        // -- Header: date + title + history icon --
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -278,30 +215,35 @@ private fun TodayContent(
                 )
                 Text(
                     text = "Quote of the Day",
-                    style = MaterialTheme.typography.headlineSmall
+                    style = MaterialTheme.typography.headlineLarge
                 )
             }
-            Row {
-                IconButton(onClick = onNotificationClick) {
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = RunicExpressiveTheme.shapes.pill,
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                onClick = onToggleTransliteration
+            ) {
+                Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Outlined.Notifications,
-                        contentDescription = "Notification settings",
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                IconButton(onClick = onShowActions) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Quote actions",
-                        modifier = Modifier.size(18.dp)
+                        imageVector = if (state.showTransliteration) {
+                            Icons.Default.Visibility
+                        } else {
+                            Icons.Default.VisibilityOff
+                        },
+                        contentDescription = if (state.showTransliteration) {
+                            "Hide transliteration"
+                        } else {
+                            "Show transliteration"
+                        },
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // -- Segmented script control --
+        Spacer(modifier = Modifier.height(12.dp))
         SegmentedControl(
             segments = scripts.map { it.segmentLabel },
             selectedIndex = selectedScriptIndex,
@@ -310,7 +252,6 @@ private fun TodayContent(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // -- Hero quote card --
         AnimatedVisibility(
             visible = cardVisible,
             enter = if (reducedMotion) {
@@ -344,7 +285,6 @@ private fun TodayContent(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // -- Action buttons row --
         ActionButtonsRow(
             isFavorite = state.quote.isFavorite,
             onToggleFavorite = onToggleFavorite,
@@ -352,9 +292,8 @@ private fun TodayContent(
             onNewQuote = onNewQuote
         )
 
-        // -- Recent quotes section --
         if (state.recentQuotes.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(22.dp))
 
             Text(
                 text = "Recent quotes",
@@ -362,7 +301,7 @@ private fun TodayContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             state.recentQuotes.forEach { item ->
                 RecentQuoteCard(
@@ -374,7 +313,6 @@ private fun TodayContent(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            // -- View full quote history link --
             HistoryLink(onClick = onNavigateToHistory)
         }
 
@@ -540,18 +478,15 @@ private fun ActionButtonsRow(
     onShare: () -> Unit,
     onNewQuote: () -> Unit
 ) {
-    val shapes = RunicExpressiveTheme.shapes
-
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Save/Bookmark button
         Surface(
             modifier = Modifier
                 .weight(1f)
                 .height(48.dp),
-            shape = shapes.segment,
+            shape = RunicExpressiveTheme.shapes.segment,
             color = MaterialTheme.colorScheme.surfaceContainerLow,
             onClick = onToggleFavorite
         ) {
@@ -575,13 +510,12 @@ private fun ActionButtonsRow(
             }
         }
 
-        // Share button - prominent filled style per Figma
         Surface(
             modifier = Modifier
                 .weight(1f)
                 .height(48.dp),
-            shape = shapes.segment,
-            color = MaterialTheme.colorScheme.primaryContainer,
+            shape = RunicExpressiveTheme.shapes.segment,
+            color = MaterialTheme.colorScheme.secondary,
             onClick = onShare
         ) {
             Row(
@@ -593,21 +527,20 @@ private fun ActionButtonsRow(
                     imageVector = Icons.Default.Share,
                     contentDescription = "Share quote",
                     modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    tint = MaterialTheme.colorScheme.onSecondary
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Share",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onSecondary
                 )
             }
         }
 
-        // New quote (shuffle) icon button
         Surface(
-            modifier = Modifier.size(48.dp),
-            shape = shapes.segment,
+            modifier = Modifier.size(42.dp),
+            shape = RunicExpressiveTheme.shapes.segment,
             color = MaterialTheme.colorScheme.surfaceContainerLow,
             onClick = onNewQuote
         ) {
@@ -616,7 +549,7 @@ private fun ActionButtonsRow(
                     imageVector = Icons.Default.Refresh,
                     contentDescription = "New random quote",
                     modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurface
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -643,7 +576,7 @@ private fun RecentQuoteCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(17.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
@@ -657,7 +590,9 @@ private fun RecentQuoteCard(
 
                 Text(
                     text = latinText,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                    ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -710,8 +645,8 @@ private fun HistoryLink(onClick: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More",
+                    imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                    contentDescription = "History",
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -731,66 +666,6 @@ private fun HistoryLink(onClick: () -> Unit) {
     }
 }
 
-@Composable
-private fun QuoteActionsBottomSheet(
-    isFavorite: Boolean,
-    onDismiss: () -> Unit,
-    onToggleFavorite: () -> Unit,
-    onShare: () -> Unit,
-    onCopy: () -> Unit,
-    onEdit: () -> Unit,
-    onQuickTour: () -> Unit,
-    onDelete: () -> Unit
-) {
-    val actions = listOf(
-        BottomSheetAction(
-            icon = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-            title = if (isFavorite) "Remove from Favorites" else "Add to Favorites",
-            subtitle = if (isFavorite) {
-                "Remove this quote from your collection"
-            } else {
-                "Save this quote to your favorites"
-            },
-            onClick = onToggleFavorite
-        ),
-        BottomSheetAction(
-            icon = Icons.Default.Share,
-            title = "Share",
-            subtitle = "Share this quote with others",
-            onClick = onShare
-        ),
-        BottomSheetAction(
-            icon = Icons.Default.ContentCopy,
-            title = "Copy",
-            subtitle = "Copy quote text to clipboard",
-            onClick = onCopy
-        ),
-        BottomSheetAction(
-            icon = Icons.Default.Edit,
-            title = "Edit",
-            subtitle = "Modify this quote",
-            onClick = onEdit
-        ),
-        BottomSheetAction(
-            icon = Icons.Outlined.Info,
-            title = "Quick Tour",
-            subtitle = "Learn about key features",
-            onClick = onQuickTour
-        ),
-        BottomSheetAction(
-            icon = Icons.Default.Delete,
-            title = "Delete",
-            subtitle = "Permanently remove this quote",
-            isDestructive = true,
-            onClick = onDelete
-        )
-    )
-
-    RunicBottomSheet(
-        actions = actions,
-        onDismiss = onDismiss
-    )
-}
 
 @Composable
 private fun TodayLoadingSkeleton(modifier: Modifier = Modifier) {

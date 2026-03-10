@@ -3,8 +3,10 @@ package com.po4yka.runicquotes.ui.screens.settings
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,16 +23,17 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.SlowMotionVideo
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -43,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.R
 import com.po4yka.runicquotes.RunicQuotesApplication
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.ui.components.SettingItem
 import com.po4yka.runicquotes.ui.components.SettingSection
 import com.po4yka.runicquotes.util.rememberHapticFeedback
@@ -55,6 +59,7 @@ fun SettingsScreen(
     onNavigateToProfile: () -> Unit = {},
     onNavigateToReferences: () -> Unit = {},
     onNavigateToTranslation: () -> Unit = {},
+    onNavigateToPacks: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val preferences by viewModel.userPreferences.collectAsStateWithLifecycle()
@@ -62,36 +67,31 @@ fun SettingsScreen(
     val context = LocalContext.current
     val dynamicColorSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.settings),
-                            style = MaterialTheme.typography.headlineMedium
-                        )
-                        Text(
-                            text = stringResource(R.string.settings_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                )
-            )
-        },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
-    ) { paddingValues ->
+    Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0)) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            Text(
+                text = stringResource(R.string.settings),
+                style = MaterialTheme.typography.headlineLarge
+            )
+            Text(
+                text = stringResource(R.string.settings_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            SettingsSummaryCard(
+                script = preferences.selectedScript.displayName,
+                themeMode = preferences.themeMode.replaceFirstChar { it.uppercase() },
+                showTransliteration = preferences.showTransliteration
+            )
+
             SettingSection(
                 title = stringResource(R.string.settings_section_runic_script),
                 subtitle = stringResource(R.string.settings_section_runic_script_subtitle)
@@ -317,6 +317,21 @@ fun SettingsScreen(
                     }
                 )
                 SettingItem(
+                    title = "Quote Packs",
+                    leadingIcon = { SettingIcon(Icons.Filled.Star) },
+                    onClick = {
+                        haptics.lightToggle()
+                        onNavigateToPacks()
+                    },
+                    trailing = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "Navigate to quote packs",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                )
+                SettingItem(
                     title = stringResource(R.string.settings_notifications),
                     leadingIcon = { SettingIcon(Icons.Filled.Notifications) },
                     onClick = {
@@ -363,6 +378,50 @@ fun SettingsScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun SettingsSummaryCard(
+    script: String,
+    themeMode: String,
+    showTransliteration: Boolean
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            SettingsSummaryItem(label = "Script", value = script)
+            SettingsSummaryItem(label = "Theme", value = themeMode)
+            SettingsSummaryItem(
+                label = "Latin",
+                value = if (showTransliteration) "Shown" else "Hidden"
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsSummaryItem(label: String, value: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 

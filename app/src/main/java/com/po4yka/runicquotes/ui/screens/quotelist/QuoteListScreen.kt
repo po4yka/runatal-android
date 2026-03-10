@@ -1,5 +1,6 @@
 package com.po4yka.runicquotes.ui.screens.quotelist
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,8 +12,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Delete
@@ -24,8 +27,9 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -45,24 +49,21 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.Quote
-import com.po4yka.runicquotes.domain.model.RunicScript
-import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.ui.components.BottomSheetAction
 import com.po4yka.runicquotes.ui.components.ConfirmationDialog
 import com.po4yka.runicquotes.ui.components.EmptyState
 import com.po4yka.runicquotes.ui.components.RunicBottomSheet
-import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.components.SegmentedControl
 import com.po4yka.runicquotes.ui.components.SkeletonCard
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
-import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
 import com.po4yka.runicquotes.util.rememberHapticFeedback
 import kotlinx.coroutines.launch
 
@@ -72,6 +73,7 @@ fun QuoteListScreen(
     onNavigateToAddQuote: () -> Unit,
     onNavigateToEditQuote: (Long) -> Unit,
     onNavigateToArchive: () -> Unit = {},
+    onNavigateToPacks: () -> Unit = {},
     viewModel: QuoteListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -102,31 +104,6 @@ fun QuoteListScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("Library")
-                        Text(
-                            text = "Your collection",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        haptics.lightToggle()
-                        onNavigateToArchive()
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Archive"
-                        )
-                    }
-                }
-            )
-        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
@@ -134,38 +111,51 @@ fun QuoteListScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                SegmentedControl(
-                    segments = filterSegments,
-                    selectedIndex = selectedFilterIndex,
-                    onSegmentSelected = { index ->
-                        haptics.lightToggle()
-                        viewModel.setFilter(QuoteFilter.entries[index])
-                    },
-                    leadingIcons = filterIcons,
-                    counts = filterCounts
-                )
+            LibraryHeader(
+                onNavigateToPacks = {
+                    haptics.lightToggle()
+                    onNavigateToPacks()
+                },
+                onNavigateToArchive = {
+                    haptics.lightToggle()
+                    onNavigateToArchive()
+                }
+            )
 
-                OutlinedTextField(
-                    value = uiState.searchQuery,
-                    onValueChange = viewModel::updateSearchQuery,
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Search quotes or authors") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search"
-                        )
-                    },
-                    singleLine = true
-                )
-            }
+            SegmentedControl(
+                segments = filterSegments,
+                selectedIndex = selectedFilterIndex,
+                onSegmentSelected = { index ->
+                    haptics.lightToggle()
+                    viewModel.setFilter(QuoteFilter.entries[index])
+                },
+                leadingIcons = filterIcons,
+                counts = filterCounts
+            )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = uiState.searchQuery,
+                onValueChange = viewModel::updateSearchQuery,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Search quotes or authors") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search"
+                    )
+                },
+                singleLine = true,
+                shape = RunicExpressiveTheme.shapes.segmentedControl
+            )
+
+            Text(
+                text = "${uiState.quotes.size} quotes",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
             Box(
                 modifier = Modifier
@@ -188,7 +178,7 @@ fun QuoteListScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .testTag("quote_list_lazy"),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                        contentPadding = PaddingValues(vertical = 4.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(
@@ -197,9 +187,6 @@ fun QuoteListScreen(
                         ) { quote ->
                             QuoteListItem(
                                 quote = quote,
-                                selectedScript = uiState.selectedScript,
-                                selectedFont = uiState.selectedFont,
-                                transliterationFactory = viewModel.transliterationFactory,
                                 onToggleFavorite = {
                                     haptics.lightToggle()
                                     viewModel.toggleFavorite(quote)
@@ -265,6 +252,47 @@ fun QuoteListScreen(
 }
 
 @Composable
+private fun LibraryHeader(
+    onNavigateToPacks: () -> Unit,
+    onNavigateToArchive: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = "Library",
+                style = MaterialTheme.typography.headlineLarge
+            )
+            Text(
+                text = "Your collection",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilledTonalButton(onClick = onNavigateToPacks) {
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text("Packs")
+            }
+            FilledTonalIconButton(onClick = onNavigateToArchive) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Archive"
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun LibraryEmptyState(
     currentFilter: QuoteFilter,
     onNavigateToAddQuote: () -> Unit,
@@ -300,12 +328,9 @@ private fun LibraryEmptyState(
 private fun LibraryLoadingSkeleton() {
     val brush = rememberShimmerBrush()
 
-    Column(
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         repeat(4) {
-            SkeletonCard(height = 120.dp, brush = brush)
+            SkeletonCard(height = 96.dp, brush = brush)
         }
     }
 }
@@ -313,90 +338,96 @@ private fun LibraryLoadingSkeleton() {
 @Composable
 private fun QuoteListItem(
     quote: Quote,
-    selectedScript: RunicScript,
-    selectedFont: String,
-    transliterationFactory: com.po4yka.runicquotes.domain.transliteration.TransliterationFactory,
     onToggleFavorite: () -> Unit,
     onShowActions: () -> Unit
 ) {
-    val shapes = RunicExpressiveTheme.shapes
-    val typeRoles = RunicTypeRoles.current
-    val runicText = remember(quote, selectedScript) {
-        quote.getRunicText(selectedScript, transliterationFactory)
-    }
-
     Card(
-        shape = shapes.contentCard,
+        shape = RunicExpressiveTheme.shapes.contentCard,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         )
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            RunicText(
-                text = runicText,
-                font = selectedFont,
-                script = selectedScript,
-                style = typeRoles.runicCard,
-                modifier = Modifier.fillMaxWidth()
+            Box(
+                modifier = Modifier
+                    .size(width = 4.dp, height = 62.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(
+                        if (quote.isFavorite) {
+                            MaterialTheme.colorScheme.secondary
+                        } else {
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                        }
+                    )
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = quote.textLatin,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = quote.author,
-                    style = typeRoles.quoteMeta,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "\"${quote.textLatin}\"",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    IconButton(onClick = onToggleFavorite) {
-                        Icon(
-                            imageVector = if (quote.isFavorite) {
-                                Icons.Default.Favorite
-                            } else {
-                                Icons.Default.FavoriteBorder
-                            },
-                            contentDescription = if (quote.isFavorite) {
-                                "Remove from favorites"
-                            } else {
-                                "Add to favorites"
-                            },
-                            tint = if (quote.isFavorite) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = quote.author,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (quote.isFavorite) {
+                        Text(
+                            text = "Saved",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.secondary
                         )
                     }
-
-                    IconButton(onClick = onShowActions) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "More actions",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    if (quote.isUserCreated) {
+                        Text(
+                            text = "Custom",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
+            }
+
+            IconButton(onClick = onToggleFavorite) {
+                Icon(
+                    imageVector = if (quote.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = if (quote.isFavorite) {
+                        "Remove from favorites"
+                    } else {
+                        "Add to favorites"
+                    },
+                    tint = if (quote.isFavorite) {
+                        MaterialTheme.colorScheme.secondary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+            }
+
+            IconButton(onClick = onShowActions) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More actions",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

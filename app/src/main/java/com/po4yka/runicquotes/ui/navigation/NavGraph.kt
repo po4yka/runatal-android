@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package com.po4yka.runicquotes.ui.navigation
 
 import androidx.compose.animation.AnimatedContentTransitionScope
@@ -10,26 +12,41 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.entryProvider
@@ -71,7 +88,7 @@ fun NavGraph(
 ) {
     val currentRoute = backStack.lastOrNull() ?: QuoteRoute
     val showBottomBar = currentRoute is QuoteRoute || currentRoute is QuoteListRoute ||
-        currentRoute is CreateRoute || currentRoute is PacksRoute || currentRoute is SettingsRoute
+        currentRoute is CreateRoute || currentRoute is SettingsRoute
     val reducedMotion = LocalReduceMotion.current
     val motion = RunicExpressiveTheme.motion
 
@@ -151,68 +168,113 @@ private fun TopLevelBottomBar(
     currentRoute: Any,
     backStack: SnapshotStateList<Any>
 ) {
-    NavigationBar {
-        NavigationBarItem(
-            selected = currentRoute is QuoteRoute,
-            onClick = { switchTopLevelRoute(backStack, QuoteRoute) },
-            icon = {
-                Box(modifier = Modifier.semantics { contentDescription = "Today" }) {
-                    Text("ᚱ")
+    val destinations = listOf(
+        TopLevelDestination("Today", Icons.Default.AutoAwesome, QuoteRoute, "tab_today"),
+        TopLevelDestination("Library", Icons.AutoMirrored.Filled.MenuBook, QuoteListRoute, "tab_library"),
+        TopLevelDestination("Create", Icons.Default.EditNote, CreateRoute, "tab_create"),
+        TopLevelDestination("Settings", Icons.Default.Settings, SettingsRoute, "tab_settings")
+    )
+    val navigationPadding = WindowInsets.navigationBars.asPaddingValues()
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = 10.dp,
+                end = 10.dp,
+                top = 4.dp,
+                bottom = navigationPadding.calculateBottomPadding().coerceAtLeast(10.dp)
+            )
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            tonalElevation = 0.dp,
+            shadowElevation = 2.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                destinations.forEach { destination ->
+                    TopLevelBottomBarItem(
+                        label = destination.label,
+                        icon = destination.icon,
+                        selected = currentRoute::class == destination.route::class,
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag(destination.testTag),
+                        onClick = { switchTopLevelRoute(backStack, destination.route) }
+                    )
                 }
-            },
-            label = { Text("Today") },
-            modifier = Modifier.testTag("tab_today")
-        )
-        NavigationBarItem(
-            selected = currentRoute is QuoteListRoute,
-            onClick = { switchTopLevelRoute(backStack, QuoteListRoute) },
-            icon = {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.List,
-                    contentDescription = "Library"
-                )
-            },
-            label = { Text("Library") },
-            modifier = Modifier.testTag("tab_library")
-        )
-        NavigationBarItem(
-            selected = currentRoute is CreateRoute,
-            onClick = { switchTopLevelRoute(backStack, CreateRoute) },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Create"
-                )
-            },
-            label = { Text("Create") },
-            modifier = Modifier.testTag("tab_create")
-        )
-        NavigationBarItem(
-            selected = currentRoute is PacksRoute,
-            onClick = { switchTopLevelRoute(backStack, PacksRoute) },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = "Packs"
-                )
-            },
-            label = { Text("Packs") },
-            modifier = Modifier.testTag("tab_packs")
-        )
-        NavigationBarItem(
-            selected = currentRoute is SettingsRoute,
-            onClick = { switchTopLevelRoute(backStack, SettingsRoute) },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Settings"
-                )
-            },
-            label = { Text("Settings") },
-            modifier = Modifier.testTag("tab_settings")
+            }
+        }
+    }
+}
+
+@Composable
+private fun TopLevelBottomBarItem(
+    label: String,
+    icon: ImageVector,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 2.dp)
+            .semantics { contentDescription = label },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 56.dp, height = 32.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    if (selected) {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainerLow
+                    }
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = if (selected) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            )
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (selected) {
+                MaterialTheme.colorScheme.onSurface
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            }
         )
     }
 }
+
+private data class TopLevelDestination(
+    val label: String,
+    val icon: ImageVector,
+    val route: Any,
+    val testTag: String
+)
 
 @Composable
 private fun navEntryProvider(
@@ -251,12 +313,6 @@ private fun EntryProviderScope<Any>.topLevelEntries(
 ) {
     entry<QuoteRoute> {
         QuoteScreen(
-            onNavigateToEditQuote = { quoteId ->
-                backStack.add(AddEditQuoteRoute(quoteId = quoteId))
-            },
-            onNavigateToNotifications = {
-                backStack.add(NotificationSettingsRoute)
-            },
             onNavigateToShare = { quoteId ->
                 backStack.add(ShareRoute(quoteId = quoteId))
             },
@@ -273,7 +329,8 @@ private fun EntryProviderScope<Any>.topLevelEntries(
             onNavigateToAbout = { backStack.add(AboutRoute) },
             onNavigateToProfile = { backStack.add(ProfileRoute) },
             onNavigateToReferences = { backStack.add(ReferencesRoute) },
-            onNavigateToTranslation = { backStack.add(TranslationRoute) }
+            onNavigateToTranslation = { backStack.add(TranslationRoute) },
+            onNavigateToPacks = { backStack.add(PacksRoute) }
         )
     }
     entry<QuoteListRoute> {
@@ -286,11 +343,18 @@ private fun EntryProviderScope<Any>.topLevelEntries(
             },
             onNavigateToArchive = {
                 backStack.add(ArchiveRoute)
+            },
+            onNavigateToPacks = {
+                backStack.add(PacksRoute)
             }
         )
     }
     entry<CreateRoute> {
-        CreateScreen()
+        CreateScreen(
+            onCreateQuote = { backStack.add(AddEditQuoteRoute()) },
+            onBrowsePacks = { backStack.add(PacksRoute) },
+            onOpenTranslation = { backStack.add(TranslationRoute) }
+        )
     }
     entry<PacksRoute> {
         PacksScreen(
@@ -398,8 +462,8 @@ private val routeRankMap = mapOf(
     "QuoteRoute" to 1,
     "QuoteListRoute" to 2,
     "CreateRoute" to 3,
-    "PacksRoute" to 4,
-    "SettingsRoute" to 5,
+    "SettingsRoute" to 4,
+    "PacksRoute" to 5,
     "AddEditQuoteRoute" to 6,
     "PackDetailRoute" to 7,
     "ArchiveRoute" to 8,
@@ -467,8 +531,7 @@ private fun routeKind(scene: Scene<Any>): RouteKind {
     return when {
         key.contains("OnboardingRoute") -> RouteKind.ONBOARDING
         key.contains("QuoteRoute") || key.contains("QuoteListRoute") ||
-            key.contains("CreateRoute") || key.contains("PacksRoute") ||
-            key.contains("SettingsRoute") -> RouteKind.TOP_LEVEL
+            key.contains("CreateRoute") || key.contains("SettingsRoute") -> RouteKind.TOP_LEVEL
         else -> RouteKind.DETAIL
     }
 }
