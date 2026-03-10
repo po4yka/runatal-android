@@ -3,10 +3,12 @@ package com.po4yka.runicquotes.ui.screens.quote
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +23,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -29,21 +30,15 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -51,7 +46,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -59,8 +54,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -68,18 +65,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.domain.model.segmentLabel
-import com.po4yka.runicquotes.ui.components.BottomSheetAction
-import com.po4yka.runicquotes.ui.components.CoachMarkStep
-import com.po4yka.runicquotes.ui.components.CoachMarksDialog
 import com.po4yka.runicquotes.ui.components.EmptyState
 import com.po4yka.runicquotes.ui.components.ErrorState
-import com.po4yka.runicquotes.ui.components.NotificationPermissionDialog
-import com.po4yka.runicquotes.ui.components.RunicBottomSheet
 import com.po4yka.runicquotes.ui.components.SegmentedControl
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.components.SkeletonCard
 import com.po4yka.runicquotes.ui.components.SkeletonRect
-import com.po4yka.runicquotes.ui.components.SkeletonTextBlock
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
@@ -182,8 +173,11 @@ private fun TodayContent(
     val motion = RunicExpressiveTheme.motion
     val reducedMotion = LocalReduceMotion.current
     val scrollState = rememberScrollState()
-    var cardVisible by remember(state.quote.id) { mutableStateOf(false) }
-    LaunchedEffect(state.quote.id) { cardVisible = true }
+    var contentVisible by remember(state.quote.id) { mutableStateOf(false) }
+    LaunchedEffect(state.quote.id) { contentVisible = true }
+    val collapsedHeaderVisible by remember(scrollState) {
+        derivedStateOf { scrollState.value > 72 }
+    }
 
     val todayDate = remember {
         LocalDate.now().format(
@@ -196,127 +190,301 @@ private fun TodayContent(
         scripts.indexOf(state.selectedScript)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(horizontal = 20.dp, vertical = 14.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 20.dp, vertical = 14.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = todayDate,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "Quote of the Day",
-                    style = MaterialTheme.typography.headlineLarge
-                )
-            }
-            Surface(
-                modifier = Modifier.size(40.dp),
-                shape = RunicExpressiveTheme.shapes.pill,
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                onClick = onToggleTransliteration
+            TodaySectionReveal(
+                visible = contentVisible,
+                reducedMotion = reducedMotion
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = if (state.showTransliteration) {
-                            Icons.Default.Visibility
-                        } else {
-                            Icons.Default.VisibilityOff
-                        },
-                        contentDescription = if (state.showTransliteration) {
-                            "Hide transliteration"
-                        } else {
-                            "Show transliteration"
-                        },
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = todayDate,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Quote of the Day",
+                            style = MaterialTheme.typography.headlineLarge
+                        )
+                    }
+                    Surface(
+                        modifier = Modifier.size(40.dp),
+                        shape = RunicExpressiveTheme.shapes.pill,
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        onClick = onToggleTransliteration
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (state.showTransliteration) {
+                                    Icons.Default.Visibility
+                                } else {
+                                    Icons.Default.VisibilityOff
+                                },
+                                contentDescription = if (state.showTransliteration) {
+                                    "Hide transliteration"
+                                } else {
+                                    "Show transliteration"
+                                },
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-        SegmentedControl(
-            segments = scripts.map { it.segmentLabel },
-            selectedIndex = selectedScriptIndex,
-            onSegmentSelected = { index -> onSelectScript(scripts[index]) }
-        )
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        AnimatedVisibility(
-            visible = cardVisible,
-            enter = if (reducedMotion) {
-                EnterTransition.None
-            } else {
-                fadeIn(
-                    animationSpec = tween(
-                        durationMillis = motion.duration(reducedMotion, motion.mediumDurationMillis),
-                        easing = motion.standardEasing
-                    )
-                ) + slideInVertically(
-                    animationSpec = tween(
-                        durationMillis = motion.duration(reducedMotion, motion.mediumDurationMillis),
-                        easing = motion.emphasizedEasing
-                    ),
-                    initialOffsetY = { it / 6 }
-                )
-            }
-        ) {
-            HeroQuoteCard(
-                runicText = state.runicText,
-                latinText = state.quote.textLatin,
-                author = state.quote.author,
-                scriptLabel = state.selectedScript.displayName,
-                selectedScript = state.selectedScript,
-                selectedFont = state.selectedFont,
-                showTransliteration = state.showTransliteration,
-                reducedMotion = reducedMotion
-            )
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        ActionButtonsRow(
-            isFavorite = state.quote.isFavorite,
-            onToggleFavorite = onToggleFavorite,
-            onShare = onShare,
-            onNewQuote = onNewQuote
-        )
-
-        if (state.recentQuotes.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(22.dp))
-
-            Text(
-                text = "Recent quotes",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
 
             Spacer(modifier = Modifier.height(12.dp))
-
-            state.recentQuotes.forEach { item ->
-                RecentQuoteCard(
-                    runicText = item.runicText,
-                    latinText = item.quote.textLatin,
-                    author = item.quote.author,
-                    isFavorite = item.quote.isFavorite
+            TodaySectionReveal(
+                visible = contentVisible,
+                reducedMotion = reducedMotion,
+                delayMillis = motion.shortDurationMillis / 3
+            ) {
+                SegmentedControl(
+                    segments = scripts.map { it.segmentLabel },
+                    selectedIndex = selectedScriptIndex,
+                    onSegmentSelected = { index -> onSelectScript(scripts[index]) }
                 )
-                Spacer(modifier = Modifier.height(12.dp))
             }
 
-            HistoryLink(onClick = onNavigateToHistory)
+            Spacer(modifier = Modifier.height(14.dp))
+
+            TodaySectionReveal(
+                visible = contentVisible,
+                reducedMotion = reducedMotion,
+                delayMillis = motion.shortDurationMillis / 2
+            ) {
+                HeroQuoteCard(
+                    runicText = state.runicText,
+                    latinText = state.quote.textLatin,
+                    author = state.quote.author,
+                    scriptLabel = state.selectedScript.displayName,
+                    selectedScript = state.selectedScript,
+                    selectedFont = state.selectedFont,
+                    showTransliteration = state.showTransliteration,
+                    reducedMotion = reducedMotion,
+                    contentVisible = contentVisible
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            TodaySectionReveal(
+                visible = contentVisible,
+                reducedMotion = reducedMotion,
+                delayMillis = (motion.shortDurationMillis * 0.7f).toInt()
+            ) {
+                ActionButtonsRow(
+                    isFavorite = state.quote.isFavorite,
+                    onToggleFavorite = onToggleFavorite,
+                    onShare = onShare,
+                    onNewQuote = onNewQuote
+                )
+            }
+
+            if (state.recentQuotes.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(22.dp))
+
+                TodaySectionReveal(
+                    visible = contentVisible,
+                    reducedMotion = reducedMotion,
+                    delayMillis = motion.shortDurationMillis
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            text = "Recent quotes",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        state.recentQuotes.forEach { item ->
+                            RecentQuoteCard(
+                                runicText = item.runicText,
+                                latinText = item.quote.textLatin,
+                                author = item.quote.author,
+                                isFavorite = item.quote.isFavorite,
+                                selectedScript = state.selectedScript,
+                                selectedFont = state.selectedFont
+                            )
+                        }
+
+                        HistoryLink(onClick = onNavigateToHistory)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        TodayCollapsedTopBar(
+            visible = collapsedHeaderVisible,
+            reducedMotion = reducedMotion,
+            showTransliteration = state.showTransliteration,
+            onToggleTransliteration = onToggleTransliteration,
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
+    }
+}
+
+@Composable
+private fun TodayCollapsedTopBar(
+    visible: Boolean,
+    reducedMotion: Boolean,
+    showTransliteration: Boolean,
+    onToggleTransliteration: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val motion = RunicExpressiveTheme.motion
+
+    AnimatedVisibility(
+        visible = visible,
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .graphicsLayer { shadowElevation = 2.dp.toPx() },
+        enter = if (reducedMotion) {
+            EnterTransition.None
+        } else {
+            fadeIn(
+                animationSpec = tween(
+                    durationMillis = motion.shortDurationMillis,
+                    easing = motion.standardEasing
+                )
+            ) + slideInVertically(
+                animationSpec = tween(
+                    durationMillis = motion.shortDurationMillis,
+                    easing = motion.emphasizedEasing
+                ),
+                initialOffsetY = { -it / 2 }
+            )
+        },
+        exit = if (reducedMotion) {
+            androidx.compose.animation.ExitTransition.None
+        } else {
+            fadeOut(
+                animationSpec = tween(
+                    durationMillis = motion.shortDurationMillis,
+                    easing = motion.standardEasing
+                )
+            ) + slideOutVertically(
+                animationSpec = tween(
+                    durationMillis = motion.shortDurationMillis,
+                    easing = motion.standardEasing
+                ),
+                targetOffsetY = { -it / 2 }
+            )
+        }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Quote of the Day",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Surface(
+                    modifier = Modifier.size(36.dp),
+                    shape = RunicExpressiveTheme.shapes.pill,
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    onClick = onToggleTransliteration
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (showTransliteration) {
+                                Icons.Default.Visibility
+                            } else {
+                                Icons.Default.VisibilityOff
+                            },
+                            contentDescription = if (showTransliteration) {
+                                "Hide transliteration"
+                            } else {
+                                "Show transliteration"
+                            },
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f))
+        }
+    }
+}
+
+@Composable
+private fun TodaySectionReveal(
+    visible: Boolean,
+    reducedMotion: Boolean,
+    delayMillis: Int = 0,
+    content: @Composable () -> Unit
+) {
+    val motion = RunicExpressiveTheme.motion
+
+    if (reducedMotion) {
+        content()
+        return
+    }
+
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = motion.mediumDurationMillis,
+            delayMillis = delayMillis,
+            easing = motion.standardEasing
+        ),
+        label = "todaySectionAlpha"
+    )
+    val translationY by animateFloatAsState(
+        targetValue = if (visible) 0f else 20f,
+        animationSpec = tween(
+            durationMillis = motion.mediumDurationMillis,
+            delayMillis = delayMillis,
+            easing = motion.emphasizedEasing
+        ),
+        label = "todaySectionOffset"
+    )
+
+    Box(
+        modifier = Modifier.graphicsLayer {
+            this.alpha = alpha
+            this.translationY = translationY
+        }
+    ) {
+        content()
+    }
+}
+
+private fun runicParagraphStyle(selectedScript: RunicScript): Pair<TextUnit, Pair<TextUnit, TextUnit>> {
+    return when (selectedScript) {
+        RunicScript.ELDER_FUTHARK -> 19.sp to (0.72.sp to 34.sp)
+        RunicScript.YOUNGER_FUTHARK -> 18.sp to (0.5.sp to 32.sp)
+        RunicScript.CIRTH -> 20.sp to (0.56.sp to 34.sp)
+    }
+}
+
+private fun runicCardStyle(selectedScript: RunicScript): Pair<TextUnit, Pair<TextUnit, TextUnit>> {
+    return when (selectedScript) {
+        RunicScript.ELDER_FUTHARK -> 15.sp to (0.42.sp to 25.sp)
+        RunicScript.YOUNGER_FUTHARK -> 14.sp to (0.3.sp to 24.sp)
+        RunicScript.CIRTH -> 16.sp to (0.34.sp to 25.sp)
     }
 }
 
@@ -329,16 +497,31 @@ private fun HeroQuoteCard(
     selectedScript: RunicScript,
     selectedFont: String,
     showTransliteration: Boolean,
-    reducedMotion: Boolean
+    reducedMotion: Boolean,
+    contentVisible: Boolean
 ) {
-    val shapes = RunicExpressiveTheme.shapes
     val motion = RunicExpressiveTheme.motion
     val typeRoles = RunicTypeRoles.current
+    val (fontSize, metrics) = runicParagraphStyle(selectedScript)
+    val (letterSpacing, lineHeight) = metrics
+    val transliterationAlpha by animateFloatAsState(
+        targetValue = if (showTransliteration && contentVisible) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = motion.duration(reducedMotion, motion.mediumDurationMillis),
+            delayMillis = motion.delay(reducedMotion, motion.shortDurationMillis / 3),
+            easing = motion.standardEasing
+        ),
+        label = "transliterationAlpha"
+    )
 
     Card(
-        shape = shapes.contentCard,
+        shape = RunicExpressiveTheme.shapes.contentCard,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
         ),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -351,26 +534,23 @@ private fun HeroQuoteCard(
                 text = runicText,
                 selectedScript = selectedScript,
                 selectedFont = selectedFont,
-                reducedMotion = reducedMotion
+                fontSize = fontSize,
+                lineHeight = lineHeight,
+                letterSpacing = letterSpacing
             )
 
-            if (showTransliteration) {
-                val transliterationAlpha by animateFloatAsState(
-                    targetValue = 1f,
-                    animationSpec = tween(
-                        durationMillis = motion.duration(reducedMotion, motion.mediumDurationMillis),
-                        delayMillis = motion.delay(reducedMotion, motion.shortDurationMillis),
-                        easing = motion.standardEasing
-                    ),
-                    label = "transliterationAlpha"
-                )
+            if (showTransliteration || transliterationAlpha > 0.01f) {
                 Spacer(modifier = Modifier.height(14.dp))
                 Text(
                     text = "\"$latinText\"",
-                    style = typeRoles.latinQuote,
+                    style = typeRoles.latinQuote.copy(
+                        fontSize = 13.sp,
+                        lineHeight = 20.sp
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .alpha(transliterationAlpha)
+                        .alpha(transliterationAlpha),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -383,7 +563,10 @@ private fun HeroQuoteCard(
             ) {
                 Text(
                     text = "— $author",
-                    style = typeRoles.quoteMeta,
+                    style = typeRoles.quoteMeta.copy(
+                        fontSize = 13.sp,
+                        lineHeight = 20.sp
+                    ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
@@ -396,79 +579,27 @@ private fun HeroQuoteCard(
     }
 }
 
-/**
- * Runic text with staggered per-character reveal animation.
- */
+/** Runic quote copy rendered as a natural paragraph with Figma-aligned metrics. */
 @Composable
 private fun HeroRunicText(
     text: String,
     selectedScript: RunicScript,
     selectedFont: String,
-    reducedMotion: Boolean
+    fontSize: TextUnit,
+    lineHeight: TextUnit,
+    letterSpacing: TextUnit
 ) {
-    val motion = RunicExpressiveTheme.motion
-    val typeRoles = RunicTypeRoles.current
-    val scriptFontSize = when (selectedScript) {
-        RunicScript.ELDER_FUTHARK -> 34.sp
-        RunicScript.YOUNGER_FUTHARK -> 32.sp
-        RunicScript.CIRTH -> 36.sp
-    }
-
-    if (reducedMotion) {
-        RunicText(
-            text = text,
-            font = selectedFont,
-            script = selectedScript,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Start,
-            style = typeRoles.runicHero,
-            fontSize = scriptFontSize
-        )
-        return
-    }
-
-    val words = remember(text) { text.split(" ") }
-
-    Column(
+    RunicText(
+        text = text,
+        font = selectedFont,
+        script = selectedScript,
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        words.forEachIndexed { wordIndex, word ->
-            key(wordIndex, word, selectedScript) {
-                Row(
-                    modifier = Modifier.wrapContentWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    word.forEachIndexed { index, char ->
-                        val alpha = remember(word, char, selectedScript) { Animatable(0f) }
-
-                        LaunchedEffect(char, selectedScript) {
-                            val wordStartDelay = wordIndex * word.length * motion.revealStepMillis
-                            val charDelay = index * motion.revealStepMillis + wordStartDelay
-                            alpha.animateTo(
-                                targetValue = 1f,
-                                animationSpec = tween(
-                                    durationMillis = motion.longDurationMillis,
-                                    delayMillis = charDelay.coerceAtMost(motion.maxRevealDelayMillis),
-                                    easing = motion.standardEasing
-                                )
-                            )
-                        }
-
-                        RunicText(
-                            text = char.toString(),
-                            font = selectedFont,
-                            script = selectedScript,
-                            modifier = Modifier.alpha(alpha.value),
-                            textAlign = TextAlign.Start,
-                            style = typeRoles.runicHero,
-                            fontSize = scriptFontSize
-                        )
-                    }
-                }
-            }
-        }
-    }
+        textAlign = TextAlign.Start,
+        style = MaterialTheme.typography.bodyMedium,
+        fontSize = fontSize,
+        overrideLineHeight = lineHeight,
+        overrideLetterSpacing = letterSpacing
+    )
 }
 
 @Composable
@@ -561,15 +692,21 @@ private fun RecentQuoteCard(
     runicText: String,
     latinText: String,
     author: String,
-    isFavorite: Boolean
+    isFavorite: Boolean,
+    selectedScript: RunicScript,
+    selectedFont: String
 ) {
-    val shapes = RunicExpressiveTheme.shapes
-    val typeRoles = RunicTypeRoles.current
+    val (fontSize, metrics) = runicCardStyle(selectedScript)
+    val (letterSpacing, lineHeight) = metrics
 
     Card(
-        shape = shapes.contentCard,
+        shape = RunicExpressiveTheme.shapes.contentCard,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
         ),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -579,11 +716,17 @@ private fun RecentQuoteCard(
                 .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
+                RunicText(
                     text = runicText,
-                    style = typeRoles.runicCard,
+                    font = selectedFont,
+                    script = selectedScript,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = fontSize,
+                    overrideLineHeight = lineHeight,
+                    overrideLetterSpacing = letterSpacing,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -594,7 +737,7 @@ private fun RecentQuoteCard(
                         fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                     ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
 

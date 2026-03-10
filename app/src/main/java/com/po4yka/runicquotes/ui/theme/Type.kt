@@ -92,8 +92,8 @@ val RunicTypography = Typography(
     ),
     titleSmall = TextStyle(
         fontFamily = RobotoFlex,
-        fontSize = 14.sp,
-        lineHeight = 18.sp,
+        fontSize = 15.sp,
+        lineHeight = 20.sp,
         fontWeight = FontWeight.Medium,
         letterSpacing = 0.1.sp
     ),
@@ -106,15 +106,15 @@ val RunicTypography = Typography(
     ),
     bodyMedium = TextStyle(
         fontFamily = RobotoFlex,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
+        fontSize = 15.sp,
+        lineHeight = 22.sp,
         fontWeight = FontWeight.Normal,
         letterSpacing = 0.sp
     ),
     bodySmall = TextStyle(
         fontFamily = RobotoFlex,
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
         fontWeight = FontWeight.Normal,
         letterSpacing = 0.sp
     ),
@@ -127,17 +127,17 @@ val RunicTypography = Typography(
     ),
     labelMedium = TextStyle(
         fontFamily = RobotoFlex,
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
         fontWeight = FontWeight.Medium,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.35.sp
     ),
     labelSmall = TextStyle(
         fontFamily = RobotoFlex,
-        fontSize = 10.sp,
-        lineHeight = 12.sp,
+        fontSize = 11.sp,
+        lineHeight = 14.sp,
         fontWeight = FontWeight.Medium,
-        letterSpacing = 0.4.sp
+        letterSpacing = 0.3.sp
     )
 )
 
