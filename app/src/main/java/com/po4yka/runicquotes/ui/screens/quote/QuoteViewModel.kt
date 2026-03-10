@@ -38,6 +38,7 @@ class QuoteViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<QuoteUiState>(QuoteUiState.Loading)
     val uiState: StateFlow<QuoteUiState> = _uiState.asStateFlow()
     private var currentQuote: Quote? = null
+    private var recentQuotes: List<RecentQuoteItem> = emptyList()
 
     init {
         // Observe preferences changes and keep quote rendering in sync.
@@ -70,6 +71,7 @@ class QuoteViewModel @Inject constructor(
 
             if (quote != null) {
                 currentQuote = quote
+                loadRecentQuotes(resolvedPreferences, excludeId = quote.id)
                 emitSuccessState(quote, resolvedPreferences)
             } else {
                 currentQuote = null
@@ -96,6 +98,7 @@ class QuoteViewModel @Inject constructor(
 
                 if (quote != null) {
                     currentQuote = quote
+                    loadRecentQuotes(preferences, excludeId = quote.id)
                     emitSuccessState(quote, preferences)
                 } else {
                     currentQuote = null
@@ -187,16 +190,44 @@ class QuoteViewModel @Inject constructor(
         emitSuccessState(quote, preferences)
     }
 
+    private suspend fun loadRecentQuotes(preferences: UserPreferences, excludeId: Long) {
+        val allQuotes = quoteRepository.getAllQuotes()
+        recentQuotes = allQuotes
+            .filter { it.id != excludeId }
+            .take(RECENT_QUOTES_LIMIT)
+            .map { quote ->
+                RecentQuoteItem(
+                    quote = quote,
+                    runicText = quote.getRunicText(preferences.selectedScript, transliterationFactory)
+                )
+            }
+    }
+
     private fun emitSuccessState(quote: Quote, preferences: UserPreferences) {
         val runicText = quote.getRunicText(preferences.selectedScript, transliterationFactory)
+        // Re-render recent quotes runic text when script changes
+        val updatedRecent = recentQuotes.map { item ->
+            item.copy(
+                runicText = item.quote.getRunicText(
+                    preferences.selectedScript,
+                    transliterationFactory
+                )
+            )
+        }
+        recentQuotes = updatedRecent
         _uiState.update {
             QuoteUiState.Success(
                 quote = quote,
                 runicText = runicText,
                 selectedScript = preferences.selectedScript,
                 selectedFont = preferences.selectedFont,
-                showTransliteration = preferences.showTransliteration
+                showTransliteration = preferences.showTransliteration,
+                recentQuotes = updatedRecent
             )
         }
+    }
+
+    private companion object {
+        const val RECENT_QUOTES_LIMIT = 3
     }
 }

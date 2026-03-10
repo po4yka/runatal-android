@@ -8,6 +8,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,33 +18,27 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,179 +50,131 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
+import com.po4yka.runicquotes.ui.components.EmptyState
+import com.po4yka.runicquotes.ui.components.ErrorState
+import com.po4yka.runicquotes.ui.components.SegmentedControl
 import com.po4yka.runicquotes.ui.components.RunicText
+import com.po4yka.runicquotes.ui.components.SkeletonCard
+import com.po4yka.runicquotes.ui.components.SkeletonRect
+import com.po4yka.runicquotes.ui.components.SkeletonTextBlock
+import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
-import com.po4yka.runicquotes.ui.theme.RunicQuotesTheme
 import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
-import com.po4yka.runicquotes.util.ShareTemplate
 import com.po4yka.runicquotes.util.rememberHapticFeedback
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
- * Quote screen that displays the daily runic quote.
+ * Redesigned Today screen matching Figma 14:2296.
+ *
+ * Layout: date header, segmented script control, hero quote card,
+ * action buttons (save/share/shuffle), recent quotes, history link.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuoteScreen(
+    onNavigateToHistory: () -> Unit = {},
     onBrowseLibrary: (() -> Unit)? = null,
     viewModel: QuoteViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val reducedMotion = LocalReduceMotion.current
     val haptics = rememberHapticFeedback()
-    var showShareDialog by remember { mutableStateOf(false) }
-    var selectedShareTemplate by remember { mutableStateOf(ShareTemplate.MINIMAL) }
 
-    Scaffold(
-        floatingActionButton = {
-            if (uiState is QuoteUiState.Success) {
-                ExtendedFloatingActionButton(
-                    onClick = {
-                        haptics.mediumAction()
-                        viewModel.getRandomQuote()
-                    },
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Load a random quote"
-                        )
-                    },
-                    text = { Text("New Random Quote") }
-                )
-            }
-        }
-    ) { paddingValues ->
-        val colorScheme = MaterialTheme.colorScheme
-        val backgroundGradient = remember(
-            colorScheme.background,
-            colorScheme.secondaryContainer,
-            colorScheme.tertiaryContainer
-        ) {
-            Brush.verticalGradient(
-                listOf(
-                    colorScheme.background,
-                    colorScheme.secondaryContainer.copy(alpha = 0.22f),
-                    colorScheme.tertiaryContainer.copy(alpha = 0.14f),
-                    colorScheme.background
-                )
-            )
-        }
+    Scaffold { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(brush = backgroundGradient)
                 .padding(paddingValues)
         ) {
             when (val state = uiState) {
-                is QuoteUiState.Loading -> CircularProgressIndicator(
+                is QuoteUiState.Loading -> TodayLoadingSkeleton(
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                is QuoteUiState.Success -> TodayContent(
+                    state = state,
+                    onToggleFavorite = {
+                        haptics.lightToggle()
+                        viewModel.toggleFavorite()
+                    },
+                    onShare = {
+                        haptics.mediumAction()
+                        viewModel.shareQuoteText()
+                    },
+                    onNewQuote = {
+                        haptics.mediumAction()
+                        viewModel.getRandomQuote()
+                    },
+                    onSelectScript = { script ->
+                        haptics.lightToggle()
+                        viewModel.updateSelectedScript(script)
+                    },
+                    onNavigateToHistory = onNavigateToHistory
+                )
+
+                is QuoteUiState.Error -> ErrorState(
+                    title = "Something Went Wrong",
+                    description = state.message,
+                    onRetry = {
+                        haptics.lightToggle()
+                        viewModel.refreshQuote()
+                    },
                     modifier = Modifier.align(Alignment.Center)
                 )
 
-                is QuoteUiState.Success -> {
-                    QuoteContent(
-                        state = state,
-                        reducedMotion = reducedMotion,
-                        onToggleFavorite = {
-                            haptics.lightToggle()
-                            viewModel.toggleFavorite()
-                        },
-                        onShareRequest = {
-                            haptics.lightToggle()
-                            showShareDialog = true
-                        },
-                        onSelectScript = { script ->
-                            haptics.lightToggle()
-                            viewModel.updateSelectedScript(script)
-                        }
-                    )
-                }
-
-                is QuoteUiState.Error -> {
-                    ErrorContent(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(horizontal = 20.dp),
-                        message = state.message,
-                        onRetry = {
-                            haptics.lightToggle()
-                            viewModel.refreshQuote()
-                        },
-                        onRandom = {
-                            haptics.mediumAction()
-                            viewModel.getRandomQuote()
-                        },
-                        onBrowseLibrary = onBrowseLibrary
-                    )
-                }
-
-                is QuoteUiState.Empty -> {
-                    EmptyContent(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(horizontal = 20.dp),
-                        onRetry = {
-                            haptics.lightToggle()
-                            viewModel.refreshQuote()
-                        },
-                        onRandom = {
-                            haptics.mediumAction()
-                            viewModel.getRandomQuote()
-                        },
-                        onBrowseLibrary = onBrowseLibrary
-                    )
-                }
+                is QuoteUiState.Empty -> EmptyState(
+                    icon = Icons.Default.Star,
+                    title = "No Quotes Yet",
+                    description = "Try loading a random quote or browse the library.",
+                    primaryActionLabel = "Random Quote",
+                    onPrimaryAction = {
+                        haptics.mediumAction()
+                        viewModel.getRandomQuote()
+                    },
+                    secondaryActionLabel = if (onBrowseLibrary != null) "Open Library" else null,
+                    onSecondaryAction = onBrowseLibrary,
+                    modifier = Modifier.align(Alignment.Center)
+                )
             }
         }
-    }
-
-    val successState = uiState as? QuoteUiState.Success
-    if (showShareDialog && successState != null) {
-        ShareTemplateDialog(
-            runicText = successState.runicText,
-            latinText = successState.quote.textLatin,
-            author = successState.quote.author,
-            selectedTemplate = selectedShareTemplate,
-            onTemplateSelected = {
-                haptics.lightToggle()
-                selectedShareTemplate = it
-            },
-            onDismiss = { showShareDialog = false },
-            onShare = {
-                haptics.mediumAction()
-                viewModel.shareQuoteAsImage(selectedShareTemplate)
-                haptics.successPattern()
-                showShareDialog = false
-            }
-        )
     }
 }
 
 @Composable
-private fun QuoteContent(
+private fun TodayContent(
     state: QuoteUiState.Success,
-    reducedMotion: Boolean,
     onToggleFavorite: () -> Unit,
-    onShareRequest: () -> Unit,
-    onSelectScript: (RunicScript) -> Unit
+    onShare: () -> Unit,
+    onNewQuote: () -> Unit,
+    onSelectScript: (RunicScript) -> Unit,
+    onNavigateToHistory: () -> Unit
 ) {
+    val reducedMotion = LocalReduceMotion.current
     val motion = RunicExpressiveTheme.motion
     val shapes = RunicExpressiveTheme.shapes
-    val elevations = RunicExpressiveTheme.elevations
     val typeRoles = RunicTypeRoles.current
     val scrollState = rememberScrollState()
     var cardVisible by remember(state.quote.id) { mutableStateOf(false) }
-    LaunchedEffect(state.quote.id) {
-        cardVisible = true
+    LaunchedEffect(state.quote.id) { cardVisible = true }
+
+    val todayDate = remember {
+        LocalDate.now().format(
+            DateTimeFormatter.ofPattern("EEEE, MMMM d", Locale.ENGLISH)
+        )
+    }
+
+    val scripts = remember { RunicScript.entries }
+    val selectedScriptIndex = remember(state.selectedScript) {
+        scripts.indexOf(state.selectedScript)
     }
 
     Column(
@@ -235,19 +182,45 @@ private fun QuoteContent(
             .fillMaxSize()
             .verticalScroll(scrollState)
             .padding(horizontal = 20.dp, vertical = 16.dp)
-            .padding(bottom = 92.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-            text = "Daily Rune",
-            style = MaterialTheme.typography.displaySmall
-        )
-        Text(
-            text = "Pick your script and read the same quote in a different voice.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        // -- Header: date + title + history icon --
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = todayDate,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Quote of the Day",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            }
+            IconButton(onClick = onNavigateToHistory) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "Quote history",
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // -- Segmented script control --
+        SegmentedControl(
+            segments = scripts.map { it.displayName },
+            selectedIndex = selectedScriptIndex,
+            onSegmentSelected = { index -> onSelectScript(scripts[index]) }
         )
 
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // -- Hero quote card --
         AnimatedVisibility(
             visible = cardVisible,
             enter = if (reducedMotion) {
@@ -255,154 +228,147 @@ private fun QuoteContent(
             } else {
                 fadeIn(
                     animationSpec = tween(
-                        durationMillis = motion.duration(
-                            reducedMotion = reducedMotion,
-                            base = motion.mediumDurationMillis
-                        ),
+                        durationMillis = motion.duration(reducedMotion, motion.mediumDurationMillis),
                         easing = motion.standardEasing
                     )
                 ) + slideInVertically(
                     animationSpec = tween(
-                        durationMillis = motion.duration(
-                            reducedMotion = reducedMotion,
-                            base = motion.mediumDurationMillis
-                        ),
+                        durationMillis = motion.duration(reducedMotion, motion.mediumDurationMillis),
                         easing = motion.emphasizedEasing
                     ),
                     initialOffsetY = { it / 6 }
                 )
             }
         ) {
-            ElevatedCard(
-                shape = shapes.heroCard,
-                elevation = CardDefaults.elevatedCardElevation(defaultElevation = elevations.raisedCard),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Box(
+            HeroQuoteCard(
+                runicText = state.runicText,
+                latinText = state.quote.textLatin,
+                author = state.quote.author,
+                scriptLabel = state.selectedScript.displayName,
+                selectedScript = state.selectedScript,
+                selectedFont = state.selectedFont,
+                showTransliteration = state.showTransliteration,
+                reducedMotion = reducedMotion
+            )
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // -- Action buttons row --
+        ActionButtonsRow(
+            isFavorite = state.quote.isFavorite,
+            onToggleFavorite = onToggleFavorite,
+            onShare = onShare,
+            onNewQuote = onNewQuote
+        )
+
+        // -- Recent quotes section --
+        if (state.recentQuotes.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Recent quotes",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            state.recentQuotes.forEach { item ->
+                RecentQuoteCard(
+                    runicText = item.runicText,
+                    latinText = item.quote.textLatin,
+                    author = item.quote.author
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // -- View full quote history link --
+            HistoryLink(onClick = onNavigateToHistory)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun HeroQuoteCard(
+    runicText: String,
+    latinText: String,
+    author: String,
+    scriptLabel: String,
+    selectedScript: RunicScript,
+    selectedFont: String,
+    showTransliteration: Boolean,
+    reducedMotion: Boolean
+) {
+    val shapes = RunicExpressiveTheme.shapes
+    val motion = RunicExpressiveTheme.motion
+    val typeRoles = RunicTypeRoles.current
+
+    Card(
+        shape = shapes.contentCard,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 21.dp, vertical = 23.dp)
+        ) {
+            HeroRunicText(
+                text = runicText,
+                selectedScript = selectedScript,
+                selectedFont = selectedFont,
+                reducedMotion = reducedMotion
+            )
+
+            if (showTransliteration) {
+                val transliterationAlpha by animateFloatAsState(
+                    targetValue = 1f,
+                    animationSpec = tween(
+                        durationMillis = motion.duration(reducedMotion, motion.mediumDurationMillis),
+                        delayMillis = motion.delay(reducedMotion, motion.shortDurationMillis),
+                        easing = motion.standardEasing
+                    ),
+                    label = "transliterationAlpha"
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                Text(
+                    text = "\"$latinText\"",
+                    style = typeRoles.latinQuote,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.surfaceContainerLow,
-                                    MaterialTheme.colorScheme.surfaceContainerHigh
-                                )
-                            )
-                        )
-                        .padding(20.dp)
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Quote of the Day",
-                                style = MaterialTheme.typography.titleLarge
-                            )
-                            Row {
-                                IconButton(
-                                    onClick = onShareRequest
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Share,
-                                        contentDescription = "Share quote as image"
-                                    )
-                                }
-                                IconButton(onClick = onToggleFavorite) {
-                                    Icon(
-                                        imageVector = if (state.quote.isFavorite) {
-                                            Icons.Default.Favorite
-                                        } else {
-                                            Icons.Default.FavoriteBorder
-                                        },
-                                        contentDescription = if (state.quote.isFavorite) {
-                                            "Remove from favorites"
-                                        } else {
-                                            "Add to favorites"
-                                        },
-                                        tint = if (state.quote.isFavorite) {
-                                            MaterialTheme.colorScheme.error
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        }
-                                    )
-                                }
-                            }
-                        }
+                        .alpha(transliterationAlpha)
+                )
+            }
 
-                        LazyRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(RunicScript.entries) { script ->
-                                FilterChip(
-                                    selected = state.selectedScript == script,
-                                    onClick = { onSelectScript(script) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                                        selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer
-                                    ),
-                                    label = { Text(script.displayName) }
-                                )
-                            }
-                        }
+            Spacer(modifier = Modifier.height(14.dp))
 
-                        Spacer(modifier = Modifier.height(18.dp))
-
-                        HeroRunicText(
-                            text = state.runicText,
-                            selectedScript = state.selectedScript,
-                            selectedFont = state.selectedFont,
-                            reducedMotion = reducedMotion
-                        )
-
-                        if (state.showTransliteration) {
-                            val transliterationAlpha by animateFloatAsState(
-                                targetValue = 1f,
-                                animationSpec = tween(
-                                    durationMillis = motion.duration(
-                                        reducedMotion = reducedMotion,
-                                        base = motion.mediumDurationMillis
-                                    ),
-                                    delayMillis = motion.delay(
-                                        reducedMotion = reducedMotion,
-                                        base = motion.shortDurationMillis
-                                    ),
-                                    easing = motion.standardEasing
-                                ),
-                                label = "transliterationAlpha"
-                            )
-                            Text(
-                                text = state.quote.textLatin,
-                                style = typeRoles.latinQuote,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 20.dp)
-                                    .alpha(transliterationAlpha)
-                            )
-                        }
-
-                        Text(
-                            text = "— ${state.quote.author}",
-                            style = typeRoles.quoteMeta,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 16.dp)
-                        )
-                    }
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "— $author",
+                    style = typeRoles.quoteMeta,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = scriptLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
 }
 
 /**
- * Runic text with staggered reveal for expressive motion.
+ * Runic text with staggered per-character reveal animation.
  */
 @Composable
 private fun HeroRunicText(
@@ -412,12 +378,7 @@ private fun HeroRunicText(
     reducedMotion: Boolean
 ) {
     val motion = RunicExpressiveTheme.motion
-    val shapes = RunicExpressiveTheme.shapes
     val typeRoles = RunicTypeRoles.current
-    val colorScheme = MaterialTheme.colorScheme
-    val panelBackground = remember(colorScheme.surfaceContainerHighest) {
-        colorScheme.surfaceContainerHighest.copy(alpha = 0.8f)
-    }
     val scriptFontSize = when (selectedScript) {
         RunicScript.ELDER_FUTHARK -> 34.sp
         RunicScript.YOUNGER_FUTHARK -> 32.sp
@@ -425,36 +386,22 @@ private fun HeroRunicText(
     }
 
     if (reducedMotion) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(shapes.panel)
-                .background(panelBackground)
-                .padding(vertical = 18.dp, horizontal = 14.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            RunicText(
-                text = text,
-                font = selectedFont,
-                script = selectedScript,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                style = typeRoles.runicHero,
-                fontSize = scriptFontSize
-            )
-        }
+        RunicText(
+            text = text,
+            font = selectedFont,
+            script = selectedScript,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Start,
+            style = typeRoles.runicHero,
+            fontSize = scriptFontSize
+        )
         return
     }
 
     val words = remember(text) { text.split(" ") }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shapes.panel)
-            .background(panelBackground)
-            .padding(vertical = 18.dp, horizontal = 14.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         words.forEachIndexed { wordIndex, word ->
@@ -484,7 +431,7 @@ private fun HeroRunicText(
                             font = selectedFont,
                             script = selectedScript,
                             modifier = Modifier.alpha(alpha.value),
-                            textAlign = TextAlign.Center,
+                            textAlign = TextAlign.Start,
                             style = typeRoles.runicHero,
                             fontSize = scriptFontSize
                         )
@@ -496,261 +443,248 @@ private fun HeroRunicText(
 }
 
 @Composable
-private fun ErrorContent(
-    message: String,
-    onRetry: () -> Unit,
-    onRandom: () -> Unit,
-    onBrowseLibrary: (() -> Unit)?,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RunicExpressiveTheme.shapes.contentCard,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                text = "Something went wrong",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.error
-            )
-            Text(
-                text = message,
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onRetry) {
-                    Text("Retry")
-                }
-                Button(onClick = onRandom) {
-                    Text("Random Quote")
-                }
-            }
-            if (onBrowseLibrary != null) {
-                TextButton(onClick = onBrowseLibrary) {
-                    Text("Open Library")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun EmptyContent(
-    onRetry: () -> Unit,
-    onRandom: () -> Unit,
-    onBrowseLibrary: (() -> Unit)?,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RunicExpressiveTheme.shapes.contentCard,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                text = "No quotes available yet",
-                style = MaterialTheme.typography.headlineSmall
-            )
-            Text(
-                text = "Try loading a random quote or open your library to add and manage quotes.",
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onRetry) {
-                    Text("Reload")
-                }
-                Button(onClick = onRandom) {
-                    Text("Random Quote")
-                }
-            }
-            if (onBrowseLibrary != null) {
-                TextButton(onClick = onBrowseLibrary) {
-                    Text("Open Library")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ShareTemplateDialog(
-    runicText: String,
-    latinText: String,
-    author: String,
-    selectedTemplate: ShareTemplate,
-    onTemplateSelected: (ShareTemplate) -> Unit,
-    onDismiss: () -> Unit,
-    onShare: () -> Unit
+private fun ActionButtonsRow(
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
+    onShare: () -> Unit,
+    onNewQuote: () -> Unit
 ) {
     val shapes = RunicExpressiveTheme.shapes
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        shape = shapes.panel,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        title = {
-            Text(
-                text = "Share Style",
-                style = MaterialTheme.typography.titleLarge
-            )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Save/Bookmark button
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .height(48.dp),
+            shape = shapes.segment,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            onClick = onToggleFavorite
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = if (isFavorite) "Remove from saved" else "Save quote",
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Pick a style and preview how your quote image will look.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "Saved",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(ShareTemplate.entries) { template ->
-                        FilterChip(
-                            selected = selectedTemplate == template,
-                            onClick = { onTemplateSelected(template) },
-                            label = { Text(template.displayName) }
-                        )
-                    }
-                }
-                SharePreviewCard(
-                    runicText = runicText,
-                    latinText = latinText,
-                    author = author,
-                    template = selectedTemplate
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onShare) {
-                Text("Share Image")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
             }
         }
-    )
+
+        // Share button
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .height(48.dp),
+            shape = shapes.segment,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            onClick = onShare
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Share,
+                    contentDescription = "Share quote",
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Share",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+
+        // New quote (shuffle) icon button
+        Surface(
+            modifier = Modifier.size(48.dp),
+            shape = shapes.segment,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            onClick = onNewQuote
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "New random quote",
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
 }
 
 @Composable
-private fun SharePreviewCard(
+private fun RecentQuoteCard(
     runicText: String,
     latinText: String,
-    author: String,
-    template: ShareTemplate
+    author: String
 ) {
     val shapes = RunicExpressiveTheme.shapes
     val typeRoles = RunicTypeRoles.current
-    val colorScheme = MaterialTheme.colorScheme
-    val highContrastAuthorColor = remember(colorScheme.inverseOnSurface) {
-        colorScheme.inverseOnSurface.copy(alpha = 0.75f)
-    }
-    val (backgroundBrush, textColor, authorColor) = when (template) {
-        ShareTemplate.MINIMAL -> Triple(
-            Brush.verticalGradient(
-                listOf(
-                    MaterialTheme.colorScheme.surfaceContainerLow,
-                    MaterialTheme.colorScheme.surfaceContainerHigh
-                )
-            ),
-            MaterialTheme.colorScheme.onSurface,
-            MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        ShareTemplate.ORNATE -> Triple(
-            Brush.verticalGradient(
-                listOf(
-                    MaterialTheme.colorScheme.tertiaryContainer,
-                    MaterialTheme.colorScheme.secondaryContainer
-                )
-            ),
-            MaterialTheme.colorScheme.onTertiaryContainer,
-            MaterialTheme.colorScheme.onSecondaryContainer
-        )
-
-        ShareTemplate.HIGH_CONTRAST -> Triple(
-            Brush.verticalGradient(
-                listOf(
-                    MaterialTheme.colorScheme.inverseSurface,
-                    MaterialTheme.colorScheme.inverseSurface
-                )
-            ),
-            MaterialTheme.colorScheme.inverseOnSurface,
-            highContrastAuthorColor
-        )
-    }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = shapes.collectionCard
+        shape = shapes.contentCard,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        ),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(backgroundBrush)
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+                .padding(17.dp)
         ) {
             Text(
                 text = runicText,
                 style = typeRoles.runicCard,
-                color = textColor,
-                maxLines = 3,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
             Text(
                 text = latinText,
-                style = typeRoles.latinQuote,
-                color = textColor,
-                maxLines = 4,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = "— $author",
-                style = typeRoles.quoteMeta,
-                color = authorColor,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = author,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-private fun QuoteScreenErrorPreview() {
-    RunicQuotesTheme {
-        ErrorContent(
-            message = "Network error occurred",
-            onRetry = {},
-            onRandom = {},
-            onBrowseLibrary = null
-        )
+private fun HistoryLink(onClick: () -> Unit) {
+    val shapes = RunicExpressiveTheme.shapes
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shapes.contentCard)
+            .clickable(onClick = onClick),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = shapes.contentCard
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 17.dp, vertical = 15.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "View full quote history",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-private fun QuoteScreenEmptyPreview() {
-    RunicQuotesTheme {
-        EmptyContent(
-            onRetry = {},
-            onRandom = {},
-            onBrowseLibrary = null
+private fun TodayLoadingSkeleton(modifier: Modifier = Modifier) {
+    val brush = rememberShimmerBrush()
+
+    Column(
+        modifier = modifier
+            .padding(horizontal = 20.dp, vertical = 16.dp)
+    ) {
+        // Header skeleton
+        SkeletonRect(
+            modifier = Modifier.fillMaxWidth(0.4f),
+            height = 14.dp,
+            brush = brush
         )
+        Spacer(modifier = Modifier.height(8.dp))
+        SkeletonRect(
+            modifier = Modifier.fillMaxWidth(0.6f),
+            height = 24.dp,
+            brush = brush
+        )
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Segmented control skeleton
+        SkeletonRect(height = 42.dp, brush = brush)
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Hero card skeleton
+        SkeletonCard(height = 180.dp, brush = brush)
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Action buttons skeleton
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SkeletonRect(
+                modifier = Modifier.weight(1f),
+                height = 48.dp,
+                brush = brush
+            )
+            SkeletonRect(
+                modifier = Modifier.weight(1f),
+                height = 48.dp,
+                brush = brush
+            )
+            SkeletonRect(
+                modifier = Modifier.width(48.dp),
+                height = 48.dp,
+                brush = brush
+            )
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Recent quotes skeleton
+        SkeletonRect(
+            modifier = Modifier.fillMaxWidth(0.35f),
+            height = 16.dp,
+            brush = brush
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        SkeletonCard(height = 100.dp, brush = brush)
+        Spacer(modifier = Modifier.height(12.dp))
+        SkeletonCard(height = 100.dp, brush = brush)
     }
 }

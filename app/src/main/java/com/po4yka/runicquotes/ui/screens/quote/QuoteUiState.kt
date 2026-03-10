@@ -22,7 +22,8 @@ sealed class QuoteUiState {
         val runicText: String,
         val selectedScript: RunicScript,
         val selectedFont: String,
-        val showTransliteration: Boolean
+        val showTransliteration: Boolean,
+        val recentQuotes: List<RecentQuoteItem> = emptyList()
     ) : QuoteUiState()
 
     /**
@@ -35,3 +36,11 @@ sealed class QuoteUiState {
      */
     data object Empty : QuoteUiState()
 }
+
+/**
+ * A recent quote item with pre-rendered runic text.
+ */
+data class RecentQuoteItem(
+    val quote: Quote,
+    val runicText: String
+)
