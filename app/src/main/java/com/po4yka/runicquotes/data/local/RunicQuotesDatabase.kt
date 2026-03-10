@@ -4,15 +4,28 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.po4yka.runicquotes.data.local.dao.ArchivedQuoteDao
 import com.po4yka.runicquotes.data.local.dao.QuoteDao
+import com.po4yka.runicquotes.data.local.dao.QuotePackDao
+import com.po4yka.runicquotes.data.local.dao.RuneReferenceDao
+import com.po4yka.runicquotes.data.local.entity.ArchivedQuoteEntity
+import com.po4yka.runicquotes.data.local.entity.PackQuoteEntity
 import com.po4yka.runicquotes.data.local.entity.QuoteEntity
+import com.po4yka.runicquotes.data.local.entity.QuotePackEntity
+import com.po4yka.runicquotes.data.local.entity.RuneReferenceEntity
 
 /**
  * Room database for Runic Quotes.
  */
 @Database(
-    entities = [QuoteEntity::class],
-    version = 3,
+    entities = [
+        QuoteEntity::class,
+        QuotePackEntity::class,
+        PackQuoteEntity::class,
+        ArchivedQuoteEntity::class,
+        RuneReferenceEntity::class
+    ],
+    version = 4,
     exportSchema = true
 )
 abstract class RunicQuotesDatabase : RoomDatabase() {
@@ -21,6 +34,12 @@ abstract class RunicQuotesDatabase : RoomDatabase() {
      * Provides access to the QuoteDao.
      */
     abstract fun quoteDao(): QuoteDao
+
+    abstract fun quotePackDao(): QuotePackDao
+
+    abstract fun archivedQuoteDao(): ArchivedQuoteDao
+
+    abstract fun runeReferenceDao(): RuneReferenceDao
 
     companion object {
         /**
@@ -52,6 +71,74 @@ abstract class RunicQuotesDatabase : RoomDatabase() {
                 )
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_quotes_isFavorite ON quotes (isFavorite)"
+                )
+            }
+        }
+
+        /**
+         * Migration from version 3 to version 4.
+         * Creates quote_packs, pack_quotes, archived_quotes, and rune_references tables.
+         */
+        @Suppress("MaxLineLength")
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `quote_packs` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `description` TEXT NOT NULL,
+                        `coverRune` TEXT NOT NULL,
+                        `quoteCount` INTEGER NOT NULL,
+                        `isInLibrary` INTEGER NOT NULL DEFAULT 0
+                    )""".trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_quote_packs_isInLibrary` ON `quote_packs` (`isInLibrary`)"
+                )
+
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `pack_quotes` (
+                        `packId` INTEGER NOT NULL,
+                        `quoteId` INTEGER NOT NULL,
+                        PRIMARY KEY(`packId`, `quoteId`),
+                        FOREIGN KEY(`packId`) REFERENCES `quote_packs`(`id`) ON DELETE CASCADE,
+                        FOREIGN KEY(`quoteId`) REFERENCES `quotes`(`id`) ON DELETE CASCADE
+                    )""".trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_pack_quotes_quoteId` ON `pack_quotes` (`quoteId`)"
+                )
+
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `archived_quotes` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `originalQuoteId` INTEGER NOT NULL,
+                        `textLatin` TEXT NOT NULL,
+                        `author` TEXT NOT NULL,
+                        `archivedAt` INTEGER NOT NULL,
+                        `isDeleted` INTEGER NOT NULL DEFAULT 0
+                    )""".trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_archived_quotes_isDeleted` ON `archived_quotes` (`isDeleted`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_archived_quotes_archivedAt` ON `archived_quotes` (`archivedAt`)"
+                )
+
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `rune_references` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `character` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `pronunciation` TEXT NOT NULL,
+                        `meaning` TEXT NOT NULL,
+                        `history` TEXT NOT NULL,
+                        `script` TEXT NOT NULL
+                    )""".trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_rune_references_script` ON `rune_references` (`script`)"
                 )
             }
         }
