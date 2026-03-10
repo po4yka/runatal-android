@@ -155,7 +155,7 @@ private fun ProfileMenuItem(
             )
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
+                contentDescription = title,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

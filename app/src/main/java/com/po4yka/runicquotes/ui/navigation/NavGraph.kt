@@ -303,7 +303,7 @@ private fun TopLevelBottomBar(
             icon = {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.List,
-                    contentDescription = null
+                    contentDescription = "Library"
                 )
             },
             label = { Text("Library") },
@@ -315,7 +315,7 @@ private fun TopLevelBottomBar(
             icon = {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = null
+                    contentDescription = "Create"
                 )
             },
             label = { Text("Create") },
@@ -327,7 +327,7 @@ private fun TopLevelBottomBar(
             icon = {
                 Icon(
                     imageVector = Icons.Default.Star,
-                    contentDescription = null
+                    contentDescription = "Packs"
                 )
             },
             label = { Text("Packs") },
@@ -339,7 +339,7 @@ private fun TopLevelBottomBar(
             icon = {
                 Icon(
                     imageVector = Icons.Default.Settings,
-                    contentDescription = null
+                    contentDescription = "Settings"
                 )
             },
             label = { Text("Settings") },

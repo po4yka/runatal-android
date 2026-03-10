@@ -693,7 +693,7 @@ private fun HistoryLink(onClick: () -> Unit) {
             ) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = null,
+                    contentDescription = "More",
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -705,7 +705,7 @@ private fun HistoryLink(onClick: () -> Unit) {
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
+                contentDescription = "View full quote history",
                 modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -259,7 +259,7 @@ fun SettingsScreen(
                     trailing = {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
+                            contentDescription = "Navigate to notifications",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -273,7 +273,7 @@ fun SettingsScreen(
                     trailing = {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
+                            contentDescription = "Navigate to about",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -287,7 +287,7 @@ fun SettingsScreen(
                     trailing = {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
+                            contentDescription = "Navigate to profile",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }

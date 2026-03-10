@@ -120,7 +120,7 @@ private fun ConfirmationDialogHeader(icon: ImageVector, isDestructive: Boolean) 
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = null,
+            contentDescription = "Dialog icon",
             modifier = Modifier.padding(15.dp).size(26.dp),
             tint = if (isDestructive) colors.onErrorContainer else colors.onPrimaryContainer
         )
@@ -160,7 +160,7 @@ private fun ConfirmationDialogButtons(
             if (confirmIcon != null) {
                 Icon(
                     imageVector = confirmIcon,
-                    contentDescription = null,
+                    contentDescription = confirmLabel,
                     modifier = Modifier.size(15.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))

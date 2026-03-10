@@ -151,7 +151,7 @@ private fun LibraryToggleButton(isInLibrary: Boolean, onClick: () -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.Default.Star,
-                contentDescription = null,
+                contentDescription = "In Library",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(18.dp)
             )
@@ -165,7 +165,7 @@ private fun LibraryToggleButton(isInLibrary: Boolean, onClick: () -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.Default.Star,
-                contentDescription = null,
+                contentDescription = "Add to Library",
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.size(8.dp))

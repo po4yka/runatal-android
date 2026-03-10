@@ -121,7 +121,7 @@ private fun PacksSearchBar(query: String, onQueryChange: (String) -> Unit) {
         leadingIcon = {
             Icon(
                 imageVector = Icons.Default.Search,
-                contentDescription = null
+                contentDescription = "Search"
             )
         },
         singleLine = true,

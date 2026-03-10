@@ -70,7 +70,7 @@ fun EmptyState(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = title,
                 modifier = Modifier.size(28.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -106,7 +106,7 @@ fun EmptyState(
                 if (primaryActionIcon != null) {
                     Icon(
                         imageVector = primaryActionIcon,
-                        contentDescription = null,
+                        contentDescription = primaryActionLabel,
                         modifier = Modifier
                             .size(18.dp)
                             .padding(end = 0.dp)
@@ -129,7 +129,7 @@ fun EmptyState(
                 if (secondaryActionIcon != null) {
                     Icon(
                         imageVector = secondaryActionIcon,
-                        contentDescription = null,
+                        contentDescription = secondaryActionLabel,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.size(8.dp))

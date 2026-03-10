@@ -212,7 +212,7 @@ private fun FeatureRow(icon: ImageVector, title: String, description: String) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = icon,
-                    contentDescription = null,
+                    contentDescription = title,
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(24.dp)
                 )

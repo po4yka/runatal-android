@@ -125,7 +125,7 @@ private fun Segment(
             if (isSelected) {
                 Icon(
                     imageVector = Icons.Default.Check,
-                    contentDescription = null,
+                    contentDescription = "Selected",
                     modifier = Modifier.size(16.dp),
                     tint = contentColor
                 )

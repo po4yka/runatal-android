@@ -125,7 +125,7 @@ private fun BottomSheetActionRow(action: BottomSheetAction) {
         ) {
             Icon(
                 imageVector = action.icon,
-                contentDescription = null,
+                contentDescription = action.title,
                 modifier = Modifier.padding(10.dp).size(17.dp),
                 tint = iconTint
             )

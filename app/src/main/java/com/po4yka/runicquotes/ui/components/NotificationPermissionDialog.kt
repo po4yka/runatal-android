@@ -61,7 +61,7 @@ fun NotificationPermissionDialog(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Notifications,
-                        contentDescription = null,
+                        contentDescription = "Notifications",
                         modifier = Modifier.padding(14.dp).size(28.dp),
                         tint = colors.onPrimaryContainer
                     )

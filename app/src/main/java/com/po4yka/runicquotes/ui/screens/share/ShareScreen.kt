@@ -194,7 +194,7 @@ private fun ShareActions(onShareAsText: () -> Unit, onShareAsImage: () -> Unit) 
     ) {
         Icon(
             imageVector = Icons.AutoMirrored.Filled.Send,
-            contentDescription = null,
+            contentDescription = "Share as Text",
             modifier = Modifier.padding(end = 8.dp)
         )
         Text("Share as Text")
@@ -208,7 +208,7 @@ private fun ShareActions(onShareAsText: () -> Unit, onShareAsImage: () -> Unit) 
     ) {
         Icon(
             imageVector = Icons.Default.Share,
-            contentDescription = null,
+            contentDescription = "Share as Image",
             modifier = Modifier.padding(end = 8.dp)
         )
         Text("Share as Image")

@@ -509,7 +509,7 @@ private fun ConfirmationContent(
         ) {
             Icon(
                 imageVector = Icons.Default.Check,
-                contentDescription = null,
+                contentDescription = "Quote created",
                 modifier = Modifier.size(48.dp),
                 tint = MaterialTheme.colorScheme.onSurface
             )

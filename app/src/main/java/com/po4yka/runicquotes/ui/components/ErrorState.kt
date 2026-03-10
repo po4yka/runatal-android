@@ -63,7 +63,7 @@ fun ErrorState(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = title,
                 modifier = Modifier.size(28.dp),
                 tint = MaterialTheme.colorScheme.onErrorContainer
             )
