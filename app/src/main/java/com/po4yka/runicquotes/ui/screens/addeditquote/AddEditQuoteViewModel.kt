@@ -35,6 +35,7 @@ class AddEditQuoteViewModel @Inject constructor(
     private var loadedQuoteId: Long? = null
     private var initialTextLatin: String = ""
     private var initialAuthor: String = ""
+    private var hasAttemptedSave: Boolean = false
 
     private val _uiState = MutableStateFlow(AddEditQuoteUiState())
     val uiState: StateFlow<AddEditQuoteUiState> = _uiState.asStateFlow()
@@ -44,7 +45,7 @@ class AddEditQuoteViewModel @Inject constructor(
         private const val TAG = "AddEditQuoteViewModel"
         private const val MAX_QUOTE_LENGTH = 280
         private const val MAX_AUTHOR_LENGTH = 60
-        private const val MIN_QUOTE_LENGTH = 10
+        private const val MIN_QUOTE_LENGTH = 3
     }
 
     init {
@@ -85,6 +86,7 @@ class AddEditQuoteViewModel @Inject constructor(
                     it.copy(
                         textLatin = quote.textLatin,
                         author = quote.author,
+                        createdAtMillis = quote.createdAt,
                         isEditing = true
                     )
                 }
@@ -121,25 +123,24 @@ class AddEditQuoteViewModel @Inject constructor(
     /**
      * Saves the quote to the database and shows confirmation.
      */
-    fun saveQuote() {
+    fun saveQuote(onEditSaved: () -> Unit = {}) {
         viewModelScope.launch {
             val state = _uiState.value
+            hasAttemptedSave = true
+            recomputeDerivedState()
 
-            if (state.textLatin.isBlank() || state.author.isBlank()) {
-                _uiState.update { it.copy(errorMessage = "Text and author cannot be empty") }
-                return@launch
-            }
-
-            if (!state.canSave) {
-                _uiState.update {
-                    it.copy(errorMessage = "Please resolve field errors before saving")
-                }
+            if (!_uiState.value.canSave) {
                 return@launch
             }
 
             _uiState.update { it.copy(isSaving = true, errorMessage = null) }
 
             try {
+                val createdAt = if (state.isEditing && state.createdAtMillis != 0L) {
+                    state.createdAtMillis
+                } else {
+                    System.currentTimeMillis()
+                }
                 val quote = Quote(
                     id = quoteId,
                     textLatin = state.textLatin.trim(),
@@ -149,18 +150,32 @@ class AddEditQuoteViewModel @Inject constructor(
                     runicCirth = state.runicCirthPreview,
                     isUserCreated = true,
                     isFavorite = false,
-                    createdAt = System.currentTimeMillis()
+                    createdAt = createdAt
                 )
 
-                quoteRepository.saveUserQuote(quote)
+                val savedQuoteId = quoteRepository.saveUserQuote(quote)
+                quoteId = savedQuoteId
+                loadedQuoteId = savedQuoteId
                 initialTextLatin = state.textLatin.trim()
                 initialAuthor = state.author.trim()
-                _uiState.update {
-                    it.copy(
-                        isSaving = false,
-                        hasUnsavedChanges = false,
-                        showConfirmation = true
-                    )
+                if (state.isEditing) {
+                    _uiState.update {
+                        it.copy(
+                            isSaving = false,
+                            hasUnsavedChanges = false,
+                            createdAtMillis = createdAt
+                        )
+                    }
+                    onEditSaved()
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            isSaving = false,
+                            hasUnsavedChanges = false,
+                            createdAtMillis = createdAt,
+                            showConfirmation = true
+                        )
+                    }
                 }
             } catch (e: IOException) {
                 Log.e(TAG, "IO error saving quote", e)
@@ -212,6 +227,7 @@ class AddEditQuoteViewModel @Inject constructor(
         loadedQuoteId = null
         initialTextLatin = ""
         initialAuthor = ""
+        hasAttemptedSave = false
         _uiState.update {
             AddEditQuoteUiState(
                 selectedScript = it.selectedScript,
@@ -243,20 +259,23 @@ class AddEditQuoteViewModel @Inject constructor(
 
     private fun recomputeDerivedState() {
         val state = _uiState.value
-        val quoteTextError = when {
-            state.textLatin.isBlank() -> "Quote text is required"
-            state.textLatin.length > MAX_QUOTE_LENGTH -> "Keep quote under $MAX_QUOTE_LENGTH characters"
+        val rawQuoteTextError = when {
             state.textLatin.trim().length < MIN_QUOTE_LENGTH -> {
-                "Use at least $MIN_QUOTE_LENGTH characters for meaningful transliteration"
+                "Quote must be at least $MIN_QUOTE_LENGTH characters"
             }
+            state.textLatin.length > MAX_QUOTE_LENGTH -> "Keep quote under $MAX_QUOTE_LENGTH characters"
             else -> null
         }
 
-        val authorError = when {
+        val rawAuthorError = when {
             state.author.isBlank() -> "Author is required"
             state.author.length > MAX_AUTHOR_LENGTH -> "Keep author under $MAX_AUTHOR_LENGTH characters"
             else -> null
         }
+        val showQuoteTextError = hasAttemptedSave || state.textLatin.isNotBlank()
+        val showAuthorError = hasAttemptedSave || state.author.isNotBlank()
+        val quoteTextError = rawQuoteTextError?.takeIf { showQuoteTextError }
+        val authorError = rawAuthorError?.takeIf { showAuthorError }
 
         val hasUnsavedChanges = if (state.isEditing) {
             state.textLatin.trim() != initialTextLatin.trim() ||
@@ -272,8 +291,8 @@ class AddEditQuoteViewModel @Inject constructor(
                 quoteCharCount = state.textLatin.length,
                 authorCharCount = state.author.length,
                 hasUnsavedChanges = hasUnsavedChanges,
-                canSave = quoteTextError == null &&
-                    authorError == null &&
+                canSave = rawQuoteTextError == null &&
+                    rawAuthorError == null &&
                     hasUnsavedChanges
             )
         }
@@ -296,6 +315,7 @@ data class AddEditQuoteUiState(
     val authorCharCount: Int = 0,
     val selectedScript: RunicScript = RunicScript.ELDER_FUTHARK,
     val selectedFont: String = "noto",
+    val createdAtMillis: Long = 0L,
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
     val isDeleting: Boolean = false,

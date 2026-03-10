@@ -1,8 +1,14 @@
+@file:Suppress("TooManyFunctions")
+
 package com.po4yka.runicquotes.ui.screens.addeditquote
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,28 +18,32 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,18 +53,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
-import com.po4yka.runicquotes.domain.model.segmentLabel
 import com.po4yka.runicquotes.ui.components.RunicText
-import com.po4yka.runicquotes.ui.components.SegmentedControl
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.util.rememberHapticFeedback
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditQuoteScreen(
     onNavigateBack: () -> Unit,
@@ -80,7 +96,6 @@ fun AddEditQuoteScreen(
     if (uiState.showConfirmation) {
         ConfirmationContent(
             uiState = uiState,
-            snackbarHostState = snackbarHostState,
             onViewInLibrary = onNavigateBack,
             onCreateAnother = viewModel::resetForNewQuote
         )
@@ -102,8 +117,8 @@ fun AddEditQuoteScreen(
     EditorContent(
         uiState = uiState,
         snackbarHostState = snackbarHostState,
-        onNavigateBack = { requestExit() },
-        onSave = viewModel::saveQuote,
+        onNavigateBack = requestExit,
+        onSave = { viewModel.saveQuote(onNavigateBack) },
         onUpdateText = viewModel::updateTextLatin,
         onUpdateAuthor = viewModel::updateAuthor,
         onUpdateScript = viewModel::updateSelectedScript,
@@ -131,7 +146,6 @@ fun AddEditQuoteScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditorContent(
     uiState: AddEditQuoteUiState,
@@ -149,42 +163,24 @@ private fun EditorContent(
     Scaffold(
         modifier = Modifier.imePadding(),
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(if (uiState.isEditing) "Edit Quote" else "Create Quote")
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                actions = {
-                    FilledIconButton(
-                        onClick = {
-                            haptics.mediumAction()
-                            onSave()
-                        },
-                        enabled = saveEnabled,
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Save"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+            EditorTopBar(
+                uiState = uiState,
+                saveEnabled = saveEnabled,
+                onNavigateBack = onNavigateBack,
+                onSave = {
+                    haptics.mediumAction()
+                    onSave()
+                }
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(snackbarHostState) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
+        },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         Column(
@@ -192,38 +188,22 @@ private fun EditorContent(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                shape = RunicExpressiveTheme.shapes.contentCard
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    ScriptSelector(
-                        selectedScript = uiState.selectedScript,
-                        onScriptSelected = { script ->
-                            haptics.lightToggle()
-                            onUpdateScript(script)
-                        },
-                        enabled = !uiState.isSaving
-                    )
-
-                    RunicPreviewSection(uiState = uiState)
-                }
-            }
+            EditorPreviewCard(
+                uiState = uiState,
+                onScriptSelected = { script ->
+                    haptics.lightToggle()
+                    onUpdateScript(script)
+                },
+                enabled = !uiState.isSaving
+            )
 
             QuoteTextField(
                 value = uiState.textLatin,
                 onValueChange = onUpdateText,
                 error = uiState.quoteTextError,
-                charCount = uiState.quoteCharCount,
                 enabled = !uiState.isSaving
             )
 
@@ -231,11 +211,8 @@ private fun EditorContent(
                 value = uiState.author,
                 onValueChange = onUpdateAuthor,
                 error = uiState.authorError,
-                charCount = uiState.authorCharCount,
                 enabled = !uiState.isSaving
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             SaveButton(
                 uiState = uiState,
@@ -247,19 +224,453 @@ private fun EditorContent(
             )
 
             if (uiState.isEditing) {
-                TextButton(
-                    onClick = onRequestDelete,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    ),
-                    enabled = !uiState.isDeleting
+                DeleteQuoteButton(
+                    enabled = !uiState.isDeleting,
+                    onDelete = {
+                        haptics.mediumAction()
+                        onRequestDelete()
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+    }
+}
+
+@Composable
+private fun EditorTopBar(
+    uiState: AddEditQuoteUiState,
+    saveEnabled: Boolean,
+    onNavigateBack: () -> Unit,
+    onSave: () -> Unit
+) {
+    val title = if (uiState.isEditing) "Edit Quote" else "Create Quote"
+
+    Surface(color = MaterialTheme.colorScheme.background) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onNavigateBack,
+                    modifier = Modifier
+                        .size(42.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            shape = RunicExpressiveTheme.shapes.pill
+                        )
                 ) {
-                    Text("Delete Quote")
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                FilledIconButton(
+                    onClick = onSave,
+                    enabled = saveEnabled,
+                    modifier = Modifier.size(38.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Save"
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge
+                )
+                if (uiState.isEditing) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            shape = RoundedCornerShape(999.dp)
+                        ) {
+                            Text(
+                                text = "Custom",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp)
+                            )
+                        }
+                        Text(
+                            text = formatCreatedAt(uiState.createdAtMillis),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditorPreviewCard(
+    uiState: AddEditQuoteUiState,
+    onScriptSelected: (RunicScript) -> Unit,
+    enabled: Boolean
+) {
+    val previewText = previewTextFor(uiState)
+    val hasText = uiState.textLatin.isNotBlank()
+    val charsLabel = if (hasText) {
+        val runeCount = previewText.count { !it.isWhitespace() }
+        "${uiState.textLatin.trim().length} chars · $runeCount runes"
+    } else {
+        null
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Preview",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                )
+                CompactScriptSelector(
+                    selectedScript = uiState.selectedScript,
+                    onScriptSelected = onScriptSelected,
+                    enabled = enabled
+                )
+            }
+
+            RunicText(
+                text = if (previewText.isNotBlank()) previewText else "\u16BA\u16C1\u16BC\u16C0",
+                script = uiState.selectedScript,
+                font = uiState.selectedFont,
+                style = MaterialTheme.typography.bodyLarge,
+                fontSize = 17.sp,
+                overrideLineHeight = 28.sp,
+                overrideLetterSpacing = 0.425.sp,
+                color = if (previewText.isNotBlank()) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            )
+
+            HorizontalDivider(
+                modifier = Modifier.padding(top = 12.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 11.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (hasText) {
+                    Text(
+                        text = "\u201C${uiState.textLatin.trim()}\u201D",
+                        style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                } else {
+                    Text(
+                        text = "Your live preview appears here as you type.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (uiState.author.isNotBlank()) {
+                            "\u2014 ${uiState.author.trim()}"
+                        } else {
+                            "\u2014 Add an author"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (charsLabel != null) {
+                        Text(
+                            text = charsLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactScriptSelector(
+    selectedScript: RunicScript,
+    onScriptSelected: (RunicScript) -> Unit,
+    enabled: Boolean
+) {
+    val scripts = RunicScript.entries
+
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(1.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            scripts.forEach { script ->
+                val selected = script == selectedScript
+                val label = when (script) {
+                    RunicScript.ELDER_FUTHARK -> "Elder"
+                    RunicScript.YOUNGER_FUTHARK -> "Younger"
+                    RunicScript.CIRTH -> "Cirth"
+                }
+
+                Surface(
+                    modifier = Modifier.height(30.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    },
+                    onClick = {
+                        if (enabled) {
+                            onScriptSelected(script)
+                        }
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (selected) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(11.dp),
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuoteTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    error: String?,
+    enabled: Boolean
+) {
+    EditorTextField(
+        label = "Quote",
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = "Enter your quote in Latin script...",
+        error = error,
+        enabled = enabled,
+        singleLine = false,
+        minLines = 3,
+        maxLines = 5,
+        keyboardOptions = KeyboardOptions(
+            capitalization = KeyboardCapitalization.Sentences,
+            keyboardType = KeyboardType.Text
+        ),
+        modifier = Modifier.testTag("add_edit_quote_text")
+    )
+}
+
+@Composable
+private fun AuthorTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    error: String?,
+    enabled: Boolean
+) {
+    EditorTextField(
+        label = "Author",
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = "Enter author name...",
+        error = error,
+        enabled = enabled,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(
+            capitalization = KeyboardCapitalization.Words,
+            keyboardType = KeyboardType.Text
+        ),
+        modifier = Modifier.testTag("add_edit_author_text")
+    )
+}
+
+@Composable
+private fun EditorTextField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    error: String?,
+    enabled: Boolean,
+    singleLine: Boolean,
+    minLines: Int = 1,
+    maxLines: Int = 1,
+    keyboardOptions: KeyboardOptions,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(3.dp)
+                    .background(
+                        color = if (error != null) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        },
+                        shape = RoundedCornerShape(2.dp)
+                    )
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (error != null) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            )
+            if (error != null) {
+                Icon(
+                    imageVector = Icons.Default.ErrorOutline,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = modifier.fillMaxWidth(),
+            enabled = enabled,
+            singleLine = singleLine,
+            minLines = minLines,
+            maxLines = maxLines,
+            isError = error != null,
+            shape = RoundedCornerShape(14.dp),
+            textStyle = MaterialTheme.typography.bodyMedium,
+            placeholder = {
+                Text(
+                    text = placeholder,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+            },
+            keyboardOptions = keyboardOptions,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                errorContainerColor = MaterialTheme.colorScheme.surface,
+                focusedBorderColor = if (error != null) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.outline
+                },
+                unfocusedBorderColor = if (error != null) {
+                    MaterialTheme.colorScheme.error.copy(alpha = 0.75f)
+                } else {
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.9f)
+                },
+                errorBorderColor = MaterialTheme.colorScheme.error,
+                focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                cursorColor = MaterialTheme.colorScheme.onSurface
+            )
+        )
+
+        if (error != null) {
+            Text(
+                text = error,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(start = 4.dp)
+            )
         }
     }
 }
@@ -276,15 +687,66 @@ private fun SaveButton(
             .fillMaxWidth()
             .testTag("add_edit_save_button"),
         enabled = saveEnabled,
-        shape = RunicExpressiveTheme.shapes.segmentedControl
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.secondary,
+            contentColor = MaterialTheme.colorScheme.onSecondary,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     ) {
         Text(
             text = when {
                 uiState.isSaving -> "Saving..."
                 uiState.isEditing -> "Save Changes"
                 else -> "Create Quote"
-            }
+            },
+            style = MaterialTheme.typography.labelLarge
         )
+    }
+}
+
+@Composable
+private fun DeleteQuoteButton(
+    enabled: Boolean,
+    onDelete: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.18f),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.error.copy(alpha = 0.14f)
+        ),
+        onClick = onDelete
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = if (enabled) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            )
+            Spacer(modifier = Modifier.size(8.dp))
+            Text(
+                text = "Delete Quote",
+                style = MaterialTheme.typography.labelLarge,
+                color = if (enabled) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            )
+        }
     }
 }
 
@@ -315,17 +777,13 @@ private fun DeleteDialog(
     onDelete: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val haptics = rememberHapticFeedback()
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Delete quote?") },
         text = { Text("This action cannot be undone.") },
         confirmButton = {
             TextButton(
-                onClick = {
-                    haptics.mediumAction()
-                    onDelete()
-                },
+                onClick = onDelete,
                 colors = ButtonDefaults.textButtonColors(
                     contentColor = MaterialTheme.colorScheme.error
                 )
@@ -342,262 +800,164 @@ private fun DeleteDialog(
 }
 
 @Composable
-private fun ScriptSelector(
-    selectedScript: RunicScript,
-    onScriptSelected: (RunicScript) -> Unit,
-    enabled: Boolean
-) {
-    val scripts = RunicScript.entries
-    val segments = scripts.map { it.segmentLabel }
-    val selectedIndex = scripts.indexOf(selectedScript)
-
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = "Preview",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        SegmentedControl(
-            segments = segments,
-            selectedIndex = selectedIndex,
-            onSegmentSelected = { index ->
-                if (enabled) {
-                    onScriptSelected(scripts[index])
-                }
-            }
-        )
-    }
-}
-
-@Composable
-private fun RunicPreviewSection(uiState: AddEditQuoteUiState) {
-    val previewText = when (uiState.selectedScript) {
-        RunicScript.ELDER_FUTHARK -> uiState.runicElderPreview
-        RunicScript.YOUNGER_FUTHARK -> uiState.runicYoungerPreview
-        RunicScript.CIRTH -> uiState.runicCirthPreview
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        if (previewText.isNotEmpty()) {
-            RunicText(
-                text = previewText,
-                script = uiState.selectedScript,
-                font = uiState.selectedFont,
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.fillMaxWidth()
-            )
-        } else {
-            RunicText(
-                text = "\u16B1\u16A2\u16BE\u16D6",
-                script = uiState.selectedScript,
-                font = uiState.selectedFont,
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        if (uiState.textLatin.isNotBlank()) {
-            Text(
-                text = "\u201C${uiState.textLatin.trim()}\u201D",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (uiState.author.isNotBlank()) {
-                Text(
-                    text = "\u2014 ${uiState.author.trim()}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            val runeCount = previewText.count { !it.isWhitespace() }
-            Text(
-                text = "${uiState.textLatin.trim().length} chars \u00B7 $runeCount runes",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun QuoteTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    error: String?,
-    charCount: Int,
-    enabled: Boolean
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = "\u2022 Quote Text",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        TextField(
-            value = value,
-            onValueChange = onValueChange,
-            placeholder = { Text("Enter your quote in Latin script...") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("add_edit_quote_text"),
-            minLines = 3,
-            maxLines = 6,
-            isError = error != null,
-            supportingText = {
-                val helper = error ?: "$charCount/280"
-                Text(
-                    text = helper,
-                    color = if (error != null) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
-            },
-            enabled = enabled,
-            shape = RunicExpressiveTheme.shapes.segment
-        )
-    }
-}
-
-@Composable
-private fun AuthorTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    error: String?,
-    charCount: Int,
-    enabled: Boolean
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = "\u2022 Author",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        TextField(
-            value = value,
-            onValueChange = onValueChange,
-            placeholder = { Text("Enter author name...") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("add_edit_author_text"),
-            singleLine = true,
-            isError = error != null,
-            supportingText = {
-                val helper = error ?: "$charCount/60"
-                Text(
-                    text = helper,
-                    color = if (error != null) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
-            },
-            enabled = enabled,
-            shape = RunicExpressiveTheme.shapes.segment
-        )
-    }
-}
-
-@Composable
 private fun ConfirmationContent(
     uiState: AddEditQuoteUiState,
-    snackbarHostState: SnackbarHostState,
     onViewInLibrary: () -> Unit,
     onCreateAnother: () -> Unit
 ) {
-    val previewText = when (uiState.selectedScript) {
+    val previewText = previewTextFor(uiState)
+
+    Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0)) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.size(64.dp),
+                    shape = RunicExpressiveTheme.shapes.pill,
+                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.35f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.tertiary
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Quote created",
+                    style = MaterialTheme.typography.headlineSmall,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "Added to your library and ready to share.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 19.dp, vertical = 17.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        RunicText(
+                            text = previewText,
+                            script = uiState.selectedScript,
+                            font = uiState.selectedFont,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontSize = 13.sp,
+                            overrideLineHeight = 21.sp,
+                            overrideLetterSpacing = 0.39.sp,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            text = "\u2014 ${uiState.author.trim()}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Button(
+                    onClick = onViewInLibrary,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
+                    )
+                ) {
+                    Text("View in Library")
+                }
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    onClick = onCreateAnother
+                ) {
+                    Box(
+                        modifier = Modifier.padding(vertical = 13.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Create Another",
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                }
+            }
+
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.inverseSurface
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Quote saved successfully",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.inverseOnSurface
+                    )
+                    Spacer(modifier = Modifier.size(18.dp))
+                    Text(
+                        text = "Undo",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.inverseOnSurface.copy(alpha = 0.82f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun previewTextFor(uiState: AddEditQuoteUiState): String {
+    return when (uiState.selectedScript) {
         RunicScript.ELDER_FUTHARK -> uiState.runicElderPreview
         RunicScript.YOUNGER_FUTHARK -> uiState.runicYoungerPreview
         RunicScript.CIRTH -> uiState.runicCirthPreview
     }
+}
 
-    LaunchedEffect(Unit) {
-        snackbarHostState.showSnackbar("Quote saved successfully")
+private fun formatCreatedAt(createdAtMillis: Long): String {
+    if (createdAtMillis == 0L) {
+        return ""
     }
-
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = "Quote created",
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onSurface
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Quote created",
-                style = MaterialTheme.typography.headlineSmall,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Added to your library and ready to share.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            if (previewText.isNotEmpty()) {
-                RunicText(
-                    text = previewText,
-                    script = uiState.selectedScript,
-                    font = uiState.selectedFont,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "\u2014 ${uiState.author.trim()}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Button(
-                onClick = onViewInLibrary,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RunicExpressiveTheme.shapes.segmentedControl
-            ) {
-                Text("View in Library")
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            TextButton(
-                onClick = onCreateAnother,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Create Another")
-            }
-        }
-    }
+    return DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH)
+        .format(
+            Instant.ofEpochMilli(createdAtMillis)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+        )
 }

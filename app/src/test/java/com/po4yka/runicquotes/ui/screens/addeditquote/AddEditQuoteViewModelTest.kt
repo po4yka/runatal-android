@@ -60,7 +60,8 @@ class AddEditQuoteViewModelTest {
         runicYounger = "\u16CF\u16D6\u16CA\u16CF \u16B2\u16A2\u16DF\u16CF\u16D6",
         runicCirth = "\uE088\uE0C9\uE09C\uE088",
         isUserCreated = true,
-        isFavorite = false
+        isFavorite = false,
+        createdAt = 1_708_387_200_000L
     )
 
     private lateinit var preferencesFlow: MutableStateFlow<UserPreferences>
@@ -116,6 +117,8 @@ class AddEditQuoteViewModelTest {
             assertThat(state.runicCirthPreview).isEqualTo("")
             assertThat(state.isEditing).isFalse()
             assertThat(state.isSaving).isFalse()
+            assertThat(state.quoteTextError).isNull()
+            assertThat(state.authorError).isNull()
             assertThat(state.errorMessage).isNull()
             cancelAndIgnoreRemainingEvents()
         }
@@ -446,11 +449,11 @@ class AddEditQuoteViewModelTest {
         viewModel.saveQuote()
         advanceUntilIdle()
 
-        // Then: Error is shown and confirmation not triggered
+        // Then: Inline validation is shown and confirmation is not triggered
         viewModel.uiState.test {
             val state = awaitItem()
-            assertThat(state.errorMessage).isNotNull()
-            assertThat(state.errorMessage).contains("cannot be empty")
+            assertThat(state.errorMessage).isNull()
+            assertThat(state.quoteTextError).isEqualTo("Quote must be at least 3 characters")
             assertThat(state.showConfirmation).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
@@ -474,11 +477,11 @@ class AddEditQuoteViewModelTest {
         viewModel.saveQuote()
         advanceUntilIdle()
 
-        // Then: Error is shown and confirmation not triggered
+        // Then: Inline validation is shown and confirmation is not triggered
         viewModel.uiState.test {
             val state = awaitItem()
-            assertThat(state.errorMessage).isNotNull()
-            assertThat(state.errorMessage).contains("cannot be empty")
+            assertThat(state.errorMessage).isNull()
+            assertThat(state.authorError).isEqualTo("Author is required")
             assertThat(state.showConfirmation).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
@@ -503,10 +506,11 @@ class AddEditQuoteViewModelTest {
         viewModel.saveQuote()
         advanceUntilIdle()
 
-        // Then: Error is shown
+        // Then: Inline validation is shown
         viewModel.uiState.test {
             val state = awaitItem()
-            assertThat(state.errorMessage).isNotNull()
+            assertThat(state.errorMessage).isNull()
+            assertThat(state.quoteTextError).isEqualTo("Quote must be at least 3 characters")
             assertThat(state.showConfirmation).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
@@ -652,7 +656,12 @@ class AddEditQuoteViewModelTest {
         // Given: ViewModel editing existing quote
         savedStateHandle = SavedStateHandle(mapOf("quoteId" to 1L))
         coEvery { quoteRepository.getQuoteById(1L) } returns testQuote
-        coEvery { quoteRepository.saveUserQuote(any()) } returns 1L
+        var editSavedCallbackCalled = false
+        var savedQuote: Quote? = null
+        coEvery { quoteRepository.saveUserQuote(any()) } coAnswers {
+            savedQuote = firstArg()
+            1L
+        }
 
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
@@ -666,14 +675,17 @@ class AddEditQuoteViewModelTest {
         advanceUntilIdle()
 
         // When: Saving quote
-        viewModel.saveQuote()
+        viewModel.saveQuote(onEditSaved = { editSavedCallbackCalled = true })
         advanceUntilIdle()
 
-        // Then: Quote is saved with original ID and confirmation shown
+        // Then: Quote is saved with original ID, original timestamp, and no create confirmation
         coVerify { quoteRepository.saveUserQuote(match { it.id == 1L }) }
+        assertThat(savedQuote).isNotNull()
+        assertThat(savedQuote!!.createdAt).isEqualTo(testQuote.createdAt)
+        assertThat(editSavedCallbackCalled).isTrue()
         viewModel.uiState.test {
             val state = awaitItem()
-            assertThat(state.showConfirmation).isTrue()
+            assertThat(state.showConfirmation).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -747,8 +759,9 @@ class AddEditQuoteViewModelTest {
 
     @Test
     fun `clearError removes error message`() = runTest {
-        // Given: ViewModel with error
+        // Given: ViewModel with repository error
         savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        coEvery { quoteRepository.saveUserQuote(any()) } throws IOException("Database error")
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
@@ -757,7 +770,11 @@ class AddEditQuoteViewModelTest {
         )
         advanceUntilIdle()
 
-        // Trigger validation error
+        viewModel.updateTextLatin("Test quote")
+        viewModel.updateAuthor("Author")
+        advanceUntilIdle()
+
+        // Trigger repository error
         viewModel.saveQuote()
         advanceUntilIdle()
 
