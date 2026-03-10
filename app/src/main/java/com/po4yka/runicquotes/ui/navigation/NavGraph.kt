@@ -237,8 +237,10 @@ fun NavGraph(
                         }
                     )
                 }
-                entry<RuneDetailRoute> { route ->
-                    RuneDetailScreen(runeId = route.runeId)
+                entry<RuneDetailRoute> {
+                    RuneDetailScreen(
+                        onNavigateBack = { backStack.removeLastOrNull() }
+                    )
                 }
                 entry<ShareRoute> { route ->
                     ShareScreen(quoteId = route.quoteId)
