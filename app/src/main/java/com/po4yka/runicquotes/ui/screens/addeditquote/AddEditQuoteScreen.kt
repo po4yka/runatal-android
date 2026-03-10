@@ -20,15 +20,18 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -158,12 +161,16 @@ private fun EditorContent(
                     }
                 },
                 actions = {
-                    IconButton(
+                    FilledIconButton(
                         onClick = {
                             haptics.mediumAction()
                             onSave()
                         },
-                        enabled = saveEnabled
+                        enabled = saveEnabled,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
                     ) {
                         Icon(
                             imageVector = Icons.Default.Check,
@@ -188,16 +195,27 @@ private fun EditorContent(
         ) {
             Spacer(modifier = Modifier.height(4.dp))
 
-            ScriptSelector(
-                selectedScript = uiState.selectedScript,
-                onScriptSelected = { script ->
-                    haptics.lightToggle()
-                    onUpdateScript(script)
-                },
-                enabled = !uiState.isSaving
-            )
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = RunicExpressiveTheme.shapes.contentCard
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ScriptSelector(
+                        selectedScript = uiState.selectedScript,
+                        onScriptSelected = { script ->
+                            haptics.lightToggle()
+                            onUpdateScript(script)
+                        },
+                        enabled = !uiState.isSaving
+                    )
 
-            RunicPreviewSection(uiState = uiState)
+                    RunicPreviewSection(uiState = uiState)
+                }
+            }
 
             QuoteTextField(
                 value = uiState.textLatin,
@@ -396,6 +414,13 @@ private fun RunicPreviewSection(uiState: AddEditQuoteUiState) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            val runeCount = previewText.count { !it.isWhitespace() }
+            Text(
+                text = "${uiState.textLatin.trim().length} chars \u00B7 $runeCount runes",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -410,11 +435,11 @@ private fun QuoteTextField(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = "Quote Text",
+            text = "\u2022 Quote Text",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        OutlinedTextField(
+        TextField(
             value = value,
             onValueChange = onValueChange,
             placeholder = { Text("Enter your quote in Latin script...") },
@@ -435,7 +460,8 @@ private fun QuoteTextField(
                     }
                 )
             },
-            enabled = enabled
+            enabled = enabled,
+            shape = RunicExpressiveTheme.shapes.segment
         )
     }
 }
@@ -450,11 +476,11 @@ private fun AuthorTextField(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = "Author",
+            text = "\u2022 Author",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        OutlinedTextField(
+        TextField(
             value = value,
             onValueChange = onValueChange,
             placeholder = { Text("Enter author name...") },
@@ -474,7 +500,8 @@ private fun AuthorTextField(
                     }
                 )
             },
-            enabled = enabled
+            enabled = enabled,
+            shape = RunicExpressiveTheme.shapes.segment
         )
     }
 }
