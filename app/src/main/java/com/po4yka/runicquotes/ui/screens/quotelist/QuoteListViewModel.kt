@@ -75,7 +75,12 @@ class QuoteListViewModel @Inject constructor(
                         quotes = filteredQuotes,
                         selectedScript = prefs.selectedScript,
                         selectedFont = prefs.selectedFont,
-                        isLoading = false
+                        isLoading = false,
+                        filterCounts = mapOf(
+                            QuoteFilter.ALL to allQuotes.size,
+                            QuoteFilter.FAVORITES to favorites.size,
+                            QuoteFilter.USER_CREATED to userQuotes.size
+                        )
                     )
                 }.collect { newState ->
                     _uiState.value = newState
@@ -197,7 +202,8 @@ data class QuoteListUiState(
     val selectedScript: RunicScript = RunicScript.ELDER_FUTHARK,
     val selectedFont: String = "noto",
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val filterCounts: Map<QuoteFilter, Int> = emptyMap()
 )
 
 /** Tab filters for the Library screen: All, Favorites, Custom. */

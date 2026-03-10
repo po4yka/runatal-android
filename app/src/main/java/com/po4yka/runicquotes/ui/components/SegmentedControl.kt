@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -41,13 +42,17 @@ import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
  * @param selectedIndex Currently selected segment index
  * @param onSegmentSelected Callback when a segment is tapped
  * @param modifier Modifier for the container
+ * @param leadingIcons Optional leading icon for each segment
+ * @param counts Optional trailing count for each segment
  */
 @Composable
 fun SegmentedControl(
     segments: List<String>,
     selectedIndex: Int,
     onSegmentSelected: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    leadingIcons: List<ImageVector>? = null,
+    counts: List<Int>? = null
 ) {
     val reducedMotion = LocalReduceMotion.current
     val motion = RunicExpressiveTheme.motion
@@ -70,6 +75,8 @@ fun SegmentedControl(
                     isSelected = index == selectedIndex,
                     onClick = { onSegmentSelected(index) },
                     animDurationMillis = animDuration,
+                    leadingIcon = leadingIcons?.getOrNull(index),
+                    count = counts?.getOrNull(index),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -83,6 +90,8 @@ private fun Segment(
     isSelected: Boolean,
     onClick: () -> Unit,
     animDurationMillis: Int,
+    leadingIcon: ImageVector? = null,
+    count: Int? = null,
     modifier: Modifier = Modifier
 ) {
     val backgroundColor by animateColorAsState(
@@ -122,16 +131,17 @@ private fun Segment(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isSelected) {
+            val icon = leadingIcon ?: if (isSelected) Icons.Default.Check else null
+            if (icon != null) {
                 Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = "Selected",
+                    imageVector = icon,
+                    contentDescription = null,
                     modifier = Modifier.size(16.dp),
                     tint = contentColor
                 )
             }
             Text(
-                text = label,
+                text = if (count != null) "$label $count" else label,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                 color = contentColor

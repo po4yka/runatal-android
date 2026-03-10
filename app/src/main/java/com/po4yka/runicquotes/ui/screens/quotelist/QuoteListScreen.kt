@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
@@ -86,6 +87,14 @@ fun QuoteListScreen(
     }
 
     val filterSegments = remember { QuoteFilter.entries.map { it.displayName } }
+    val filterIcons = remember {
+        listOf(
+            Icons.AutoMirrored.Filled.MenuBook,
+            Icons.Default.Favorite,
+            Icons.Default.Edit
+        )
+    }
+    val filterCounts = QuoteFilter.entries.map { uiState.filterCounts[it] ?: 0 }
     val selectedFilterIndex = remember(uiState.currentFilter) {
         QuoteFilter.entries.indexOf(uiState.currentFilter)
     }
@@ -122,7 +131,9 @@ fun QuoteListScreen(
                     onSegmentSelected = { index ->
                         haptics.lightToggle()
                         viewModel.setFilter(QuoteFilter.entries[index])
-                    }
+                    },
+                    leadingIcons = filterIcons,
+                    counts = filterCounts
                 )
 
                 OutlinedTextField(
