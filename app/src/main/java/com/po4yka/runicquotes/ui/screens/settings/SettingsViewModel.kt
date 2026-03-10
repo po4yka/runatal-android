@@ -19,6 +19,7 @@ import javax.inject.Inject
  * Manages user preferences.
  */
 @HiltViewModel
+@Suppress("TooManyFunctions")
 class SettingsViewModel @Inject constructor(
     private val userPreferencesManager: UserPreferencesManager
 ) : ViewModel() {
@@ -138,6 +139,27 @@ class SettingsViewModel @Inject constructor(
     fun updateReducedMotionEnabled(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesManager.updateReducedMotionEnabled(enabled)
+        }
+    }
+
+    /** Toggles daily quote notifications. */
+    fun updateDailyQuoteNotifications(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesManager.updateDailyQuoteNotifications(enabled)
+        }
+    }
+
+    /** Toggles streak reminder notifications. */
+    fun updateStreakNotifications(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesManager.updateStreakNotifications(enabled)
+        }
+    }
+
+    /** Toggles pack update notifications. */
+    fun updatePackUpdateNotifications(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesManager.updatePackUpdateNotifications(enabled)
         }
     }
 

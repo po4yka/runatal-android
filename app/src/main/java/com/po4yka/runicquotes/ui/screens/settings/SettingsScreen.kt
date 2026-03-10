@@ -1,14 +1,18 @@
 package com.po4yka.runicquotes.ui.screens.settings
 
 import android.os.Build
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -26,19 +30,18 @@ import androidx.compose.material.icons.filled.SlowMotionVideo
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -46,12 +49,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.R
 import com.po4yka.runicquotes.RunicQuotesApplication
 import com.po4yka.runicquotes.domain.model.RunicScript
-import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.ui.components.SettingItem
 import com.po4yka.runicquotes.ui.components.SettingSection
 import com.po4yka.runicquotes.util.rememberHapticFeedback
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onNavigateToNotifications: () -> Unit = {},
@@ -66,6 +67,9 @@ fun SettingsScreen(
     val haptics = rememberHapticFeedback()
     val context = LocalContext.current
     val dynamicColorSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val refreshWidgets = {
+        RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
+    }
 
     Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0)) { paddingValues ->
         Column(
@@ -73,307 +77,232 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Text(
                 text = stringResource(R.string.settings),
                 style = MaterialTheme.typography.headlineLarge
             )
             Text(
-                text = stringResource(R.string.settings_subtitle),
+                text = "Preferences & about",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            SettingsSummaryCard(
-                script = preferences.selectedScript.displayName,
-                themeMode = preferences.themeMode.replaceFirstChar { it.uppercase() },
-                showTransliteration = preferences.showTransliteration
-            )
-
-            SettingSection(
-                title = stringResource(R.string.settings_section_runic_script),
-                subtitle = stringResource(R.string.settings_section_runic_script_subtitle)
-            ) {
-                SettingItem(
+            SettingSection(title = "Default Script") {
+                ScriptSettingItem(
+                    rune = "\u16A0",
                     title = stringResource(R.string.script_elder_futhark),
-                    subtitle = stringResource(R.string.settings_elder_subtitle),
+                    subtitle = "24 runes \u00B7 2nd-8th century",
                     selected = preferences.selectedScript == RunicScript.ELDER_FUTHARK,
-                    leadingIcon = { SettingIcon(Icons.Filled.Translate) },
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateSelectedScript(RunicScript.ELDER_FUTHARK)
-                        RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
+                        refreshWidgets()
                     }
                 )
-                SettingItem(
+                ScriptSettingItem(
+                    rune = "\u16A0",
                     title = stringResource(R.string.script_younger_futhark),
-                    subtitle = stringResource(R.string.settings_younger_subtitle),
+                    subtitle = "16 runes \u00B7 9th-11th century",
                     selected = preferences.selectedScript == RunicScript.YOUNGER_FUTHARK,
-                    leadingIcon = { SettingIcon(Icons.Filled.Translate) },
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateSelectedScript(RunicScript.YOUNGER_FUTHARK)
-                        RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
+                        refreshWidgets()
                     }
                 )
-                SettingItem(
+                ScriptSettingItem(
+                    rune = "\u2D30",
                     title = stringResource(R.string.script_cirth),
-                    subtitle = stringResource(R.string.settings_cirth_subtitle),
+                    subtitle = "Tolkien's Cirth system",
                     selected = preferences.selectedScript == RunicScript.CIRTH,
-                    leadingIcon = { SettingIcon(Icons.Filled.Translate) },
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateSelectedScript(RunicScript.CIRTH)
-                        RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
+                        refreshWidgets()
                     }
                 )
             }
 
-            SettingSection(
-                title = stringResource(R.string.settings_section_theme),
-                subtitle = stringResource(R.string.settings_section_theme_subtitle)
-            ) {
-                SettingItem(
+            SettingSection(title = "Appearance") {
+                ThemeSettingItem(
                     title = stringResource(R.string.settings_light),
-                    subtitle = stringResource(R.string.settings_light_subtitle),
+                    subtitle = "Bright UI surfaces",
+                    icon = Icons.Default.LightMode,
                     selected = preferences.themeMode == "light",
-                    leadingIcon = { SettingIcon(Icons.Filled.LightMode) },
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateThemeMode("light")
-                        RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
+                        refreshWidgets()
                     }
                 )
-                SettingItem(
+                ThemeSettingItem(
                     title = stringResource(R.string.settings_dark),
-                    subtitle = stringResource(R.string.settings_dark_subtitle),
+                    subtitle = "Deep cool charcoal surfaces",
+                    icon = Icons.Default.DarkMode,
                     selected = preferences.themeMode == "dark",
-                    leadingIcon = { SettingIcon(Icons.Filled.DarkMode) },
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateThemeMode("dark")
-                        RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
+                        refreshWidgets()
                     }
                 )
-                SettingItem(
+                ThemeSettingItem(
                     title = stringResource(R.string.settings_system),
-                    subtitle = stringResource(R.string.settings_system_subtitle),
+                    subtitle = "Follow device appearance",
+                    icon = Icons.Default.PhoneAndroid,
                     selected = preferences.themeMode == "system",
-                    leadingIcon = { SettingIcon(Icons.Filled.PhoneAndroid) },
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateThemeMode("system")
-                        RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
+                        refreshWidgets()
                     }
                 )
-                SettingItem(
+                ToggleSettingItem(
                     title = stringResource(R.string.settings_dynamic_color_title),
-                    leadingIcon = { SettingIcon(Icons.Filled.Palette) },
                     subtitle = if (dynamicColorSupported) {
-                        stringResource(R.string.settings_dynamic_color_subtitle_supported)
+                        "Match system wallpaper (Material You)"
                     } else {
                         stringResource(R.string.settings_dynamic_color_subtitle_unsupported)
                     },
-                    onClick = if (dynamicColorSupported) {
-                        {
-                            haptics.lightToggle()
-                            viewModel.updateDynamicColorEnabled(!preferences.dynamicColorEnabled)
-                            RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
-                        }
-                    } else {
-                        null
-                    },
-                    trailing = {
-                        Switch(
-                            checked = preferences.dynamicColorEnabled && dynamicColorSupported,
-                            onCheckedChange = {
-                                haptics.lightToggle()
-                                viewModel.updateDynamicColorEnabled(it)
-                                RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
-                            },
-                            enabled = dynamicColorSupported
-                        )
-                    }
-                )
-            }
-
-            SettingSection(
-                title = stringResource(R.string.settings_section_display),
-                subtitle = stringResource(R.string.settings_section_display_subtitle)
-            ) {
-                SettingItem(
-                    title = stringResource(R.string.settings_show_transliteration_title),
-                    subtitle = stringResource(R.string.settings_show_transliteration_subtitle),
-                    leadingIcon = { SettingIcon(Icons.Filled.Visibility) },
-                    onClick = {
+                    icon = Icons.Default.Palette,
+                    checked = preferences.dynamicColorEnabled && dynamicColorSupported,
+                    enabled = dynamicColorSupported,
+                    onCheckedChange = {
                         haptics.lightToggle()
-                        viewModel.updateShowTransliteration(!preferences.showTransliteration)
-                    },
-                    trailing = {
-                        Switch(
-                            checked = preferences.showTransliteration,
-                            onCheckedChange = {
-                                haptics.lightToggle()
-                                viewModel.updateShowTransliteration(it)
-                            }
-                        )
+                        viewModel.updateDynamicColorEnabled(it)
+                        refreshWidgets()
+                    }
+                )
+                ToggleSettingItem(
+                    title = "Show Latin Text",
+                    subtitle = "Display original text alongside runes",
+                    icon = Icons.Default.Visibility,
+                    checked = preferences.showTransliteration,
+                    onCheckedChange = {
+                        haptics.lightToggle()
+                        viewModel.updateShowTransliteration(it)
                     }
                 )
             }
 
-            SettingSection(
-                title = stringResource(R.string.settings_section_accessibility),
-                subtitle = stringResource(R.string.settings_section_accessibility_subtitle)
-            ) {
-                SettingItem(
+            SettingSection(title = "Notifications") {
+                ToggleSettingItem(
+                    title = "Daily Quote Alert",
+                    subtitle = "Receive a new rune quote each morning",
+                    icon = Icons.Default.Notifications,
+                    checked = preferences.dailyQuoteNotifications,
+                    onCheckedChange = {
+                        haptics.lightToggle()
+                        viewModel.updateDailyQuoteNotifications(it)
+                    }
+                )
+                ToggleSettingItem(
+                    title = "Community Picks",
+                    subtitle = "Weekly highlights from shared quotes",
+                    icon = Icons.Default.Star,
+                    checked = preferences.packUpdateNotifications,
+                    onCheckedChange = {
+                        haptics.lightToggle()
+                        viewModel.updatePackUpdateNotifications(it)
+                    }
+                )
+                ToggleSettingItem(
+                    title = "Streak Reminders",
+                    subtitle = "Keep your reading streak alive",
+                    icon = Icons.Default.Notifications,
+                    checked = preferences.streakNotifications,
+                    onCheckedChange = {
+                        haptics.lightToggle()
+                        viewModel.updateStreakNotifications(it)
+                    }
+                )
+            }
+
+            SettingSection(title = "Accessibility") {
+                ToggleSettingItem(
                     title = stringResource(R.string.settings_large_runes_title),
-                    subtitle = stringResource(R.string.settings_large_runes_subtitle),
-                    leadingIcon = { SettingIcon(Icons.Filled.FormatSize) },
-                    onClick = {
+                    subtitle = "Increase rune size across reading surfaces",
+                    icon = Icons.Default.FormatSize,
+                    checked = preferences.largeRunesEnabled,
+                    onCheckedChange = {
                         haptics.lightToggle()
-                        viewModel.updateLargeRunesEnabled(!preferences.largeRunesEnabled)
-                    },
-                    trailing = {
-                        Switch(
-                            checked = preferences.largeRunesEnabled,
-                            onCheckedChange = {
-                                haptics.lightToggle()
-                                viewModel.updateLargeRunesEnabled(it)
-                            }
-                        )
+                        viewModel.updateLargeRunesEnabled(it)
                     }
                 )
-                SettingItem(
+                ToggleSettingItem(
                     title = stringResource(R.string.settings_high_contrast_title),
-                    subtitle = stringResource(R.string.settings_high_contrast_subtitle),
-                    leadingIcon = { SettingIcon(Icons.Filled.Contrast) },
-                    onClick = {
+                    subtitle = "Increase text and border contrast",
+                    icon = Icons.Default.Contrast,
+                    checked = preferences.highContrastEnabled,
+                    onCheckedChange = {
                         haptics.lightToggle()
-                        viewModel.updateHighContrastEnabled(!preferences.highContrastEnabled)
-                        RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
-                    },
-                    trailing = {
-                        Switch(
-                            checked = preferences.highContrastEnabled,
-                            onCheckedChange = {
-                                haptics.lightToggle()
-                                viewModel.updateHighContrastEnabled(it)
-                                RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
-                            }
-                        )
+                        viewModel.updateHighContrastEnabled(it)
+                        refreshWidgets()
                     }
                 )
-                SettingItem(
+                ToggleSettingItem(
                     title = stringResource(R.string.settings_reduced_motion_title),
-                    subtitle = stringResource(R.string.settings_reduced_motion_subtitle),
-                    leadingIcon = { SettingIcon(Icons.Filled.SlowMotionVideo) },
-                    onClick = {
+                    subtitle = "Disable rune reveal and screen animations",
+                    icon = Icons.Default.SlowMotionVideo,
+                    checked = preferences.reducedMotionEnabled,
+                    onCheckedChange = {
                         haptics.lightToggle()
-                        viewModel.updateReducedMotionEnabled(!preferences.reducedMotionEnabled)
-                    },
-                    trailing = {
-                        Switch(
-                            checked = preferences.reducedMotionEnabled,
-                            onCheckedChange = {
-                                haptics.lightToggle()
-                                viewModel.updateReducedMotionEnabled(it)
-                            }
-                        )
+                        viewModel.updateReducedMotionEnabled(it)
                     }
                 )
             }
 
-            SettingSection(title = stringResource(R.string.settings_section_links)) {
-                SettingItem(
-                    title = "Rune References",
-                    leadingIcon = { SettingIcon(Icons.AutoMirrored.Filled.MenuBook) },
-                    onClick = {
-                        haptics.lightToggle()
-                        onNavigateToReferences()
-                    },
-                    trailing = {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "Navigate to references",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                )
-                SettingItem(
-                    title = "Translation",
-                    leadingIcon = { SettingIcon(Icons.Filled.Translate) },
-                    onClick = {
-                        haptics.lightToggle()
-                        onNavigateToTranslation()
-                    },
-                    trailing = {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "Navigate to translation",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                )
-                SettingItem(
-                    title = "Quote Packs",
-                    leadingIcon = { SettingIcon(Icons.Filled.Star) },
-                    onClick = {
-                        haptics.lightToggle()
-                        onNavigateToPacks()
-                    },
-                    trailing = {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "Navigate to quote packs",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                )
-                SettingItem(
-                    title = stringResource(R.string.settings_notifications),
-                    leadingIcon = { SettingIcon(Icons.Filled.Notifications) },
-                    onClick = {
-                        haptics.lightToggle()
-                        onNavigateToNotifications()
-                    },
-                    trailing = {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "Navigate to notifications",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                )
-                SettingItem(
-                    title = stringResource(R.string.settings_about),
-                    leadingIcon = { SettingIcon(Icons.Filled.Info) },
-                    onClick = {
-                        haptics.lightToggle()
-                        onNavigateToAbout()
-                    },
-                    trailing = {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "Navigate to about",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                )
-                SettingItem(
+            SettingSection(title = "About") {
+                SettingsAboutCard()
+                LinkSettingItem(
                     title = stringResource(R.string.settings_profile),
-                    leadingIcon = { SettingIcon(Icons.Filled.Person) },
+                    icon = Icons.Default.Person,
                     onClick = {
                         haptics.lightToggle()
                         onNavigateToProfile()
-                    },
-                    trailing = {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "Navigate to profile",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    }
+                )
+                LinkSettingItem(
+                    title = stringResource(R.string.settings_about),
+                    icon = Icons.Default.Info,
+                    onClick = {
+                        haptics.lightToggle()
+                        onNavigateToAbout()
+                    }
+                )
+                LinkSettingItem(
+                    title = "Rune References",
+                    icon = Icons.AutoMirrored.Filled.MenuBook,
+                    onClick = {
+                        haptics.lightToggle()
+                        onNavigateToReferences()
+                    }
+                )
+                LinkSettingItem(
+                    title = "Translation",
+                    icon = Icons.Default.Translate,
+                    onClick = {
+                        haptics.lightToggle()
+                        onNavigateToTranslation()
+                    }
+                )
+                LinkSettingItem(
+                    title = "Quote Packs",
+                    icon = Icons.Default.Star,
+                    onClick = {
+                        haptics.lightToggle()
+                        onNavigateToPacks()
+                    }
+                )
+                LinkSettingItem(
+                    title = "Notification schedule",
+                    icon = Icons.Default.Notifications,
+                    onClick = {
+                        haptics.lightToggle()
+                        onNavigateToNotifications()
                     }
                 )
             }
@@ -382,54 +311,270 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsSummaryCard(
-    script: String,
-    themeMode: String,
-    showTransliteration: Boolean
+private fun ScriptSettingItem(
+    rune: String,
+    title: String,
+    subtitle: String,
+    selected: Boolean,
+    onClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            SettingsSummaryItem(label = "Script", value = script)
-            SettingsSummaryItem(label = "Theme", value = themeMode)
-            SettingsSummaryItem(
-                label = "Latin",
-                value = if (showTransliteration) "Shown" else "Hidden"
+    SettingItem(
+        title = title,
+        subtitle = subtitle,
+        selected = selected,
+        onClick = onClick,
+        leadingIcon = { RuneBadge(rune = rune, selected = selected) },
+        trailing = { SelectionIndicator(selected = selected) }
+    )
+}
+
+@Composable
+private fun ThemeSettingItem(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    SettingItem(
+        title = title,
+        subtitle = subtitle,
+        selected = selected,
+        onClick = onClick,
+        leadingIcon = { SettingsIconBadge(icon = icon, emphasized = selected) },
+        trailing = { SelectionIndicator(selected = selected) }
+    )
+}
+
+@Composable
+private fun ToggleSettingItem(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    checked: Boolean,
+    enabled: Boolean = true,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    SettingItem(
+        title = title,
+        subtitle = subtitle,
+        onClick = if (enabled) {
+            { onCheckedChange(!checked) }
+        } else {
+            null
+        },
+        leadingIcon = { SettingsIconBadge(icon = icon, emphasized = checked) },
+        trailing = {
+            RunatalSwitch(
+                checked = checked,
+                enabled = enabled,
+                onCheckedChange = onCheckedChange
             )
+        }
+    )
+}
+
+@Composable
+private fun LinkSettingItem(
+    title: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    SettingItem(
+        title = title,
+        onClick = onClick,
+        leadingIcon = { SettingsIconBadge(icon = icon) },
+        trailing = {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = title,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    )
+}
+
+@Composable
+private fun RuneBadge(
+    rune: String,
+    selected: Boolean
+) {
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .background(
+                color = if (selected) {
+                    MaterialTheme.colorScheme.surface.copy(alpha = 0.55f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f)
+                },
+                shape = RoundedCornerShape(10.dp)
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = rune,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun SettingsIconBadge(
+    icon: ImageVector,
+    emphasized: Boolean = false
+) {
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .background(
+                color = if (emphasized) {
+                    MaterialTheme.colorScheme.surface.copy(alpha = 0.45f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.45f)
+                },
+                shape = RoundedCornerShape(10.dp)
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun SelectionIndicator(selected: Boolean) {
+    Box(
+        modifier = Modifier
+            .size(20.dp)
+            .background(
+                color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(999.dp)
+            )
+            .padding(2.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(16.dp)
+                .background(
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.secondary
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    },
+                    shape = RoundedCornerShape(999.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (selected) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(999.dp)
+                        )
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun SettingsSummaryItem(label: String, value: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+private fun RunatalSwitch(
+    checked: Boolean,
+    enabled: Boolean = true,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        enabled = enabled,
+        thumbContent = if (checked) {
+            {
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(999.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "\u2713",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
+        } else {
+            null
+        },
+        colors = SwitchDefaults.colors(
+            checkedThumbColor = MaterialTheme.colorScheme.surface,
+            checkedTrackColor = MaterialTheme.colorScheme.secondary,
+            checkedBorderColor = MaterialTheme.colorScheme.secondary,
+            uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            uncheckedTrackColor = MaterialTheme.colorScheme.outlineVariant,
+            uncheckedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+            disabledCheckedThumbColor = MaterialTheme.colorScheme.surface,
+            disabledCheckedTrackColor = MaterialTheme.colorScheme.outlineVariant,
+            disabledUncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            disabledUncheckedTrackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
         )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-    }
+    )
 }
 
 @Composable
-private fun SettingIcon(imageVector: ImageVector) {
-    Icon(
-        imageVector = imageVector,
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurfaceVariant
-    )
+private fun SettingsAboutCard() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.45f),
+                        shape = RoundedCornerShape(16.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "\u16B1",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(
+                    text = "Runatal",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "Nordic Runic Quotes",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Text(
+            text = "Transliterates inspirational quotes into ancient runic scripts " +
+                "with a calm Material 3 reading surface.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }

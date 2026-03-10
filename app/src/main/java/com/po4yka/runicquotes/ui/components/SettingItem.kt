@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 
 /**
@@ -48,29 +49,31 @@ fun SettingItem(
         targetValue = if (selected) {
             MaterialTheme.colorScheme.secondaryContainer
         } else {
-            MaterialTheme.colorScheme.surfaceContainerLow
+            MaterialTheme.colorScheme.surface
         },
         label = "settingItemContainer"
     )
 
     Surface(
         modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+            .fillMaxWidth(),
         color = containerColor,
-        shape = MaterialTheme.shapes.medium
+        shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 56.dp)
-                .clip(MaterialTheme.shapes.medium)
+                .heightIn(min = 57.dp)
+                .clip(RoundedCornerShape(12.dp))
                 .clickable(enabled = onClick != null) { onClick?.invoke() }
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (leadingIcon != null) {
-                Box(contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier,
+                    contentAlignment = Alignment.Center
+                ) {
                     leadingIcon()
                 }
                 Spacer(modifier = Modifier.width(12.dp))
