@@ -13,13 +13,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -34,7 +34,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,7 +51,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.getRunicText
+import com.po4yka.runicquotes.ui.components.BottomSheetAction
+import com.po4yka.runicquotes.ui.components.ConfirmationDialog
 import com.po4yka.runicquotes.ui.components.EmptyState
+import com.po4yka.runicquotes.ui.components.RunicBottomSheet
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.components.SegmentedControl
 import com.po4yka.runicquotes.ui.components.SkeletonCard
@@ -74,6 +76,7 @@ fun QuoteListScreen(
     val haptics = rememberHapticFeedback()
     val coroutineScope = rememberCoroutineScope()
     var deleteCandidate by remember { mutableStateOf<Quote?>(null) }
+    var bottomSheetQuote by remember { mutableStateOf<Quote?>(null) }
 
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let {
@@ -167,13 +170,9 @@ fun QuoteListScreen(
                                     haptics.lightToggle()
                                     viewModel.toggleFavorite(quote)
                                 },
-                                onEdit = {
-                                    haptics.mediumAction()
-                                    onNavigateToEditQuote(quote.id)
-                                },
-                                onDelete = {
+                                onShowActions = {
                                     haptics.lightToggle()
-                                    deleteCandidate = quote
+                                    bottomSheetQuote = quote
                                 }
                             )
                         }
@@ -183,45 +182,50 @@ fun QuoteListScreen(
         }
     }
 
-    if (deleteCandidate != null) {
-        val quoteToDelete = deleteCandidate!!
-        AlertDialog(
-            onDismissRequest = { deleteCandidate = null },
-            title = { Text("Delete quote?") },
-            text = {
-                Text(
-                    text = "\"${quoteToDelete.textLatin}\" by ${quoteToDelete.author}",
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
-                )
+    bottomSheetQuote?.let { quote ->
+        LibraryActionsBottomSheet(
+            quote = quote,
+            onDismiss = { bottomSheetQuote = null },
+            onToggleFavorite = {
+                haptics.lightToggle()
+                viewModel.toggleFavorite(quote)
+                bottomSheetQuote = null
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        deleteCandidate = null
-                        haptics.mediumAction()
-                        viewModel.deleteQuote(quoteToDelete.id)
-                        coroutineScope.launch {
-                            val result = snackbarHostState.showSnackbar(
-                                message = "Quote deleted",
-                                actionLabel = "Undo",
-                                duration = SnackbarDuration.Short
-                            )
-                            if (result == SnackbarResult.ActionPerformed) {
-                                haptics.lightToggle()
-                                viewModel.restoreDeletedQuote(quoteToDelete)
-                            }
-                        }
-                    }
-                ) {
-                    Text("Delete")
-                }
+            onEdit = {
+                haptics.mediumAction()
+                onNavigateToEditQuote(quote.id)
+                bottomSheetQuote = null
             },
-            dismissButton = {
-                TextButton(onClick = { deleteCandidate = null }) {
-                    Text("Cancel")
-                }
+            onDelete = {
+                bottomSheetQuote = null
+                deleteCandidate = quote
             }
+        )
+    }
+
+    deleteCandidate?.let { quote ->
+        ConfirmationDialog(
+            title = "Delete quote?",
+            message = "\"${quote.textLatin}\" by ${quote.author}",
+            confirmLabel = "Delete",
+            onConfirm = {
+                deleteCandidate = null
+                haptics.mediumAction()
+                viewModel.deleteQuote(quote.id)
+                coroutineScope.launch {
+                    val result = snackbarHostState.showSnackbar(
+                        message = "Quote deleted",
+                        actionLabel = "Undo",
+                        duration = SnackbarDuration.Short
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        haptics.lightToggle()
+                        viewModel.restoreDeletedQuote(quote)
+                    }
+                }
+            },
+            onDismiss = { deleteCandidate = null },
+            isDestructive = true
         )
     }
 }
@@ -279,8 +283,7 @@ private fun QuoteListItem(
     selectedFont: String,
     transliterationFactory: com.po4yka.runicquotes.domain.transliteration.TransliterationFactory,
     onToggleFavorite: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onShowActions: () -> Unit
 ) {
     val shapes = RunicExpressiveTheme.shapes
     val typeRoles = RunicTypeRoles.current
@@ -352,27 +355,63 @@ private fun QuoteListItem(
                         )
                     }
 
-                    if (quote.isUserCreated) {
-                        IconButton(
-                            onClick = onEdit,
-                            modifier = Modifier.testTag("quote_list_edit_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit quote",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        IconButton(onClick = onDelete) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete quote",
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
+                    IconButton(onClick = onShowActions) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "More actions",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun LibraryActionsBottomSheet(
+    quote: Quote,
+    onDismiss: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val actions = buildList {
+        add(
+            BottomSheetAction(
+                icon = if (quote.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                title = if (quote.isFavorite) "Remove from Favorites" else "Add to Favorites",
+                subtitle = if (quote.isFavorite) {
+                    "Remove this quote from your collection"
+                } else {
+                    "Save this quote to your favorites"
+                },
+                onClick = onToggleFavorite
+            )
+        )
+        if (quote.isUserCreated) {
+            add(
+                BottomSheetAction(
+                    icon = Icons.Default.Edit,
+                    title = "Edit Quote",
+                    subtitle = "Modify this quote",
+                    onClick = onEdit
+                )
+            )
+            add(
+                BottomSheetAction(
+                    icon = Icons.Default.Delete,
+                    title = "Delete Quote",
+                    subtitle = "Remove permanently",
+                    isDestructive = true,
+                    onClick = onDelete
+                )
+            )
+        }
+    }
+
+    RunicBottomSheet(
+        actions = actions,
+        onDismiss = onDismiss
+    )
 }
