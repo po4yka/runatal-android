@@ -82,3 +82,6 @@ fabric.properties
 
 # Claude Code
 .claude/settings.local.json
+
+# Ralph orchestration
+.ralph/
