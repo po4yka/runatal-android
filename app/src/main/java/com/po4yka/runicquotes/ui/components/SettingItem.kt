@@ -24,13 +24,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 
 /**
- * A single setting item with title, subtitle, and optional trailing content.
+ * A single setting item with title, subtitle, and optional leading/trailing content.
  *
  * @param title The main title of the setting
  * @param modifier Modifier for the item
  * @param subtitle Optional subtitle/description
  * @param selected Whether this item is currently selected (shows checkmark)
  * @param onClick Callback when the item is clicked
+ * @param leadingIcon Optional leading icon content
  * @param trailing Optional trailing content (e.g., Switch, value display)
  */
 @Composable
@@ -40,6 +41,7 @@ fun SettingItem(
     subtitle: String? = null,
     selected: Boolean = false,
     onClick: (() -> Unit)? = null,
+    leadingIcon: @Composable (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null
 ) {
     val containerColor by animateColorAsState(
@@ -67,6 +69,13 @@ fun SettingItem(
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (leadingIcon != null) {
+                Box(contentAlignment = Alignment.Center) {
+                    leadingIcon()
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+            }
+
             Column(
                 modifier = Modifier.weight(1f)
             ) {

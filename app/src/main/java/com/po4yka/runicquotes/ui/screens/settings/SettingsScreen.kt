@@ -9,6 +9,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Contrast
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.FormatSize
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.SlowMotionVideo
+import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -21,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -82,6 +95,7 @@ fun SettingsScreen(
                     title = stringResource(R.string.script_elder_futhark),
                     subtitle = stringResource(R.string.settings_elder_subtitle),
                     selected = preferences.selectedScript == RunicScript.ELDER_FUTHARK,
+                    leadingIcon = { SettingIcon(Icons.Filled.Translate) },
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateSelectedScript(RunicScript.ELDER_FUTHARK)
@@ -92,6 +106,7 @@ fun SettingsScreen(
                     title = stringResource(R.string.script_younger_futhark),
                     subtitle = stringResource(R.string.settings_younger_subtitle),
                     selected = preferences.selectedScript == RunicScript.YOUNGER_FUTHARK,
+                    leadingIcon = { SettingIcon(Icons.Filled.Translate) },
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateSelectedScript(RunicScript.YOUNGER_FUTHARK)
@@ -102,6 +117,7 @@ fun SettingsScreen(
                     title = stringResource(R.string.script_cirth),
                     subtitle = stringResource(R.string.settings_cirth_subtitle),
                     selected = preferences.selectedScript == RunicScript.CIRTH,
+                    leadingIcon = { SettingIcon(Icons.Filled.Translate) },
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateSelectedScript(RunicScript.CIRTH)
@@ -118,6 +134,7 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_light),
                     subtitle = stringResource(R.string.settings_light_subtitle),
                     selected = preferences.themeMode == "light",
+                    leadingIcon = { SettingIcon(Icons.Filled.LightMode) },
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateThemeMode("light")
@@ -128,6 +145,7 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_dark),
                     subtitle = stringResource(R.string.settings_dark_subtitle),
                     selected = preferences.themeMode == "dark",
+                    leadingIcon = { SettingIcon(Icons.Filled.DarkMode) },
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateThemeMode("dark")
@@ -138,6 +156,7 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_system),
                     subtitle = stringResource(R.string.settings_system_subtitle),
                     selected = preferences.themeMode == "system",
+                    leadingIcon = { SettingIcon(Icons.Filled.PhoneAndroid) },
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateThemeMode("system")
@@ -146,6 +165,7 @@ fun SettingsScreen(
                 )
                 SettingItem(
                     title = stringResource(R.string.settings_dynamic_color_title),
+                    leadingIcon = { SettingIcon(Icons.Filled.Palette) },
                     subtitle = if (dynamicColorSupported) {
                         stringResource(R.string.settings_dynamic_color_subtitle_supported)
                     } else {
@@ -181,6 +201,7 @@ fun SettingsScreen(
                 SettingItem(
                     title = stringResource(R.string.settings_show_transliteration_title),
                     subtitle = stringResource(R.string.settings_show_transliteration_subtitle),
+                    leadingIcon = { SettingIcon(Icons.Filled.Visibility) },
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateShowTransliteration(!preferences.showTransliteration)
@@ -204,6 +225,7 @@ fun SettingsScreen(
                 SettingItem(
                     title = stringResource(R.string.settings_large_runes_title),
                     subtitle = stringResource(R.string.settings_large_runes_subtitle),
+                    leadingIcon = { SettingIcon(Icons.Filled.FormatSize) },
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateLargeRunesEnabled(!preferences.largeRunesEnabled)
@@ -221,6 +243,7 @@ fun SettingsScreen(
                 SettingItem(
                     title = stringResource(R.string.settings_high_contrast_title),
                     subtitle = stringResource(R.string.settings_high_contrast_subtitle),
+                    leadingIcon = { SettingIcon(Icons.Filled.Contrast) },
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateHighContrastEnabled(!preferences.highContrastEnabled)
@@ -240,6 +263,7 @@ fun SettingsScreen(
                 SettingItem(
                     title = stringResource(R.string.settings_reduced_motion_title),
                     subtitle = stringResource(R.string.settings_reduced_motion_subtitle),
+                    leadingIcon = { SettingIcon(Icons.Filled.SlowMotionVideo) },
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateReducedMotionEnabled(!preferences.reducedMotionEnabled)
@@ -259,6 +283,7 @@ fun SettingsScreen(
             SettingSection(title = stringResource(R.string.settings_section_links)) {
                 SettingItem(
                     title = stringResource(R.string.settings_notifications),
+                    leadingIcon = { SettingIcon(Icons.Filled.Notifications) },
                     onClick = {
                         haptics.lightToggle()
                         onNavigateToNotifications()
@@ -273,6 +298,7 @@ fun SettingsScreen(
                 )
                 SettingItem(
                     title = stringResource(R.string.settings_about),
+                    leadingIcon = { SettingIcon(Icons.Filled.Info) },
                     onClick = {
                         haptics.lightToggle()
                         onNavigateToAbout()
@@ -287,6 +313,7 @@ fun SettingsScreen(
                 )
                 SettingItem(
                     title = stringResource(R.string.settings_profile),
+                    leadingIcon = { SettingIcon(Icons.Filled.Person) },
                     onClick = {
                         haptics.lightToggle()
                         onNavigateToProfile()
@@ -302,4 +329,13 @@ fun SettingsScreen(
             }
         }
     }
+}
+
+@Composable
+private fun SettingIcon(imageVector: ImageVector) {
+    Icon(
+        imageVector = imageVector,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }
