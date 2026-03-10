@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Contrast
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.FormatSize
@@ -51,6 +52,8 @@ fun SettingsScreen(
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
+    onNavigateToReferences: () -> Unit = {},
+    onNavigateToTranslation: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val preferences by viewModel.userPreferences.collectAsStateWithLifecycle()
@@ -281,6 +284,36 @@ fun SettingsScreen(
             }
 
             SettingSection(title = stringResource(R.string.settings_section_links)) {
+                SettingItem(
+                    title = "Rune References",
+                    leadingIcon = { SettingIcon(Icons.AutoMirrored.Filled.MenuBook) },
+                    onClick = {
+                        haptics.lightToggle()
+                        onNavigateToReferences()
+                    },
+                    trailing = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "Navigate to references",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                )
+                SettingItem(
+                    title = "Translation",
+                    leadingIcon = { SettingIcon(Icons.Filled.Translate) },
+                    onClick = {
+                        haptics.lightToggle()
+                        onNavigateToTranslation()
+                    },
+                    trailing = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "Navigate to translation",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                )
                 SettingItem(
                     title = stringResource(R.string.settings_notifications),
                     leadingIcon = { SettingIcon(Icons.Filled.Notifications) },

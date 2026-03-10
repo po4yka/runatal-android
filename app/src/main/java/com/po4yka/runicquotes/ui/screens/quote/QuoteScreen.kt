@@ -96,6 +96,7 @@ fun QuoteScreen(
     onNavigateToHistory: () -> Unit = {},
     onNavigateToEditQuote: (Long) -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
+    onNavigateToShare: (Long) -> Unit = {},
     onBrowseLibrary: (() -> Unit)? = null,
     viewModel: QuoteViewModel = hiltViewModel()
 ) {
@@ -124,7 +125,7 @@ fun QuoteScreen(
                     },
                     onShare = {
                         haptics.mediumAction()
-                        viewModel.shareQuoteText()
+                        onNavigateToShare(state.quote.id)
                     },
                     onNewQuote = {
                         haptics.mediumAction()
@@ -179,7 +180,7 @@ fun QuoteScreen(
                 },
                 onShare = {
                     haptics.mediumAction()
-                    viewModel.shareQuoteText()
+                    onNavigateToShare(state.quote.id)
                     showBottomSheet = false
                 },
                 onCopy = {

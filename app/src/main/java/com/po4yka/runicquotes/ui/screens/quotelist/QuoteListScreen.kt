@@ -70,6 +70,7 @@ import kotlinx.coroutines.launch
 fun QuoteListScreen(
     onNavigateToAddQuote: () -> Unit,
     onNavigateToEditQuote: (Long) -> Unit,
+    onNavigateToArchive: () -> Unit = {},
     viewModel: QuoteListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -109,6 +110,17 @@ fun QuoteListScreen(
                             text = "Your collection",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        haptics.lightToggle()
+                        onNavigateToArchive()
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Archive"
                         )
                     }
                 }

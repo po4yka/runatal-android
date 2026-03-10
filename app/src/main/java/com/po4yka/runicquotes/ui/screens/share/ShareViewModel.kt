@@ -27,7 +27,7 @@ class ShareViewModel @Inject constructor(
     private val quoteShareManager: QuoteShareManager
 ) : ViewModel() {
 
-    private val quoteId: Long = checkNotNull(savedStateHandle.get<Long>("quoteId"))
+    private var quoteId: Long = savedStateHandle.get<Long>("quoteId") ?: 0L
 
     private val _uiState = MutableStateFlow<ShareUiState>(ShareUiState.Loading)
     val uiState: StateFlow<ShareUiState> = _uiState.asStateFlow()
@@ -41,7 +41,19 @@ class ShareViewModel @Inject constructor(
     }
 
     init {
-        loadQuote()
+        if (quoteId != 0L) {
+            loadQuote()
+        }
+    }
+
+    /** Initializes the ViewModel with a quote ID if not already loaded. */
+    fun initializeQuoteIfNeeded(id: Long) {
+        if (id != 0L && id != quoteId) {
+            quoteId = id
+            loadQuote()
+        } else if (id != 0L && _uiState.value is ShareUiState.Loading) {
+            loadQuote()
+        }
     }
 
     private fun loadQuote() {

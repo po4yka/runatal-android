@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,9 +40,12 @@ import com.po4yka.runicquotes.ui.components.ErrorState
 @Composable
 fun RuneDetailScreen(
     onNavigateBack: () -> Unit = {},
+    runeId: Long = 0L,
     viewModel: RuneDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(runeId) { viewModel.initializeRuneIfNeeded(runeId) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         RuneDetailTopBar(uiState = uiState, onNavigateBack = onNavigateBack)

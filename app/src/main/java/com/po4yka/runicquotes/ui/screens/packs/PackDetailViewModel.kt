@@ -24,7 +24,8 @@ class PackDetailViewModel @Inject constructor(
     private val quotePackRepository: QuotePackRepository
 ) : ViewModel() {
 
-    private val packId: Long = checkNotNull(savedStateHandle.get<Long>("packId"))
+    private var packId: Long = savedStateHandle.get<Long>("packId") ?: 0L
+    private var loadedPackId: Long? = null
 
     private val _uiState = MutableStateFlow<PackDetailUiState>(PackDetailUiState.Loading)
     val uiState: StateFlow<PackDetailUiState> = _uiState.asStateFlow()
@@ -35,6 +36,17 @@ class PackDetailViewModel @Inject constructor(
     }
 
     init {
+        initializePackIfNeeded(packId)
+    }
+
+    /**
+     * Initializes the pack data if the given [packId] has not been loaded yet.
+     * Called from the screen composable to pass the route parameter.
+     */
+    fun initializePackIfNeeded(packId: Long) {
+        if (packId == 0L || loadedPackId == packId) return
+        this.packId = packId
+        loadedPackId = packId
         loadPack()
     }
 

@@ -255,6 +255,9 @@ private fun EntryProviderScope<Any>.topLevelEntries(
             onNavigateToNotifications = {
                 backStack.add(NotificationSettingsRoute)
             },
+            onNavigateToShare = { quoteId ->
+                backStack.add(ShareRoute(quoteId = quoteId))
+            },
             onBrowseLibrary = {
                 switchTopLevelRoute(backStack, QuoteListRoute)
             }
@@ -266,7 +269,9 @@ private fun EntryProviderScope<Any>.topLevelEntries(
                 backStack.add(NotificationSettingsRoute)
             },
             onNavigateToAbout = { backStack.add(AboutRoute) },
-            onNavigateToProfile = { backStack.add(ProfileRoute) }
+            onNavigateToProfile = { backStack.add(ProfileRoute) },
+            onNavigateToReferences = { backStack.add(ReferencesRoute) },
+            onNavigateToTranslation = { backStack.add(TranslationRoute) }
         )
     }
     entry<QuoteListRoute> {
@@ -276,6 +281,9 @@ private fun EntryProviderScope<Any>.topLevelEntries(
             },
             onNavigateToEditQuote = { quoteId ->
                 backStack.add(AddEditQuoteRoute(quoteId = quoteId))
+            },
+            onNavigateToArchive = {
+                backStack.add(ArchiveRoute)
             }
         )
     }
@@ -301,9 +309,10 @@ private fun EntryProviderScope<Any>.detailEntries(
             quoteId = route.quoteId
         )
     }
-    entry<PackDetailRoute> {
+    entry<PackDetailRoute> { route ->
         PackDetailScreen(
-            onNavigateBack = { backStack.removeLastOrNull() }
+            onNavigateBack = { backStack.removeLastOrNull() },
+            packId = route.packId
         )
     }
     entry<ArchiveRoute> {
@@ -316,14 +325,16 @@ private fun EntryProviderScope<Any>.detailEntries(
             }
         )
     }
-    entry<RuneDetailRoute> {
+    entry<RuneDetailRoute> { route ->
         RuneDetailScreen(
-            onNavigateBack = { backStack.removeLastOrNull() }
+            onNavigateBack = { backStack.removeLastOrNull() },
+            runeId = route.runeId
         )
     }
-    entry<ShareRoute> {
+    entry<ShareRoute> { route ->
         ShareScreen(
-            onNavigateBack = { backStack.removeLastOrNull() }
+            onNavigateBack = { backStack.removeLastOrNull() },
+            quoteId = route.quoteId
         )
     }
     entry<TranslationRoute> {

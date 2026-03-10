@@ -23,7 +23,8 @@ class RuneDetailViewModel @Inject constructor(
     private val runeReferenceRepository: RuneReferenceRepository
 ) : ViewModel() {
 
-    private val runeId: Long = checkNotNull(savedStateHandle.get<Long>("runeId"))
+    private var runeId: Long = savedStateHandle.get<Long>("runeId") ?: 0L
+    private var loadedRuneId: Long? = null
 
     private val _uiState = MutableStateFlow<RuneDetailUiState>(RuneDetailUiState.Loading)
     val uiState: StateFlow<RuneDetailUiState> = _uiState.asStateFlow()
@@ -34,6 +35,17 @@ class RuneDetailViewModel @Inject constructor(
     }
 
     init {
+        initializeRuneIfNeeded(runeId)
+    }
+
+    /**
+     * Initializes the rune data if the given [runeId] has not been loaded yet.
+     * Called from the screen composable to pass the route parameter.
+     */
+    fun initializeRuneIfNeeded(runeId: Long) {
+        if (runeId == 0L || loadedRuneId == runeId) return
+        this.runeId = runeId
+        loadedRuneId = runeId
         loadRune()
     }
 
