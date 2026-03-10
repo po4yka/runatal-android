@@ -48,7 +48,10 @@ class UserPreferencesManager @Inject constructor(
             largeRunesEnabled = preferences[LARGE_RUNES_ENABLED] ?: false,
             highContrastEnabled = preferences[HIGH_CONTRAST_ENABLED] ?: false,
             reducedMotionEnabled = preferences[REDUCED_MOTION_ENABLED] ?: false,
-            hasCompletedOnboarding = preferences[HAS_COMPLETED_ONBOARDING] ?: false
+            hasCompletedOnboarding = preferences[HAS_COMPLETED_ONBOARDING] ?: false,
+            dailyQuoteNotifications = preferences[DAILY_QUOTE_NOTIFICATIONS] ?: true,
+            streakNotifications = preferences[STREAK_NOTIFICATIONS] ?: true,
+            packUpdateNotifications = preferences[PACK_UPDATE_NOTIFICATIONS] ?: true
         )
     }
 
@@ -232,6 +235,24 @@ class UserPreferencesManager @Inject constructor(
         }
     }
 
+    suspend fun updateDailyQuoteNotifications(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[DAILY_QUOTE_NOTIFICATIONS] = enabled
+        }
+    }
+
+    suspend fun updateStreakNotifications(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[STREAK_NOTIFICATIONS] = enabled
+        }
+    }
+
+    suspend fun updatePackUpdateNotifications(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PACK_UPDATE_NOTIFICATIONS] = enabled
+        }
+    }
+
     /**
      * Clears all preferences.
      */
@@ -262,5 +283,8 @@ class UserPreferencesManager @Inject constructor(
         private val HIGH_CONTRAST_ENABLED = booleanPreferencesKey("high_contrast_enabled")
         private val REDUCED_MOTION_ENABLED = booleanPreferencesKey("reduced_motion_enabled")
         private val HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
+        private val DAILY_QUOTE_NOTIFICATIONS = booleanPreferencesKey("daily_quote_notifications")
+        private val STREAK_NOTIFICATIONS = booleanPreferencesKey("streak_notifications")
+        private val PACK_UPDATE_NOTIFICATIONS = booleanPreferencesKey("pack_update_notifications")
     }
 }

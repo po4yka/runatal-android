@@ -254,7 +254,9 @@ fun NavGraph(
                     ProfileScreen()
                 }
                 entry<NotificationSettingsRoute> {
-                    NotificationSettingsScreen()
+                    NotificationSettingsScreen(
+                        onNavigateBack = { backStack.removeLastOrNull() }
+                    )
                 }
                 entry<AboutRoute> {
                     AboutScreen()

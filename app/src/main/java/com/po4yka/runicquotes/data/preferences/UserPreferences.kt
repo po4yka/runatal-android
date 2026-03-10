@@ -104,5 +104,20 @@ data class UserPreferences(
     /**
      * Whether onboarding has been completed.
      */
-    val hasCompletedOnboarding: Boolean = false
+    val hasCompletedOnboarding: Boolean = false,
+
+    /**
+     * Whether daily quote notifications are enabled.
+     */
+    val dailyQuoteNotifications: Boolean = true,
+
+    /**
+     * Whether streak reminder notifications are enabled.
+     */
+    val streakNotifications: Boolean = true,
+
+    /**
+     * Whether pack update notifications are enabled.
+     */
+    val packUpdateNotifications: Boolean = true
 )
