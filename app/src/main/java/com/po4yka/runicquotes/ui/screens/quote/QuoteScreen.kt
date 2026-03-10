@@ -63,6 +63,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
+import com.po4yka.runicquotes.domain.model.segmentLabel
 import com.po4yka.runicquotes.ui.components.BottomSheetAction
 import com.po4yka.runicquotes.ui.components.CoachMarkStep
 import com.po4yka.runicquotes.ui.components.CoachMarksDialog
@@ -300,7 +301,7 @@ private fun TodayContent(
 
         // -- Segmented script control --
         SegmentedControl(
-            segments = scripts.map { it.displayName },
+            segments = scripts.map { it.segmentLabel },
             selectedIndex = selectedScriptIndex,
             onSegmentSelected = { index -> onSelectScript(scripts[index]) }
         )

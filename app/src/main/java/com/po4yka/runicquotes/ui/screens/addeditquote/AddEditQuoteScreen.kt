@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
-import com.po4yka.runicquotes.domain.model.displayName
+import com.po4yka.runicquotes.domain.model.segmentLabel
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.components.SegmentedControl
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
@@ -328,7 +328,7 @@ private fun ScriptSelector(
     enabled: Boolean
 ) {
     val scripts = RunicScript.entries
-    val segments = scripts.map { it.displayName }
+    val segments = scripts.map { it.segmentLabel }
     val selectedIndex = scripts.indexOf(selectedScript)
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

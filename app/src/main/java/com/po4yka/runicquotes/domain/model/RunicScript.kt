@@ -36,3 +36,13 @@ val RunicScript.displayName: String
         RunicScript.YOUNGER_FUTHARK -> "Younger Futhark"
         RunicScript.CIRTH -> "Cirth"
     }
+
+/**
+ * Short label for use in compact UI elements like SegmentedControl.
+ */
+val RunicScript.segmentLabel: String
+    get() = when (this) {
+        RunicScript.ELDER_FUTHARK -> "Elder"
+        RunicScript.YOUNGER_FUTHARK -> "Younger"
+        RunicScript.CIRTH -> "Cirth"
+    }

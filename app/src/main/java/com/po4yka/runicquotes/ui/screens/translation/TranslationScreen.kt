@@ -45,7 +45,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RuneReference
 import com.po4yka.runicquotes.domain.model.RunicScript
-import com.po4yka.runicquotes.domain.model.displayName
+import com.po4yka.runicquotes.domain.model.segmentLabel
 import com.po4yka.runicquotes.ui.components.ErrorState
 import com.po4yka.runicquotes.ui.components.SegmentedControl
 import com.po4yka.runicquotes.ui.components.SkeletonRect
@@ -153,7 +153,7 @@ private fun ScriptSelector(
 ) {
     val scripts = RunicScript.entries
     SegmentedControl(
-        segments = scripts.map { it.displayName },
+        segments = scripts.map { it.segmentLabel },
         selectedIndex = scripts.indexOf(selectedScript),
         onSegmentSelected = { index -> onSelectScript(scripts[index]) },
         modifier = Modifier.padding(horizontal = 16.dp)
