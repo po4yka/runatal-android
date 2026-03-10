@@ -47,7 +47,8 @@ class QuoteShareManager @Inject constructor(
         runicText: String,
         latinText: String,
         author: String,
-        template: ShareTemplate = ShareTemplate.MINIMAL
+        template: ShareTemplate = ShareTemplate.CARD,
+        appearance: ShareAppearance = ShareAppearance.DARK
     ): Boolean = withContext(Dispatchers.IO) {
         try {
             // Generate image
@@ -55,7 +56,8 @@ class QuoteShareManager @Inject constructor(
                 runicText = runicText,
                 latinText = latinText,
                 author = author,
-                template = template
+                template = template,
+                appearance = appearance
             )
 
             // Save to cache directory

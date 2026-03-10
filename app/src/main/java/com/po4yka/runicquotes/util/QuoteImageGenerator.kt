@@ -1,19 +1,14 @@
-@file:Suppress("MagicNumber") // Image layout calculations and spacing constants
+@file:Suppress("MagicNumber")
 
 package com.po4yka.runicquotes.util
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.LinearGradient
 import android.graphics.Paint
-import android.graphics.Shader
+import android.graphics.RectF
 import android.graphics.Typeface
-import androidx.core.content.ContextCompat
-import com.po4yka.runicquotes.R
 import com.po4yka.runicquotes.domain.transliteration.CirthGlyphCompat
-import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,176 +16,421 @@ import javax.inject.Singleton
  * Generates images from quotes for sharing.
  */
 @Singleton
-class QuoteImageGenerator @Inject constructor(
-    @param:ApplicationContext private val context: Context
-) {
-    private data class ShareStyle(
-        val backgroundStart: Int,
-        val backgroundEnd: Int,
-        val runicColor: Int,
-        val latinColor: Int,
-        val authorColor: Int,
-        val addFrame: Boolean
+@Suppress("TooManyFunctions")
+class QuoteImageGenerator @Inject constructor() {
+
+    private data class SharePalette(
+        val background: Int,
+        val surface: Int,
+        val primaryText: Int,
+        val secondaryText: Int,
+        val tertiaryText: Int,
+        val outline: Int,
+        val rule: Int
     )
 
-    /** Image dimension and text size constants. */
+    /**
+     * Image sizes for the exported templates.
+     */
     companion object {
-        private const val IMAGE_WIDTH = 1080
-        private const val IMAGE_HEIGHT = 1920
-        private const val PADDING = 120
-        private const val RUNIC_TEXT_SIZE = 80f
-        private const val LATIN_TEXT_SIZE = 48f
-        private const val AUTHOR_TEXT_SIZE = 40f
+        private const val PORTRAIT_WIDTH = 1080
+        private const val PORTRAIT_HEIGHT = 1920
+        private const val LANDSCAPE_WIDTH = 1600
+        private const val LANDSCAPE_HEIGHT = 900
     }
 
     /**
-     * Generates a shareable image from quote data.
-     *
-     * @param runicText The runic transliteration
-     * @param latinText The Latin text
-     * @param author The quote author
-     * @param template Share template style preset
-     * @return Bitmap image ready for sharing
+     * Generates a shareable bitmap for the selected template and appearance.
      */
     fun generateQuoteImage(
         runicText: String,
         latinText: String,
         author: String,
-        template: ShareTemplate = ShareTemplate.MINIMAL
+        template: ShareTemplate = ShareTemplate.CARD,
+        appearance: ShareAppearance = ShareAppearance.DARK
     ): Bitmap {
         val normalizedRunicText = CirthGlyphCompat.normalizeLegacyPuaGlyphs(runicText)
-        val bitmap = Bitmap.createBitmap(IMAGE_WIDTH, IMAGE_HEIGHT, Bitmap.Config.ARGB_8888)
+        return when (template) {
+            ShareTemplate.CARD -> generateCardImage(
+                runicText = normalizedRunicText,
+                latinText = latinText,
+                author = author,
+                palette = paletteFor(appearance)
+            )
+
+            ShareTemplate.VERSE -> generateVerseImage(
+                runicText = normalizedRunicText,
+                latinText = latinText,
+                author = author,
+                palette = paletteFor(appearance)
+            )
+
+            ShareTemplate.LANDSCAPE -> generateLandscapeImage(
+                runicText = normalizedRunicText,
+                latinText = latinText,
+                author = author,
+                palette = paletteFor(appearance)
+            )
+        }
+    }
+
+    private fun generateCardImage(
+        runicText: String,
+        latinText: String,
+        author: String,
+        palette: SharePalette
+    ): Bitmap {
+        val bitmap = Bitmap.createBitmap(PORTRAIT_WIDTH, PORTRAIT_HEIGHT, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-        val templateStyle = resolveStyle(template)
+        canvas.drawColor(palette.background)
 
-        // Background (gradient for richer templates)
-        val backgroundPaint = Paint().apply {
-            shader = LinearGradient(
-                0f,
-                0f,
-                IMAGE_WIDTH.toFloat(),
-                IMAGE_HEIGHT.toFloat(),
-                templateStyle.backgroundStart,
-                templateStyle.backgroundEnd,
-                Shader.TileMode.CLAMP
-            )
-        }
-        canvas.drawRect(0f, 0f, IMAGE_WIDTH.toFloat(), IMAGE_HEIGHT.toFloat(), backgroundPaint)
+        val cardRect = RectF(150f, 310f, PORTRAIT_WIDTH - 150f, 1320f)
+        drawRoundedPanel(canvas, cardRect, 48f, palette)
 
-        // Paint for runic text
-        val runicPaint = Paint().apply {
-            color = templateStyle.runicColor
-            textSize = RUNIC_TEXT_SIZE
-            typeface = Typeface.MONOSPACE
-            isAntiAlias = true
+        val centerX = cardRect.centerX()
+        var currentY = cardRect.top + 112f
+
+        drawRuleWithRune(canvas, centerX, currentY, cardRect.width() - 180f, palette)
+        currentY += 118f
+
+        val runicPaint = paint(
+            color = palette.primaryText,
+            textSize = 60f,
+            typeface = Typeface.MONOSPACE,
+            textAlign = Paint.Align.CENTER,
+            letterSpacing = 0.12f
+        )
+        val runicLines = wrapText(runicText, runicPaint, (cardRect.width() - 180f).toInt())
+        currentY = drawCenteredLines(canvas, runicLines, centerX, currentY, 74f, runicPaint)
+        currentY += 60f
+
+        drawCenterRule(canvas, centerX, currentY, 96f, palette.rule)
+        currentY += 56f
+
+        val latinPaint = paint(
+            color = palette.secondaryText,
+            textSize = 42f,
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC),
             textAlign = Paint.Align.CENTER
-        }
+        )
+        val latinLines = wrapText("“$latinText”", latinPaint, (cardRect.width() - 180f).toInt())
+        currentY = drawCenteredLines(canvas, latinLines, centerX, currentY, 54f, latinPaint)
+        currentY += 32f
 
-        // Paint for Latin text
-        val latinPaint = Paint().apply {
-            color = templateStyle.latinColor
-            textSize = LATIN_TEXT_SIZE
-            typeface = Typeface.DEFAULT
-            isAntiAlias = true
+        val authorPaint = paint(
+            color = palette.secondaryText,
+            textSize = 36f,
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD),
             textAlign = Paint.Align.CENTER
-        }
-
-        // Paint for author
-        val authorPaint = Paint().apply {
-            color = templateStyle.authorColor
-            textSize = AUTHOR_TEXT_SIZE
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
-            isAntiAlias = true
-            textAlign = Paint.Align.CENTER
-        }
-
-        if (templateStyle.addFrame) {
-            val framePaint = Paint().apply {
-                color = Color.argb(150, 120, 90, 50)
-                style = Paint.Style.STROKE
-                strokeWidth = 6f
-                isAntiAlias = true
-            }
-            canvas.drawRect(
-                PADDING / 2f,
-                PADDING / 2f,
-                IMAGE_WIDTH - PADDING / 2f,
-                IMAGE_HEIGHT - PADDING / 2f,
-                framePaint
-            )
-        }
-
-        val centerX = IMAGE_WIDTH / 2f
-        var currentY = IMAGE_HEIGHT / 2f
-
-        // Draw runic text (wrapped)
-        val runicLines = wrapText(normalizedRunicText, runicPaint, IMAGE_WIDTH - PADDING * 2)
-        val runicHeight = runicLines.size * RUNIC_TEXT_SIZE * 1.2f
-
-        // Draw Latin text (wrapped)
-        val latinLines = wrapText(latinText, latinPaint, IMAGE_WIDTH - PADDING * 2)
-        val latinHeight = latinLines.size * LATIN_TEXT_SIZE * 1.2f
-
-        // Calculate total height and start position
-        val totalHeight = runicHeight + latinHeight + AUTHOR_TEXT_SIZE * 1.5f + 100
-        currentY = (IMAGE_HEIGHT - totalHeight) / 2f + RUNIC_TEXT_SIZE
-
-        // Draw runic text
-        runicLines.forEach { line ->
-            canvas.drawText(line, centerX, currentY, runicPaint)
-            currentY += RUNIC_TEXT_SIZE * 1.2f
-        }
-
-        currentY += 80f // Space between runic and Latin
-
-        // Draw Latin text
-        latinLines.forEach { line ->
-            canvas.drawText(line, centerX, currentY, latinPaint)
-            currentY += LATIN_TEXT_SIZE * 1.2f
-        }
-
-        currentY += 60f // Space before author
-
-        // Draw author
+        )
         canvas.drawText("— $author", centerX, currentY, authorPaint)
+
+        val footerPaint = paint(
+            color = palette.tertiaryText,
+            textSize = 22f,
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD),
+            textAlign = Paint.Align.CENTER,
+            letterSpacing = 0.08f
+        )
+        canvas.drawText(
+            "Runatal · Elder Futhark",
+            centerX,
+            cardRect.bottom - 56f,
+            footerPaint
+        )
 
         return bitmap
     }
 
-    private fun resolveStyle(template: ShareTemplate): ShareStyle {
-        return when (template) {
-            ShareTemplate.MINIMAL -> ShareStyle(
-                backgroundStart = ContextCompat.getColor(context, R.color.surface),
-                backgroundEnd = ContextCompat.getColor(context, R.color.gray_200),
-                runicColor = ContextCompat.getColor(context, R.color.on_surface),
-                latinColor = ContextCompat.getColor(context, R.color.on_surface),
-                authorColor = ContextCompat.getColor(context, R.color.on_surface_variant),
-                addFrame = false
+    private fun generateVerseImage(
+        runicText: String,
+        latinText: String,
+        author: String,
+        palette: SharePalette
+    ): Bitmap {
+        val bitmap = Bitmap.createBitmap(PORTRAIT_WIDTH, PORTRAIT_HEIGHT, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(palette.background)
+
+        val cardRect = RectF(150f, 280f, PORTRAIT_WIDTH - 150f, 1370f)
+        drawRoundedPanel(canvas, cardRect, 48f, palette)
+
+        val centerX = cardRect.centerX()
+        var currentY = cardRect.top + 120f
+
+        drawDecorativeDots(canvas, centerX, currentY, palette.secondaryText)
+        currentY += 110f
+
+        val quotePaint = paint(
+            color = palette.primaryText,
+            textSize = 56f,
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC),
+            textAlign = Paint.Align.CENTER
+        )
+        val quoteLines = wrapText("“$latinText”", quotePaint, (cardRect.width() - 200f).toInt())
+        currentY = drawCenteredLines(canvas, quoteLines, centerX, currentY, 68f, quotePaint)
+        currentY += 44f
+
+        drawDividerWithDots(canvas, centerX, currentY, palette.rule)
+        currentY += 48f
+
+        val runicPaint = paint(
+            color = palette.tertiaryText,
+            textSize = 26f,
+            typeface = Typeface.MONOSPACE,
+            textAlign = Paint.Align.CENTER,
+            letterSpacing = 0.08f
+        )
+        val runicLines = wrapText(runicText, runicPaint, (cardRect.width() - 200f).toInt())
+        currentY = drawCenteredLines(canvas, runicLines.take(2), centerX, currentY, 34f, runicPaint)
+        currentY += 52f
+
+        val authorPaint = paint(
+            color = palette.secondaryText,
+            textSize = 34f,
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD),
+            textAlign = Paint.Align.CENTER
+        )
+        canvas.drawText(author, centerX, currentY, authorPaint)
+
+        val footerPaint = paint(
+            color = palette.tertiaryText,
+            textSize = 24f,
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD),
+            textAlign = Paint.Align.CENTER,
+            letterSpacing = 0.08f
+        )
+        canvas.drawText("ᚱ  Runatal", centerX, cardRect.bottom - 56f, footerPaint)
+
+        return bitmap
+    }
+
+    private fun generateLandscapeImage(
+        runicText: String,
+        latinText: String,
+        author: String,
+        palette: SharePalette
+    ): Bitmap {
+        val bitmap = Bitmap.createBitmap(LANDSCAPE_WIDTH, LANDSCAPE_HEIGHT, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(palette.background)
+
+        val cardRect = RectF(110f, 140f, LANDSCAPE_WIDTH - 110f, LANDSCAPE_HEIGHT - 140f)
+        drawRoundedPanel(canvas, cardRect, 42f, palette)
+
+        val brandPaint = paint(
+            color = palette.tertiaryText,
+            textSize = 20f,
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD),
+            letterSpacing = 0.06f
+        )
+        canvas.drawText(
+            "ᚱ  Runatal · Elder Futhark",
+            cardRect.left + 38f,
+            cardRect.top + 46f,
+            brandPaint
+        )
+
+        val centerX = cardRect.centerX()
+        var currentY = cardRect.top + 180f
+
+        val quotePaint = paint(
+            color = palette.primaryText,
+            textSize = 44f,
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC),
+            textAlign = Paint.Align.CENTER
+        )
+        val quoteLines = wrapText("“$latinText”", quotePaint, (cardRect.width() - 220f).toInt())
+        currentY = drawCenteredLines(canvas, quoteLines, centerX, currentY, 54f, quotePaint)
+        currentY += 34f
+
+        drawAuthorRule(canvas, centerX, currentY, author, palette)
+        currentY += 66f
+
+        val runicPaint = paint(
+            color = palette.tertiaryText,
+            textSize = 20f,
+            typeface = Typeface.MONOSPACE,
+            textAlign = Paint.Align.CENTER,
+            letterSpacing = 0.06f
+        )
+        canvas.drawText(
+            truncateToWidth(runicText, runicPaint, cardRect.width() - 220f),
+            centerX,
+            currentY,
+            runicPaint
+        )
+
+        return bitmap
+    }
+
+    private fun drawRoundedPanel(
+        canvas: Canvas,
+        rect: RectF,
+        radius: Float,
+        palette: SharePalette
+    ) {
+        val surfacePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = palette.surface
+            style = Paint.Style.FILL
+        }
+        canvas.drawRoundRect(rect, radius, radius, surfacePaint)
+
+        val outlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = palette.outline
+            style = Paint.Style.STROKE
+            strokeWidth = 2f
+        }
+        canvas.drawRoundRect(rect, radius, radius, outlinePaint)
+    }
+
+    private fun drawRuleWithRune(
+        canvas: Canvas,
+        centerX: Float,
+        centerY: Float,
+        width: Float,
+        palette: SharePalette
+    ) {
+        val rulePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = palette.rule
+            strokeWidth = 2f
+        }
+        val runePaint = paint(
+            color = palette.tertiaryText,
+            textSize = 34f,
+            typeface = Typeface.MONOSPACE,
+            textAlign = Paint.Align.CENTER
+        )
+        val gap = 38f
+        canvas.drawLine(centerX - width / 2, centerY, centerX - gap, centerY, rulePaint)
+        canvas.drawLine(centerX + gap, centerY, centerX + width / 2, centerY, rulePaint)
+        canvas.drawText("ᚱ", centerX, centerY + 12f, runePaint)
+    }
+
+    private fun drawCenterRule(
+        canvas: Canvas,
+        centerX: Float,
+        centerY: Float,
+        width: Float,
+        color: Int
+    ) {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            this.color = color
+            strokeWidth = 2f
+        }
+        canvas.drawLine(centerX - width / 2, centerY, centerX + width / 2, centerY, paint)
+    }
+
+    private fun drawDecorativeDots(
+        canvas: Canvas,
+        centerX: Float,
+        centerY: Float,
+        color: Int
+    ) {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            this.color = color
+            style = Paint.Style.FILL
+        }
+        listOf(-22f to 6f, 0f to 8f, 22f to 6f).forEach { (offset, radius) ->
+            canvas.drawCircle(centerX + offset, centerY, radius, paint)
+        }
+    }
+
+    private fun drawDividerWithDots(
+        canvas: Canvas,
+        centerX: Float,
+        centerY: Float,
+        color: Int
+    ) {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            this.color = color
+            strokeWidth = 2f
+        }
+        canvas.drawLine(centerX - 68f, centerY, centerX - 56f, centerY, paint)
+        canvas.drawLine(centerX - 48f, centerY, centerX - 16f, centerY, paint)
+        canvas.drawLine(centerX + 16f, centerY, centerX + 48f, centerY, paint)
+        canvas.drawLine(centerX + 56f, centerY, centerX + 68f, centerY, paint)
+    }
+
+    private fun drawAuthorRule(
+        canvas: Canvas,
+        centerX: Float,
+        centerY: Float,
+        author: String,
+        palette: SharePalette
+    ) {
+        val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = palette.rule
+            strokeWidth = 2f
+        }
+        val authorPaint = paint(
+            color = palette.secondaryText,
+            textSize = 24f,
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD),
+            textAlign = Paint.Align.CENTER
+        )
+
+        canvas.drawLine(centerX - 180f, centerY, centerX - 118f, centerY, linePaint)
+        canvas.drawLine(centerX + 118f, centerY, centerX + 180f, centerY, linePaint)
+        canvas.drawText(author, centerX, centerY + 8f, authorPaint)
+    }
+
+    private fun drawCenteredLines(
+        canvas: Canvas,
+        lines: List<String>,
+        centerX: Float,
+        startY: Float,
+        lineHeight: Float,
+        paint: Paint
+    ): Float {
+        var currentY = startY
+        lines.forEach { line ->
+            canvas.drawText(line, centerX, currentY, paint)
+            currentY += lineHeight
+        }
+        return currentY
+    }
+
+    private fun paletteFor(appearance: ShareAppearance): SharePalette {
+        return when (appearance) {
+            ShareAppearance.DARK -> SharePalette(
+                background = Color.parseColor("#101214"),
+                surface = Color.parseColor("#181A1D"),
+                primaryText = Color.parseColor("#E0E2E5"),
+                secondaryText = Color.parseColor("#8A8E95"),
+                tertiaryText = Color.parseColor("#4F8A929C"),
+                outline = Color.parseColor("#14E0E2E5"),
+                rule = Color.parseColor("#21AEB6C0")
             )
 
-            ShareTemplate.ORNATE -> ShareStyle(
-                backgroundStart = Color.parseColor("#FAEFD9"),
-                backgroundEnd = Color.parseColor("#EFD7B1"),
-                runicColor = Color.parseColor("#402715"),
-                latinColor = Color.parseColor("#5A3B23"),
-                authorColor = Color.parseColor("#7A5A3C"),
-                addFrame = true
-            )
-
-            ShareTemplate.HIGH_CONTRAST -> ShareStyle(
-                backgroundStart = Color.BLACK,
-                backgroundEnd = Color.BLACK,
-                runicColor = Color.WHITE,
-                latinColor = Color.WHITE,
-                authorColor = Color.parseColor("#E0E0E0"),
-                addFrame = false
+            ShareAppearance.LIGHT -> SharePalette(
+                background = Color.parseColor("#EBEDF0"),
+                surface = Color.parseColor("#FCFCFD"),
+                primaryText = Color.parseColor("#191C1E"),
+                secondaryText = Color.parseColor("#5A5E64"),
+                tertiaryText = Color.parseColor("#4F68707A"),
+                outline = Color.parseColor("#14191C1E"),
+                rule = Color.parseColor("#19191C1E")
             )
         }
     }
 
-    /**
-     * Wraps text to fit within a given width.
-     */
+    private fun paint(
+        color: Int,
+        textSize: Float,
+        typeface: Typeface,
+        textAlign: Paint.Align = Paint.Align.LEFT,
+        letterSpacing: Float = 0f
+    ): Paint {
+        return Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            this.color = color
+            this.textSize = textSize
+            this.typeface = typeface
+            this.textAlign = textAlign
+            this.letterSpacing = letterSpacing
+        }
+    }
+
     private fun wrapText(text: String, paint: Paint, maxWidth: Int): List<String> {
         if (text.isEmpty()) {
             return emptyList()
@@ -229,5 +469,22 @@ class QuoteImageGenerator @Inject constructor(
         }
 
         return lines
+    }
+
+    private fun truncateToWidth(text: String, paint: Paint, maxWidth: Float): String {
+        if (paint.measureText(text) <= maxWidth) {
+            return text
+        }
+
+        val ellipsis = "…"
+        var endIndex = text.length
+        while (endIndex > 0) {
+            val candidate = text.substring(0, endIndex).trimEnd() + ellipsis
+            if (paint.measureText(candidate) <= maxWidth) {
+                return candidate
+            }
+            endIndex -= 1
+        }
+        return ellipsis
     }
 }

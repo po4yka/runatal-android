@@ -10,6 +10,7 @@ import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import com.po4yka.runicquotes.util.QuoteShareManager
+import com.po4yka.runicquotes.util.ShareAppearance
 import com.po4yka.runicquotes.util.ShareTemplate
 import android.util.Log
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -150,7 +151,10 @@ class QuoteViewModel @Inject constructor(
     /**
      * Shares the current quote as an image.
      */
-    fun shareQuoteAsImage(template: ShareTemplate = ShareTemplate.MINIMAL) {
+    fun shareQuoteAsImage(
+        template: ShareTemplate = ShareTemplate.CARD,
+        appearance: ShareAppearance = ShareAppearance.DARK
+    ) {
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is QuoteUiState.Success) {
@@ -158,7 +162,8 @@ class QuoteViewModel @Inject constructor(
                     runicText = currentState.runicText,
                     latinText = currentState.quote.textLatin,
                     author = currentState.quote.author,
-                    template = template
+                    template = template,
+                    appearance = appearance
                 )
             }
         }

@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.util.QuoteShareManager
+import com.po4yka.runicquotes.util.ShareAppearance
 import com.po4yka.runicquotes.util.ShareTemplate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,8 +33,14 @@ class ShareViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<ShareUiState>(ShareUiState.Loading)
     val uiState: StateFlow<ShareUiState> = _uiState.asStateFlow()
 
-    private val _selectedTemplate = MutableStateFlow(ShareTemplate.MINIMAL)
+    private val _selectedTemplate = MutableStateFlow(ShareTemplate.CARD)
     val selectedTemplate: StateFlow<ShareTemplate> = _selectedTemplate.asStateFlow()
+
+    private val _selectedAppearance = MutableStateFlow(ShareAppearance.DARK)
+    val selectedAppearance: StateFlow<ShareAppearance> = _selectedAppearance.asStateFlow()
+
+    private val _feedbackMessage = MutableStateFlow<String?>(null)
+    val feedbackMessage: StateFlow<String?> = _feedbackMessage.asStateFlow()
 
     /** @suppress */
     companion object {
@@ -81,6 +88,11 @@ class ShareViewModel @Inject constructor(
         _selectedTemplate.update { template }
     }
 
+    /** Selects the preview appearance and export theme. */
+    fun selectAppearance(appearance: ShareAppearance) {
+        _selectedAppearance.update { appearance }
+    }
+
     /** Shares the quote as plain text. */
     fun shareAsText() {
         val quote = (uiState.value as? ShareUiState.Success)?.quote ?: return
@@ -96,9 +108,22 @@ class ShareViewModel @Inject constructor(
                 runicText = runicText,
                 latinText = quote.textLatin,
                 author = quote.author,
-                template = _selectedTemplate.value
+                template = _selectedTemplate.value,
+                appearance = _selectedAppearance.value
             )
         }
+    }
+
+    /** Copies quote text and author to the clipboard. */
+    fun copyQuote() {
+        val quote = (uiState.value as? ShareUiState.Success)?.quote ?: return
+        quoteShareManager.copyQuoteToClipboard(quote.textLatin, quote.author)
+        _feedbackMessage.value = "Quote copied"
+    }
+
+    /** Clears transient feedback after it has been shown. */
+    fun clearFeedback() {
+        _feedbackMessage.value = null
     }
 
     /** Retries loading the quote after an error. */
