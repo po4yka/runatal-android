@@ -1,6 +1,8 @@
 package com.po4yka.runicquotes.util
 
 import android.content.ActivityNotFoundException
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -102,6 +104,15 @@ class QuoteShareManager @Inject constructor(
             Log.e(TAG, "Security exception sharing image", e)
             false
         }
+    }
+
+    /**
+     * Copies quote text to the system clipboard.
+     */
+    fun copyQuoteToClipboard(latinText: String, author: String) {
+        val clipText = "$latinText\n— $author"
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("Runic quote", clipText))
     }
 
     /**

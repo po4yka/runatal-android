@@ -186,6 +186,9 @@ fun NavGraph(
                 }
                 entry<QuoteRoute> {
                     QuoteScreen(
+                        onNavigateToEditQuote = { quoteId ->
+                            backStack.add(AddEditQuoteRoute(quoteId = quoteId))
+                        },
                         onBrowseLibrary = {
                             switchTopLevelRoute(backStack, QuoteListRoute)
                         }

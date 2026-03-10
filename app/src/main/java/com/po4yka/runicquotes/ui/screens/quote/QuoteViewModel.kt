@@ -11,6 +11,7 @@ import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import com.po4yka.runicquotes.util.QuoteShareManager
 import com.po4yka.runicquotes.util.ShareTemplate
+import android.util.Log
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -177,6 +178,39 @@ class QuoteViewModel @Inject constructor(
     }
 
     /**
+     * Copies current quote text to the system clipboard.
+     */
+    fun copyQuoteText() {
+        val currentState = _uiState.value
+        if (currentState is QuoteUiState.Success) {
+            quoteShareManager.copyQuoteToClipboard(
+                latinText = currentState.quote.textLatin,
+                author = currentState.quote.author
+            )
+        }
+    }
+
+    /**
+     * Deletes the current quote and loads a new one.
+     */
+    fun deleteQuote() {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is QuoteUiState.Success) {
+                try {
+                    quoteRepository.deleteUserQuote(currentState.quote.id)
+                    currentQuote = null
+                    loadQuoteOfTheDay(showLoading = true)
+                } catch (e: IOException) {
+                    Log.e(TAG, "IO error deleting quote", e)
+                } catch (e: IllegalStateException) {
+                    Log.e(TAG, "Invalid state deleting quote", e)
+                }
+            }
+        }
+    }
+
+    /**
      * Updates selected script and keeps preview responsive.
      */
     fun updateSelectedScript(script: RunicScript) {
@@ -228,6 +262,7 @@ class QuoteViewModel @Inject constructor(
     }
 
     private companion object {
+        const val TAG = "QuoteViewModel"
         const val RECENT_QUOTES_LIMIT = 3
     }
 }

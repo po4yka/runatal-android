@@ -27,6 +27,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
@@ -58,8 +61,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
+import com.po4yka.runicquotes.ui.components.BottomSheetAction
 import com.po4yka.runicquotes.ui.components.EmptyState
 import com.po4yka.runicquotes.ui.components.ErrorState
+import com.po4yka.runicquotes.ui.components.RunicBottomSheet
 import com.po4yka.runicquotes.ui.components.SegmentedControl
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.components.SkeletonCard
@@ -83,11 +88,13 @@ import java.util.Locale
 @Composable
 fun QuoteScreen(
     onNavigateToHistory: () -> Unit = {},
+    onNavigateToEditQuote: (Long) -> Unit = {},
     onBrowseLibrary: (() -> Unit)? = null,
     viewModel: QuoteViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val haptics = rememberHapticFeedback()
+    var showBottomSheet by remember { mutableStateOf(false) }
 
     Scaffold { paddingValues ->
         Box(
@@ -118,7 +125,8 @@ fun QuoteScreen(
                         haptics.lightToggle()
                         viewModel.updateSelectedScript(script)
                     },
-                    onNavigateToHistory = onNavigateToHistory
+                    onNavigateToHistory = onNavigateToHistory,
+                    onShowActions = { showBottomSheet = true }
                 )
 
                 is QuoteUiState.Error -> ErrorState(
@@ -147,6 +155,41 @@ fun QuoteScreen(
             }
         }
     }
+
+    if (showBottomSheet) {
+        val state = uiState
+        if (state is QuoteUiState.Success) {
+            QuoteActionsBottomSheet(
+                isFavorite = state.quote.isFavorite,
+                onDismiss = { showBottomSheet = false },
+                onToggleFavorite = {
+                    haptics.lightToggle()
+                    viewModel.toggleFavorite()
+                    showBottomSheet = false
+                },
+                onShare = {
+                    haptics.mediumAction()
+                    viewModel.shareQuoteText()
+                    showBottomSheet = false
+                },
+                onCopy = {
+                    haptics.lightToggle()
+                    viewModel.copyQuoteText()
+                    showBottomSheet = false
+                },
+                onEdit = {
+                    haptics.mediumAction()
+                    onNavigateToEditQuote(state.quote.id)
+                    showBottomSheet = false
+                },
+                onDelete = {
+                    haptics.mediumAction()
+                    viewModel.deleteQuote()
+                    showBottomSheet = false
+                }
+            )
+        }
+    }
 }
 
 @Composable
@@ -156,7 +199,8 @@ private fun TodayContent(
     onShare: () -> Unit,
     onNewQuote: () -> Unit,
     onSelectScript: (RunicScript) -> Unit,
-    onNavigateToHistory: () -> Unit
+    onNavigateToHistory: () -> Unit,
+    onShowActions: () -> Unit
 ) {
     val reducedMotion = LocalReduceMotion.current
     val motion = RunicExpressiveTheme.motion
@@ -200,10 +244,10 @@ private fun TodayContent(
                     style = MaterialTheme.typography.headlineSmall
                 )
             }
-            IconButton(onClick = onNavigateToHistory) {
+            IconButton(onClick = onShowActions) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Quote history",
+                    contentDescription = "Quote actions",
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -624,6 +668,60 @@ private fun HistoryLink(onClick: () -> Unit) {
             )
         }
     }
+}
+
+@Composable
+private fun QuoteActionsBottomSheet(
+    isFavorite: Boolean,
+    onDismiss: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    onShare: () -> Unit,
+    onCopy: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val actions = listOf(
+        BottomSheetAction(
+            icon = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+            title = if (isFavorite) "Remove from Favorites" else "Add to Favorites",
+            subtitle = if (isFavorite) {
+                "Remove this quote from your collection"
+            } else {
+                "Save this quote to your favorites"
+            },
+            onClick = onToggleFavorite
+        ),
+        BottomSheetAction(
+            icon = Icons.Default.Share,
+            title = "Share",
+            subtitle = "Share this quote with others",
+            onClick = onShare
+        ),
+        BottomSheetAction(
+            icon = Icons.Default.ContentCopy,
+            title = "Copy",
+            subtitle = "Copy quote text to clipboard",
+            onClick = onCopy
+        ),
+        BottomSheetAction(
+            icon = Icons.Default.Edit,
+            title = "Edit",
+            subtitle = "Modify this quote",
+            onClick = onEdit
+        ),
+        BottomSheetAction(
+            icon = Icons.Default.Delete,
+            title = "Delete",
+            subtitle = "Permanently remove this quote",
+            isDestructive = true,
+            onClick = onDelete
+        )
+    )
+
+    RunicBottomSheet(
+        actions = actions,
+        onDismiss = onDismiss
+    )
 }
 
 @Composable
