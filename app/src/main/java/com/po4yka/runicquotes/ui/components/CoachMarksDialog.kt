@@ -31,13 +31,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 
-/** A single step in a coach marks tour. */
-data class CoachMarkStep(
-    val number: Int,
-    val title: String,
-    val description: String
-)
-
 /** Step-by-step feature tour dialog with skip/next navigation. */
 @Composable
 fun CoachMarksDialog(
@@ -94,6 +87,13 @@ fun CoachMarksDialog(
         }
     }
 }
+
+/** A single step in a coach marks tour. */
+data class CoachMarkStep(
+    val number: Int,
+    val title: String,
+    val description: String
+)
 
 @Composable
 private fun CoachStepContent(

@@ -82,6 +82,9 @@ class QuoteViewModelTest {
         // Set up preferences flow
         preferencesFlow = MutableStateFlow(defaultPreferences)
         every { userPreferencesManager.userPreferencesFlow } returns preferencesFlow
+
+        // Mock getAllQuotes used by loadRecentQuotes()
+        coEvery { quoteRepository.getAllQuotes() } returns listOf(testQuote)
     }
 
     @After
