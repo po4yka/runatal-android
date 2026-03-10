@@ -273,8 +273,8 @@ private fun LibraryEmptyState(
 
         QuoteFilter.USER_CREATED -> EmptyState(
             icon = Icons.Default.Edit,
-            title = "No custom quotes",
-            description = "Create your own quotes to see them here",
+            title = "No custom quotes yet",
+            description = "Create your first custom quote and see it rendered in ancient runic scripts.",
             primaryActionLabel = "Create Quote",
             onPrimaryAction = onNavigateToAddQuote,
             modifier = modifier
@@ -349,7 +349,7 @@ private fun QuoteListItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "\u2014 ${quote.author}",
+                    text = quote.author,
                     style = typeRoles.quoteMeta,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
