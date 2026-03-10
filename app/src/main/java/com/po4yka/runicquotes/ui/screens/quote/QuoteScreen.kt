@@ -572,13 +572,13 @@ private fun ActionButtonsRow(
             }
         }
 
-        // Share button
+        // Share button - prominent filled style per Figma
         Surface(
             modifier = Modifier
                 .weight(1f)
                 .height(48.dp),
             shape = shapes.segment,
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            color = MaterialTheme.colorScheme.primaryContainer,
             onClick = onShare
         ) {
             Row(
@@ -590,13 +590,13 @@ private fun ActionButtonsRow(
                     imageVector = Icons.Default.Share,
                     contentDescription = "Share quote",
                     modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurface
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Share",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }
