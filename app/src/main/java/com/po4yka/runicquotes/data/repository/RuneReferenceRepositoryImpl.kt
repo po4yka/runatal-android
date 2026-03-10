@@ -2,6 +2,7 @@ package com.po4yka.runicquotes.data.repository
 
 import com.po4yka.runicquotes.data.local.dao.RuneReferenceDao
 import com.po4yka.runicquotes.data.local.entity.RuneReferenceEntity
+import com.po4yka.runicquotes.data.seed.RuneReferenceSeedData
 import com.po4yka.runicquotes.domain.model.RuneReference
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -16,6 +17,20 @@ import javax.inject.Singleton
 class RuneReferenceRepositoryImpl @Inject constructor(
     private val runeReferenceDao: RuneReferenceDao
 ) : RuneReferenceRepository {
+
+    private var isSeeded = false
+
+    override suspend fun seedIfNeeded() {
+        if (isSeeded || runeReferenceDao.getCount() > 0) {
+            return
+        }
+
+        val allRunes = RuneReferenceSeedData.getElderFutharkRunes() +
+            RuneReferenceSeedData.getYoungerFutharkRunes() +
+            RuneReferenceSeedData.getCirthRunes()
+        runeReferenceDao.insertAll(allRunes)
+        isSeeded = true
+    }
 
     override fun getAllRunesFlow(): Flow<List<RuneReference>> {
         return runeReferenceDao.getAllFlow().map { entities ->

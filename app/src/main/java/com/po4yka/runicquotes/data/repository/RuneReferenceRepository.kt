@@ -10,6 +10,11 @@ import kotlinx.coroutines.flow.Flow
 interface RuneReferenceRepository {
 
     /**
+     * Seeds the database with rune reference data if empty.
+     */
+    suspend fun seedIfNeeded()
+
+    /**
      * Gets all rune references as a reactive Flow.
      */
     fun getAllRunesFlow(): Flow<List<RuneReference>>

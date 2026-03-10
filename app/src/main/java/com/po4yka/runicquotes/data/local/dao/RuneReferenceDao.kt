@@ -32,6 +32,12 @@ interface RuneReferenceDao {
     suspend fun getById(id: Long): RuneReferenceEntity?
 
     /**
+     * Get the total count of rune references.
+     */
+    @Query("SELECT COUNT(*) FROM rune_references")
+    suspend fun getCount(): Int
+
+    /**
      * Insert multiple rune references, replacing on conflict.
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
