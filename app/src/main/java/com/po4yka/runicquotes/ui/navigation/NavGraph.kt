@@ -330,7 +330,9 @@ private fun EntryProviderScope<Any>.detailEntries(
         TranslationScreen()
     }
     entry<ProfileRoute> {
-        ProfileScreen()
+        ProfileScreen(
+            onNavigateBack = { backStack.removeLastOrNull() }
+        )
     }
     entry<NotificationSettingsRoute> {
         NotificationSettingsScreen(
