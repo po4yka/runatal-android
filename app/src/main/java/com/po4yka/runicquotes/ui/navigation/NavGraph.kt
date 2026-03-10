@@ -391,6 +391,7 @@ private fun EntryProviderScope<Any>.detailEntries(
     }
     entry<ReferencesRoute> {
         ReferencesScreen(
+            onNavigateBack = { backStack.removeLastOrNull() },
             onNavigateToRuneDetail = { runeId ->
                 backStack.add(RuneDetailRoute(runeId))
             }

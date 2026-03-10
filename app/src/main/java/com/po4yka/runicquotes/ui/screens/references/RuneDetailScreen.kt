@@ -1,26 +1,28 @@
 package com.po4yka.runicquotes.ui.screens.references
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -29,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -36,7 +39,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RuneReference
 import com.po4yka.runicquotes.ui.components.ErrorState
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RuneDetailScreen(
     onNavigateBack: () -> Unit = {},
@@ -47,113 +49,227 @@ fun RuneDetailScreen(
 
     LaunchedEffect(runeId) { viewModel.initializeRuneIfNeeded(runeId) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        RuneDetailTopBar(uiState = uiState, onNavigateBack = onNavigateBack)
+    Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            RuneDetailTopBar(onNavigateBack = onNavigateBack)
 
-        when (val state = uiState) {
-            is RuneDetailUiState.Loading -> RuneDetailLoading()
-            is RuneDetailUiState.Error -> ErrorState(
-                title = "Something Went Wrong",
-                description = state.message,
-                onRetry = viewModel::retry,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(vertical = 48.dp)
-            )
-            is RuneDetailUiState.Success -> RuneDetailContent(rune = state.rune)
+            when (val state = uiState) {
+                is RuneDetailUiState.Loading -> RuneDetailLoading()
+                is RuneDetailUiState.Error -> ErrorState(
+                    title = "Something Went Wrong",
+                    description = state.message,
+                    onRetry = viewModel::retry,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(vertical = 48.dp)
+                )
+
+                is RuneDetailUiState.Success -> RuneDetailContent(rune = state.rune)
+            }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RuneDetailTopBar(uiState: RuneDetailUiState, onNavigateBack: () -> Unit) {
-    val title = (uiState as? RuneDetailUiState.Success)?.rune?.name ?: "Rune Detail"
-    TopAppBar(
-        title = { Text(title) },
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Navigate back"
-                )
-            }
+private fun RuneDetailTopBar(onNavigateBack: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .height(54.dp)
+    ) {
+        FilledTonalIconButton(
+            onClick = onNavigateBack,
+            modifier = Modifier.align(Alignment.CenterStart)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Navigate back"
+            )
         }
-    )
+
+        Text(
+            text = "Rune Detail",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.align(Alignment.Center)
+        )
+    }
 }
 
 @Composable
 private fun RuneDetailContent(rune: RuneReference) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 20.dp, top = 10.dp, end = 20.dp, bottom = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Box(
-            modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceContainer)
-                .semantics { contentDescription = "Rune character: ${rune.character}" },
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = rune.character,
-                style = MaterialTheme.typography.displayLarge,
-                color = MaterialTheme.colorScheme.onSurface
+        item {
+            RuneHeroCard(rune = rune)
+        }
+        item {
+            RuneDetailSection(
+                label = "Meaning",
+                text = rune.meaning,
+                emphasis = true
             )
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = rune.name,
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = rune.pronunciation,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        RuneInfoSection(label = "Meaning", text = rune.meaning)
-        RuneInfoSection(label = "History", text = rune.history)
-        RuneInfoSection(label = "Script", text = formatScriptName(rune.script))
-
-        Spacer(modifier = Modifier.height(24.dp))
+        item {
+            RuneDetailSection(
+                label = "History",
+                text = rune.history
+            )
+        }
+        item {
+            RuneDetailSection(
+                label = "Script",
+                text = scriptContext(rune.script)
+            )
+        }
+        item {
+            RuneDetailFooter()
+        }
     }
 }
 
 @Composable
-private fun RuneInfoSection(label: String, text: String) {
-    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(4.dp))
+private fun RuneHeroCard(rune: RuneReference) {
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 22.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(116.dp)
+                    .clip(MaterialTheme.shapes.extraLarge)
+                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                    .semantics { contentDescription = "Rune character: ${rune.character}" },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = rune.character,
+                    style = MaterialTheme.typography.displayMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = rune.name,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "/${rune.pronunciation}/",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                RuneMetaChip(text = formatScriptName(rune.script))
+                RuneMetaChip(text = rune.meaning)
+            }
+        }
+    }
+}
+
+@Composable
+private fun RuneMetaChip(text: String) {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest
+    ) {
         Text(
             text = text,
-            style = if (label == "Meaning") {
-                MaterialTheme.typography.bodyLarge
-            } else {
-                MaterialTheme.typography.bodyMedium
-            },
-            color = MaterialTheme.colorScheme.onSurface
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+        )
+    }
+}
+
+@Composable
+private fun RuneDetailSection(
+    label: String,
+    text: String,
+    emphasis: Boolean = false
+) {
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.secondary
+            )
+            Text(
+                text = text,
+                style = if (emphasis) {
+                    MaterialTheme.typography.titleMedium
+                } else {
+                    MaterialTheme.typography.bodyMedium
+                },
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+private fun RuneDetailFooter() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+        )
+        Text(
+            text = "\u16A0\u16A2\u16A6\u16A8\u16B1\u16B2",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        )
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
         )
     }
 }
@@ -166,6 +282,13 @@ private fun RuneDetailLoading() {
     ) {
         androidx.compose.material3.CircularProgressIndicator()
     }
+}
+
+private fun scriptContext(script: String): String = when (script) {
+    "elder_futhark" -> "The oldest canonical rune row, used across early Germanic inscriptions."
+    "younger_futhark" -> "The Viking Age simplification of Elder Futhark, compressed into 16 signs."
+    "cirth" -> "Tolkien's Cirth tradition, designed as a systematic family of sound-based runes."
+    else -> formatScriptName(script)
 }
 
 private fun formatScriptName(script: String): String = when (script) {

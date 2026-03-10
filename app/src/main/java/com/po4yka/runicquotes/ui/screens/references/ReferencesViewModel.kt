@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -24,6 +25,8 @@ class ReferencesViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(ReferencesUiState())
     val uiState: StateFlow<ReferencesUiState> = _uiState.asStateFlow()
+    private var currentRunes: List<RuneReference> = emptyList()
+    private var loadJob: Job? = null
 
     /** @suppress */
     companion object {
@@ -38,7 +41,8 @@ class ReferencesViewModel @Inject constructor(
     }
 
     private fun loadRunes() {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
             val script = _uiState.value.selectedTab.scriptKey
@@ -50,8 +54,14 @@ class ReferencesViewModel @Inject constructor(
                     }
                 }
                 .collect { runes ->
+                    currentRunes = runes
                     _uiState.update {
-                        it.copy(runes = runes, isLoading = false, errorMessage = null)
+                        it.copy(
+                            runes = filterRunes(runes, it.searchQuery),
+                            totalRuneCount = runes.size,
+                            isLoading = false,
+                            errorMessage = null
+                        )
                     }
                 }
         }
@@ -66,11 +76,56 @@ class ReferencesViewModel @Inject constructor(
     }
 
     /**
+     * Expands or collapses the inline search field.
+     * Closing search also clears the active query.
+     */
+    fun toggleSearch() {
+        val searchVisible = !_uiState.value.isSearchVisible
+        _uiState.update {
+            it.copy(
+                isSearchVisible = searchVisible,
+                searchQuery = if (searchVisible) it.searchQuery else ""
+            )
+        }
+        if (!searchVisible) {
+            applySearch()
+        }
+    }
+
+    /**
+     * Filters the current script set by rune name, sound, meaning, or glyph.
+     */
+    fun updateSearchQuery(query: String) {
+        _uiState.update { it.copy(searchQuery = query) }
+        applySearch()
+    }
+
+    /**
      * Retries loading runes after an error.
      */
     fun retry() {
         _uiState.update { it.copy(errorMessage = null) }
         loadRunes()
+    }
+
+    private fun applySearch() {
+        _uiState.update {
+            it.copy(runes = filterRunes(currentRunes, it.searchQuery))
+        }
+    }
+
+    private fun filterRunes(runes: List<RuneReference>, query: String): List<RuneReference> {
+        val normalizedQuery = query.trim().lowercase()
+        if (normalizedQuery.isBlank()) {
+            return runes
+        }
+
+        return runes.filter { rune ->
+            rune.name.lowercase().contains(normalizedQuery) ||
+                rune.pronunciation.lowercase().contains(normalizedQuery) ||
+                rune.meaning.lowercase().contains(normalizedQuery) ||
+                rune.character.contains(normalizedQuery)
+        }
     }
 }
 
@@ -88,7 +143,10 @@ enum class ScriptTab(val displayName: String, val scriptKey: String) {
  */
 data class ReferencesUiState(
     val runes: List<RuneReference> = emptyList(),
+    val totalRuneCount: Int = 0,
     val selectedTab: ScriptTab = ScriptTab.ELDER,
     val isLoading: Boolean = false,
+    val isSearchVisible: Boolean = false,
+    val searchQuery: String = "",
     val errorMessage: String? = null
 )

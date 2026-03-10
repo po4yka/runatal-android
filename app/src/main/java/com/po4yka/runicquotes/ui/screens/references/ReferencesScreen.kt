@@ -1,5 +1,7 @@
 package com.po4yka.runicquotes.ui.screens.references
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,28 +10,41 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -38,159 +53,501 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RuneReference
 import com.po4yka.runicquotes.ui.components.EmptyState
 import com.po4yka.runicquotes.ui.components.ErrorState
-import com.po4yka.runicquotes.ui.components.SegmentedControl
 import com.po4yka.runicquotes.ui.components.SkeletonCard
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
-import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 
 @Composable
 fun ReferencesScreen(
+    onNavigateBack: () -> Unit = {},
     onNavigateToRuneDetail: (Long) -> Unit = {},
     viewModel: ReferencesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        ReferencesHeader(runeCount = uiState.runes.size)
-        SegmentedControl(
-            segments = ScriptTab.entries.map { it.displayName },
-            selectedIndex = uiState.selectedTab.ordinal,
-            onSegmentSelected = { viewModel.selectTab(ScriptTab.entries[it]) },
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-        ScriptInfoLine(tab = uiState.selectedTab, count = uiState.runes.size)
+    Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0)) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            ReferencesTopBar(
+                isSearchVisible = uiState.isSearchVisible,
+                onNavigateBack = onNavigateBack,
+                onToggleSearch = viewModel::toggleSearch
+            )
 
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            AnimatedVisibility(visible = uiState.isSearchVisible) {
+                ReferencesSearchField(
+                    query = uiState.searchQuery,
+                    onQueryChange = viewModel::updateSearchQuery,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                )
+            }
 
-        when {
-            uiState.isLoading -> ReferencesLoadingSkeleton()
-            uiState.errorMessage != null -> ErrorState(
-                title = "Something Went Wrong",
-                description = uiState.errorMessage ?: "An unexpected error occurred.",
+            ReferencesContent(
+                uiState = uiState,
+                onSegmentSelected = viewModel::selectTab,
+                onNavigateToRuneDetail = onNavigateToRuneDetail,
                 onRetry = viewModel::retry,
-                modifier = Modifier.fillMaxSize().padding(vertical = 48.dp)
-            )
-            uiState.runes.isEmpty() -> EmptyState(
-                icon = Icons.AutoMirrored.Filled.List,
-                title = "No Runes Found",
-                description = "Rune references for this script will appear here.",
-                modifier = Modifier.fillMaxSize().padding(vertical = 48.dp)
-            )
-            else -> RuneGrid(
-                runes = uiState.runes,
-                onRuneClick = onNavigateToRuneDetail
+                modifier = Modifier.fillMaxSize()
             )
         }
     }
 }
 
 @Composable
-private fun ReferencesHeader(runeCount: Int) {
+private fun ReferencesTopBar(
+    isSearchVisible: Boolean,
+    onNavigateBack: () -> Unit,
+    onToggleSearch: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .height(54.dp)
+    ) {
+        FilledTonalIconButton(
+            onClick = onNavigateBack,
+            modifier = Modifier.align(Alignment.CenterStart)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Navigate back"
+            )
+        }
+
+        Text(
+            text = "Rune Reference",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.align(Alignment.Center)
+        )
+
+        FilledTonalIconButton(
+            onClick = onToggleSearch,
+            modifier = Modifier.align(Alignment.CenterEnd)
+        ) {
+            Icon(
+                imageVector = if (isSearchVisible) Icons.Default.Close else Icons.Default.Search,
+                contentDescription = if (isSearchVisible) "Close search" else "Search runes"
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReferencesSearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = modifier.fillMaxWidth(),
+        singleLine = true,
+        placeholder = {
+            Text(
+                text = "Search rune, sound, or meaning",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null
+            )
+        },
+        trailingIcon = if (query.isNotBlank()) {
+            {
+                FilledTonalIconButton(onClick = { onQueryChange("") }) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Clear search"
+                    )
+                }
+            }
+        } else {
+            null
+        }
+    )
+}
+
+@Composable
+private fun ReferencesContent(
+    uiState: ReferencesUiState,
+    onSegmentSelected: (ScriptTab) -> Unit,
+    onNavigateToRuneDetail: (Long) -> Unit,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val sections = buildRuneSections(uiState.selectedTab, uiState.runes)
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(4),
+        modifier = modifier,
+        contentPadding = PaddingValues(start = 20.dp, top = 10.dp, end = 20.dp, bottom = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            ReferencesScriptSelector(
+                selectedTab = uiState.selectedTab,
+                onSegmentSelected = onSegmentSelected
+            )
+        }
+
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            ScriptInfoCard(tab = uiState.selectedTab, count = uiState.totalRuneCount)
+        }
+
+        when {
+            uiState.isLoading -> referencesLoadingItems()
+            uiState.errorMessage != null -> item(span = { GridItemSpan(maxLineSpan) }) {
+                ErrorState(
+                    title = "Something Went Wrong",
+                    description = uiState.errorMessage,
+                    onRetry = onRetry,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 36.dp, bottom = 60.dp)
+                )
+            }
+
+            uiState.runes.isEmpty() -> item(span = { GridItemSpan(maxLineSpan) }) {
+                EmptyState(
+                    icon = Icons.Default.Search,
+                    title = if (uiState.searchQuery.isBlank()) "No runes found" else "No matching runes",
+                    description = if (uiState.searchQuery.isBlank()) {
+                        "Rune references for this script will appear here."
+                    } else {
+                        "Try another name, sound, or meaning."
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 36.dp, bottom = 60.dp)
+                )
+            }
+
+            else -> {
+                sections.forEach { section ->
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        RuneSectionHeader(section = section)
+                    }
+                    items(section.runes, key = { it.id }) { rune ->
+                        RuneCell(
+                            rune = rune,
+                            onClick = { onNavigateToRuneDetail(rune.id) }
+                        )
+                    }
+                }
+
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    ReferencesFooter()
+                }
+            }
+        }
+    }
+}
+
+private fun androidx.compose.foundation.lazy.grid.LazyGridScope.referencesLoadingItems() {
+    item(span = { GridItemSpan(maxLineSpan) }) {
+        Spacer(modifier = Modifier.height(4.dp))
+    }
+    items(12) {
+        val brush = rememberShimmerBrush()
+        SkeletonCard(
+            height = 76.dp,
+            brush = brush
+        )
+    }
+}
+
+@Composable
+private fun ReferencesScriptSelector(
+    selectedTab: ScriptTab,
+    onSegmentSelected: (ScriptTab) -> Unit
+) {
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            ScriptTab.entries.forEach { tab ->
+                val isSelected = tab == selectedTab
+                val backgroundColor = if (isSelected) {
+                    MaterialTheme.colorScheme.secondaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerLow
+                }
+                val contentColor = if (isSelected) {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(MaterialTheme.shapes.medium)
+                        .background(backgroundColor)
+                        .clickable { onSegmentSelected(tab) }
+                        .semantics {
+                            role = Role.Tab
+                            selected = isSelected
+                        }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (isSelected) {
+                        Text(
+                            text = tab.selectorRune,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = contentColor
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                    Text(
+                        text = tab.displayName,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = contentColor
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScriptInfoCard(tab: ScriptTab, count: Int) {
+    val presentation = tab.presentation(count)
+
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
+    ) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .heightIn(min = 96.dp)
+                    .background(MaterialTheme.colorScheme.secondary)
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(MaterialTheme.shapes.medium)
+                        .background(MaterialTheme.colorScheme.secondaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = presentation.title,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = presentation.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RuneSectionHeader(section: RuneSection) {
     Row(
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 10.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "\u16DE",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface
+        Box(
+            modifier = Modifier
+                .size(5.dp)
+                .clip(MaterialTheme.shapes.small)
+                .background(MaterialTheme.colorScheme.secondary)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = "Reference",
-            style = MaterialTheme.typography.headlineMedium,
+            text = section.title,
+            style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurface
         )
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.width(8.dp))
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+        )
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = "$runeCount",
-            style = MaterialTheme.typography.labelMedium,
+            text = countLabel(section.runes.size),
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
 
 @Composable
-private fun ScriptInfoLine(tab: ScriptTab, count: Int) {
-    val description = when (tab) {
-        ScriptTab.ELDER -> "$count runes \u00B7 2nd\u20138th century \u00B7 Germanic peoples"
-        ScriptTab.YOUNGER -> "$count runes \u00B7 9th\u201311th century \u00B7 Viking Age"
-        ScriptTab.CIRTH -> "$count runes \u00B7 Tolkien\u2019s Angerthas script"
+private fun RuneCell(rune: RuneReference, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(76.dp)
+            .semantics { contentDescription = "${rune.name}: ${rune.pronunciation}" }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 4.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = rune.character,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = rune.pronunciation.uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+            Text(
+                text = rune.name,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
-    Text(
-        text = description,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+}
+
+@Composable
+private fun ReferencesFooter() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+        )
+        Text(
+            text = "\u16A0\u16A2\u16A6\u16A8\u16B1\u16B2",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        )
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+        )
+    }
+}
+
+private fun ScriptTab.presentation(count: Int): ScriptPresentation = when (this) {
+    ScriptTab.ELDER -> ScriptPresentation(
+        title = "Elder Futhark",
+        description = "$count runes · 2nd-8th century · Germanic peoples. " +
+            "Three groups of eight tied to the classic aettir."
+    )
+
+    ScriptTab.YOUNGER -> ScriptPresentation(
+        title = "Younger Futhark",
+        description = "$count runes · 9th-11th century · Viking Age Scandinavia. " +
+            "Reduced forms optimized for Norse inscriptions."
+    )
+
+    ScriptTab.CIRTH -> ScriptPresentation(
+        title = "Cirth",
+        description = "$count runes · Literary tradition · Tolkien's Angerthas. " +
+            "Consonant-heavy rows paired with a vowel series."
     )
 }
 
-@Composable
-private fun RuneGrid(runes: List<RuneReference>, onRuneClick: (Long) -> Unit) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(4),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        items(runes, key = { it.id }) { rune ->
-            RuneCell(rune = rune, onClick = { onRuneClick(rune.id) })
-        }
+private val ScriptTab.selectorRune: String
+    get() = when (this) {
+        ScriptTab.ELDER -> "\u16A0"
+        ScriptTab.YOUNGER -> "\u16A6"
+        ScriptTab.CIRTH -> "\u2D59"
     }
-}
 
-@Composable
-private fun RuneCell(rune: RuneReference, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .clip(RunicExpressiveTheme.shapes.contentCard)
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .clickable(onClick = onClick)
-            .heightIn(min = 80.dp)
-            .padding(vertical = 8.dp, horizontal = 4.dp)
-            .semantics { contentDescription = "${rune.name}: ${rune.pronunciation}" },
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = rune.character,
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = rune.name,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        Text(
-            text = rune.pronunciation,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
+private fun buildRuneSections(tab: ScriptTab, runes: List<RuneReference>): List<RuneSection> = when (tab) {
+    ScriptTab.ELDER -> listOf(
+        RuneSection("Freyr's Aett", runes.take(8)),
+        RuneSection("Heimdall's Aett", runes.drop(8).take(8)),
+        RuneSection("Tyr's Aett", runes.drop(16))
+    )
 
-@Composable
-private fun ReferencesLoadingSkeleton() {
-    val brush = rememberShimmerBrush()
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(4),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        items(12) {
-            SkeletonCard(height = 80.dp, brush = brush)
-        }
+    ScriptTab.YOUNGER -> listOf(
+        RuneSection("Early Sequence", runes.take(8)),
+        RuneSection("Later Sequence", runes.drop(8))
+    )
+
+    ScriptTab.CIRTH -> {
+        val vowels = runes.filter { it.pronunciation.lowercase() in setOf("a", "e", "i", "o", "u") }
+        val consonants = runes - vowels.toSet()
+        listOf(
+            RuneSection("Consonants", consonants),
+            RuneSection("Vowels", vowels)
+        )
     }
-}
+}.filter { it.runes.isNotEmpty() }
+
+private fun countLabel(count: Int): String = if (count == 1) "1 rune" else "$count runes"
+
+private data class ScriptPresentation(
+    val title: String,
+    val description: String
+)
+
+private data class RuneSection(
+    val title: String,
+    val runes: List<RuneReference>
+)
