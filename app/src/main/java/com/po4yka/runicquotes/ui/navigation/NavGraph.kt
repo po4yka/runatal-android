@@ -222,8 +222,10 @@ fun NavGraph(
                         }
                     )
                 }
-                entry<PackDetailRoute> { route ->
-                    PackDetailScreen(packId = route.packId)
+                entry<PackDetailRoute> {
+                    PackDetailScreen(
+                        onNavigateBack = { backStack.removeLastOrNull() }
+                    )
                 }
                 entry<ArchiveRoute> {
                     ArchiveScreen()
