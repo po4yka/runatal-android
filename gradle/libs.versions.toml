@@ -1,9 +1,9 @@
 [versions]
 kotlin = "2.3.10"
-ksp = "2.3.5"
-agp = "9.0.1"
-compose-bom = "2026.02.00"
-hilt = "2.59.1"
+ksp = "2.3.6"
+agp = "9.1.0"
+compose-bom = "2026.02.01"
+hilt = "2.59.2"
 room = "2.8.4"
 datastore = "1.2.0"
 work = "2.11.1"
