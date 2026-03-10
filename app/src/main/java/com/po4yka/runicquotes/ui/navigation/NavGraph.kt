@@ -12,6 +12,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -30,11 +32,22 @@ import androidx.navigation3.scene.Scene
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.ui.screens.about.AboutScreen
 import com.po4yka.runicquotes.ui.screens.addeditquote.AddEditQuoteScreen
+import com.po4yka.runicquotes.ui.screens.archive.ArchiveScreen
+import com.po4yka.runicquotes.ui.screens.create.CreateScreen
+import com.po4yka.runicquotes.ui.screens.notificationsettings.NotificationSettingsScreen
 import com.po4yka.runicquotes.ui.screens.onboarding.OnboardingScreen
+import com.po4yka.runicquotes.ui.screens.packs.PackDetailScreen
+import com.po4yka.runicquotes.ui.screens.packs.PacksScreen
+import com.po4yka.runicquotes.ui.screens.profile.ProfileScreen
 import com.po4yka.runicquotes.ui.screens.quote.QuoteScreen
 import com.po4yka.runicquotes.ui.screens.quotelist.QuoteListScreen
+import com.po4yka.runicquotes.ui.screens.references.ReferencesScreen
+import com.po4yka.runicquotes.ui.screens.references.RuneDetailScreen
 import com.po4yka.runicquotes.ui.screens.settings.SettingsScreen
+import com.po4yka.runicquotes.ui.screens.share.ShareScreen
+import com.po4yka.runicquotes.ui.screens.translation.TranslationScreen
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import androidx.navigationevent.NavigationEvent
@@ -52,8 +65,8 @@ fun NavGraph(
     onCompleteOnboarding: () -> Unit
 ) {
     val currentRoute = backStack.lastOrNull() ?: QuoteRoute
-    val showBottomBar =
-        currentRoute is QuoteRoute || currentRoute is QuoteListRoute || currentRoute is SettingsRoute
+    val showBottomBar = currentRoute is QuoteRoute || currentRoute is QuoteListRoute ||
+        currentRoute is CreateRoute || currentRoute is PacksRoute || currentRoute is SettingsRoute
     val reducedMotion = LocalReduceMotion.current
     val motion = RunicExpressiveTheme.motion
 
@@ -199,6 +212,39 @@ fun NavGraph(
                         quoteId = route.quoteId
                     )
                 }
+                entry<CreateRoute> {
+                    CreateScreen()
+                }
+                entry<PacksRoute> {
+                    PacksScreen()
+                }
+                entry<PackDetailRoute> { route ->
+                    PackDetailScreen(packId = route.packId)
+                }
+                entry<ArchiveRoute> {
+                    ArchiveScreen()
+                }
+                entry<ReferencesRoute> {
+                    ReferencesScreen()
+                }
+                entry<RuneDetailRoute> { route ->
+                    RuneDetailScreen(runeId = route.runeId)
+                }
+                entry<ShareRoute> { route ->
+                    ShareScreen(quoteId = route.quoteId)
+                }
+                entry<TranslationRoute> {
+                    TranslationScreen()
+                }
+                entry<ProfileRoute> {
+                    ProfileScreen()
+                }
+                entry<NotificationSettingsRoute> {
+                    NotificationSettingsScreen()
+                }
+                entry<AboutRoute> {
+                    AboutScreen()
+                }
             }
         )
     }
@@ -214,12 +260,12 @@ private fun TopLevelBottomBar(
             selected = currentRoute is QuoteRoute,
             onClick = { switchTopLevelRoute(backStack, QuoteRoute) },
             icon = {
-                Box(modifier = Modifier.semantics { contentDescription = "Daily Rune" }) {
+                Box(modifier = Modifier.semantics { contentDescription = "Today" }) {
                     Text("ᚱ")
                 }
             },
-            label = { Text("Daily") },
-            modifier = Modifier.testTag("tab_daily")
+            label = { Text("Today") },
+            modifier = Modifier.testTag("tab_today")
         )
         NavigationBarItem(
             selected = currentRoute is QuoteListRoute,
@@ -232,6 +278,30 @@ private fun TopLevelBottomBar(
             },
             label = { Text("Library") },
             modifier = Modifier.testTag("tab_library")
+        )
+        NavigationBarItem(
+            selected = currentRoute is CreateRoute,
+            onClick = { switchTopLevelRoute(backStack, CreateRoute) },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null
+                )
+            },
+            label = { Text("Create") },
+            modifier = Modifier.testTag("tab_create")
+        )
+        NavigationBarItem(
+            selected = currentRoute is PacksRoute,
+            onClick = { switchTopLevelRoute(backStack, PacksRoute) },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null
+                )
+            },
+            label = { Text("Packs") },
+            modifier = Modifier.testTag("tab_packs")
         )
         NavigationBarItem(
             selected = currentRoute is SettingsRoute,
@@ -265,9 +335,20 @@ private fun routeRank(scene: Scene<Any>): Int {
         key.contains("OnboardingRoute") -> 0
         key.contains("QuoteRoute") -> 1
         key.contains("QuoteListRoute") -> 2
-        key.contains("AddEditQuoteRoute") -> 3
-        key.contains("SettingsRoute") -> 4
-        else -> 2
+        key.contains("CreateRoute") -> 3
+        key.contains("PacksRoute") -> 4
+        key.contains("SettingsRoute") -> 5
+        key.contains("AddEditQuoteRoute") -> 6
+        key.contains("PackDetailRoute") -> 7
+        key.contains("ArchiveRoute") -> 8
+        key.contains("ReferencesRoute") -> 9
+        key.contains("RuneDetailRoute") -> 10
+        key.contains("ShareRoute") -> 11
+        key.contains("TranslationRoute") -> 12
+        key.contains("ProfileRoute") -> 13
+        key.contains("NotificationSettingsRoute") -> 14
+        key.contains("AboutRoute") -> 15
+        else -> 3
     }
 }
 
@@ -306,7 +387,9 @@ private fun routeKind(scene: Scene<Any>): RouteKind {
     val key = scene.key.toString()
     return when {
         key.contains("OnboardingRoute") -> RouteKind.ONBOARDING
-        key.contains("QuoteRoute") || key.contains("QuoteListRoute") || key.contains("SettingsRoute") -> RouteKind.TOP_LEVEL
+        key.contains("QuoteRoute") || key.contains("QuoteListRoute") ||
+            key.contains("CreateRoute") || key.contains("PacksRoute") ||
+            key.contains("SettingsRoute") -> RouteKind.TOP_LEVEL
         else -> RouteKind.DETAIL
     }
 }
