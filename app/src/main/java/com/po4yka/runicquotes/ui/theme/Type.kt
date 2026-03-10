@@ -31,102 +31,93 @@ val BabelStoneRunicRuled = FontFamily(
 )
 
 /**
- * Material 3 Expressive Typography with Roboto Flex
+ * Typography aligned to the Figma foundation sheet.
  */
 val RunicTypography = Typography(
-    // Display styles - for large, impactful text
     displayLarge = TextStyle(
         fontFamily = RobotoFlex,
-        fontSize = 57.sp,
-        lineHeight = 64.sp,
+        fontSize = 40.sp,
+        lineHeight = 44.sp,
         fontWeight = FontWeight.Bold,
-        letterSpacing = (-0.25).sp
+        letterSpacing = (-0.6).sp
     ),
     displayMedium = TextStyle(
         fontFamily = RobotoFlex,
-        fontSize = 45.sp,
-        lineHeight = 52.sp,
+        fontSize = 32.sp,
+        lineHeight = 36.sp,
         fontWeight = FontWeight.Bold,
-        letterSpacing = 0.sp
+        letterSpacing = (-0.4).sp
     ),
     displaySmall = TextStyle(
         fontFamily = RobotoFlex,
-        fontSize = 36.sp,
-        lineHeight = 44.sp,
-        fontWeight = FontWeight.Bold,
-        letterSpacing = 0.sp
+        fontSize = 28.sp,
+        lineHeight = 32.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = (-0.2).sp
     ),
-
-    // Headline styles - for section headers
     headlineLarge = TextStyle(
         fontFamily = RobotoFlex,
-        fontSize = 32.sp,
-        lineHeight = 40.sp,
-        fontWeight = FontWeight.SemiBold,
-        letterSpacing = 0.sp
+        fontSize = 24.sp,
+        lineHeight = 28.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = (-0.2).sp
     ),
     headlineMedium = TextStyle(
         fontFamily = RobotoFlex,
-        fontSize = 28.sp,
-        lineHeight = 36.sp,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
         fontWeight = FontWeight.SemiBold,
-        letterSpacing = 0.sp
+        letterSpacing = (-0.1).sp
     ),
     headlineSmall = TextStyle(
         fontFamily = RobotoFlex,
-        fontSize = 24.sp,
-        lineHeight = 32.sp,
+        fontSize = 20.sp,
+        lineHeight = 24.sp,
         fontWeight = FontWeight.SemiBold,
         letterSpacing = 0.sp
     ),
-
-    // Title styles - for card titles, dialog headers
     titleLarge = TextStyle(
         fontFamily = RobotoFlex,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        fontWeight = FontWeight.Medium,
+        fontSize = 18.sp,
+        lineHeight = 24.sp,
+        fontWeight = FontWeight.SemiBold,
         letterSpacing = 0.sp
     ),
     titleMedium = TextStyle(
         fontFamily = RobotoFlex,
         fontSize = 16.sp,
-        lineHeight = 24.sp,
+        lineHeight = 20.sp,
         fontWeight = FontWeight.Medium,
         letterSpacing = 0.15.sp
     ),
     titleSmall = TextStyle(
         fontFamily = RobotoFlex,
         fontSize = 14.sp,
-        lineHeight = 20.sp,
+        lineHeight = 18.sp,
         fontWeight = FontWeight.Medium,
         letterSpacing = 0.1.sp
     ),
-
-    // Body styles - for main content
     bodyLarge = TextStyle(
         fontFamily = RobotoFlex,
         fontSize = 16.sp,
         lineHeight = 24.sp,
         fontWeight = FontWeight.Normal,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.sp
     ),
     bodyMedium = TextStyle(
         fontFamily = RobotoFlex,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         fontWeight = FontWeight.Normal,
-        letterSpacing = 0.25.sp
+        letterSpacing = 0.sp
     ),
     bodySmall = TextStyle(
         fontFamily = RobotoFlex,
         fontSize = 12.sp,
         lineHeight = 16.sp,
         fontWeight = FontWeight.Normal,
-        letterSpacing = 0.4.sp
+        letterSpacing = 0.sp
     ),
-
-    // Label styles - for buttons, small UI elements
     labelLarge = TextStyle(
         fontFamily = RobotoFlex,
         fontSize = 14.sp,
@@ -143,54 +134,17 @@ val RunicTypography = Typography(
     ),
     labelSmall = TextStyle(
         fontFamily = RobotoFlex,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
+        fontSize = 10.sp,
+        lineHeight = 12.sp,
         fontWeight = FontWeight.Medium,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.4.sp
     )
 )
 
 /**
- * Returns typography tuned to a specific visual theme pack.
+ * Legacy pack hook kept while the rest of the app still passes a theme-pack preference.
  */
-fun typographyForThemePack(themePack: String): Typography = when (themePack) {
-    "parchment" -> RunicTypography.copy(
-        displayLarge = RunicTypography.displayLarge.copy(
-            letterSpacing = 0.1.sp
-        ),
-        titleLarge = RunicTypography.titleLarge.copy(
-            letterSpacing = 0.25.sp
-        ),
-        bodyLarge = RunicTypography.bodyLarge.copy(
-            letterSpacing = 0.65.sp
-        )
-    )
-
-    "night_ink" -> RunicTypography.copy(
-        headlineMedium = RunicTypography.headlineMedium.copy(
-            fontWeight = FontWeight.Bold,
-            letterSpacing = (-0.1).sp
-        ),
-        titleMedium = RunicTypography.titleMedium.copy(
-            letterSpacing = 0.05.sp
-        ),
-        bodyMedium = RunicTypography.bodyMedium.copy(
-            letterSpacing = 0.15.sp
-        )
-    )
-
-    else -> RunicTypography.copy(
-        headlineLarge = RunicTypography.headlineLarge.copy(
-            fontWeight = FontWeight.Bold
-        ),
-        titleMedium = RunicTypography.titleMedium.copy(
-            letterSpacing = 0.2.sp
-        ),
-        bodySmall = RunicTypography.bodySmall.copy(
-            letterSpacing = 0.45.sp
-        )
-    )
-}
+fun typographyForThemePack(@Suppress("UNUSED_PARAMETER") themePack: String): Typography = RunicTypography
 
 /** Expressive typography roles for runic and Latin quote text. */
 @Immutable
@@ -207,49 +161,34 @@ private fun baseExpressiveTypography(typography: Typography): RunicExpressiveTyp
         runicHero = typography.displayMedium.copy(
             fontFamily = RobotoFlex,
             fontWeight = FontWeight.Bold,
-            letterSpacing = 0.sp
+            letterSpacing = 0.1.sp
         ),
         runicCard = typography.headlineSmall.copy(
             fontFamily = RobotoFlex,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.1.sp
         ),
         runicCollection = typography.titleLarge.copy(
             fontFamily = RobotoFlex,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.1.sp
         ),
         latinQuote = typography.bodyLarge.copy(
             fontFamily = RobotoFlex,
-            letterSpacing = 0.45.sp
+            letterSpacing = 0.sp
         ),
         quoteMeta = typography.labelLarge.copy(
             fontFamily = RobotoFlex,
-            letterSpacing = 0.2.sp
+            letterSpacing = 0.1.sp
         )
     )
 }
 
-/** Returns expressive typography tuned to a specific visual theme pack. */
+/** Legacy pack hook kept while the rest of the app still passes a theme-pack preference. */
 fun expressiveTypographyForThemePack(
-    themePack: String,
+    @Suppress("UNUSED_PARAMETER") themePack: String,
     typography: Typography
-): RunicExpressiveTypography {
-    val base = baseExpressiveTypography(typography)
-    return when (themePack) {
-        "parchment" -> base.copy(
-            runicHero = base.runicHero.copy(letterSpacing = 0.15.sp),
-            latinQuote = base.latinQuote.copy(letterSpacing = 0.6.sp),
-            quoteMeta = base.quoteMeta.copy(letterSpacing = 0.3.sp)
-        )
-
-        "night_ink" -> base.copy(
-            runicHero = base.runicHero.copy(letterSpacing = (-0.05).sp),
-            runicCard = base.runicCard.copy(fontWeight = FontWeight.Bold),
-            quoteMeta = base.quoteMeta.copy(letterSpacing = 0.1.sp)
-        )
-
-        else -> base
-    }
-}
+): RunicExpressiveTypography = baseExpressiveTypography(typography)
 
 val LocalRunicExpressiveType = staticCompositionLocalOf {
     expressiveTypographyForThemePack(

@@ -21,16 +21,13 @@ internal fun resolveWidgetPalette(
         return highContrastPalette(darkTheme)
     }
 
-    val packPalette = packPalette(
-        themePack = preferences.themePack,
-        darkTheme = darkTheme
-    )
+    val foundationPalette = foundationPalette(darkTheme)
 
     if (preferences.dynamicColorEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        return harmonizeWithDynamic(context, packPalette, darkTheme)
+        return harmonizeWithDynamic(context, foundationPalette, darkTheme)
     }
 
-    return packPalette
+    return foundationPalette
 }
 
 private fun highContrastPalette(darkTheme: Boolean): WidgetPalette {
@@ -61,94 +58,30 @@ private fun highContrastPalette(darkTheme: Boolean): WidgetPalette {
     }
 }
 
-private fun packPalette(themePack: String, darkTheme: Boolean): WidgetPalette {
-    return when (themePack) {
-        "parchment" -> parchmentPalette(darkTheme)
-        "night_ink" -> nightInkPalette(darkTheme)
-        else -> stonePalette(darkTheme)
-    }
-}
-
-private fun parchmentPalette(darkTheme: Boolean): WidgetPalette {
+private fun foundationPalette(darkTheme: Boolean): WidgetPalette {
     return if (darkTheme) {
         WidgetPalette(
-            background = Color.parseColor("#1F1810"),
-            surface = Color.parseColor("#282016"),
-            onBackground = Color.parseColor("#F2E6D4"),
-            onSurface = Color.parseColor("#F2E6D4"),
-            primary = Color.parseColor("#D8B892"),
-            primaryContainer = Color.parseColor("#523B24"),
-            onPrimaryContainer = Color.parseColor("#F5DFC6"),
-            error = Color.parseColor("#FFB4AB"),
-            runicText = Color.parseColor("#FFF3DF")
+            background = Color.parseColor("#0E1113"),
+            surface = Color.parseColor("#14171A"),
+            onBackground = Color.parseColor("#E0E2E5"),
+            onSurface = Color.parseColor("#E0E2E5"),
+            primary = Color.parseColor("#C1C7D0"),
+            primaryContainer = Color.parseColor("#50575F"),
+            onPrimaryContainer = Color.parseColor("#DEE4EC"),
+            error = Color.parseColor("#F0B8BF"),
+            runicText = Color.parseColor("#E7EAEE")
         )
     } else {
         WidgetPalette(
-            background = Color.parseColor("#FAF2E4"),
-            surface = Color.parseColor("#FFF8EE"),
-            onBackground = Color.parseColor("#2A2116"),
-            onSurface = Color.parseColor("#2A2116"),
-            primary = Color.parseColor("#6B4E2F"),
-            primaryContainer = Color.parseColor("#F5DFC6"),
-            onPrimaryContainer = Color.parseColor("#2A1B0B"),
-            error = Color.parseColor("#B3261E"),
-            runicText = Color.parseColor("#3A2817")
-        )
-    }
-}
-
-private fun nightInkPalette(darkTheme: Boolean): WidgetPalette {
-    return if (darkTheme) {
-        WidgetPalette(
-            background = Color.parseColor("#090F15"),
-            surface = Color.parseColor("#121B24"),
-            onBackground = Color.parseColor("#DDE6EF"),
-            onSurface = Color.parseColor("#DDE6EF"),
-            primary = Color.parseColor("#93C8E5"),
-            primaryContainer = Color.parseColor("#1B4A64"),
-            onPrimaryContainer = Color.parseColor("#CBE9FA"),
-            error = Color.parseColor("#FFB4AB"),
-            runicText = Color.parseColor("#ECF7FF")
-        )
-    } else {
-        WidgetPalette(
-            background = Color.parseColor("#F5F9FF"),
-            surface = Color.parseColor("#FFFFFF"),
-            onBackground = Color.parseColor("#0E1A24"),
-            onSurface = Color.parseColor("#0E1A24"),
-            primary = Color.parseColor("#103349"),
-            primaryContainer = Color.parseColor("#CBE9FA"),
-            onPrimaryContainer = Color.parseColor("#001F30"),
-            error = Color.parseColor("#B3261E"),
-            runicText = Color.parseColor("#12344A")
-        )
-    }
-}
-
-private fun stonePalette(darkTheme: Boolean): WidgetPalette {
-    return if (darkTheme) {
-        WidgetPalette(
-            background = Color.parseColor("#101419"),
-            surface = Color.parseColor("#171C21"),
-            onBackground = Color.parseColor("#E3E8EE"),
-            onSurface = Color.parseColor("#E3E8EE"),
-            primary = Color.parseColor("#B8C8D9"),
-            primaryContainer = Color.parseColor("#364757"),
-            onPrimaryContainer = Color.parseColor("#D6E4F2"),
-            error = Color.parseColor("#FFB4AB"),
-            runicText = Color.parseColor("#F5F7FA")
-        )
-    } else {
-        WidgetPalette(
-            background = Color.parseColor("#F3F5F7"),
-            surface = Color.parseColor("#FFFFFF"),
-            onBackground = Color.parseColor("#171C21"),
-            onSurface = Color.parseColor("#171C21"),
-            primary = Color.parseColor("#2F3842"),
-            primaryContainer = Color.parseColor("#DCE3EA"),
-            onPrimaryContainer = Color.parseColor("#1B2127"),
-            error = Color.parseColor("#B3261E"),
-            runicText = Color.parseColor("#25303A")
+            background = Color.parseColor("#F4F6F8"),
+            surface = Color.parseColor("#EBEDF0"),
+            onBackground = Color.parseColor("#191C1E"),
+            onSurface = Color.parseColor("#191C1E"),
+            primary = Color.parseColor("#68707A"),
+            primaryContainer = Color.parseColor("#D8DEE6"),
+            onPrimaryContainer = Color.parseColor("#1E2328"),
+            error = Color.parseColor("#96404A"),
+            runicText = Color.parseColor("#1E2328")
         )
     }
 }
@@ -167,7 +100,7 @@ private fun isDarkTheme(context: Context, preferences: UserPreferences): Boolean
 @RequiresApi(Build.VERSION_CODES.S)
 private fun harmonizeWithDynamic(
     context: Context,
-    packPalette: WidgetPalette,
+    foundationPalette: WidgetPalette,
     darkTheme: Boolean
 ): WidgetPalette {
     val dynamicScheme = if (darkTheme) {
@@ -176,20 +109,16 @@ private fun harmonizeWithDynamic(
         dynamicLightColorScheme(context)
     }
 
-    fun blend(dynamic: Int, pack: Int): Int = ColorUtils.blendARGB(dynamic, pack, 0.28f)
+    fun blend(dynamic: Int, foundation: Int): Int = ColorUtils.blendARGB(dynamic, foundation, 0.18f)
 
-    return packPalette.copy(
-        background = blend(dynamicScheme.background.toArgb(), packPalette.background),
-        surface = blend(dynamicScheme.surface.toArgb(), packPalette.surface),
-        onBackground = blend(dynamicScheme.onBackground.toArgb(), packPalette.onBackground),
-        onSurface = blend(dynamicScheme.onSurface.toArgb(), packPalette.onSurface),
-        primary = blend(dynamicScheme.primary.toArgb(), packPalette.primary),
-        primaryContainer = blend(dynamicScheme.primaryContainer.toArgb(), packPalette.primaryContainer),
+    return foundationPalette.copy(
+        primary = blend(dynamicScheme.primary.toArgb(), foundationPalette.primary),
+        primaryContainer = blend(dynamicScheme.primaryContainer.toArgb(), foundationPalette.primaryContainer),
         onPrimaryContainer = blend(
             dynamicScheme.onPrimaryContainer.toArgb(),
-            packPalette.onPrimaryContainer
+            foundationPalette.onPrimaryContainer
         ),
-        error = blend(dynamicScheme.error.toArgb(), packPalette.error),
-        runicText = blend(dynamicScheme.onSurface.toArgb(), packPalette.runicText)
+        error = blend(dynamicScheme.error.toArgb(), foundationPalette.error),
+        runicText = blend(dynamicScheme.primary.toArgb(), foundationPalette.runicText)
     )
 }

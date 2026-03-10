@@ -20,228 +20,147 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-/**
- * Stone pack: cool mineral tones.
- */
-private val StoneLightColorScheme = lightColorScheme(
-    primary = Color(0xFF2F3842),
-    onPrimary = Color(0xFFF5F7FA),
-    primaryContainer = Color(0xFFDCE3EA),
-    onPrimaryContainer = Color(0xFF1B2127),
-    secondary = Color(0xFF4A5A6A),
-    onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFDCE5EF),
-    onSecondaryContainer = Color(0xFF1A2430),
-    tertiary = Color(0xFF5A6167),
-    onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFFDEE3E7),
-    onTertiaryContainer = Color(0xFF191E22),
-    background = Color(0xFFF3F5F7),
-    onBackground = Color(0xFF171C21),
-    surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF171C21),
-    surfaceVariant = Color(0xFFDFE5EA),
-    onSurfaceVariant = Color(0xFF41484F),
-    outline = Color(0xFF717880),
-    outlineVariant = Color(0xFFC1C7CD),
-    inverseSurface = Color(0xFF2C3137),
-    inverseOnSurface = Color(0xFFEFF1F4),
-    inversePrimary = Color(0xFFB8C8D9),
+private val FoundationLightColorScheme = lightColorScheme(
+    primary = FoundationLightPrimary,
+    onPrimary = FoundationLightOnPrimary,
+    primaryContainer = FoundationLightPrimaryContainer,
+    onPrimaryContainer = FoundationLightOnPrimaryContainer,
+    secondary = FoundationLightSecondary,
+    onSecondary = FoundationLightOnSecondary,
+    secondaryContainer = FoundationLightSecondaryContainer,
+    onSecondaryContainer = FoundationLightOnSecondaryContainer,
+    tertiary = FoundationLightTertiary,
+    onTertiary = FoundationLightOnTertiary,
+    tertiaryContainer = FoundationLightTertiaryContainer,
+    onTertiaryContainer = FoundationLightOnTertiaryContainer,
+    error = FoundationLightError,
+    onError = FoundationLightOnError,
+    errorContainer = FoundationLightErrorContainer,
+    onErrorContainer = FoundationLightOnErrorContainer,
+    background = FoundationLightBackground,
+    onBackground = FoundationLightOnBackground,
+    surface = FoundationLightSurface,
+    onSurface = FoundationLightOnSurface,
+    surfaceVariant = FoundationLightSurfaceVariant,
+    onSurfaceVariant = FoundationLightOnSurfaceVariant,
+    outline = FoundationLightOutline,
+    outlineVariant = FoundationLightOutlineVariant,
+    inverseSurface = FoundationLightInverseSurface,
+    inverseOnSurface = FoundationLightInverseOnSurface,
+    inversePrimary = FoundationLightInversePrimary,
+    surfaceDim = FoundationLightSurfaceDim,
+    surfaceBright = FoundationLightSurfaceBright,
+    surfaceContainerLowest = FoundationLightSurfaceContainerLowest,
+    surfaceContainerLow = FoundationLightSurfaceContainerLow,
+    surfaceContainer = FoundationLightSurfaceContainer,
+    surfaceContainerHigh = FoundationLightSurfaceContainerHigh,
+    surfaceContainerHighest = FoundationLightSurfaceContainerHighest,
     scrim = Color(0x99000000)
 )
 
-private val StoneDarkColorScheme = darkColorScheme(
-    primary = Color(0xFFB8C8D9),
-    onPrimary = Color(0xFF203243),
-    primaryContainer = Color(0xFF364757),
-    onPrimaryContainer = Color(0xFFD6E4F2),
-    secondary = Color(0xFFB4C9DE),
-    onSecondary = Color(0xFF203041),
-    secondaryContainer = Color(0xFF354759),
-    onSecondaryContainer = Color(0xFFD1E5FC),
-    tertiary = Color(0xFFC1C7CE),
-    onTertiary = Color(0xFF2A3137),
-    tertiaryContainer = Color(0xFF434A50),
-    onTertiaryContainer = Color(0xFFDDE3E9),
-    background = Color(0xFF101419),
-    onBackground = Color(0xFFE3E8EE),
-    surface = Color(0xFF171C21),
-    onSurface = Color(0xFFE3E8EE),
-    surfaceVariant = Color(0xFF40474E),
-    onSurfaceVariant = Color(0xFFC0C7CF),
-    outline = Color(0xFF8A9299),
-    outlineVariant = Color(0xFF40474E),
-    inverseSurface = Color(0xFFE3E8EE),
-    inverseOnSurface = Color(0xFF2C3137),
-    inversePrimary = Color(0xFF4E6071),
-    scrim = Color(0xCC000000)
-)
-
-/**
- * Parchment pack: warm ink-on-paper tones.
- */
-private val ParchmentLightColorScheme = lightColorScheme(
-    primary = Color(0xFF6B4E2F),
-    onPrimary = Color(0xFFFFF8F1),
-    primaryContainer = Color(0xFFF5DFC6),
-    onPrimaryContainer = Color(0xFF2A1B0B),
-    secondary = Color(0xFF79563A),
-    onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFF0DFC8),
-    onSecondaryContainer = Color(0xFF2B1C0D),
-    tertiary = Color(0xFF7B6A45),
-    onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFFF2E5BF),
-    onTertiaryContainer = Color(0xFF261F07),
-    background = Color(0xFFFAF2E4),
-    onBackground = Color(0xFF2A2116),
-    surface = Color(0xFFFFFAF2),
-    onSurface = Color(0xFF2A2116),
-    surfaceVariant = Color(0xFFEBDDC8),
-    onSurfaceVariant = Color(0xFF534434),
-    outline = Color(0xFF86725D),
-    outlineVariant = Color(0xFFD2C2AC),
-    inverseSurface = Color(0xFF2F261B),
-    inverseOnSurface = Color(0xFFF8EFE2),
-    inversePrimary = Color(0xFFD8B892),
-    scrim = Color(0x99000000)
-)
-
-private val ParchmentDarkColorScheme = darkColorScheme(
-    primary = Color(0xFFD8B892),
-    onPrimary = Color(0xFF3B2813),
-    primaryContainer = Color(0xFF523B24),
-    onPrimaryContainer = Color(0xFFF5DFC6),
-    secondary = Color(0xFFDFBE99),
-    onSecondary = Color(0xFF3A2916),
-    secondaryContainer = Color(0xFF523C28),
-    onSecondaryContainer = Color(0xFFF9DFC0),
-    tertiary = Color(0xFFE0CB9E),
-    onTertiary = Color(0xFF3C2F11),
-    tertiaryContainer = Color(0xFF554221),
-    onTertiaryContainer = Color(0xFFF8E4B8),
-    background = Color(0xFF1F1810),
-    onBackground = Color(0xFFF2E6D4),
-    surface = Color(0xFF282016),
-    onSurface = Color(0xFFF2E6D4),
-    surfaceVariant = Color(0xFF534434),
-    onSurfaceVariant = Color(0xFFD6C4AD),
-    outline = Color(0xFFA08B74),
-    outlineVariant = Color(0xFF534434),
-    inverseSurface = Color(0xFFF2E6D4),
-    inverseOnSurface = Color(0xFF352B1F),
-    inversePrimary = Color(0xFF6B4E2F),
-    scrim = Color(0xCC000000)
-)
-
-/**
- * Night Ink pack: deep blue-black with crisp highlights.
- */
-private val NightInkLightColorScheme = lightColorScheme(
-    primary = Color(0xFF103349),
-    onPrimary = Color(0xFFEAF8FF),
-    primaryContainer = Color(0xFFCBE9FA),
-    onPrimaryContainer = Color(0xFF001F30),
-    secondary = Color(0xFF2D4A63),
-    onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFD5E5F6),
-    onSecondaryContainer = Color(0xFF12283D),
-    tertiary = Color(0xFF3A546E),
-    onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFFD6E8FA),
-    onTertiaryContainer = Color(0xFF1A2C3F),
-    background = Color(0xFFF5F9FF),
-    onBackground = Color(0xFF0E1A24),
-    surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF0E1A24),
-    surfaceVariant = Color(0xFFDCE5F0),
-    onSurfaceVariant = Color(0xFF3E4A56),
-    outline = Color(0xFF6F7B87),
-    outlineVariant = Color(0xFFBFC9D3),
-    inverseSurface = Color(0xFF1D2933),
-    inverseOnSurface = Color(0xFFECF2F8),
-    inversePrimary = Color(0xFF93C8E5),
-    scrim = Color(0x99000000)
-)
-
-private val NightInkDarkColorScheme = darkColorScheme(
-    primary = Color(0xFF93C8E5),
-    onPrimary = Color(0xFF00344D),
-    primaryContainer = Color(0xFF1B4A64),
-    onPrimaryContainer = Color(0xFFCBE9FA),
-    secondary = Color(0xFFA8C8E3),
-    onSecondary = Color(0xFF123249),
-    secondaryContainer = Color(0xFF294960),
-    onSecondaryContainer = Color(0xFFD5E5F6),
-    tertiary = Color(0xFFB3CBE5),
-    onTertiary = Color(0xFF1D3449),
-    tertiaryContainer = Color(0xFF334C62),
-    onTertiaryContainer = Color(0xFFD6E8FA),
-    background = Color(0xFF090F15),
-    onBackground = Color(0xFFDDE6EF),
-    surface = Color(0xFF121B24),
-    onSurface = Color(0xFFDDE6EF),
-    surfaceVariant = Color(0xFF3E4A56),
-    onSurfaceVariant = Color(0xFFBEC9D5),
-    outline = Color(0xFF8894A0),
-    outlineVariant = Color(0xFF3E4A56),
-    inverseSurface = Color(0xFFDDE6EF),
-    inverseOnSurface = Color(0xFF24303B),
-    inversePrimary = Color(0xFF1E5777),
+private val FoundationDarkColorScheme = darkColorScheme(
+    primary = FoundationDarkPrimary,
+    onPrimary = FoundationDarkOnPrimary,
+    primaryContainer = FoundationDarkPrimaryContainer,
+    onPrimaryContainer = FoundationDarkOnPrimaryContainer,
+    secondary = FoundationDarkSecondary,
+    onSecondary = FoundationDarkOnSecondary,
+    secondaryContainer = FoundationDarkSecondaryContainer,
+    onSecondaryContainer = FoundationDarkOnSecondaryContainer,
+    tertiary = FoundationDarkTertiary,
+    onTertiary = FoundationDarkOnTertiary,
+    tertiaryContainer = FoundationDarkTertiaryContainer,
+    onTertiaryContainer = FoundationDarkOnTertiaryContainer,
+    error = FoundationDarkError,
+    onError = FoundationDarkOnError,
+    errorContainer = FoundationDarkErrorContainer,
+    onErrorContainer = FoundationDarkOnErrorContainer,
+    background = FoundationDarkBackground,
+    onBackground = FoundationDarkOnBackground,
+    surface = FoundationDarkSurface,
+    onSurface = FoundationDarkOnSurface,
+    surfaceVariant = FoundationDarkSurfaceVariant,
+    onSurfaceVariant = FoundationDarkOnSurfaceVariant,
+    outline = FoundationDarkOutline,
+    outlineVariant = FoundationDarkOutlineVariant,
+    inverseSurface = FoundationDarkInverseSurface,
+    inverseOnSurface = FoundationDarkInverseOnSurface,
+    inversePrimary = FoundationDarkInversePrimary,
+    surfaceDim = FoundationDarkSurfaceDim,
+    surfaceBright = FoundationDarkSurfaceBright,
+    surfaceContainerLowest = FoundationDarkSurfaceContainerLowest,
+    surfaceContainerLow = FoundationDarkSurfaceContainerLow,
+    surfaceContainer = FoundationDarkSurfaceContainer,
+    surfaceContainerHigh = FoundationDarkSurfaceContainerHigh,
+    surfaceContainerHighest = FoundationDarkSurfaceContainerHighest,
     scrim = Color(0xCC000000)
 )
 
 private val HighContrastLightColorScheme = lightColorScheme(
-    primary = Color.Black,
-    onPrimary = Color.White,
-    primaryContainer = Color.White,
-    onPrimaryContainer = Color.Black,
-    secondary = Color.Black,
-    onSecondary = Color.White,
-    secondaryContainer = Color.White,
-    onSecondaryContainer = Color.Black,
-    tertiary = Color.Black,
-    onTertiary = Color.White,
-    tertiaryContainer = Color.White,
-    onTertiaryContainer = Color.Black,
-    background = Color.White,
-    onBackground = Color.Black,
-    surface = Color.White,
-    onSurface = Color.Black,
+    primary = HighContrastBlack,
+    onPrimary = HighContrastWhite,
+    primaryContainer = HighContrastWhite,
+    onPrimaryContainer = HighContrastBlack,
+    secondary = HighContrastBlack,
+    onSecondary = HighContrastWhite,
+    secondaryContainer = HighContrastWhite,
+    onSecondaryContainer = HighContrastBlack,
+    tertiary = HighContrastBlack,
+    onTertiary = HighContrastWhite,
+    tertiaryContainer = HighContrastWhite,
+    onTertiaryContainer = HighContrastBlack,
+    background = HighContrastWhite,
+    onBackground = HighContrastBlack,
+    surface = HighContrastWhite,
+    onSurface = HighContrastBlack,
     surfaceVariant = Color(0xFFF2F2F2),
-    onSurfaceVariant = Color.Black,
-    outline = Color.Black,
+    onSurfaceVariant = HighContrastBlack,
+    outline = HighContrastBlack,
     outlineVariant = Color(0xFF444444),
-    inverseSurface = Color.Black,
-    inverseOnSurface = Color.White,
-    inversePrimary = Color.White,
+    inverseSurface = HighContrastBlack,
+    inverseOnSurface = HighContrastWhite,
+    inversePrimary = HighContrastWhite,
+    surfaceDim = Color(0xFFE2E2E2),
+    surfaceBright = HighContrastWhite,
+    surfaceContainerLowest = HighContrastWhite,
+    surfaceContainerLow = Color(0xFFF7F7F7),
+    surfaceContainer = Color(0xFFF0F0F0),
+    surfaceContainerHigh = Color(0xFFE9E9E9),
+    surfaceContainerHighest = Color(0xFFE0E0E0),
     scrim = Color(0xCC000000)
 )
 
 private val HighContrastDarkColorScheme = darkColorScheme(
-    primary = Color.White,
-    onPrimary = Color.Black,
-    primaryContainer = Color.Black,
-    onPrimaryContainer = Color.White,
-    secondary = Color.White,
-    onSecondary = Color.Black,
-    secondaryContainer = Color.Black,
-    onSecondaryContainer = Color.White,
-    tertiary = Color.White,
-    onTertiary = Color.Black,
-    tertiaryContainer = Color.Black,
-    onTertiaryContainer = Color.White,
-    background = Color.Black,
-    onBackground = Color.White,
-    surface = Color.Black,
-    onSurface = Color.White,
+    primary = HighContrastWhite,
+    onPrimary = HighContrastBlack,
+    primaryContainer = HighContrastBlack,
+    onPrimaryContainer = HighContrastWhite,
+    secondary = HighContrastWhite,
+    onSecondary = HighContrastBlack,
+    secondaryContainer = HighContrastBlack,
+    onSecondaryContainer = HighContrastWhite,
+    tertiary = HighContrastWhite,
+    onTertiary = HighContrastBlack,
+    tertiaryContainer = HighContrastBlack,
+    onTertiaryContainer = HighContrastWhite,
+    background = HighContrastBlack,
+    onBackground = HighContrastWhite,
+    surface = HighContrastBlack,
+    onSurface = HighContrastWhite,
     surfaceVariant = Color(0xFF1C1C1C),
-    onSurfaceVariant = Color.White,
-    outline = Color.White,
+    onSurfaceVariant = HighContrastWhite,
+    outline = HighContrastWhite,
     outlineVariant = Color(0xFFAAAAAA),
-    inverseSurface = Color.White,
-    inverseOnSurface = Color.Black,
-    inversePrimary = Color.Black,
+    inverseSurface = HighContrastWhite,
+    inverseOnSurface = HighContrastBlack,
+    inversePrimary = HighContrastBlack,
+    surfaceDim = HighContrastBlack,
+    surfaceBright = Color(0xFF353535),
+    surfaceContainerLowest = HighContrastBlack,
+    surfaceContainerLow = Color(0xFF101010),
+    surfaceContainer = Color(0xFF161616),
+    surfaceContainerHigh = Color(0xFF1E1E1E),
+    surfaceContainerHighest = Color(0xFF272727),
     scrim = Color(0xCC000000)
 )
 
@@ -250,6 +169,7 @@ val LocalReduceMotion = staticCompositionLocalOf { false }
 
 private fun resolveColorScheme(
     darkTheme: Boolean,
+    @Suppress("UNUSED_PARAMETER")
     themePack: String,
     highContrast: Boolean,
     dynamicColorEnabled: Boolean,
@@ -259,20 +179,16 @@ private fun resolveColorScheme(
         return if (darkTheme) HighContrastDarkColorScheme else HighContrastLightColorScheme
     }
 
-    val packColorScheme = when (themePack) {
-        "parchment" -> if (darkTheme) ParchmentDarkColorScheme else ParchmentLightColorScheme
-        "night_ink" -> if (darkTheme) NightInkDarkColorScheme else NightInkLightColorScheme
-        else -> if (darkTheme) StoneDarkColorScheme else StoneLightColorScheme
-    }
+    val foundationColorScheme = if (darkTheme) FoundationDarkColorScheme else FoundationLightColorScheme
 
     if (dynamicColorEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         val dynamicColorScheme = dynamicColorSchemeForContext(
             context = context,
             darkTheme = darkTheme
         )
-        return harmonizeDynamicWithPack(dynamicColorScheme, packColorScheme)
+        return harmonizeDynamicWithFoundation(dynamicColorScheme, foundationColorScheme)
     }
-    return packColorScheme
+    return foundationColorScheme
 }
 
 @RequiresApi(Build.VERSION_CODES.S)
@@ -287,28 +203,34 @@ private fun dynamicColorSchemeForContext(
     }
 }
 
-private fun harmonizeDynamicWithPack(dynamic: ColorScheme, pack: ColorScheme): ColorScheme {
+private fun harmonizeDynamicWithFoundation(dynamic: ColorScheme, foundation: ColorScheme): ColorScheme {
     fun blend(dynamicColor: Color, packColor: Color): Color {
-        return lerp(dynamicColor, packColor, 0.28f)
+        return lerp(dynamicColor, packColor, 0.18f)
     }
 
-    return dynamic.copy(
-        primary = blend(dynamic.primary, pack.primary),
-        primaryContainer = blend(dynamic.primaryContainer, pack.primaryContainer),
-        secondary = blend(dynamic.secondary, pack.secondary),
-        secondaryContainer = blend(dynamic.secondaryContainer, pack.secondaryContainer),
-        tertiary = blend(dynamic.tertiary, pack.tertiary),
-        tertiaryContainer = blend(dynamic.tertiaryContainer, pack.tertiaryContainer),
-        inversePrimary = blend(dynamic.inversePrimary, pack.inversePrimary)
+    return foundation.copy(
+        primary = blend(dynamic.primary, foundation.primary),
+        onPrimary = blend(dynamic.onPrimary, foundation.onPrimary),
+        primaryContainer = blend(dynamic.primaryContainer, foundation.primaryContainer),
+        onPrimaryContainer = blend(dynamic.onPrimaryContainer, foundation.onPrimaryContainer),
+        secondary = blend(dynamic.secondary, foundation.secondary),
+        onSecondary = blend(dynamic.onSecondary, foundation.onSecondary),
+        secondaryContainer = blend(dynamic.secondaryContainer, foundation.secondaryContainer),
+        onSecondaryContainer = blend(dynamic.onSecondaryContainer, foundation.onSecondaryContainer),
+        tertiary = blend(dynamic.tertiary, foundation.tertiary),
+        onTertiary = blend(dynamic.onTertiary, foundation.onTertiary),
+        tertiaryContainer = blend(dynamic.tertiaryContainer, foundation.tertiaryContainer),
+        onTertiaryContainer = blend(dynamic.onTertiaryContainer, foundation.onTertiaryContainer),
+        inversePrimary = blend(dynamic.inversePrimary, foundation.inversePrimary)
     )
 }
 
 /**
- * Runic Quotes theme using pack-based palettes and typography.
+ * Runic Quotes theme using the Runatal foundation palette from Figma.
  *
  * @param darkTheme Whether to use dark theme
- * @param dynamicColorEnabled Whether to use wallpaper-driven dynamic color harmonized with theme pack
- * @param themePack Visual palette and typography pack
+ * @param dynamicColorEnabled Whether to gently harmonize accent roles with Material You
+ * @param themePack Legacy preference kept for compatibility with existing onboarding/settings data
  * @param runicFontScale Global scale multiplier for runic glyphs
  * @param highContrast Enable high-contrast palette override
  * @param reducedMotion Disable non-essential motion

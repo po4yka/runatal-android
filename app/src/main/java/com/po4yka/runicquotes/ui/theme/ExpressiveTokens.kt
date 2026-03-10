@@ -55,24 +55,24 @@ data class RunicMotionTokens(
 }
 
 private val DefaultRunicShapeTokens = RunicShapeTokens(
-    heroCard = RoundedCornerShape(28.dp),
-    contentCard = RoundedCornerShape(20.dp),
-    collectionCard = RoundedCornerShape(16.dp),
-    panel = RoundedCornerShape(24.dp),
-    bottomSheet = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+    heroCard = RoundedCornerShape(24.dp),
+    contentCard = RoundedCornerShape(16.dp),
+    collectionCard = RoundedCornerShape(12.dp),
+    panel = RoundedCornerShape(20.dp),
+    bottomSheet = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
     segmentedControl = RoundedCornerShape(16.dp),
     segment = RoundedCornerShape(12.dp),
-    dialog = RoundedCornerShape(28.dp),
+    dialog = RoundedCornerShape(20.dp),
     skeleton = RoundedCornerShape(12.dp),
-    pill = RoundedCornerShape(9.dp)
+    pill = RoundedCornerShape(999.dp)
 )
 
 private val DefaultRunicElevationTokens = RunicElevationTokens(
     flat = 0.dp,
-    card = 3.dp,
-    raisedCard = 8.dp,
-    pressedCard = 10.dp,
-    overlay = 16.dp
+    card = 1.dp,
+    raisedCard = 4.dp,
+    pressedCard = 6.dp,
+    overlay = 12.dp
 )
 
 private val DefaultRunicMotionTokens = RunicMotionTokens(
