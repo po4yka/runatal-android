@@ -192,7 +192,13 @@ fun NavGraph(
                     )
                 }
                 entry<SettingsRoute> {
-                    SettingsScreen()
+                    SettingsScreen(
+                        onNavigateToNotifications = {
+                            backStack.add(NotificationSettingsRoute)
+                        },
+                        onNavigateToAbout = { backStack.add(AboutRoute) },
+                        onNavigateToProfile = { backStack.add(ProfileRoute) }
+                    )
                 }
                 entry<QuoteListRoute> {
                     QuoteListScreen(

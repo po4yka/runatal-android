@@ -70,4 +70,9 @@
     <string name="settings_high_contrast_subtitle">Use stronger foreground/background contrast</string>
     <string name="settings_reduced_motion_title">Reduced Motion</string>
     <string name="settings_reduced_motion_subtitle">Minimize transitions and animated reveals</string>
+
+    <string name="settings_section_links">Links</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_about">About</string>
+    <string name="settings_profile">Profile</string>
 </resources>
