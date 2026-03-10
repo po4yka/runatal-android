@@ -27,6 +27,7 @@ class QuoteShareManager @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val imageGenerator: QuoteImageGenerator
 ) {
+    /** Sharing constants. */
     companion object {
         private const val TAG = "QuoteShareManager"
         private const val SHARE_DIR = "shared_quotes"

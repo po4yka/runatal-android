@@ -27,6 +27,7 @@ object DataStoreModule {
 
     @Provides
     @Singleton
+    /** Provides the singleton preferences [DataStore] instance. */
     fun provideDataStore(
         @ApplicationContext context: Context
     ): DataStore<Preferences> {

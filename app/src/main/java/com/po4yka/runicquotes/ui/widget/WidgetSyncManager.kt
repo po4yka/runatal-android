@@ -23,23 +23,27 @@ import kotlinx.coroutines.launch
  */
 class WidgetSyncManager(private val scope: CoroutineScope) {
 
+    /** Triggers an asynchronous refresh of all widget instances. */
     fun refreshAllAsync(context: Context) {
         scope.launch {
             RunicQuoteWidget().updateAll(context.applicationContext)
         }
     }
 
+    /** Asynchronously reschedules the periodic widget update work. */
     fun rescheduleAsync(context: Context) {
         scope.launch {
             reschedule(context.applicationContext)
         }
     }
 
+    /** Refreshes all widgets and reschedules the periodic update work. */
     fun refreshAndRescheduleAsync(context: Context) {
         refreshAllAsync(context)
         rescheduleAsync(context)
     }
 
+    /** Cancels the scheduled periodic widget update work. */
     fun cancelSchedule(context: Context) {
         WorkManager.getInstance(context.applicationContext)
             .cancelUniqueWork(WidgetUpdateWorker.WORK_NAME)

@@ -12,6 +12,7 @@ enum class WidgetSizeClass {
     EXPANDED
 }
 
+/** Snapshot of all data needed to render the widget. */
 data class WidgetState(
     val runicText: String = "",
     val runicBitmap: Bitmap? = null,
@@ -27,6 +28,7 @@ data class WidgetState(
     val error: String? = null
 )
 
+/** Color palette applied to the widget surface. */
 data class WidgetPalette(
     val background: Int,
     val surface: Int,
@@ -38,7 +40,9 @@ data class WidgetPalette(
     val error: Int,
     val runicText: Int
 ) {
+    /** Factory methods for [WidgetPalette]. */
     companion object {
+        /** Returns the default dark-theme palette. */
         fun default() = WidgetPalette(
             background = Color.parseColor("#101419"),
             surface = Color.parseColor("#171C21"),

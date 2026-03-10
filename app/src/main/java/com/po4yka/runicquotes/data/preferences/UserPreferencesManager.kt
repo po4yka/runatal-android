@@ -235,18 +235,21 @@ class UserPreferencesManager @Inject constructor(
         }
     }
 
+    /** Updates daily quote notification preference. */
     suspend fun updateDailyQuoteNotifications(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[DAILY_QUOTE_NOTIFICATIONS] = enabled
         }
     }
 
+    /** Updates streak notification preference. */
     suspend fun updateStreakNotifications(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[STREAK_NOTIFICATIONS] = enabled
         }
     }
 
+    /** Updates pack update notification preference. */
     suspend fun updatePackUpdateNotifications(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PACK_UPDATE_NOTIFICATIONS] = enabled
@@ -262,6 +265,7 @@ class UserPreferencesManager @Inject constructor(
         }
     }
 
+    /** DataStore preference keys. */
     companion object {
         private val SELECTED_SCRIPT = stringPreferencesKey("selected_script")
         private val SELECTED_FONT = stringPreferencesKey("selected_font")

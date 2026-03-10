@@ -28,6 +28,7 @@ import com.po4yka.runicquotes.domain.model.RunicScript
  * @param textAlign Text alignment
  * @param style Additional text style
  */
+@Suppress("CyclomaticComplexMethod") // Script-specific styling branches are inherently branchy
 @Composable
 fun RunicText(
     text: String,

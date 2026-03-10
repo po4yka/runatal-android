@@ -8,6 +8,7 @@ package com.po4yka.runicquotes.domain.transliteration
  * legacy glyphs to standard Unicode runes that are supported by app fonts.
  */
 object CirthGlyphCompat {
+    /** Replaces legacy PUA codepoints with standard Unicode rune characters. */
     fun normalizeLegacyPuaGlyphs(text: String): String {
         var builder: StringBuilder? = null
 
@@ -27,6 +28,7 @@ object CirthGlyphCompat {
         return builder?.toString() ?: text
     }
 
+    @Suppress("CyclomaticComplexMethod") // Character mapping table is inherently a large when block
     private fun mapLegacyPuaChar(char: Char): Char = when (char) {
         '\uE080' -> '\u16C8' // p
         '\uE081' -> '\u16D2' // b

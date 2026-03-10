@@ -37,6 +37,7 @@ class RunicQuotesApplication : Application() {
         }
     }
 
+    /** Static accessors for components needed outside of DI scope. */
     companion object {
         /**
          * Provides access to WidgetSyncManager from components that cannot use DI

@@ -27,6 +27,7 @@ object WidgetStateCache {
 
     private val cache = ConcurrentHashMap<String, CacheEntry>()
 
+    /** Returns the cached [WidgetState] if it is still valid, or null. */
     fun get(
         widgetKey: String,
         currentDate: LocalDate,
@@ -49,6 +50,7 @@ object WidgetStateCache {
         return if (isValid) entry.state else null
     }
 
+    /** Stores [state] in the cache for the given widget and parameters. */
     fun put(
         widgetKey: String,
         date: LocalDate,
@@ -73,10 +75,12 @@ object WidgetStateCache {
         )
     }
 
+    /** Removes the cached state for a single widget. */
     fun clear(widgetKey: String) {
         cache.remove(widgetKey)
     }
 
+    /** Clears all cached widget states. */
     fun clear() {
         cache.clear()
     }

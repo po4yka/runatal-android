@@ -136,18 +136,22 @@ class HapticFeedback(
         }
     }
 
+    /** Performs a click haptic feedback. */
     fun click() {
         lightToggle()
     }
 
+    /** Performs a light toggle haptic feedback. */
     fun lightToggle() {
         view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
     }
 
+    /** Performs a long press haptic feedback. */
     fun longPress() {
         view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
     }
 
+    /** Performs a medium-intensity haptic feedback for significant actions. */
     fun mediumAction() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             vibrator.vibrate(
@@ -159,10 +163,12 @@ class HapticFeedback(
         }
     }
 
+    /** Triggers a success haptic pattern. */
     fun success() {
         successPattern()
     }
 
+    /** Plays a waveform vibration pattern indicating success. */
     fun successPattern() {
         val timings = longArrayOf(0, 50, 50, 100)
         val amplitudes = intArrayOf(0, 128, 0, 255)

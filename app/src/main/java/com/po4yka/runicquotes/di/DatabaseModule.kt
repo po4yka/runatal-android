@@ -21,6 +21,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+    /** Provides the Room database instance. */
     @Provides
     @Singleton
     fun provideRunicQuotesDatabase(
@@ -39,24 +40,28 @@ object DatabaseModule {
             .build()
     }
 
+    /** Provides the [QuoteDao] from the database. */
     @Provides
     @Singleton
     fun provideQuoteDao(database: RunicQuotesDatabase): QuoteDao {
         return database.quoteDao()
     }
 
+    /** Provides the [QuotePackDao] from the database. */
     @Provides
     @Singleton
     fun provideQuotePackDao(database: RunicQuotesDatabase): QuotePackDao {
         return database.quotePackDao()
     }
 
+    /** Provides the [ArchivedQuoteDao] from the database. */
     @Provides
     @Singleton
     fun provideArchivedQuoteDao(database: RunicQuotesDatabase): ArchivedQuoteDao {
         return database.archivedQuoteDao()
     }
 
+    /** Provides the [RuneReferenceDao] from the database. */
     @Provides
     @Singleton
     fun provideRuneReferenceDao(database: RunicQuotesDatabase): RuneReferenceDao {

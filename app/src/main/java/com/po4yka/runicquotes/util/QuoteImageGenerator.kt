@@ -33,6 +33,7 @@ class QuoteImageGenerator @Inject constructor(
         val addFrame: Boolean
     )
 
+    /** Image dimension and text size constants. */
     companion object {
         private const val IMAGE_WIDTH = 1080
         private const val IMAGE_HEIGHT = 1920

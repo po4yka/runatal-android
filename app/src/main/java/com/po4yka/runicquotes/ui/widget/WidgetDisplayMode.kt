@@ -24,7 +24,9 @@ enum class WidgetDisplayMode(
         subtitle = "Show daily quote and tap widget for random"
     );
 
+    /** Factory methods for [WidgetDisplayMode]. */
     companion object {
+        /** Returns the [WidgetDisplayMode] matching [value], defaulting to [RUNE_LATIN]. */
         fun fromPersistedValue(value: String): WidgetDisplayMode {
             return entries.firstOrNull { it.persistedValue == value } ?: RUNE_LATIN
         }

@@ -192,6 +192,7 @@ fun typographyForThemePack(themePack: String): Typography = when (themePack) {
     )
 }
 
+/** Expressive typography roles for runic and Latin quote text. */
 @Immutable
 data class RunicExpressiveTypography(
     val runicHero: TextStyle,
@@ -227,6 +228,7 @@ private fun baseExpressiveTypography(typography: Typography): RunicExpressiveTyp
     )
 }
 
+/** Returns expressive typography tuned to a specific visual theme pack. */
 fun expressiveTypographyForThemePack(
     themePack: String,
     typography: Typography
@@ -256,6 +258,7 @@ val LocalRunicExpressiveType = staticCompositionLocalOf {
     )
 }
 
+/** Provides access to the current [RunicExpressiveTypography] via composition local. */
 object RunicTypeRoles {
     val current: RunicExpressiveTypography
         @Composable get() = LocalRunicExpressiveType.current

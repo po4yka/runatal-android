@@ -35,12 +35,16 @@ abstract class RunicQuotesDatabase : RoomDatabase() {
      */
     abstract fun quoteDao(): QuoteDao
 
+    /** Provides access to the QuotePackDao. */
     abstract fun quotePackDao(): QuotePackDao
 
+    /** Provides access to the ArchivedQuoteDao. */
     abstract fun archivedQuoteDao(): ArchivedQuoteDao
 
+    /** Provides access to the RuneReferenceDao. */
     abstract fun runeReferenceDao(): RuneReferenceDao
 
+    /** Database migrations and constants. */
     companion object {
         /**
          * Migration from version 1 to version 2.

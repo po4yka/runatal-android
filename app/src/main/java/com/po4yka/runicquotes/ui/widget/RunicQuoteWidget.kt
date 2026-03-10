@@ -50,6 +50,7 @@ import kotlinx.coroutines.withContext
  */
 class RunicQuoteWidget : GlanceAppWidget() {
 
+    /** Widget dimension constants and size thresholds. */
     companion object {
         private const val TAG = "RunicQuoteWidget"
         private const val SMALL_WIDGET_WIDTH = 150

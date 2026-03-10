@@ -21,24 +21,28 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
 
+    /** Binds [QuoteRepositoryImpl] as the [QuoteRepository] implementation. */
     @Binds
     @Singleton
     abstract fun bindQuoteRepository(
         impl: QuoteRepositoryImpl
     ): QuoteRepository
 
+    /** Binds [QuotePackRepositoryImpl] as the [QuotePackRepository] implementation. */
     @Binds
     @Singleton
     abstract fun bindQuotePackRepository(
         impl: QuotePackRepositoryImpl
     ): QuotePackRepository
 
+    /** Binds [ArchiveRepositoryImpl] as the [ArchiveRepository] implementation. */
     @Binds
     @Singleton
     abstract fun bindArchiveRepository(
         impl: ArchiveRepositoryImpl
     ): ArchiveRepository
 
+    /** Binds [RuneReferenceRepositoryImpl] as the [RuneReferenceRepository] implementation. */
     @Binds
     @Singleton
     abstract fun bindRuneReferenceRepository(

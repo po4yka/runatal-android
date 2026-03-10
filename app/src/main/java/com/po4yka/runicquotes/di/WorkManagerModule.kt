@@ -18,6 +18,7 @@ object WorkManagerModule {
 
     @Provides
     @Singleton
+    /** Provides the singleton [WorkManager] instance. */
     fun provideWorkManager(
         @ApplicationContext context: Context
     ): WorkManager {

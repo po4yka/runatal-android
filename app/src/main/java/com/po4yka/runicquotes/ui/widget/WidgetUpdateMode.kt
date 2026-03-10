@@ -34,7 +34,9 @@ enum class WidgetUpdateMode(
         intervalHours = 24
     );
 
+    /** Factory methods for [WidgetUpdateMode]. */
     companion object {
+        /** Returns the [WidgetUpdateMode] matching [value], defaulting to [DAILY]. */
         fun fromPersistedValue(value: String): WidgetUpdateMode {
             return entries.firstOrNull { it.persistedValue == value } ?: DAILY
         }

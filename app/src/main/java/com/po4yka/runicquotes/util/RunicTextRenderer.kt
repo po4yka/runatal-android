@@ -27,6 +27,7 @@ data class RenderConfig(
     val backgroundColor: Int? = null,
     val maxWidth: Int = 0
 ) {
+    /** Default constants for [RenderConfig]. */
     companion object {
         private const val DEFAULT_TEXT_SIZE_SP = 20f
     }

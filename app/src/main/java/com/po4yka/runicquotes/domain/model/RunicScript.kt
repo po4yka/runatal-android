@@ -19,6 +19,7 @@ enum class RunicScript {
      */
     CIRTH;
 
+    /** Default values for [RunicScript]. */
     companion object {
         /**
          * Default script to use when none is specified.

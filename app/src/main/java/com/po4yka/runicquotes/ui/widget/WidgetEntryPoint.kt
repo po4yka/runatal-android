@@ -14,7 +14,12 @@ import dagger.hilt.components.SingletonComponent
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface WidgetEntryPoint {
+    /** Provides the quote repository instance. */
     fun quoteRepository(): QuoteRepository
+
+    /** Provides the user preferences manager instance. */
     fun userPreferencesManager(): UserPreferencesManager
+
+    /** Provides the transliteration factory instance. */
     fun transliterationFactory(): TransliterationFactory
 }

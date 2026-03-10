@@ -41,6 +41,7 @@ class WidgetUpdateWorker @AssistedInject constructor(
         }
     }
 
+    /** Work name and retry configuration constants. */
     companion object {
         private const val TAG = "WidgetUpdateWorker"
         const val WORK_NAME = "widget_update_worker"

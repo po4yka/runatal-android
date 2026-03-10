@@ -39,6 +39,7 @@ class AddEditQuoteViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(AddEditQuoteUiState())
     val uiState: StateFlow<AddEditQuoteUiState> = _uiState.asStateFlow()
 
+    /** Constants for validation limits. */
     companion object {
         private const val TAG = "AddEditQuoteViewModel"
         private const val MAX_QUOTE_LENGTH = 280

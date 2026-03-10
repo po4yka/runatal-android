@@ -17,6 +17,7 @@ abstract class UtilModule {
 
     @Binds
     @Singleton
+    /** Binds [SystemTimeProvider] as the [TimeProvider] implementation. */
     abstract fun bindTimeProvider(
         impl: SystemTimeProvider
     ): TimeProvider

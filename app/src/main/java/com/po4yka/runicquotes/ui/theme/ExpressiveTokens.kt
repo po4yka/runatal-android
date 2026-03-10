@@ -11,6 +11,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+/** Shape tokens for runic UI components. */
 @Immutable
 data class RunicShapeTokens(
     val heroCard: CornerBasedShape,
@@ -25,6 +26,7 @@ data class RunicShapeTokens(
     val pill: CornerBasedShape
 )
 
+/** Elevation tokens for runic UI components. */
 @Immutable
 data class RunicElevationTokens(
     val flat: Dp,
@@ -34,6 +36,7 @@ data class RunicElevationTokens(
     val overlay: Dp
 )
 
+/** Motion and animation tokens for runic UI components. */
 @Immutable
 data class RunicMotionTokens(
     val shortDurationMillis: Int,
@@ -44,7 +47,10 @@ data class RunicMotionTokens(
     val emphasizedEasing: Easing,
     val standardEasing: Easing
 ) {
+    /** Returns [base] duration in millis, or zero when reduced motion is enabled. */
     fun duration(reducedMotion: Boolean, base: Int): Int = if (reducedMotion) 0 else base
+
+    /** Returns [base] delay in millis, or zero when reduced motion is enabled. */
     fun delay(reducedMotion: Boolean, base: Int): Int = if (reducedMotion) 0 else base
 }
 
@@ -79,14 +85,20 @@ private val DefaultRunicMotionTokens = RunicMotionTokens(
     standardEasing = LinearOutSlowInEasing
 )
 
+/** Returns default [RunicShapeTokens]. */
 fun runicShapeTokens(): RunicShapeTokens = DefaultRunicShapeTokens
+
+/** Returns default [RunicElevationTokens]. */
 fun runicElevationTokens(): RunicElevationTokens = DefaultRunicElevationTokens
+
+/** Returns default [RunicMotionTokens]. */
 fun runicMotionTokens(): RunicMotionTokens = DefaultRunicMotionTokens
 
 val LocalRunicShapeTokens = staticCompositionLocalOf { DefaultRunicShapeTokens }
 val LocalRunicElevationTokens = staticCompositionLocalOf { DefaultRunicElevationTokens }
 val LocalRunicMotionTokens = staticCompositionLocalOf { DefaultRunicMotionTokens }
 
+/** Provides access to runic expressive design tokens via composition locals. */
 object RunicExpressiveTheme {
     val shapes: RunicShapeTokens
         @Composable get() = LocalRunicShapeTokens.current
