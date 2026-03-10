@@ -32,13 +32,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.ArchivedQuote
+import com.po4yka.runicquotes.ui.components.ConfirmationDialog
 import com.po4yka.runicquotes.ui.components.EmptyState
 import com.po4yka.runicquotes.ui.components.ErrorState
 import com.po4yka.runicquotes.ui.components.SegmentedControl
@@ -53,6 +56,7 @@ import java.util.Locale
 fun ArchiveScreen(viewModel: ArchiveViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var showEmptyTrashDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.snackbarEvent.collect { event ->
@@ -102,7 +106,21 @@ fun ArchiveScreen(viewModel: ArchiveViewModel = hiltViewModel()) {
                     uiState = uiState,
                     onRestoreQuote = viewModel::restoreQuote,
                     onDeleteQuote = viewModel::softDeleteQuote,
-                    onEmptyTrash = viewModel::emptyTrash
+                    onEmptyTrash = { showEmptyTrashDialog = true }
+                )
+            }
+
+            if (showEmptyTrashDialog) {
+                ConfirmationDialog(
+                    title = "Empty trash?",
+                    message = "All deleted quotes will be permanently removed. This action cannot be undone.",
+                    confirmLabel = "Empty Trash",
+                    confirmIcon = Icons.Default.Delete,
+                    onConfirm = {
+                        showEmptyTrashDialog = false
+                        viewModel.emptyTrash()
+                    },
+                    onDismiss = { showEmptyTrashDialog = false }
                 )
             }
         }
