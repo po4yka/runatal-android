@@ -216,7 +216,11 @@ fun NavGraph(
                     CreateScreen()
                 }
                 entry<PacksRoute> {
-                    PacksScreen()
+                    PacksScreen(
+                        onNavigateToPackDetail = { packId ->
+                            backStack.add(PackDetailRoute(packId))
+                        }
+                    )
                 }
                 entry<PackDetailRoute> { route ->
                     PackDetailScreen(packId = route.packId)
