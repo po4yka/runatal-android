@@ -39,8 +39,15 @@ class TranslationViewModel @Inject constructor(
         runeReferenceRepository.getRunesByScriptFlow(RunicScript.YOUNGER_FUTHARK.toDbKey()),
         runeReferenceRepository.getRunesByScriptFlow(RunicScript.CIRTH.toDbKey())
     ) { input, script, elder, younger, cirth ->
-        val transliterated = if (input.isBlank()) "" else {
-            transliterationFactory.transliterate(input, script)
+        val (transliterated, errorMessage) = if (input.isBlank()) {
+            "" to null
+        } else {
+            @Suppress("TooGenericExceptionCaught")
+            try {
+                transliterationFactory.transliterate(input, script) to null
+            } catch (e: Exception) {
+                "" to (e.message ?: "Transliteration failed")
+            }
         }
         val runes = when (script) {
             RunicScript.ELDER_FUTHARK -> elder
@@ -51,7 +58,9 @@ class TranslationViewModel @Inject constructor(
             inputText = input,
             transliteratedText = transliterated,
             selectedScript = script,
-            runeCharacters = runes
+            runeCharacters = runes,
+            isRunesLoaded = true,
+            errorMessage = errorMessage
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), TranslationUiState())
 
@@ -75,6 +84,15 @@ class TranslationViewModel @Inject constructor(
     fun clearInput() {
         _inputText.value = ""
     }
+
+    /**
+     * Retriggers transliteration by toggling the input text.
+     */
+    fun retryTransliteration() {
+        val current = _inputText.value
+        _inputText.value = ""
+        _inputText.value = current
+    }
 }
 
 private fun RunicScript.toDbKey(): String = when (this) {
@@ -90,7 +108,9 @@ data class TranslationUiState(
     val inputText: String = "",
     val transliteratedText: String = "",
     val selectedScript: RunicScript = RunicScript.DEFAULT,
-    val runeCharacters: List<RuneReference> = emptyList()
+    val runeCharacters: List<RuneReference> = emptyList(),
+    val isRunesLoaded: Boolean = false,
+    val errorMessage: String? = null
 ) {
     /** Display name for the currently selected script. */
     val scriptDisplayName: String get() = selectedScript.displayName

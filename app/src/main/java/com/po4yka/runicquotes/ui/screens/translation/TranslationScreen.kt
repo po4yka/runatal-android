@@ -46,7 +46,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RuneReference
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
+import com.po4yka.runicquotes.ui.components.ErrorState
 import com.po4yka.runicquotes.ui.components.SegmentedControl
+import com.po4yka.runicquotes.ui.components.SkeletonRect
+import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 
 @Composable
@@ -73,13 +76,26 @@ fun TranslationScreen(
             onSelectScript = viewModel::selectScript
         )
         Spacer(modifier = Modifier.height(16.dp))
-        TranslationResult(
-            transliteratedText = uiState.transliteratedText,
-            scriptName = uiState.scriptDisplayName,
-            onCopy = { copyToClipboard(context, uiState.transliteratedText) }
-        )
+        val errorMessage = uiState.errorMessage
+        if (errorMessage != null) {
+            ErrorState(
+                title = "Transliteration Failed",
+                description = errorMessage,
+                onRetry = viewModel::retryTransliteration,
+                modifier = Modifier.padding(vertical = 24.dp)
+            )
+        } else {
+            TranslationResult(
+                transliteratedText = uiState.transliteratedText,
+                scriptName = uiState.scriptDisplayName,
+                onCopy = { copyToClipboard(context, uiState.transliteratedText) }
+            )
+        }
         Spacer(modifier = Modifier.height(16.dp))
-        RuneGrid(runes = uiState.runeCharacters)
+        RuneGrid(
+            runes = uiState.runeCharacters,
+            isLoaded = uiState.isRunesLoaded
+        )
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
@@ -209,9 +225,7 @@ private fun TranslationResult(
 }
 
 @Composable
-private fun RuneGrid(runes: List<RuneReference>) {
-    if (runes.isEmpty()) return
-
+private fun RuneGrid(runes: List<RuneReference>, isLoaded: Boolean) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Text(
             text = "Rune Characters",
@@ -219,15 +233,37 @@ private fun RuneGrid(runes: List<RuneReference>) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(8.dp))
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(4),
-            contentPadding = PaddingValues(0.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.height(((runes.size / 4 + 1) * 88).dp)
-        ) {
-            items(runes, key = { it.id }) { rune ->
-                RuneCell(rune = rune)
+        if (!isLoaded) {
+            RuneGridSkeleton()
+        } else if (runes.isNotEmpty()) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(4),
+                contentPadding = PaddingValues(0.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.height(((runes.size / 4 + 1) * 88).dp)
+            ) {
+                items(runes, key = { it.id }) { rune ->
+                    RuneCell(rune = rune)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RuneGridSkeleton() {
+    val brush = rememberShimmerBrush()
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        repeat(3) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                repeat(4) {
+                    SkeletonRect(
+                        modifier = Modifier.size(80.dp),
+                        height = 80.dp,
+                        brush = brush
+                    )
+                }
             }
         }
     }
