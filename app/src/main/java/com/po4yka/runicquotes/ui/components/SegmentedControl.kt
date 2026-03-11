@@ -1,16 +1,22 @@
 package com.po4yka.runicquotes.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
@@ -22,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -56,6 +63,7 @@ fun SegmentedControl(
     val reducedMotion = LocalReduceMotion.current
     val motion = RunicExpressiveTheme.motion
     val spacing = RunicExpressiveTheme.spacing
+    val controls = RunicExpressiveTheme.controls
     val animDuration = motion.duration(reducedMotion, motion.shortDurationMillis)
 
     Surface(
@@ -63,22 +71,65 @@ fun SegmentedControl(
         shape = RunicExpressiveTheme.shapes.segmentedControl,
         color = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
-        Row(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(spacing.tight),
-            horizontalArrangement = Arrangement.spacedBy(spacing.micro)
+                .padding(spacing.tight)
         ) {
-            segments.forEachIndexed { index, label ->
-                Segment(
-                    label = label,
-                    isSelected = index == selectedIndex,
-                    onClick = { onSegmentSelected(index) },
-                    animDurationMillis = animDuration,
-                    leadingIcon = leadingIcons?.getOrNull(index),
-                    count = counts?.getOrNull(index),
-                    modifier = Modifier.weight(1f)
+            val segmentCount = segments.size.coerceAtLeast(1)
+            val gap = spacing.micro
+            val segmentWidth = resolvedSegmentWidth(
+                totalWidth = maxWidth,
+                spacing = gap,
+                count = segmentCount
+            )
+            val selectedOffset by animateDpAsState(
+                targetValue = indicatorOffset(
+                    selectedIndex = selectedIndex,
+                    segmentWidth = segmentWidth,
+                    spacing = gap,
+                    maxIndex = segmentCount - 1
+                ),
+                animationSpec = if (reducedMotion) {
+                    tween(durationMillis = 0)
+                } else {
+                    spring(
+                        dampingRatio = 0.88f,
+                        stiffness = 540f
+                    )
+                },
+                label = "segmentIndicatorOffset"
+            )
+
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Box(
+                    modifier = Modifier
+                        .offset(x = selectedOffset)
+                        .width(segmentWidth)
+                        .height(controls.segmentedControlMinHeight)
+                        .clip(RunicExpressiveTheme.shapes.segment)
+                        .background(MaterialTheme.colorScheme.secondaryContainer)
                 )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(gap)
+                ) {
+                    segments.forEachIndexed { index, label ->
+                        Segment(
+                            label = label,
+                            isSelected = index == selectedIndex,
+                            onClick = { onSegmentSelected(index) },
+                            animDurationMillis = animDuration,
+                            leadingIcon = leadingIcons?.getOrNull(index),
+                            count = counts?.getOrNull(index),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
             }
         }
     }
@@ -97,16 +148,6 @@ private fun Segment(
     val spacing = RunicExpressiveTheme.spacing
     val controls = RunicExpressiveTheme.controls
     val icons = RunicExpressiveTheme.icons
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) {
-            MaterialTheme.colorScheme.secondaryContainer
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerLow
-        },
-        animationSpec = tween(durationMillis = animDurationMillis),
-        label = "segmentBackground"
-    )
-
     val contentColor by animateColorAsState(
         targetValue = if (isSelected) {
             MaterialTheme.colorScheme.onSecondaryContainer
@@ -120,7 +161,6 @@ private fun Segment(
     Box(
         modifier = modifier
             .clip(RunicExpressiveTheme.shapes.segment)
-            .background(backgroundColor)
             .clickable(onClick = onClick)
             .semantics {
                 role = Role.Tab
@@ -151,4 +191,18 @@ private fun Segment(
             )
         }
     }
+}
+
+private fun resolvedSegmentWidth(totalWidth: Dp, spacing: Dp, count: Int): Dp {
+    return (totalWidth - spacing * (count - 1)) / count
+}
+
+private fun indicatorOffset(
+    selectedIndex: Int,
+    segmentWidth: Dp,
+    spacing: Dp,
+    maxIndex: Int
+): Dp {
+    val clampedIndex = selectedIndex.coerceIn(0, maxIndex)
+    return (segmentWidth + spacing) * clampedIndex
 }

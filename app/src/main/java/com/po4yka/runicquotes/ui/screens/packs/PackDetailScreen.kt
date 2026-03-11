@@ -1,8 +1,10 @@
 package com.po4yka.runicquotes.ui.screens.packs
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -37,9 +39,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -216,6 +222,55 @@ private fun PackHeroCard(
     readTimeLabel: String,
     onToggleLibrary: () -> Unit
 ) {
+    val reducedMotion = LocalReduceMotion.current
+    val motion = RunicExpressiveTheme.motion
+    var heroVisible by remember(pack.id) { mutableStateOf(reducedMotion) }
+
+    LaunchedEffect(pack.id, reducedMotion) {
+        if (!reducedMotion) {
+            heroVisible = true
+        }
+    }
+
+    val badgeScale by animateFloatAsState(
+        targetValue = if (heroVisible) 1f else 0.74f,
+        animationSpec = if (reducedMotion) {
+            tween(durationMillis = 0)
+        } else {
+            spring(
+                dampingRatio = 0.8f,
+                stiffness = 560f
+            )
+        },
+        label = "packHeroBadgeScale"
+    )
+    val badgeOffsetY by animateFloatAsState(
+        targetValue = if (heroVisible) 0f else 30f,
+        animationSpec = tween(
+            durationMillis = motion.duration(reducedMotion, motion.mediumDurationMillis),
+            easing = motion.emphasizedEasing
+        ),
+        label = "packHeroBadgeOffset"
+    )
+    val copyAlpha by animateFloatAsState(
+        targetValue = if (heroVisible) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = motion.duration(reducedMotion, motion.mediumDurationMillis),
+            delayMillis = motion.delay(reducedMotion, motion.shortDurationMillis / 3),
+            easing = motion.standardEasing
+        ),
+        label = "packHeroCopyAlpha"
+    )
+    val copyOffsetY by animateFloatAsState(
+        targetValue = if (heroVisible) 0f else 18f,
+        animationSpec = tween(
+            durationMillis = motion.duration(reducedMotion, motion.mediumDurationMillis),
+            delayMillis = motion.delay(reducedMotion, motion.shortDurationMillis / 3),
+            easing = motion.emphasizedEasing
+        ),
+        label = "packHeroCopyOffset"
+    )
+
     RunicInfoCard(
         shape = RunicExpressiveTheme.shapes.panel,
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 18.dp)
@@ -232,7 +287,13 @@ private fun PackHeroCard(
                     size = 48.dp,
                     shape = RoundedCornerShape(16.dp),
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    modifier = Modifier.semantics { contentDescription = "Cover rune: ${pack.coverRune}" }
+                    modifier = Modifier
+                        .graphicsLayer {
+                            scaleX = badgeScale
+                            scaleY = badgeScale
+                            translationY = badgeOffsetY
+                        }
+                        .semantics { contentDescription = "Cover rune: ${pack.coverRune}" }
                 ) {
                     Text(
                         text = pack.coverRune,
@@ -242,7 +303,12 @@ private fun PackHeroCard(
                 }
 
                 Column(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .graphicsLayer {
+                            alpha = copyAlpha
+                            translationY = copyOffsetY
+                        },
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
@@ -261,11 +327,20 @@ private fun PackHeroCard(
             Text(
                 text = pack.description,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.graphicsLayer {
+                    alpha = copyAlpha
+                    translationY = copyOffsetY
+                }
             )
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .graphicsLayer {
+                        alpha = copyAlpha
+                        translationY = copyOffsetY / 1.4f
+                    },
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {

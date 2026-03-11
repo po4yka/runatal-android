@@ -1,5 +1,8 @@
 package com.po4yka.runicquotes.ui.screens.packs
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -32,10 +35,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -56,7 +64,10 @@ import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
 import com.po4yka.runicquotes.ui.components.SkeletonCard
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
 import com.po4yka.runicquotes.ui.components.runicChoiceChipColors
+import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun PacksScreen(
@@ -205,11 +216,62 @@ private fun PackListCard(
     onClick: () -> Unit,
     onToggleLibrary: () -> Unit
 ) {
+    val reducedMotion = LocalReduceMotion.current
+    val motion = RunicExpressiveTheme.motion
+    val coroutineScope = rememberCoroutineScope()
+    var launchArmed by remember(pack.id) { mutableStateOf(false) }
+    val cardScale by animateFloatAsState(
+        targetValue = if (launchArmed) 0.97f else 1f,
+        animationSpec = if (reducedMotion) {
+            tween(durationMillis = 0)
+        } else {
+            spring(
+                dampingRatio = 0.82f,
+                stiffness = 640f
+            )
+        },
+        label = "packCardScale"
+    )
+    val badgeScale by animateFloatAsState(
+        targetValue = if (launchArmed) 1.12f else 1f,
+        animationSpec = tween(
+            durationMillis = motion.duration(reducedMotion, motion.shortDurationMillis),
+            easing = motion.emphasizedEasing
+        ),
+        label = "packCardBadgeScale"
+    )
+    val cardOffsetY by animateFloatAsState(
+        targetValue = if (launchArmed) -10f else 0f,
+        animationSpec = tween(
+            durationMillis = motion.duration(reducedMotion, motion.shortDurationMillis),
+            easing = motion.emphasizedEasing
+        ),
+        label = "packCardOffset"
+    )
     val sourceLabel = PackPresentationCatalog.sourceLabel(pack)
 
     RunicInfoCard(
-        modifier = Modifier.semantics { contentDescription = "Pack: ${pack.name}" },
-        onClick = onClick,
+        modifier = Modifier
+            .graphicsLayer {
+                scaleX = cardScale
+                scaleY = cardScale
+                translationY = cardOffsetY
+            }
+            .semantics { contentDescription = "Pack: ${pack.name}" },
+        onClick = {
+            if (launchArmed) {
+                return@RunicInfoCard
+            }
+            if (reducedMotion) {
+                onClick()
+            } else {
+                coroutineScope.launch {
+                    launchArmed = true
+                    delay((motion.shortDurationMillis * 0.45f).toLong())
+                    onClick()
+                }
+            }
+        },
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 15.dp)
     ) {
         Row(
@@ -221,7 +283,12 @@ private fun PackListCard(
                 size = 42.dp,
                 shape = RoundedCornerShape(14.dp),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                modifier = Modifier.semantics { contentDescription = "Pack rune: ${pack.coverRune}" }
+                modifier = Modifier
+                    .graphicsLayer {
+                        scaleX = badgeScale
+                        scaleY = badgeScale
+                    }
+                    .semantics { contentDescription = "Pack rune: ${pack.coverRune}" }
             ) {
                 Text(
                     text = pack.coverRune,

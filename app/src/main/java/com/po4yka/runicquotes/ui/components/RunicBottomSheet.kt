@@ -1,5 +1,7 @@
 package com.po4yka.runicquotes.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -20,9 +22,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -30,6 +38,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.theme.RunicTextRole
 import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
@@ -55,6 +64,14 @@ fun RunicBottomSheet(
 ) {
     val colors = MaterialTheme.colorScheme
     val sheetState = rememberModalBottomSheetState()
+    val reducedMotion = LocalReduceMotion.current
+    var contentVisible by remember(actions, preview, reducedMotion) { mutableStateOf(reducedMotion) }
+
+    LaunchedEffect(actions, preview, reducedMotion) {
+        if (!reducedMotion) {
+            contentVisible = true
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -69,11 +86,22 @@ fun RunicBottomSheet(
         Column(modifier = Modifier.padding(bottom = 24.dp)) {
             SheetHandle()
             if (preview != null) {
-                QuotePreviewCard(preview = preview)
+                SheetCascade(
+                    visible = contentVisible,
+                    reducedMotion = reducedMotion,
+                    order = 0
+                ) {
+                    QuotePreviewCard(preview = preview)
+                }
                 Spacer(modifier = Modifier.height(10.dp))
             }
             actions.forEachIndexed { index, action ->
-                BottomSheetActionRow(action)
+                BottomSheetActionRow(
+                    action = action,
+                    order = index + 1,
+                    visible = contentVisible,
+                    reducedMotion = reducedMotion
+                )
                 if (index < actions.lastIndex) {
                     Spacer(modifier = Modifier.height(2.dp))
                 }
@@ -245,5 +273,63 @@ private fun BottomSheetActionRow(action: BottomSheetAction) {
                 color = subtitleColor
             )
         }
+    }
+}
+
+@Composable
+private fun BottomSheetActionRow(
+    action: BottomSheetAction,
+    order: Int,
+    visible: Boolean,
+    reducedMotion: Boolean
+) {
+    SheetCascade(
+        visible = visible,
+        reducedMotion = reducedMotion,
+        order = order
+    ) {
+        BottomSheetActionRow(action = action)
+    }
+}
+
+@Composable
+private fun SheetCascade(
+    visible: Boolean,
+    reducedMotion: Boolean,
+    order: Int,
+    content: @Composable () -> Unit
+) {
+    if (reducedMotion) {
+        content()
+        return
+    }
+
+    val motion = RunicExpressiveTheme.motion
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = motion.shortDurationMillis,
+            delayMillis = (order * 35).coerceAtMost(motion.maxRevealDelayMillis),
+            easing = motion.standardEasing
+        ),
+        label = "sheetCascadeAlpha$order"
+    )
+    val translationY by animateFloatAsState(
+        targetValue = if (visible) 0f else 22f,
+        animationSpec = tween(
+            durationMillis = motion.mediumDurationMillis,
+            delayMillis = (order * 35).coerceAtMost(motion.maxRevealDelayMillis),
+            easing = motion.emphasizedEasing
+        ),
+        label = "sheetCascadeOffset$order"
+    )
+
+    Column(
+        modifier = Modifier.graphicsLayer {
+            this.alpha = alpha
+            this.translationY = translationY
+        }
+    ) {
+        content()
     }
 }

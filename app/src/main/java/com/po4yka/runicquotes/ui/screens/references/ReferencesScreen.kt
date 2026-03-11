@@ -1,8 +1,11 @@
 package com.po4yka.runicquotes.ui.screens.references
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -37,10 +40,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -64,6 +72,8 @@ import com.po4yka.runicquotes.ui.components.SkeletonCard
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun ReferencesScreen(
@@ -376,14 +386,71 @@ private fun RuneSectionHeader(section: RuneSection) {
 
 @Composable
 private fun RuneCell(rune: RuneReference, onClick: () -> Unit) {
+    val reducedMotion = LocalReduceMotion.current
+    val motion = RunicExpressiveTheme.motion
+    val coroutineScope = rememberCoroutineScope()
+    var focusArmed by remember(rune.id) { mutableStateOf(false) }
+    var isNavigating by remember(rune.id) { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focusArmed) 0.96f else 1f,
+        animationSpec = if (reducedMotion) {
+            tween(durationMillis = 0)
+        } else {
+            spring(
+                dampingRatio = 0.8f,
+                stiffness = 680f
+            )
+        },
+        label = "runeCellScale"
+    )
+    val translationY by animateFloatAsState(
+        targetValue = if (focusArmed) -8f else 0f,
+        animationSpec = tween(
+            durationMillis = motion.duration(reducedMotion, motion.shortDurationMillis),
+            easing = motion.emphasizedEasing
+        ),
+        label = "runeCellOffset"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (focusArmed) {
+            MaterialTheme.colorScheme.secondary
+        } else {
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)
+        },
+        animationSpec = tween(
+            durationMillis = motion.duration(reducedMotion, motion.shortDurationMillis),
+            easing = motion.standardEasing
+        ),
+        label = "runeCellBorder"
+    )
+
     Surface(
-        onClick = onClick,
+        onClick = {
+            if (isNavigating) {
+                return@Surface
+            }
+            if (reducedMotion) {
+                onClick()
+            } else {
+                coroutineScope.launch {
+                    isNavigating = true
+                    focusArmed = true
+                    delay((motion.shortDurationMillis * 0.45f).toLong())
+                    onClick()
+                }
+            }
+        },
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)),
+        border = BorderStroke(1.dp, borderColor),
         modifier = Modifier
             .fillMaxWidth()
             .height(76.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                this.translationY = translationY
+            }
             .semantics { contentDescription = "${rune.name}: ${rune.pronunciation}" }
     ) {
         Column(

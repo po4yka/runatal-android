@@ -1,16 +1,21 @@
 package com.po4yka.runicquotes.ui.screens.quote
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -84,6 +89,7 @@ import com.po4yka.runicquotes.util.rememberHapticFeedback
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlinx.coroutines.delay
 
 /**
  * Redesigned Today screen matching Figma 14:2296.
@@ -184,6 +190,9 @@ private fun TodayContent(
     val collapsedHeaderVisible by remember(scrollState) {
         derivedStateOf { scrollState.value > 72 }
     }
+    val headerCollapseProgress by remember(scrollState) {
+        derivedStateOf { (scrollState.value / 140f).coerceIn(0f, 1f) }
+    }
 
     val todayDate = remember {
         LocalDate.now().format(
@@ -208,7 +217,15 @@ private fun TodayContent(
                 reducedMotion = reducedMotion
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer {
+                            val scale = 1f - (headerCollapseProgress * 0.08f)
+                            scaleX = scale
+                            scaleY = scale
+                            translationY = -(18.dp.toPx() * headerCollapseProgress)
+                            alpha = 1f - (headerCollapseProgress * 0.52f)
+                        },
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
@@ -269,17 +286,50 @@ private fun TodayContent(
                 reducedMotion = reducedMotion,
                 delayMillis = motion.shortDurationMillis / 2
             ) {
-                HeroQuoteCard(
-                    runicText = state.runicText,
-                    latinText = state.quote.textLatin,
-                    author = state.quote.author,
-                    scriptLabel = state.selectedScript.displayName,
-                    selectedScript = state.selectedScript,
-                    selectedFont = state.selectedFont,
-                    showTransliteration = state.showTransliteration,
-                    reducedMotion = reducedMotion,
-                    contentVisible = contentVisible
-                )
+                val heroCardState = remember(
+                    state.quote.id,
+                    state.runicText,
+                    state.quote.textLatin,
+                    state.quote.author,
+                    state.selectedScript,
+                    state.selectedFont,
+                    state.showTransliteration
+                ) {
+                    HeroQuoteCardState(
+                        quoteId = state.quote.id,
+                        runicText = state.runicText,
+                        latinText = state.quote.textLatin,
+                        author = state.quote.author,
+                        scriptLabel = state.selectedScript.displayName,
+                        selectedScript = state.selectedScript,
+                        selectedFont = state.selectedFont,
+                        showTransliteration = state.showTransliteration
+                    )
+                }
+
+                AnimatedContent(
+                    targetState = heroCardState,
+                    transitionSpec = {
+                        quoteShuffleTransition(
+                            reducedMotion = reducedMotion,
+                            motion = motion
+                        )
+                    },
+                    label = "quoteHeroShuffle"
+                ) { heroState ->
+                    HeroQuoteCard(
+                        runicText = heroState.runicText,
+                        latinText = heroState.latinText,
+                        author = heroState.author,
+                        scriptLabel = heroState.scriptLabel,
+                        selectedScript = heroState.selectedScript,
+                        selectedFont = heroState.selectedFont,
+                        showTransliteration = heroState.showTransliteration,
+                        reducedMotion = reducedMotion,
+                        contentVisible = contentVisible,
+                        revealKey = heroState.quoteId
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -489,7 +539,8 @@ private fun HeroQuoteCard(
     selectedFont: String,
     showTransliteration: Boolean,
     reducedMotion: Boolean,
-    contentVisible: Boolean
+    contentVisible: Boolean,
+    revealKey: Long
 ) {
     val motion = RunicExpressiveTheme.motion
     val transliterationVisible = showTransliteration && contentVisible
@@ -513,7 +564,9 @@ private fun HeroQuoteCard(
             HeroRunicText(
                 text = runicText,
                 selectedScript = selectedScript,
-                selectedFont = selectedFont
+                selectedFont = selectedFont,
+                reducedMotion = reducedMotion,
+                revealKey = revealKey
             )
 
             if (reducedMotion) {
@@ -595,14 +648,85 @@ private fun HeroQuoteCard(
 private fun HeroRunicText(
     text: String,
     selectedScript: RunicScript,
-    selectedFont: String
+    selectedFont: String,
+    reducedMotion: Boolean,
+    revealKey: Long
 ) {
+    val motion = RunicExpressiveTheme.motion
+    val lines = remember(text) { splitRunicDisplayLines(text) }
+
+    if (reducedMotion) {
+        RunicText(
+            text = text,
+            font = selectedFont,
+            script = selectedScript,
+            role = RunicTextRole.QuoteHero,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Start
+        )
+        return
+    }
+
+    var revealedLineCount by remember(revealKey, text) { mutableStateOf(0) }
+    LaunchedEffect(revealKey, text) {
+        revealedLineCount = 0
+        lines.indices.forEach { index ->
+            delay((motion.revealStepMillis * index).toLong())
+            revealedLineCount = index + 1
+        }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        lines.forEachIndexed { index, line ->
+            HeroRunicLine(
+                text = line,
+                visible = index < revealedLineCount,
+                font = selectedFont,
+                script = selectedScript
+            )
+        }
+    }
+}
+
+@Composable
+private fun HeroRunicLine(
+    text: String,
+    visible: Boolean,
+    font: String,
+    script: RunicScript
+) {
+    val motion = RunicExpressiveTheme.motion
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = motion.shortDurationMillis,
+            easing = motion.standardEasing
+        ),
+        label = "runicHeroLineAlpha"
+    )
+    val translationY by animateFloatAsState(
+        targetValue = if (visible) 0f else 22f,
+        animationSpec = tween(
+            durationMillis = motion.shortDurationMillis,
+            easing = motion.emphasizedEasing
+        ),
+        label = "runicHeroLineOffset"
+    )
+
     RunicText(
         text = text,
-        font = selectedFont,
-        script = selectedScript,
+        font = font,
+        script = script,
         role = RunicTextRole.QuoteHero,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                this.alpha = alpha
+                this.translationY = translationY
+            },
         textAlign = TextAlign.Start
     )
 }
@@ -846,3 +970,79 @@ private fun TodayLoadingSkeleton(modifier: Modifier = Modifier) {
         SkeletonCard(height = 100.dp, brush = brush)
     }
 }
+
+private fun quoteShuffleTransition(
+    reducedMotion: Boolean,
+    motion: com.po4yka.runicquotes.ui.theme.RunicMotionTokens
+): ContentTransform {
+    if (reducedMotion) {
+        return EnterTransition.None togetherWith ExitTransition.None
+    }
+
+    return (fadeIn(
+        animationSpec = tween(
+            durationMillis = motion.mediumDurationMillis,
+            easing = motion.standardEasing
+        )
+    ) + slideInVertically(
+        animationSpec = tween(
+            durationMillis = motion.mediumDurationMillis,
+            easing = motion.emphasizedEasing
+        ),
+        initialOffsetY = { it / 4 }
+    ) + scaleIn(
+        animationSpec = tween(
+            durationMillis = motion.mediumDurationMillis,
+            easing = motion.emphasizedEasing
+        ),
+        initialScale = 0.95f
+    )) togetherWith
+        (fadeOut(
+            animationSpec = tween(
+                durationMillis = motion.shortDurationMillis,
+                easing = motion.standardEasing
+            )
+        ) + slideOutVertically(
+            animationSpec = tween(
+                durationMillis = motion.shortDurationMillis,
+                easing = motion.standardEasing
+            ),
+            targetOffsetY = { -it / 5 }
+        ) + scaleOut(
+            animationSpec = tween(
+                durationMillis = motion.shortDurationMillis,
+                easing = motion.standardEasing
+            ),
+            targetScale = 0.96f
+        ))
+}
+
+private fun splitRunicDisplayLines(text: String): List<String> {
+    val words = text.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+    if (words.isEmpty()) {
+        return listOf(text)
+    }
+
+    val targetLines = when {
+        words.size >= 12 || text.length > 84 -> 3
+        words.size >= 6 || text.length > 42 -> 2
+        else -> 1
+    }
+    if (targetLines == 1) {
+        return listOf(text)
+    }
+
+    val chunkSize = (words.size + targetLines - 1) / targetLines
+    return words.chunked(chunkSize).map { it.joinToString(" ") }
+}
+
+private data class HeroQuoteCardState(
+    val quoteId: Long,
+    val runicText: String,
+    val latinText: String,
+    val author: String,
+    val scriptLabel: String,
+    val selectedScript: RunicScript,
+    val selectedFont: String,
+    val showTransliteration: Boolean
+)

@@ -1,7 +1,16 @@
 package com.po4yka.runicquotes.ui.screens.onboarding
 
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -121,15 +130,50 @@ fun OnboardingScreen(
                     .fillMaxWidth()
                     .weight(1f)
             ) {
-                Crossfade(
+                AnimatedContent(
                     targetState = onboardingStep,
-                    animationSpec = tween(
-                        durationMillis = motion.duration(
-                            reducedMotion = reducedMotion,
-                            base = motion.mediumDurationMillis
-                        ),
-                        easing = motion.emphasizedEasing
-                    ),
+                    transitionSpec = {
+                        if (reducedMotion) {
+                            EnterTransition.None togetherWith ExitTransition.None
+                        } else {
+                            (fadeIn(
+                                animationSpec = tween(
+                                    durationMillis = motion.mediumDurationMillis,
+                                    easing = motion.standardEasing
+                                )
+                            ) + slideInVertically(
+                                animationSpec = tween(
+                                    durationMillis = motion.mediumDurationMillis,
+                                    easing = motion.emphasizedEasing
+                                ),
+                                initialOffsetY = { it / 8 }
+                            ) + scaleIn(
+                                animationSpec = tween(
+                                    durationMillis = motion.mediumDurationMillis,
+                                    easing = motion.emphasizedEasing
+                                ),
+                                initialScale = 0.96f
+                            )) togetherWith
+                                (fadeOut(
+                                    animationSpec = tween(
+                                        durationMillis = motion.shortDurationMillis,
+                                        easing = motion.standardEasing
+                                    )
+                                ) + slideOutVertically(
+                                    animationSpec = tween(
+                                        durationMillis = motion.shortDurationMillis,
+                                        easing = motion.standardEasing
+                                    ),
+                                    targetOffsetY = { -it / 10 }
+                            ) + scaleOut(
+                                    animationSpec = tween(
+                                        durationMillis = motion.shortDurationMillis,
+                                        easing = motion.standardEasing
+                                    ),
+                                    targetScale = 1.03f
+                                ))
+                        }
+                    },
                     label = "onboardingStepContent"
                 ) { step ->
                     when (step) {
