@@ -5,6 +5,8 @@ import com.google.common.truth.Truth.assertThat
 import com.po4yka.runicquotes.data.preferences.UserPreferences
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.ui.widget.WidgetDisplayMode
+import com.po4yka.runicquotes.ui.widget.WidgetUpdateMode
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -67,6 +69,15 @@ class SettingsViewModelTest {
         coEvery { userPreferencesManager.updateThemeMode(any()) } coAnswers {
             preferencesFlow.value = preferencesFlow.value.copy(themeMode = firstArg())
         }
+        coEvery { userPreferencesManager.updateDynamicColorEnabled(any()) } coAnswers {
+            preferencesFlow.value = preferencesFlow.value.copy(dynamicColorEnabled = firstArg())
+        }
+        coEvery { userPreferencesManager.updateThemePack(any()) } coAnswers {
+            preferencesFlow.value = preferencesFlow.value.copy(themePack = firstArg())
+        }
+        coEvery { userPreferencesManager.updateAppIconVariant(any()) } coAnswers {
+            preferencesFlow.value = preferencesFlow.value.copy(appIconVariant = firstArg())
+        }
         coEvery { userPreferencesManager.updateShowTransliteration(any()) } coAnswers {
             preferencesFlow.value = preferencesFlow.value.copy(showTransliteration = firstArg())
         }
@@ -75,6 +86,33 @@ class SettingsViewModelTest {
         }
         coEvery { userPreferencesManager.updateFontSize(any()) } coAnswers {
             preferencesFlow.value = preferencesFlow.value.copy(fontSize = firstArg())
+        }
+        coEvery { userPreferencesManager.updateWidgetDisplayMode(any()) } coAnswers {
+            preferencesFlow.value = preferencesFlow.value.copy(widgetDisplayMode = firstArg())
+        }
+        coEvery { userPreferencesManager.updateWidgetUpdateMode(any()) } coAnswers {
+            preferencesFlow.value = preferencesFlow.value.copy(widgetUpdateMode = firstArg())
+        }
+        coEvery { userPreferencesManager.updateLargeRunesEnabled(any()) } coAnswers {
+            preferencesFlow.value = preferencesFlow.value.copy(largeRunesEnabled = firstArg())
+        }
+        coEvery { userPreferencesManager.updateHighContrastEnabled(any()) } coAnswers {
+            preferencesFlow.value = preferencesFlow.value.copy(highContrastEnabled = firstArg())
+        }
+        coEvery { userPreferencesManager.updateReducedMotionEnabled(any()) } coAnswers {
+            preferencesFlow.value = preferencesFlow.value.copy(reducedMotionEnabled = firstArg())
+        }
+        coEvery { userPreferencesManager.updateDailyQuoteNotifications(any()) } coAnswers {
+            preferencesFlow.value = preferencesFlow.value.copy(dailyQuoteNotifications = firstArg())
+        }
+        coEvery { userPreferencesManager.updateStreakNotifications(any()) } coAnswers {
+            preferencesFlow.value = preferencesFlow.value.copy(streakNotifications = firstArg())
+        }
+        coEvery { userPreferencesManager.updatePackUpdateNotifications(any()) } coAnswers {
+            preferencesFlow.value = preferencesFlow.value.copy(packUpdateNotifications = firstArg())
+        }
+        coEvery { userPreferencesManager.updateHasCompletedOnboarding(any()) } coAnswers {
+            preferencesFlow.value = preferencesFlow.value.copy(hasCompletedOnboarding = firstArg())
         }
 
         // Create ViewModel
@@ -548,5 +586,84 @@ class SettingsViewModelTest {
 
         // Then: Manager is called (validation is its responsibility)
         coVerify { userPreferencesManager.updateFontSize(-1.0f) }
+    }
+
+    @Test
+    fun `dynamic color, theme pack, and icon variant updates flow`() = runTest {
+        viewModel.userPreferences.test {
+            awaitItem()
+
+            viewModel.updateDynamicColorEnabled(true)
+            viewModel.updateThemePack("night_ink")
+            viewModel.updateAppIconVariant("ember")
+            advanceUntilIdle()
+
+            val preferences = viewModel.userPreferences.value
+            assertThat(preferences.dynamicColorEnabled).isTrue()
+            assertThat(preferences.themePack).isEqualTo("night_ink")
+            assertThat(preferences.appIconVariant).isEqualTo("ember")
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `widget preferences are persisted using enum persisted values`() = runTest {
+        viewModel.userPreferences.test {
+            awaitItem()
+
+            viewModel.updateWidgetDisplayMode(WidgetDisplayMode.DAILY_RANDOM_TAP)
+            viewModel.updateWidgetUpdateMode(WidgetUpdateMode.EVERY_12_HOURS)
+            advanceUntilIdle()
+
+            val preferences = viewModel.userPreferences.value
+            assertThat(preferences.widgetDisplayMode).isEqualTo("daily_random_tap")
+            assertThat(preferences.widgetUpdateMode).isEqualTo("every_12_hours")
+
+            coVerify { userPreferencesManager.updateWidgetDisplayMode("daily_random_tap") }
+            coVerify { userPreferencesManager.updateWidgetUpdateMode("every_12_hours") }
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `accessibility flags update flow`() = runTest {
+        viewModel.userPreferences.test {
+            awaitItem()
+
+            viewModel.updateLargeRunesEnabled(true)
+            viewModel.updateHighContrastEnabled(true)
+            viewModel.updateReducedMotionEnabled(true)
+            advanceUntilIdle()
+
+            val preferences = viewModel.userPreferences.value
+            assertThat(preferences.largeRunesEnabled).isTrue()
+            assertThat(preferences.highContrastEnabled).isTrue()
+            assertThat(preferences.reducedMotionEnabled).isTrue()
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `notification toggles and onboarding completion update preferences`() = runTest {
+        viewModel.userPreferences.test {
+            awaitItem()
+
+            viewModel.updateDailyQuoteNotifications(false)
+            viewModel.updateStreakNotifications(false)
+            viewModel.updatePackUpdateNotifications(false)
+            viewModel.completeOnboarding()
+            advanceUntilIdle()
+
+            val preferences = viewModel.userPreferences.value
+            assertThat(preferences.dailyQuoteNotifications).isFalse()
+            assertThat(preferences.streakNotifications).isFalse()
+            assertThat(preferences.packUpdateNotifications).isFalse()
+            assertThat(preferences.hasCompletedOnboarding).isTrue()
+
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

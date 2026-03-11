@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.po4yka.runicquotes.MainActivity
+import com.po4yka.runicquotes.ui.dismissOnboardingIfNeeded
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -25,7 +26,7 @@ class WordByWordTransliterationUiTest {
 
     @Test
     fun quoteScreen_wordToggleShowsBreakdown() {
-        dismissOnboardingIfNeeded()
+        dismissOnboardingIfNeeded(composeRule)
 
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodesWithTag("quote_word_by_word_toggle").fetchSemanticsNodes().isNotEmpty()
@@ -46,7 +47,7 @@ class WordByWordTransliterationUiTest {
 
     @Test
     fun translationScreen_wordToggleShowsBreakdownSection() {
-        dismissOnboardingIfNeeded()
+        dismissOnboardingIfNeeded(composeRule)
 
         composeRule.onNodeWithTag("tab_settings").performClick()
         composeRule.waitUntil(10_000) {
@@ -69,13 +70,6 @@ class WordByWordTransliterationUiTest {
 
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodesWithTag("translation_word_breakdown").fetchSemanticsNodes().isNotEmpty()
-        }
-    }
-
-    private fun dismissOnboardingIfNeeded() {
-        composeRule.waitForIdle()
-        if (composeRule.onAllNodesWithTag("onboarding_finish_button").fetchSemanticsNodes().isNotEmpty()) {
-            composeRule.onNodeWithTag("onboarding_finish_button").performClick()
         }
     }
 }

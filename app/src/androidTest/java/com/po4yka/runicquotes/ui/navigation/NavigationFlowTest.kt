@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.po4yka.runicquotes.MainActivity
+import com.po4yka.runicquotes.ui.dismissOnboardingIfNeeded
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,11 +27,7 @@ class NavigationFlowTest {
         val quoteText = "UI route quote ${System.currentTimeMillis()}"
         val quoteAuthor = "Route Tester"
 
-        composeRule.waitForIdle()
-        if (composeRule.onAllNodesWithTag("onboarding_finish_button").fetchSemanticsNodes().isNotEmpty()) {
-            composeRule.onNodeWithTag("onboarding_finish_button")
-                .performClick()
-        }
+        dismissOnboardingIfNeeded(composeRule)
 
         composeRule.onNodeWithTag("tab_library")
             .performClick()

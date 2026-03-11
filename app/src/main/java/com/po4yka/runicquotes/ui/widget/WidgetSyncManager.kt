@@ -1,7 +1,6 @@
 package com.po4yka.runicquotes.ui.widget
 
 import android.content.Context
-import androidx.glance.appwidget.updateAll
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
@@ -9,6 +8,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.po4yka.runicquotes.worker.WidgetUpdateWorker
 import dagger.hilt.android.EntryPointAccessors
+import java.time.Clock
 import java.time.Duration
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
@@ -21,12 +21,18 @@ import kotlinx.coroutines.launch
  * Coordinates widget refreshes and WorkManager scheduling.
  * Requires an externally-managed CoroutineScope tied to the application lifecycle.
  */
-class WidgetSyncManager(private val scope: CoroutineScope) {
+class WidgetSyncManager internal constructor(
+    private val scope: CoroutineScope,
+    private val refreshRunner: WidgetRefreshRunner = DefaultWidgetRefreshRunner,
+    private val workScheduler: WidgetWorkScheduler = WorkManagerWidgetWorkScheduler,
+    private val updateModeReader: WidgetUpdateModeReader = HiltWidgetUpdateModeReader,
+    private val clock: Clock = Clock.systemDefaultZone()
+) {
 
     /** Triggers an asynchronous refresh of all widget instances. */
     fun refreshAllAsync(context: Context) {
         scope.launch {
-            RunicQuoteWidget().updateAll(context.applicationContext)
+            refreshRunner.refreshAll(context.applicationContext)
         }
     }
 
@@ -45,48 +51,25 @@ class WidgetSyncManager(private val scope: CoroutineScope) {
 
     /** Cancels the scheduled periodic widget update work. */
     fun cancelSchedule(context: Context) {
-        WorkManager.getInstance(context.applicationContext)
-            .cancelUniqueWork(WidgetUpdateWorker.WORK_NAME)
+        workScheduler.cancel(context.applicationContext)
     }
 
     private suspend fun reschedule(context: Context) {
         val appContext = context.applicationContext
-        val workManager = WorkManager.getInstance(appContext)
-        val updateMode = readUpdateMode(appContext)
+        val updateMode = updateModeReader.read(appContext)
 
         if (updateMode == WidgetUpdateMode.MANUAL) {
-            cancelSchedule(appContext)
+            workScheduler.cancel(appContext)
             return
         }
 
         val intervalHours = updateMode.intervalHours ?: return
-        val initialDelay = computeInitialDelay(updateMode, ZonedDateTime.now())
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
-            .build()
-
-        val workRequest = PeriodicWorkRequestBuilder<WidgetUpdateWorker>(
-            repeatInterval = intervalHours.toLong(),
-            repeatIntervalTimeUnit = TimeUnit.HOURS
+        val initialDelay = computeInitialDelay(updateMode, ZonedDateTime.now(clock))
+        workScheduler.enqueuePeriodicRefresh(
+            context = appContext,
+            intervalHours = intervalHours.toLong(),
+            initialDelay = initialDelay
         )
-            .setInitialDelay(initialDelay.toMillis(), TimeUnit.MILLISECONDS)
-            .setConstraints(constraints)
-            .build()
-
-        workManager.enqueueUniquePeriodicWork(
-            WidgetUpdateWorker.WORK_NAME,
-            ExistingPeriodicWorkPolicy.UPDATE,
-            workRequest
-        )
-    }
-
-    private suspend fun readUpdateMode(context: Context): WidgetUpdateMode {
-        val entryPoint = EntryPointAccessors.fromApplication(
-            context,
-            WidgetEntryPoint::class.java
-        )
-        val preferences = entryPoint.userPreferencesManager().userPreferencesFlow.first()
-        return WidgetUpdateMode.fromPersistedValue(preferences.widgetUpdateMode)
     }
 
     private fun computeInitialDelay(
@@ -115,5 +98,53 @@ class WidgetSyncManager(private val scope: CoroutineScope) {
 
         val delay = Duration.between(now, next)
         return if (delay.isNegative || delay.isZero) Duration.ofMinutes(1) else delay
+    }
+}
+
+internal interface WidgetWorkScheduler {
+    fun enqueuePeriodicRefresh(context: Context, intervalHours: Long, initialDelay: Duration)
+
+    fun cancel(context: Context)
+}
+
+internal object WorkManagerWidgetWorkScheduler : WidgetWorkScheduler {
+    override fun enqueuePeriodicRefresh(context: Context, intervalHours: Long, initialDelay: Duration) {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
+            .build()
+
+        val workRequest = PeriodicWorkRequestBuilder<WidgetUpdateWorker>(
+            repeatInterval = intervalHours,
+            repeatIntervalTimeUnit = TimeUnit.HOURS
+        )
+            .setInitialDelay(initialDelay.toMillis(), TimeUnit.MILLISECONDS)
+            .setConstraints(constraints)
+            .build()
+
+        WorkManager.getInstance(context.applicationContext).enqueueUniquePeriodicWork(
+            WidgetUpdateWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.UPDATE,
+            workRequest
+        )
+    }
+
+    override fun cancel(context: Context) {
+        WorkManager.getInstance(context.applicationContext)
+            .cancelUniqueWork(WidgetUpdateWorker.WORK_NAME)
+    }
+}
+
+internal interface WidgetUpdateModeReader {
+    suspend fun read(context: Context): WidgetUpdateMode
+}
+
+internal object HiltWidgetUpdateModeReader : WidgetUpdateModeReader {
+    override suspend fun read(context: Context): WidgetUpdateMode {
+        val entryPoint = EntryPointAccessors.fromApplication(
+            context,
+            WidgetEntryPoint::class.java
+        )
+        val preferences = entryPoint.userPreferencesManager().userPreferencesFlow.first()
+        return WidgetUpdateMode.fromPersistedValue(preferences.widgetUpdateMode)
     }
 }

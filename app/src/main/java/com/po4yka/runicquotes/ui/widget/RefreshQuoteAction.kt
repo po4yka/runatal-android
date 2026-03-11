@@ -9,7 +9,13 @@ import androidx.glance.appwidget.action.ActionCallback
  * Action callback for refreshing the widget when user taps the refresh button.
  * Clears the cache and triggers a fresh widget update.
  */
-class RefreshQuoteAction : ActionCallback {
+class RefreshQuoteAction() : ActionCallback {
+
+    private var refreshRunner: WidgetRefreshRunner = DefaultWidgetRefreshRunner
+
+    internal constructor(refreshRunner: WidgetRefreshRunner) : this() {
+        this.refreshRunner = refreshRunner
+    }
 
     override suspend fun onAction(
         context: Context,
@@ -22,6 +28,6 @@ class RefreshQuoteAction : ActionCallback {
         WidgetInteractionState.requestRandomQuote(widgetKey)
 
         // Update the specific widget that was clicked
-        RunicQuoteWidget().update(context, glanceId)
+        refreshRunner.refresh(context, glanceId)
     }
 }

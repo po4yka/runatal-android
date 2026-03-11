@@ -72,12 +72,22 @@ class UserPreferencesManagerTest {
         assertEquals(RunicScript.DEFAULT, preferences.selectedScript)
         assertEquals("noto", preferences.selectedFont)
         assertEquals("daily", preferences.widgetUpdateMode)
+        assertEquals("rune_latin", preferences.widgetDisplayMode)
         assertEquals(0L, preferences.lastQuoteDate)
         assertEquals(0L, preferences.lastDailyQuoteId)
         assertEquals("system", preferences.themeMode)
+        assertEquals("stone", preferences.themePack)
+        assertEquals("storm_slate", preferences.appIconVariant)
         assertTrue(preferences.showTransliteration)
         assertFalse(preferences.wordByWordTransliterationEnabled)
         assertEquals(1.0f, preferences.fontSize, 0.001f)
+        assertFalse(preferences.largeRunesEnabled)
+        assertFalse(preferences.highContrastEnabled)
+        assertFalse(preferences.reducedMotionEnabled)
+        assertFalse(preferences.hasCompletedOnboarding)
+        assertTrue(preferences.dailyQuoteNotifications)
+        assertTrue(preferences.streakNotifications)
+        assertTrue(preferences.packUpdateNotifications)
     }
 
     // ==================== Update Selected Script Tests ====================
@@ -164,6 +174,14 @@ class UserPreferencesManagerTest {
         preferencesManager.updateWidgetUpdateMode("daily")
         prefs = preferencesManager.userPreferencesFlow.first()
         assertEquals("daily", prefs.widgetUpdateMode)
+    }
+
+    @Test
+    fun updateWidgetDisplayMode_updatesAndPersists() = testScope.runTest {
+        preferencesManager.updateWidgetDisplayMode("daily_random_tap")
+
+        val preferences = preferencesManager.userPreferencesFlow.first()
+        assertEquals("daily_random_tap", preferences.widgetDisplayMode)
     }
 
     // ==================== Update Last Quote Date Tests ====================
@@ -309,6 +327,38 @@ class UserPreferencesManagerTest {
         assertFalse(prefs.wordByWordTransliterationEnabled)
     }
 
+    @Test
+    fun appIconOnboardingAndAccessibility_preferencesPersist() = testScope.runTest {
+        preferencesManager.updateAppIconVariant("ember")
+        preferencesManager.updateHasCompletedOnboarding(true)
+        preferencesManager.updateLargeRunesEnabled(true)
+        preferencesManager.updateHighContrastEnabled(true)
+        preferencesManager.updateReducedMotionEnabled(true)
+
+        val preferences = preferencesManager.userPreferencesFlow.first()
+        assertEquals("ember", preferences.appIconVariant)
+        assertTrue(preferences.hasCompletedOnboarding)
+        assertTrue(preferences.largeRunesEnabled)
+        assertTrue(preferences.highContrastEnabled)
+        assertTrue(preferences.reducedMotionEnabled)
+    }
+
+    @Test
+    fun notificationToggles_persistAcrossUpdates() = testScope.runTest {
+        preferencesManager.updateDailyQuoteNotifications(false)
+        preferencesManager.updateStreakNotifications(false)
+        preferencesManager.updatePackUpdateNotifications(false)
+
+        var preferences = preferencesManager.userPreferencesFlow.first()
+        assertFalse(preferences.dailyQuoteNotifications)
+        assertFalse(preferences.streakNotifications)
+        assertFalse(preferences.packUpdateNotifications)
+
+        preferencesManager.updateDailyQuoteNotifications(true)
+        preferences = preferencesManager.userPreferencesFlow.first()
+        assertTrue(preferences.dailyQuoteNotifications)
+    }
+
     // ==================== Update Font Size Tests ====================
 
     @Test
@@ -390,6 +440,15 @@ class UserPreferencesManagerTest {
         preferencesManager.updateWordByWordTransliterationEnabled(true)
         preferencesManager.updateFontSize(1.8f)
         preferencesManager.updateWidgetUpdateMode("manual")
+        preferencesManager.updateWidgetDisplayMode("daily_random_tap")
+        preferencesManager.updateAppIconVariant("ember")
+        preferencesManager.updateLargeRunesEnabled(true)
+        preferencesManager.updateHighContrastEnabled(true)
+        preferencesManager.updateReducedMotionEnabled(true)
+        preferencesManager.updateHasCompletedOnboarding(true)
+        preferencesManager.updateDailyQuoteNotifications(false)
+        preferencesManager.updateStreakNotifications(false)
+        preferencesManager.updatePackUpdateNotifications(false)
         preferencesManager.updateLastQuoteDate(99999L)
         preferencesManager.updateLastDailyQuoteId(88L)
 
@@ -402,6 +461,15 @@ class UserPreferencesManagerTest {
         assertTrue(preferences.wordByWordTransliterationEnabled)
         assertEquals(1.8f, preferences.fontSize, 0.001f)
         assertEquals("manual", preferences.widgetUpdateMode)
+        assertEquals("daily_random_tap", preferences.widgetDisplayMode)
+        assertEquals("ember", preferences.appIconVariant)
+        assertTrue(preferences.largeRunesEnabled)
+        assertTrue(preferences.highContrastEnabled)
+        assertTrue(preferences.reducedMotionEnabled)
+        assertTrue(preferences.hasCompletedOnboarding)
+        assertFalse(preferences.dailyQuoteNotifications)
+        assertFalse(preferences.streakNotifications)
+        assertFalse(preferences.packUpdateNotifications)
         assertEquals(99999L, preferences.lastQuoteDate)
         assertEquals(88L, preferences.lastDailyQuoteId)
     }

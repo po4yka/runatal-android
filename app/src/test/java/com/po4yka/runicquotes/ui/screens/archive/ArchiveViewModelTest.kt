@@ -11,6 +11,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -19,6 +20,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ArchiveViewModelTest {
@@ -117,5 +119,51 @@ class ArchiveViewModelTest {
         coVerify(exactly = restoredQuotes.size) {
             archiveRepository.archiveQuote(any())
         }
+    }
+
+    @Test
+    fun `restoreQuote emits single quote snackbar`() = runTest {
+        viewModel.snackbarEvent.test {
+            val quote = archivedQuotesFlow.value.first()
+
+            viewModel.restoreQuote(quote)
+            advanceUntilIdle()
+
+            coVerify { archiveRepository.restoreQuote(quote.id) }
+            val event = awaitItem()
+            assertThat(event).isEqualTo(ArchiveSnackbarEvent.RestoredQuote(listOf(quote)))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `softDeleteQuote and emptyTrash delegate to repository`() = runTest {
+        viewModel.softDeleteQuote(2L)
+        viewModel.emptyTrash()
+        advanceUntilIdle()
+
+        coVerify { archiveRepository.softDeleteQuote(2L) }
+        coVerify { archiveRepository.emptyTrash() }
+    }
+
+    @Test
+    fun `retry clears error and reloads archive after a flow failure`() = runTest {
+        every { archiveRepository.getActiveArchivedFlow() } returnsMany listOf(
+            flow { throw IOException("offline") },
+            archivedQuotesFlow
+        )
+        every { archiveRepository.getDeletedFlow() } returns deletedQuotesFlow
+
+        val failingViewModel = ArchiveViewModel(archiveRepository)
+        advanceUntilIdle()
+
+        assertThat(failingViewModel.uiState.value.errorMessage)
+            .isEqualTo("Failed to load archive: offline")
+
+        failingViewModel.retry()
+        advanceUntilIdle()
+
+        assertThat(failingViewModel.uiState.value.errorMessage).isNull()
+        assertThat(failingViewModel.uiState.value.archivedQuotes).hasSize(2)
     }
 }

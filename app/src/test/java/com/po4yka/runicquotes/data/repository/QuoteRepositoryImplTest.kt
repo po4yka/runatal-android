@@ -3,6 +3,7 @@ package com.po4yka.runicquotes.data.repository
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runicquotes.data.local.dao.QuoteDao
 import com.po4yka.runicquotes.data.local.entity.QuoteEntity
+import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.util.TimeProvider
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -570,5 +571,144 @@ class QuoteRepositoryImplTest {
 
         // Then: insertAll is called only once due to isSeeded flag
         coVerify(exactly = 1) { quoteDao.insertAll(any()) }
+    }
+
+    @Test
+    fun `getQuoteCount delegates to dao`() = runTest {
+        coEvery { quoteDao.getCount() } returns 42
+
+        assertThat(repository.getQuoteCount()).isEqualTo(42)
+    }
+
+    @Test
+    fun `getUserQuotesFlow maps user created entities`() = runTest {
+        every { quoteDao.getUserQuotesFlow() } returns flowOf(
+            listOf(
+                testQuotes[1].copy(isUserCreated = true, createdAt = 123L)
+            )
+        )
+
+        val quotes = repository.getUserQuotesFlow().first()
+
+        assertThat(quotes).containsExactly(
+            Quote(
+                id = 2L,
+                textLatin = "Test quote 2",
+                author = "Author 2",
+                runicElder = "\u16A6\u16D6\u16CA\u16CF",
+                runicYounger = null,
+                runicCirth = null,
+                isUserCreated = true,
+                isFavorite = false,
+                createdAt = 123L
+            )
+        )
+    }
+
+    @Test
+    fun `getFavoritesFlow and getFavorites map favorite entities`() = runTest {
+        val favoriteEntity = testQuotes[0].copy(isFavorite = true, createdAt = 777L)
+        every { quoteDao.getFavoritesFlow() } returns flowOf(listOf(favoriteEntity))
+        coEvery { quoteDao.getFavorites() } returns listOf(favoriteEntity)
+
+        val flowQuotes = repository.getFavoritesFlow().first()
+        val listQuotes = repository.getFavorites()
+
+        assertThat(flowQuotes.single().isFavorite).isTrue()
+        assertThat(listQuotes.single().createdAt).isEqualTo(777L)
+    }
+
+    @Test
+    fun `toggleFavorite delegates to dao`() = runTest {
+        coEvery { quoteDao.updateFavoriteStatus(3L, true) } returns Unit
+
+        repository.toggleFavorite(3L, true)
+
+        coVerify(exactly = 1) { quoteDao.updateFavoriteStatus(3L, true) }
+    }
+
+    @Test
+    fun `saveUserQuote inserts new quotes as user created`() = runTest {
+        val quote = Quote(
+            id = 0L,
+            textLatin = "New quote",
+            author = "Builder",
+            runicElder = "ᚾᛖᚹ",
+            runicYounger = null,
+            runicCirth = null,
+            isUserCreated = false,
+            isFavorite = true,
+            createdAt = 55L
+        )
+        coEvery { quoteDao.insert(any()) } returns 9L
+
+        val result = repository.saveUserQuote(quote)
+
+        assertThat(result).isEqualTo(9L)
+        coVerify {
+            quoteDao.insert(
+                QuoteEntity(
+                    id = 0L,
+                    textLatin = "New quote",
+                    author = "Builder",
+                    runicElder = "ᚾᛖᚹ",
+                    runicYounger = null,
+                    runicCirth = null,
+                    isUserCreated = true,
+                    isFavorite = true,
+                    createdAt = 55L
+                )
+            )
+        }
+    }
+
+    @Test
+    fun `saveUserQuote updates existing quotes and returns original id`() = runTest {
+        val quote = Quote(
+            id = 12L,
+            textLatin = "Existing quote",
+            author = "Builder",
+            runicElder = null,
+            runicYounger = "ᚢᛈᛞᚨᛏᛖ",
+            runicCirth = null,
+            isUserCreated = false,
+            isFavorite = false,
+            createdAt = 99L
+        )
+        coEvery { quoteDao.update(any()) } returns Unit
+
+        val result = repository.saveUserQuote(quote)
+
+        assertThat(result).isEqualTo(12L)
+        coVerify {
+            quoteDao.update(
+                QuoteEntity(
+                    id = 12L,
+                    textLatin = "Existing quote",
+                    author = "Builder",
+                    runicElder = null,
+                    runicYounger = "ᚢᛈᛞᚨᛏᛖ",
+                    runicCirth = null,
+                    isUserCreated = true,
+                    isFavorite = false,
+                    createdAt = 99L
+                )
+            )
+        }
+    }
+
+    @Test
+    fun `deleteUserQuote and getQuoteById delegate and map results`() = runTest {
+        coEvery { quoteDao.deleteUserQuote(4L) } returns Unit
+        coEvery { quoteDao.getById(2L) } returns testQuotes[1].copy(isFavorite = true, createdAt = 500L)
+        coEvery { quoteDao.getById(8L) } returns null
+
+        repository.deleteUserQuote(4L)
+        val quote = repository.getQuoteById(2L)
+
+        coVerify { quoteDao.deleteUserQuote(4L) }
+        assertThat(quote?.isFavorite).isTrue()
+        assertThat(quote?.createdAt).isEqualTo(500L)
+        assertThat(repository.getQuoteById(8L)).isNull()
     }
 }

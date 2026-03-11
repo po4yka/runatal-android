@@ -12,6 +12,8 @@ import com.po4yka.runicquotes.domain.transliteration.ElderFutharkTransliterator
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import com.po4yka.runicquotes.domain.transliteration.YoungerFutharkTransliterator
 import com.po4yka.runicquotes.util.QuoteShareManager
+import com.po4yka.runicquotes.util.ShareAppearance
+import com.po4yka.runicquotes.util.ShareTemplate
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -627,5 +629,77 @@ class QuoteViewModelTest {
 
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `toggleFavorite updates current quote and delegates to repository`() = runTest {
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
+        coEvery { quoteRepository.toggleFavorite(any(), any()) } returns Unit
+
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
+        advanceUntilIdle()
+
+        viewModel.toggleFavorite()
+        advanceUntilIdle()
+
+        coVerify { quoteRepository.toggleFavorite(testQuote.id, true) }
+        val state = viewModel.uiState.value as QuoteUiState.Success
+        assertThat(state.quote.isFavorite).isTrue()
+    }
+
+    @Test
+    fun `share and copy actions delegate to share manager`() = runTest {
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
+        coEvery { quoteShareManager.shareQuoteAsImage(any(), any(), any(), any(), any()) } returns true
+
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
+        advanceUntilIdle()
+
+        viewModel.shareQuoteAsImage()
+        advanceUntilIdle()
+        viewModel.shareQuoteText()
+        viewModel.copyQuoteText()
+
+        coVerify {
+            quoteShareManager.shareQuoteAsImage(
+                runicText = "\u16CF\u16D6\u16CA\u16CF",
+                latinText = testQuote.textLatin,
+                author = testQuote.author,
+                template = ShareTemplate.CARD,
+                appearance = ShareAppearance.DARK
+            )
+        }
+        io.mockk.verify { quoteShareManager.shareQuoteText(testQuote.textLatin, testQuote.author) }
+        io.mockk.verify { quoteShareManager.copyQuoteToClipboard(testQuote.textLatin, testQuote.author) }
+    }
+
+    @Test
+    fun `deleteQuote removes current quote and loads next daily quote`() = runTest {
+        val nextQuote = testQuote.copy(id = 2L, textLatin = "Next quote")
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote andThen nextQuote
+        coEvery { quoteRepository.deleteUserQuote(testQuote.id) } returns Unit
+
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
+        advanceUntilIdle()
+
+        viewModel.deleteQuote()
+        advanceUntilIdle()
+
+        coVerify { quoteRepository.deleteUserQuote(testQuote.id) }
+        assertThat((viewModel.uiState.value as QuoteUiState.Success).quote).isEqualTo(nextQuote)
+    }
+
+    @Test
+    fun `toggleTransliterationVisibility updates persisted preference`() = runTest {
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
+        coEvery { userPreferencesManager.updateShowTransliteration(false) } returns Unit
+
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
+        advanceUntilIdle()
+
+        viewModel.toggleTransliterationVisibility()
+        advanceUntilIdle()
+
+        coVerify { userPreferencesManager.updateShowTransliteration(false) }
     }
 }

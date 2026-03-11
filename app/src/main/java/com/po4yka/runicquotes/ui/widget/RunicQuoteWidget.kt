@@ -1,6 +1,7 @@
 package com.po4yka.runicquotes.ui.widget
 
 import android.content.Context
+import android.content.res.Resources
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -51,155 +52,24 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
+private const val RUNIC_QUOTE_WIDGET_TAG = "RunicQuoteWidget"
+private const val DEFAULT_WIDGET_WIDTH = 300
+private const val DEFAULT_WIDGET_HEIGHT = 151
+
 /**
  * Glance widget aligned to the Runatal Figma widget cluster.
  */
 @Suppress("TooManyFunctions")
-class RunicQuoteWidget : GlanceAppWidget() {
+class RunicQuoteWidget() : GlanceAppWidget() {
 
-    private companion object {
-        private const val TAG = "RunicQuoteWidget"
-        private const val COMPACT_WIDGET_HEIGHT = 100
-        private const val MEDIUM_WIDGET_HEIGHT = 180
-        private const val TEXT_SIZE_COMPACT = 12f
-        private const val TEXT_SIZE_MEDIUM = 14f
-        private const val TEXT_SIZE_LARGE = 15f
-        private const val DEFAULT_WIDGET_WIDTH = 300
-        private const val DEFAULT_WIDGET_HEIGHT = 151
+    private var stateLoader: WidgetStateLoader = DefaultWidgetStateLoader()
+
+    internal constructor(stateLoader: WidgetStateLoader) : this() {
+        this.stateLoader = stateLoader
     }
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val entryPoint = EntryPointAccessors.fromApplication(
-            context.applicationContext,
-            WidgetEntryPoint::class.java
-        )
-        val quoteRepository = entryPoint.quoteRepository()
-        val preferencesManager = entryPoint.userPreferencesManager()
-
-        val widgetKey = id.toString()
-        val widgetSize = GlanceAppWidgetManager(context).getAppWidgetSizes(id).firstOrNull()
-        val widgetWidth = widgetSize?.width?.value?.toInt() ?: DEFAULT_WIDGET_WIDTH
-        val widgetHeight = widgetSize?.height?.value?.toInt() ?: DEFAULT_WIDGET_HEIGHT
-        val sizeClass = resolveSizeClass(widgetHeight)
-
-        val state = withContext(Dispatchers.IO) {
-            try {
-                val today = LocalDate.now()
-                val preferences = preferencesManager.userPreferencesFlow.first()
-                val displayMode = WidgetDisplayMode.fromPersistedValue(preferences.widgetDisplayMode)
-                val updateMode = WidgetUpdateMode.fromPersistedValue(preferences.widgetUpdateMode)
-                val randomRequested = WidgetInteractionState.consumeRandomQuoteRequest(widgetKey)
-                val palette = resolveWidgetPalette(context, preferences)
-
-                if (!randomRequested) {
-                    val cachedState = WidgetStateCache.get(
-                        widgetKey = widgetKey,
-                        currentDate = today,
-                        preferences = preferences,
-                        widgetWidth = widgetWidth,
-                        widgetHeight = widgetHeight
-                    )
-                    if (cachedState != null) {
-                        return@withContext cachedState.copy(
-                            sizeClass = sizeClass,
-                            palette = palette
-                        )
-                    }
-                }
-
-                val quote = if (
-                    displayMode == WidgetDisplayMode.DAILY_RANDOM_TAP &&
-                    randomRequested
-                ) {
-                    quoteRepository.randomQuote()
-                } else {
-                    quoteRepository.quoteOfTheDay()
-                }
-
-                if (quote != null) {
-                    val runicText = quote.getRunicText(
-                        script = preferences.selectedScript,
-                        transliterationFactory = entryPoint.transliterationFactory()
-                    )
-                    val normalizedRunicText = CirthGlyphCompat.normalizeLegacyPuaGlyphs(runicText)
-                    val textSize = runicTextSize(sizeClass)
-                    val maxWidth = maxRunicWidthPx(context, widgetWidth, sizeClass)
-                    val fontResource = RunicTextRenderer.getFontResource(preferences.selectedFont)
-                    val cacheKey = BitmapCache.generateKey(
-                        text = "${sizeClass.name}:${normalizedRunicText}",
-                        fontResource = fontResource,
-                        textSize = textSize,
-                        maxWidth = maxWidth
-                    )
-                    val runicBitmap = BitmapCache.get(cacheKey) ?: try {
-                        val bitmap = RunicTextRenderer.renderTextToBitmap(
-                            context = context,
-                            config = RenderConfig(
-                                text = normalizedRunicText,
-                                fontResource = fontResource,
-                                textSizeSp = textSize,
-                                textColor = palette.runicText,
-                                backgroundColor = null,
-                                maxWidth = maxWidth,
-                                textAlign = RenderTextAlign.START,
-                                maxLines = if (sizeClass == WidgetSizeClass.EXPANDED) 2 else 1
-                            )
-                        )
-                        BitmapCache.put(cacheKey, bitmap)
-                        bitmap
-                    } catch (e: IOException) {
-                        Log.e(TAG, "Failed to render runic text bitmap", e)
-                        null
-                    } catch (e: OutOfMemoryError) {
-                        Log.e(TAG, "Out of memory rendering widget bitmap", e)
-                        null
-                    }
-
-                    val newState = WidgetState(
-                        runicText = normalizedRunicText,
-                        runicBitmap = runicBitmap,
-                        latinText = quote.textLatin,
-                        author = quote.author,
-                        scriptLabel = preferences.selectedScript.displayName,
-                        modeLabel = displayMode.displayName,
-                        updateModeLabel = updateMode.displayName,
-                        palette = palette,
-                        sizeClass = sizeClass,
-                        displayMode = displayMode,
-                        isLoading = false
-                    )
-
-                    WidgetStateCache.put(
-                        widgetKey = widgetKey,
-                        date = today,
-                        preferences = preferences,
-                        widgetWidth = widgetWidth,
-                        widgetHeight = widgetHeight,
-                        state = newState
-                    )
-                    newState
-                } else {
-                    WidgetState(
-                        latinText = "No quote available",
-                        scriptLabel = RunicScript.DEFAULT.displayName,
-                        modeLabel = displayMode.displayName,
-                        updateModeLabel = updateMode.displayName,
-                        palette = palette,
-                        sizeClass = sizeClass,
-                        displayMode = displayMode
-                    )
-                }
-            } catch (e: IOException) {
-                Log.e(TAG, "IO error loading widget state", e)
-                WidgetState(
-                    latinText = "",
-                    palette = WidgetPalette.default(),
-                    sizeClass = sizeClass,
-                    displayMode = WidgetDisplayMode.RUNE_LATIN,
-                    error = e.message
-                )
-            }
-        }
+        val state = stateLoader.load(context, id)
 
         provideContent {
             WidgetContent(state)
@@ -549,7 +419,162 @@ class RunicQuoteWidget : GlanceAppWidget() {
         }
     }
 
-    private fun runicTextSize(sizeClass: WidgetSizeClass): Float {
+    private fun widgetColor(color: Int): ColorProvider = ColorProvider(Color(color))
+}
+
+internal interface WidgetStateLoader {
+    suspend fun load(context: Context, id: GlanceId): WidgetState
+}
+
+internal class DefaultWidgetStateLoader : WidgetStateLoader {
+
+    override suspend fun load(context: Context, id: GlanceId): WidgetState {
+        val entryPoint = EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            WidgetEntryPoint::class.java
+        )
+        val quoteRepository = entryPoint.quoteRepository()
+        val preferencesManager = entryPoint.userPreferencesManager()
+
+        val widgetKey = id.toString()
+        val widgetSize = GlanceAppWidgetManager(context).getAppWidgetSizes(id).firstOrNull()
+        val widgetWidth = widgetSize?.width?.value?.toInt() ?: DEFAULT_WIDGET_WIDTH
+        val widgetHeight = widgetSize?.height?.value?.toInt() ?: DEFAULT_WIDGET_HEIGHT
+        val sizeClass = RunicQuoteWidgetMetrics.resolveSizeClass(widgetHeight)
+
+        return withContext(Dispatchers.IO) {
+            try {
+                val today = LocalDate.now()
+                val preferences = preferencesManager.userPreferencesFlow.first()
+                val displayMode = WidgetDisplayMode.fromPersistedValue(preferences.widgetDisplayMode)
+                val updateMode = WidgetUpdateMode.fromPersistedValue(preferences.widgetUpdateMode)
+                val randomRequested = WidgetInteractionState.consumeRandomQuoteRequest(widgetKey)
+                val palette = resolveWidgetPalette(context, preferences)
+
+                if (!randomRequested) {
+                    val cachedState = WidgetStateCache.get(
+                        widgetKey = widgetKey,
+                        currentDate = today,
+                        preferences = preferences,
+                        widgetWidth = widgetWidth,
+                        widgetHeight = widgetHeight
+                    )
+                    if (cachedState != null) {
+                        return@withContext cachedState.copy(
+                            sizeClass = sizeClass,
+                            palette = palette
+                        )
+                    }
+                }
+
+                val quote = if (
+                    displayMode == WidgetDisplayMode.DAILY_RANDOM_TAP &&
+                    randomRequested
+                ) {
+                    quoteRepository.randomQuote()
+                } else {
+                    quoteRepository.quoteOfTheDay()
+                }
+
+                if (quote != null) {
+                    val runicText = quote.getRunicText(
+                        script = preferences.selectedScript,
+                        transliterationFactory = entryPoint.transliterationFactory()
+                    )
+                    val normalizedRunicText = CirthGlyphCompat.normalizeLegacyPuaGlyphs(runicText)
+                    val textSize = RunicQuoteWidgetMetrics.runicTextSize(sizeClass)
+                    val maxWidth = RunicQuoteWidgetMetrics.maxRunicWidthPx(
+                        resources = context.resources,
+                        widgetWidthDp = widgetWidth,
+                        sizeClass = sizeClass
+                    )
+                    val fontResource = RunicTextRenderer.getFontResource(preferences.selectedFont)
+                    val cacheKey = BitmapCache.generateKey(
+                        text = "${sizeClass.name}:$normalizedRunicText",
+                        fontResource = fontResource,
+                        textSize = textSize,
+                        maxWidth = maxWidth
+                    )
+                    val runicBitmap = BitmapCache.get(cacheKey) ?: try {
+                        val bitmap = RunicTextRenderer.renderTextToBitmap(
+                            context = context,
+                            config = RenderConfig(
+                                text = normalizedRunicText,
+                                fontResource = fontResource,
+                                textSizeSp = textSize,
+                                textColor = palette.runicText,
+                                backgroundColor = null,
+                                maxWidth = maxWidth,
+                                textAlign = RenderTextAlign.START,
+                                maxLines = if (sizeClass == WidgetSizeClass.EXPANDED) 2 else 1
+                            )
+                        )
+                        BitmapCache.put(cacheKey, bitmap)
+                        bitmap
+                    } catch (e: IOException) {
+                        Log.e(RUNIC_QUOTE_WIDGET_TAG, "Failed to render runic text bitmap", e)
+                        null
+                    } catch (e: OutOfMemoryError) {
+                        Log.e(RUNIC_QUOTE_WIDGET_TAG, "Out of memory rendering widget bitmap", e)
+                        null
+                    }
+
+                    val newState = WidgetState(
+                        runicText = normalizedRunicText,
+                        runicBitmap = runicBitmap,
+                        latinText = quote.textLatin,
+                        author = quote.author,
+                        scriptLabel = preferences.selectedScript.displayName,
+                        modeLabel = displayMode.displayName,
+                        updateModeLabel = updateMode.displayName,
+                        palette = palette,
+                        sizeClass = sizeClass,
+                        displayMode = displayMode,
+                        isLoading = false
+                    )
+
+                    WidgetStateCache.put(
+                        widgetKey = widgetKey,
+                        date = today,
+                        preferences = preferences,
+                        widgetWidth = widgetWidth,
+                        widgetHeight = widgetHeight,
+                        state = newState
+                    )
+                    newState
+                } else {
+                    WidgetState(
+                        latinText = "No quote available",
+                        scriptLabel = RunicScript.DEFAULT.displayName,
+                        modeLabel = displayMode.displayName,
+                        updateModeLabel = updateMode.displayName,
+                        palette = palette,
+                        sizeClass = sizeClass,
+                        displayMode = displayMode
+                    )
+                }
+            } catch (e: IOException) {
+                Log.e(RUNIC_QUOTE_WIDGET_TAG, "IO error loading widget state", e)
+                WidgetState(
+                    latinText = "",
+                    palette = WidgetPalette.default(),
+                    sizeClass = sizeClass,
+                    displayMode = WidgetDisplayMode.RUNE_LATIN,
+                    error = e.message
+                )
+            }
+        }
+    }
+}
+
+internal object RunicQuoteWidgetMetrics {
+    private const val COMPACT_WIDGET_HEIGHT = 100
+    private const val MEDIUM_WIDGET_HEIGHT = 180
+    private const val TEXT_SIZE_COMPACT = 12f
+    private const val TEXT_SIZE_MEDIUM = 14f
+    private const val TEXT_SIZE_LARGE = 15f
+
+    fun runicTextSize(sizeClass: WidgetSizeClass): Float {
         return when (sizeClass) {
             WidgetSizeClass.COMPACT -> TEXT_SIZE_COMPACT
             WidgetSizeClass.MEDIUM -> TEXT_SIZE_MEDIUM
@@ -557,12 +582,12 @@ class RunicQuoteWidget : GlanceAppWidget() {
         }
     }
 
-    private fun maxRunicWidthPx(
-        context: Context,
+    fun maxRunicWidthPx(
+        resources: Resources,
         widgetWidthDp: Int,
         sizeClass: WidgetSizeClass
     ): Int {
-        val density = context.resources.displayMetrics.density
+        val density = resources.displayMetrics.density
         val contentWidthDp = when (sizeClass) {
             WidgetSizeClass.COMPACT -> widgetWidthDp - 98
             WidgetSizeClass.MEDIUM -> widgetWidthDp - 70
@@ -571,13 +596,11 @@ class RunicQuoteWidget : GlanceAppWidget() {
         return (contentWidthDp * density).toInt()
     }
 
-    private fun resolveSizeClass(widgetHeight: Int): WidgetSizeClass {
+    fun resolveSizeClass(widgetHeight: Int): WidgetSizeClass {
         return when {
             widgetHeight < COMPACT_WIDGET_HEIGHT -> WidgetSizeClass.COMPACT
             widgetHeight < MEDIUM_WIDGET_HEIGHT -> WidgetSizeClass.MEDIUM
             else -> WidgetSizeClass.EXPANDED
         }
     }
-
-    private fun widgetColor(color: Int): ColorProvider = ColorProvider(Color(color))
 }

@@ -13,6 +13,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -317,5 +318,58 @@ class QuoteListViewModelTest {
             assertThat(state.isLoading).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `updateSearchQuery persists query and filters visible quotes`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.updateSearchQuery("tolkien")
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.searchQuery).isEqualTo("tolkien")
+        assertThat(viewModel.uiState.value.quotes).containsExactly(testQuotes[1])
+        coVerify { userPreferencesManager.updateQuoteSearchQuery("tolkien") }
+    }
+
+    @Test
+    fun `restoreDeletedQuote re-saves quote as user created`() = runTest {
+        coEvery { quoteRepository.saveUserQuote(any()) } returns 22L
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.restoreDeletedQuote(testQuotes[0].copy(isUserCreated = false))
+        advanceUntilIdle()
+
+        coVerify {
+            quoteRepository.saveUserQuote(
+                testQuotes[0].copy(isUserCreated = true)
+            )
+        }
+    }
+
+    @Test
+    fun `copy actions delegate to share manager`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.copyQuoteText(testQuotes[0])
+        viewModel.copyRunicText(testQuotes[0])
+
+        verify { quoteShareManager.copyQuoteToClipboard(testQuotes[0].textLatin, testQuotes[0].author) }
+        verify { quoteShareManager.copyPlainTextToClipboard("Runic transliteration", testQuotes[0].runicElder!!) }
+    }
+
+    @Test
+    fun `restoreDeletedQuote surfaces illegal state errors`() = runTest {
+        coEvery { quoteRepository.saveUserQuote(any()) } throws IllegalStateException("restore failed")
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.restoreDeletedQuote(testQuotes[0])
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.errorMessage).isEqualTo("Invalid state: restore failed")
     }
 }

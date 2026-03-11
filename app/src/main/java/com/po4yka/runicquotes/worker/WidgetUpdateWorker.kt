@@ -2,11 +2,11 @@ package com.po4yka.runicquotes.worker
 
 import android.content.Context
 import android.util.Log
-import androidx.glance.appwidget.updateAll
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.po4yka.runicquotes.ui.widget.RunicQuoteWidget
+import com.po4yka.runicquotes.ui.widget.DefaultWidgetRefreshRunner
+import com.po4yka.runicquotes.ui.widget.WidgetRefreshRunner
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.io.IOException
@@ -21,10 +21,19 @@ class WidgetUpdateWorker @AssistedInject constructor(
     @Assisted workerParams: WorkerParameters
 ) : CoroutineWorker(appContext, workerParams) {
 
+    private var refreshRunner: WidgetRefreshRunner = DefaultWidgetRefreshRunner
+
+    internal constructor(
+        appContext: Context,
+        workerParams: WorkerParameters,
+        refreshRunner: WidgetRefreshRunner
+    ) : this(appContext, workerParams) {
+        this.refreshRunner = refreshRunner
+    }
+
     override suspend fun doWork(): Result {
         return try {
-            // Trigger widget update
-            RunicQuoteWidget().updateAll(applicationContext)
+            refreshRunner.refreshAll(applicationContext)
             Result.success()
         } catch (e: IOException) {
             Log.e(TAG, "IO error updating widget, attempt $runAttemptCount", e)
