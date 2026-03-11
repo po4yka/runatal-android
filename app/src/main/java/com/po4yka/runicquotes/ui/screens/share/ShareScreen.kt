@@ -36,7 +36,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -52,12 +51,16 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.Quote
+import com.po4yka.runicquotes.ui.components.RunicActionButton
+import com.po4yka.runicquotes.ui.components.RunicActionButtonStyle
+import com.po4yka.runicquotes.ui.components.RunicActionIconButton
 import com.po4yka.runicquotes.ui.components.RunicChoiceChip
 import com.po4yka.runicquotes.ui.components.RunicChoiceGroup
 import com.po4yka.runicquotes.ui.components.ErrorState
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
+import com.po4yka.runicquotes.ui.components.runicActionButtonColors
 import com.po4yka.runicquotes.ui.components.runicChoiceChipColors
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.theme.RunicSharePalette
@@ -604,35 +607,40 @@ private fun ShareActions(
     onShareAsImage: () -> Unit,
     onCopyQuote: () -> Unit
 ) {
+    val primaryButtonColors = sharePrimaryActionColors(palette)
+    val utilityButtonColors = shareUtilityActionColors(palette)
+
     if (selectedTemplate == ShareTemplate.CARD) {
-        PrimaryShareButton(
+        RunicActionButton(
             label = "Share as Text",
-            icon = {
+            leadingContent = {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(RunicExpressiveTheme.icons.standard)
                 )
             },
             onClick = onShareAsText,
-            palette = palette,
-            shareStyle = shareStyle
+            modifier = Modifier.fillMaxWidth(),
+            shape = shareStyle.actionButtonShape,
+            colors = primaryButtonColors
         )
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        SecondaryShareButton(
+        RunicActionButton(
             label = "Export as Image",
-            icon = {
+            leadingContent = {
                 Icon(
                     imageVector = Icons.Default.Image,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(RunicExpressiveTheme.icons.standard)
                 )
             },
             onClick = onShareAsImage,
-            palette = palette,
-            shareStyle = shareStyle
+            modifier = Modifier.fillMaxWidth(),
+            shape = shareStyle.actionButtonShape,
+            colors = utilityButtonColors
         )
     } else {
         Row(
@@ -640,134 +648,47 @@ private fun ShareActions(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PrimaryShareButton(
+            RunicActionButton(
                 label = selectedTemplate.primaryActionLabel,
-                icon = {
+                leadingContent = {
                     Icon(
                         imageVector = Icons.Default.Share,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(RunicExpressiveTheme.icons.standard)
                     )
                 },
                 onClick = onShareAsImage,
-                palette = palette,
-                shareStyle = shareStyle,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                shape = shareStyle.actionButtonShape,
+                colors = primaryButtonColors
             )
 
-            UtilityActionButton(
-                icon = Icons.AutoMirrored.Filled.Send,
-                label = "Share text",
+            RunicActionIconButton(
                 onClick = onShareAsText,
-                palette = palette,
-                shareStyle = shareStyle
+                contentDescription = "Share text",
+                shape = shareStyle.actionButtonShape,
+                colors = utilityButtonColors,
+                iconContent = {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = null,
+                        modifier = Modifier.size(RunicExpressiveTheme.icons.standard)
+                    )
+                }
             )
 
-            UtilityActionButton(
-                icon = Icons.Default.ContentCopy,
-                label = "Copy quote",
+            RunicActionIconButton(
                 onClick = onCopyQuote,
-                palette = palette,
-                shareStyle = shareStyle
-            )
-        }
-    }
-}
-
-@Composable
-private fun PrimaryShareButton(
-    label: String,
-    icon: @Composable () -> Unit,
-    onClick: () -> Unit,
-    palette: RunicSharePalette,
-    shareStyle: RunicShareStyleTokens,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(48.dp),
-        shape = shareStyle.actionButtonShape,
-        color = palette.actionFill,
-        onClick = onClick
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(modifier = Modifier.size(18.dp), contentAlignment = Alignment.Center) {
-                CompositionLocalProviderForActionContent(palette.actionText, icon)
-            }
-            Spacer(modifier = Modifier.size(8.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge,
-                color = palette.actionText
-            )
-        }
-    }
-}
-
-@Composable
-private fun SecondaryShareButton(
-    label: String,
-    icon: @Composable () -> Unit,
-    onClick: () -> Unit,
-    palette: RunicSharePalette,
-    shareStyle: RunicShareStyleTokens
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(48.dp),
-        shape = shareStyle.actionButtonShape,
-        color = palette.utilityFill,
-        border = BorderStroke(1.dp, palette.utilityBorder),
-        onClick = onClick
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(modifier = Modifier.size(18.dp), contentAlignment = Alignment.Center) {
-                CompositionLocalProviderForActionContent(palette.utilityContent, icon)
-            }
-            Spacer(modifier = Modifier.size(8.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge,
-                color = palette.utilityContent
-            )
-        }
-    }
-}
-
-@Composable
-private fun UtilityActionButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    palette: RunicSharePalette,
-    shareStyle: RunicShareStyleTokens
-) {
-    Surface(
-        modifier = Modifier.size(48.dp),
-        shape = shareStyle.actionButtonShape,
-        color = palette.utilityFill,
-        border = BorderStroke(1.dp, palette.utilityBorder),
-        onClick = onClick
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = palette.utilityContent
+                contentDescription = "Copy quote",
+                shape = shareStyle.actionButtonShape,
+                colors = utilityButtonColors,
+                iconContent = {
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = null,
+                        modifier = Modifier.size(RunicExpressiveTheme.icons.standard)
+                    )
+                }
             )
         }
     }
@@ -946,13 +867,21 @@ private val Quote.previewScriptLabel: String
     }
 
 @Composable
-private fun CompositionLocalProviderForActionContent(
-    tint: Color,
-    content: @Composable () -> Unit
-) {
-    CompositionLocalProvider(
-        androidx.compose.material3.LocalContentColor provides tint
-    ) {
-        content()
-    }
-}
+private fun sharePrimaryActionColors(palette: RunicSharePalette) = runicActionButtonColors(
+    style = RunicActionButtonStyle.Primary,
+    containerColor = palette.actionFill,
+    contentColor = palette.actionText,
+    disabledContainerColor = palette.actionFill.copy(alpha = 0.68f),
+    disabledContentColor = palette.actionText.copy(alpha = 0.72f)
+)
+
+@Composable
+private fun shareUtilityActionColors(palette: RunicSharePalette) = runicActionButtonColors(
+    style = RunicActionButtonStyle.Outlined,
+    containerColor = palette.utilityFill,
+    contentColor = palette.utilityContent,
+    borderColor = palette.utilityBorder,
+    disabledContainerColor = palette.utilityFill,
+    disabledContentColor = palette.utilityContent.copy(alpha = 0.72f),
+    disabledBorderColor = palette.utilityBorder.copy(alpha = 0.62f)
+)

@@ -6,6 +6,7 @@ import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -59,6 +61,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.segmentLabel
+import com.po4yka.runicquotes.ui.components.RunicActionButton
+import com.po4yka.runicquotes.ui.components.RunicActionButtonStyle
 import com.po4yka.runicquotes.ui.components.RunicChoiceChip
 import com.po4yka.runicquotes.ui.components.RunicChoiceGroup
 import com.po4yka.runicquotes.ui.components.RunicInfoCard
@@ -67,6 +71,7 @@ import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarActionStyle
 import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
+import com.po4yka.runicquotes.ui.components.runicActionButtonColors
 import com.po4yka.runicquotes.ui.components.runicChoiceChipColors
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.theme.RunicTextRole
@@ -460,70 +465,43 @@ private fun TranslationActionRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        TranslationActionButton(
-            text = if (hasInput) "Clear" else "Script",
-            modifier = Modifier.weight(0.95f),
-            emphasized = false,
-            enabled = true,
-            onClick = if (hasInput) onClear else onCycleScript
+        val secondaryActionColors = runicActionButtonColors(
+            style = RunicActionButtonStyle.Secondary
         )
-        TranslationActionButton(
-            text = if (hasInput) "Save to library" else "Translate",
-            modifier = Modifier.weight(2.05f),
-            emphasized = true,
-            enabled = if (hasInput) canSave else true,
-            trailingProgress = isSaving,
-            onClick = if (hasInput) onSave else onFocusInput
-        )
-    }
-}
-
-@Composable
-private fun TranslationActionButton(
-    text: String,
-    modifier: Modifier,
-    emphasized: Boolean,
-    enabled: Boolean,
-    trailingProgress: Boolean = false,
-    onClick: () -> Unit
-) {
-    val background = when {
-        emphasized && enabled -> MaterialTheme.colorScheme.secondary
-        emphasized -> MaterialTheme.colorScheme.surfaceContainerHighest
-        else -> MaterialTheme.colorScheme.surfaceContainerLow
-    }
-    val contentColor = when {
-        emphasized && enabled -> MaterialTheme.colorScheme.onSecondary
-        emphasized -> MaterialTheme.colorScheme.onSurfaceVariant
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-
-    Surface(
-        modifier = modifier.height(48.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = background,
-        onClick = onClick,
-        enabled = enabled
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (trailingProgress) {
+        val primaryActionColors = if (canSave || !hasInput) {
+            runicActionButtonColors(style = RunicActionButtonStyle.Primary)
+        } else {
+            runicActionButtonColors(style = RunicActionButtonStyle.Tonal)
+        }
+        val saveLeadingContent: (@Composable BoxScope.() -> Unit)? = if (isSaving) {
+            {
                 CircularProgressIndicator(
                     modifier = Modifier.size(16.dp),
                     strokeWidth = 2.dp,
-                    color = contentColor
+                    color = LocalContentColor.current
                 )
-                Spacer(modifier = Modifier.size(8.dp))
             }
-            Text(
-                text = text,
-                style = MaterialTheme.typography.titleMedium,
-                color = contentColor
-            )
+        } else {
+            null
         }
+
+        RunicActionButton(
+            label = if (hasInput) "Clear" else "Script",
+            modifier = Modifier.weight(0.95f),
+            enabled = true,
+            onClick = if (hasInput) onClear else onCycleScript,
+            colors = secondaryActionColors,
+            textStyle = MaterialTheme.typography.titleMedium
+        )
+        RunicActionButton(
+            label = if (hasInput) "Save to library" else "Translate",
+            modifier = Modifier.weight(2.05f),
+            enabled = if (hasInput) canSave else true,
+            onClick = if (hasInput) onSave else onFocusInput,
+            colors = primaryActionColors,
+            textStyle = MaterialTheme.typography.titleMedium,
+            leadingContent = saveLeadingContent
+        )
     }
 }
 

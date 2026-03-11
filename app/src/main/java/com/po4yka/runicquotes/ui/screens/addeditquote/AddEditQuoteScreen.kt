@@ -28,8 +28,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -64,6 +62,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.ui.components.ConfirmationDialog
+import com.po4yka.runicquotes.ui.components.RunicActionButton
+import com.po4yka.runicquotes.ui.components.RunicActionButtonStyle
 import com.po4yka.runicquotes.ui.components.RunicChoiceChip
 import com.po4yka.runicquotes.ui.components.RunicChoiceGroup
 import com.po4yka.runicquotes.ui.components.RunicInfoCard
@@ -72,6 +72,7 @@ import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarActionStyle
 import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
+import com.po4yka.runicquotes.ui.components.runicActionButtonColors
 import com.po4yka.runicquotes.ui.components.runicChoiceChipColors
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.theme.RunicTextRole
@@ -657,29 +658,21 @@ private fun SaveButton(
     saveEnabled: Boolean,
     onSave: () -> Unit
 ) {
-    Button(
+    RunicActionButton(
+        label = when {
+            uiState.isSaving -> "Saving..."
+            uiState.isEditing -> "Save Changes"
+            else -> "Create Quote"
+        },
         onClick = onSave,
         modifier = Modifier
             .fillMaxWidth()
             .testTag("add_edit_save_button"),
         enabled = saveEnabled,
-        shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.secondary,
-            contentColor = MaterialTheme.colorScheme.onSecondary,
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        colors = runicActionButtonColors(
+            style = RunicActionButtonStyle.Primary
         )
-    ) {
-        Text(
-            text = when {
-                uiState.isSaving -> "Saving..."
-                uiState.isEditing -> "Save Changes"
-                else -> "Create Quote"
-            },
-            style = MaterialTheme.typography.labelLarge
-        )
-    }
+    )
 }
 
 @Composable
@@ -687,43 +680,22 @@ private fun DeleteQuoteButton(
     enabled: Boolean,
     onDelete: () -> Unit
 ) {
-    Surface(
+    RunicActionButton(
+        label = "Delete Quote",
+        onClick = onDelete,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.18f),
-        border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.error.copy(alpha = 0.14f)
+        enabled = enabled,
+        colors = runicActionButtonColors(
+            style = RunicActionButtonStyle.DestructiveOutlined
         ),
-        onClick = onDelete
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        leadingContent = {
             Icon(
                 imageVector = Icons.Default.Delete,
                 contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = if (enabled) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                }
-            )
-            Spacer(modifier = Modifier.size(8.dp))
-            Text(
-                text = "Delete Quote",
-                style = MaterialTheme.typography.labelLarge,
-                color = if (enabled) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                }
+                modifier = Modifier.size(RunicExpressiveTheme.icons.compact)
             )
         }
-    }
+    )
 }
 
 @Composable
@@ -885,34 +857,23 @@ private fun ConfirmationContent(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                Button(
+                RunicActionButton(
+                    label = "View in Library",
                     onClick = onViewInLibrary,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
+                    colors = runicActionButtonColors(
+                        style = RunicActionButtonStyle.Primary
                     )
-                ) {
-                    Text("View in Library")
-                }
+                )
 
-                Surface(
+                RunicActionButton(
+                    label = "Create Another",
+                    onClick = onCreateAnother,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    onClick = onCreateAnother
-                ) {
-                    Box(
-                        modifier = Modifier.padding(vertical = 13.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Create Another",
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    }
-                }
+                    colors = runicActionButtonColors(
+                        style = RunicActionButtonStyle.Secondary
+                    )
+                )
             }
 
             Surface(

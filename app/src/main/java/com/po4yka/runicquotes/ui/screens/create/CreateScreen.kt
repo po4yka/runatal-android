@@ -18,7 +18,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Translate
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -31,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.po4yka.runicquotes.ui.components.RunicActionButton
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
 import com.po4yka.runicquotes.ui.theme.SupportingTextRole
@@ -156,9 +156,11 @@ private fun CreateHeroCard(onCreateQuote: () -> Unit) {
                 style = RunicTypeRoles.supporting(SupportingTextRole.FormPlaceholderEmphasis),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Button(onClick = onCreateQuote) {
-                Text("New custom quote")
-            }
+            RunicActionButton(
+                label = "New custom quote",
+                onClick = onCreateQuote,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

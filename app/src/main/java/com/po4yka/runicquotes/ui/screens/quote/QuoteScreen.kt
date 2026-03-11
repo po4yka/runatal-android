@@ -65,8 +65,11 @@ import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.domain.model.segmentLabel
 import com.po4yka.runicquotes.ui.components.EmptyState
 import com.po4yka.runicquotes.ui.components.ErrorState
-import com.po4yka.runicquotes.ui.components.SegmentedControl
+import com.po4yka.runicquotes.ui.components.RunicActionButton
+import com.po4yka.runicquotes.ui.components.RunicActionButtonStyle
+import com.po4yka.runicquotes.ui.components.RunicActionIconButton
 import com.po4yka.runicquotes.ui.components.RunicText
+import com.po4yka.runicquotes.ui.components.SegmentedControl
 import com.po4yka.runicquotes.ui.components.SkeletonCard
 import com.po4yka.runicquotes.ui.components.SkeletonRect
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
@@ -582,77 +585,53 @@ private fun ActionButtonsRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Surface(
-            modifier = Modifier
-                .weight(1f)
-                .height(48.dp),
+        RunicActionButton(
+            label = "Saved",
+            onClick = onToggleFavorite,
+            modifier = Modifier.weight(1f),
             shape = RunicExpressiveTheme.shapes.segment,
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            onClick = onToggleFavorite
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
+            colors = com.po4yka.runicquotes.ui.components.runicActionButtonColors(
+                style = RunicActionButtonStyle.Secondary
+            ),
+            leadingContent = {
                 Icon(
                     imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = if (isFavorite) "Remove from saved" else "Save quote",
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Saved",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface
+                    modifier = Modifier.size(RunicExpressiveTheme.icons.standard)
                 )
             }
-        }
+        )
 
-        Surface(
-            modifier = Modifier
-                .weight(1f)
-                .height(48.dp),
+        RunicActionButton(
+            label = "Share",
+            onClick = onShare,
+            modifier = Modifier.weight(1f),
             shape = RunicExpressiveTheme.shapes.segment,
-            color = MaterialTheme.colorScheme.secondary,
-            onClick = onShare
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
+            leadingContent = {
                 Icon(
                     imageVector = Icons.Default.Share,
                     contentDescription = "Share quote",
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSecondary
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Share",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSecondary
+                    modifier = Modifier.size(RunicExpressiveTheme.icons.standard)
                 )
             }
-        }
+        )
 
-        Surface(
+        RunicActionIconButton(
+            onClick = onNewQuote,
+            contentDescription = "New random quote",
             modifier = Modifier.size(controls.minimumTouchTarget),
             shape = RunicExpressiveTheme.shapes.segment,
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            onClick = onNewQuote
-        ) {
-            Box(contentAlignment = Alignment.Center) {
+            colors = com.po4yka.runicquotes.ui.components.runicActionButtonColors(
+                style = RunicActionButtonStyle.Secondary
+            ),
+            iconContent = {
                 Icon(
                     imageVector = Icons.Default.Refresh,
-                    contentDescription = "New random quote",
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    contentDescription = null,
+                    modifier = Modifier.size(RunicExpressiveTheme.icons.inline)
                 )
             }
-        }
+        )
     }
 }
 
