@@ -5,6 +5,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Shapes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -87,6 +88,17 @@ private val DefaultRunicMotionTokens = RunicMotionTokens(
 
 /** Returns default [RunicShapeTokens]. */
 fun runicShapeTokens(): RunicShapeTokens = DefaultRunicShapeTokens
+
+/**
+ * Maps the runic shape roles onto Material 3 shape slots so both APIs resolve to the same geometry.
+ */
+fun runicMaterialShapes(shapeTokens: RunicShapeTokens = DefaultRunicShapeTokens): Shapes = Shapes(
+    extraSmall = shapeTokens.segment,
+    small = shapeTokens.collectionCard,
+    medium = shapeTokens.contentCard,
+    large = shapeTokens.panel,
+    extraLarge = shapeTokens.heroCard
+)
 
 /** Returns default [RunicElevationTokens]. */
 fun runicElevationTokens(): RunicElevationTokens = DefaultRunicElevationTokens

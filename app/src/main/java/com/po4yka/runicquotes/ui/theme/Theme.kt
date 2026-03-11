@@ -256,6 +256,8 @@ fun RunicQuotesTheme(
     )
     val typography = typographyForThemePack(themePack)
     val expressiveTypography = expressiveTypographyForThemePack(themePack, typography)
+    val shapeTokens = runicShapeTokens()
+    val materialShapes = runicMaterialShapes(shapeTokens)
 
     val view = LocalView.current
     if (!view.isInEditMode) {
@@ -273,7 +275,7 @@ fun RunicQuotesTheme(
     CompositionLocalProvider(
         LocalRunicFontScale provides runicFontScale,
         LocalReduceMotion provides reducedMotion,
-        LocalRunicShapeTokens provides runicShapeTokens(),
+        LocalRunicShapeTokens provides shapeTokens,
         LocalRunicElevationTokens provides runicElevationTokens(),
         LocalRunicMotionTokens provides runicMotionTokens(),
         LocalRunicExpressiveType provides expressiveTypography
@@ -281,6 +283,7 @@ fun RunicQuotesTheme(
         MaterialTheme(
             colorScheme = colorScheme,
             typography = typography,
+            shapes = materialShapes,
             content = content
         )
     }
