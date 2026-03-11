@@ -26,7 +26,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledIconButton
@@ -63,6 +62,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.ui.components.ConfirmationDialog
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.util.rememberHapticFeedback
@@ -127,6 +127,8 @@ fun AddEditQuoteScreen(
 
     if (showDiscardDialog) {
         DiscardDialog(
+            quoteText = uiState.textLatin,
+            author = uiState.author,
             onDiscard = {
                 showDiscardDialog = false
                 onNavigateBack()
@@ -137,6 +139,8 @@ fun AddEditQuoteScreen(
 
     if (showDeleteDialog) {
         DeleteDialog(
+            quoteText = uiState.textLatin,
+            author = uiState.author,
             onDelete = {
                 showDeleteDialog = false
                 viewModel.deleteQuote(onNavigateBack)
@@ -752,51 +756,80 @@ private fun DeleteQuoteButton(
 
 @Composable
 private fun DiscardDialog(
+    quoteText: String,
+    author: String,
     onDiscard: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Discard changes?") },
-        text = { Text("You have unsaved changes. If you leave now, they will be lost.") },
-        confirmButton = {
-            TextButton(onClick = onDiscard) {
-                Text("Discard")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Keep editing")
-            }
+    ConfirmationDialog(
+        title = "Discard changes?",
+        message = "Your latest edits haven't been saved yet.",
+        confirmLabel = "Discard",
+        dismissLabel = "Keep editing",
+        onConfirm = onDiscard,
+        onDismiss = onDismiss,
+        isDestructive = true,
+        supportingContent = {
+            AddEditDialogPreview(
+                text = quoteText,
+                author = author.ifBlank { "Unknown" }
+            )
         }
     )
 }
 
 @Composable
 private fun DeleteDialog(
+    quoteText: String,
+    author: String,
     onDelete: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Delete quote?") },
-        text = { Text("This action cannot be undone.") },
-        confirmButton = {
-            TextButton(
-                onClick = onDelete,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Text("Delete")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+    ConfirmationDialog(
+        title = "Delete this quote?",
+        message = "This removes the quote from your library immediately.",
+        confirmLabel = "Delete",
+        onConfirm = onDelete,
+        onDismiss = onDismiss,
+        isDestructive = true,
+        supportingContent = {
+            AddEditDialogPreview(
+                text = quoteText,
+                author = author.ifBlank { "Unknown" }
+            )
         }
     )
+}
+
+@Composable
+private fun AddEditDialogPreview(text: String, author: String) {
+    val colors = MaterialTheme.colorScheme
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = colors.surfaceContainerHighest.copy(alpha = 0.18f),
+        border = BorderStroke(
+            width = 1.dp,
+            color = colors.outlineVariant.copy(alpha = 0.46f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+            Text(
+                text = text.ifBlank { "Untitled quote" },
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = author,
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.onSurfaceVariant
+            )
+        }
+    }
 }
 
 @Composable

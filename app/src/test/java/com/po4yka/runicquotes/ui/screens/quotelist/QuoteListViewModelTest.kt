@@ -8,6 +8,7 @@ import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
+import com.po4yka.runicquotes.util.QuoteShareManager
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -32,6 +33,7 @@ class QuoteListViewModelTest {
     private lateinit var quoteRepository: QuoteRepository
     private lateinit var userPreferencesManager: UserPreferencesManager
     private lateinit var transliterationFactory: TransliterationFactory
+    private lateinit var quoteShareManager: QuoteShareManager
     private lateinit var viewModel: QuoteListViewModel
 
     private val testDispatcher = StandardTestDispatcher()
@@ -90,6 +92,7 @@ class QuoteListViewModelTest {
         quoteRepository = mockk()
         userPreferencesManager = mockk()
         transliterationFactory = mockk()
+        quoteShareManager = mockk(relaxed = true)
 
         preferencesFlow = MutableStateFlow(defaultPreferences)
         allQuotesFlow = MutableStateFlow(testQuotes)
@@ -110,7 +113,7 @@ class QuoteListViewModelTest {
     }
 
     private fun createViewModel() = QuoteListViewModel(
-        quoteRepository, userPreferencesManager, transliterationFactory
+        quoteRepository, userPreferencesManager, transliterationFactory, quoteShareManager
     )
 
     @Test

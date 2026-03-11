@@ -24,7 +24,10 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,7 +59,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.Quote
+import com.po4yka.runicquotes.domain.model.displayName
+import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.ui.components.BottomSheetAction
+import com.po4yka.runicquotes.ui.components.BottomSheetQuotePreview
 import com.po4yka.runicquotes.ui.components.ConfirmationDialog
 import com.po4yka.runicquotes.ui.components.EmptyState
 import com.po4yka.runicquotes.ui.components.RunicBottomSheet
@@ -72,6 +78,7 @@ import kotlinx.coroutines.launch
 fun QuoteListScreen(
     onNavigateToAddQuote: () -> Unit,
     onNavigateToEditQuote: (Long) -> Unit,
+    onNavigateToShare: (Long) -> Unit = {},
     onNavigateToArchive: () -> Unit = {},
     onNavigateToPacks: () -> Unit = {},
     viewModel: QuoteListViewModel = hiltViewModel()
@@ -206,11 +213,35 @@ fun QuoteListScreen(
     bottomSheetQuote?.let { quote ->
         LibraryActionsBottomSheet(
             quote = quote,
+            selectedScript = uiState.selectedScript,
+            selectedFont = uiState.selectedFont,
+            transliterationFactory = viewModel.transliterationFactory,
             onDismiss = { bottomSheetQuote = null },
             onToggleFavorite = {
                 haptics.lightToggle()
                 viewModel.toggleFavorite(quote)
                 bottomSheetQuote = null
+            },
+            onShare = {
+                haptics.mediumAction()
+                onNavigateToShare(quote.id)
+                bottomSheetQuote = null
+            },
+            onCopyText = {
+                haptics.lightToggle()
+                viewModel.copyQuoteText(quote)
+                bottomSheetQuote = null
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Quote text copied")
+                }
+            },
+            onCopyRunes = {
+                haptics.lightToggle()
+                viewModel.copyRunicText(quote)
+                bottomSheetQuote = null
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Runes copied")
+                }
             },
             onEdit = {
                 haptics.mediumAction()
@@ -227,7 +258,7 @@ fun QuoteListScreen(
     deleteCandidate?.let { quote ->
         ConfirmationDialog(
             title = "Delete quote?",
-            message = "\"${quote.textLatin}\" by ${quote.author}",
+            message = "This quote will be removed from your library. You can't undo this action.",
             confirmLabel = "Delete",
             onConfirm = {
                 deleteCandidate = null
@@ -246,7 +277,13 @@ fun QuoteListScreen(
                 }
             },
             onDismiss = { deleteCandidate = null },
-            isDestructive = true
+            isDestructive = true,
+            supportingContent = {
+                DeleteDialogQuotePreview(
+                    text = quote.textLatin,
+                    author = quote.author
+                )
+            }
         )
     }
 }
@@ -436,8 +473,14 @@ private fun QuoteListItem(
 @Composable
 private fun LibraryActionsBottomSheet(
     quote: Quote,
+    selectedScript: com.po4yka.runicquotes.domain.model.RunicScript,
+    selectedFont: String,
+    transliterationFactory: com.po4yka.runicquotes.domain.transliteration.TransliterationFactory,
     onDismiss: () -> Unit,
     onToggleFavorite: () -> Unit,
+    onShare: () -> Unit,
+    onCopyText: () -> Unit,
+    onCopyRunes: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -452,6 +495,30 @@ private fun LibraryActionsBottomSheet(
                     "Save this quote to your favorites"
                 },
                 onClick = onToggleFavorite
+            )
+        )
+        add(
+            BottomSheetAction(
+                icon = Icons.Default.Share,
+                title = "Share",
+                subtitle = "Send or export this quote",
+                onClick = onShare
+            )
+        )
+        add(
+            BottomSheetAction(
+                icon = Icons.Outlined.ContentCopy,
+                title = "Copy Text",
+                subtitle = "Copy original Latin text",
+                onClick = onCopyText
+            )
+        )
+        add(
+            BottomSheetAction(
+                icon = Icons.Default.TextFields,
+                title = "Copy Runes",
+                subtitle = "Copy ${selectedScript.displayName} transliteration",
+                onClick = onCopyRunes
             )
         )
         if (quote.isUserCreated) {
@@ -477,6 +544,45 @@ private fun LibraryActionsBottomSheet(
 
     RunicBottomSheet(
         actions = actions,
+        preview = BottomSheetQuotePreview(
+            runicText = quote.getRunicText(selectedScript, transliterationFactory),
+            author = quote.author,
+            font = selectedFont,
+            script = selectedScript
+        ),
         onDismiss = onDismiss
     )
+}
+
+@Composable
+private fun DeleteDialogQuotePreview(text: String, author: String) {
+    val colors = MaterialTheme.colorScheme
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RunicExpressiveTheme.shapes.contentCard,
+        colors = CardDefaults.cardColors(
+            containerColor = colors.surfaceContainerHighest.copy(alpha = 0.18f)
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = colors.outlineVariant.copy(alpha = 0.46f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = author,
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.onSurfaceVariant
+            )
+        }
+    }
 }

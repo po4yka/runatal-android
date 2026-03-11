@@ -7,7 +7,9 @@ import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
+import com.po4yka.runicquotes.util.QuoteShareManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,7 +27,8 @@ import javax.inject.Inject
 class QuoteListViewModel @Inject constructor(
     private val quoteRepository: QuoteRepository,
     private val userPreferencesManager: UserPreferencesManager,
-    val transliterationFactory: TransliterationFactory
+    val transliterationFactory: TransliterationFactory,
+    private val quoteShareManager: QuoteShareManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(QuoteListUiState())
@@ -176,6 +179,26 @@ class QuoteListViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /** Copies the Latin quote text to the clipboard. */
+    fun copyQuoteText(quote: Quote) {
+        quoteShareManager.copyQuoteToClipboard(
+            latinText = quote.textLatin,
+            author = quote.author
+        )
+    }
+
+    /** Copies the currently selected runic text to the clipboard. */
+    fun copyRunicText(quote: Quote) {
+        val runicText = quote.getRunicText(
+            script = _uiState.value.selectedScript,
+            transliterationFactory = transliterationFactory
+        )
+        quoteShareManager.copyPlainTextToClipboard(
+            label = "Runic transliteration",
+            text = runicText
+        )
     }
 
     /** Clears any error message. */

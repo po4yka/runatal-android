@@ -114,8 +114,18 @@ class QuoteShareManager @Inject constructor(
      */
     fun copyQuoteToClipboard(latinText: String, author: String) {
         val clipText = "$latinText\n— $author"
+        copyPlainTextToClipboard(
+            label = "Runic quote",
+            text = clipText
+        )
+    }
+
+    /**
+     * Copies any plain text to the system clipboard.
+     */
+    fun copyPlainTextToClipboard(label: String, text: String) {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newPlainText("Runic quote", clipText))
+        clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
     }
 
     /**

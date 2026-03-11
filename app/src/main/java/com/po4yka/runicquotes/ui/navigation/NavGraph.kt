@@ -342,6 +342,9 @@ private fun EntryProviderScope<Any>.topLevelEntries(
             onNavigateToEditQuote = { quoteId ->
                 backStack.add(AddEditQuoteRoute(quoteId = quoteId))
             },
+            onNavigateToShare = { quoteId ->
+                backStack.add(ShareRoute(quoteId = quoteId))
+            },
             onNavigateToArchive = {
                 backStack.add(ArchiveRoute)
             },

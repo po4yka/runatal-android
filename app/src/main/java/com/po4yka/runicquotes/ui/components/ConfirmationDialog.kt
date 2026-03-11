@@ -1,6 +1,8 @@
 package com.po4yka.runicquotes.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -46,6 +48,7 @@ import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
  * @param icon Icon displayed in a circular container at the top
  * @param confirmIcon Optional leading icon for the confirm button
  * @param isDestructive When true, confirm button uses error colors
+ * @param supportingContent Optional content shown between body copy and actions
  */
 @Composable
 fun ConfirmationDialog(
@@ -58,7 +61,57 @@ fun ConfirmationDialog(
     dismissLabel: String = "Cancel",
     icon: ImageVector = Icons.Filled.Warning,
     confirmIcon: ImageVector? = null,
-    isDestructive: Boolean = true
+    isDestructive: Boolean = true,
+    supportingContent: (@Composable ColumnScope.() -> Unit)? = null
+) {
+    val colors = MaterialTheme.colorScheme
+
+    RunicDialogSurface(
+        onDismiss = onDismiss,
+        modifier = modifier
+    ) {
+        RunicDialogIconBadge(
+            icon = icon,
+            isDestructive = isDestructive
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            color = colors.onSurface,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+        if (supportingContent != null) {
+            Spacer(modifier = Modifier.height(16.dp))
+            supportingContent()
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+        RunicDialogButtonRow(
+            dismissLabel = dismissLabel,
+            confirmLabel = confirmLabel,
+            confirmIcon = confirmIcon,
+            onDismiss = onDismiss,
+            onConfirm = onConfirm,
+            containerColor = if (isDestructive) colors.error else colors.secondary,
+            contentColor = if (isDestructive) colors.onError else colors.onSecondary
+        )
+    }
+}
+
+@Composable
+internal fun RunicDialogSurface(
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
 
@@ -69,66 +122,47 @@ fun ConfirmationDialog(
         Surface(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = 38.dp),
+                .padding(horizontal = 34.dp),
             shape = RunicExpressiveTheme.shapes.dialog,
             tonalElevation = RunicExpressiveTheme.elevations.overlay,
-            color = colors.surface
+            color = colors.surfaceContainerLow,
+            border = BorderStroke(
+                width = 1.dp,
+                color = colors.outlineVariant.copy(alpha = 0.72f)
+            )
         ) {
             Column(
-                modifier = Modifier.padding(start = 25.dp, end = 25.dp, top = 29.dp, bottom = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                ConfirmationDialogHeader(icon, isDestructive)
-                Spacer(modifier = Modifier.height(18.dp))
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = colors.onSurface,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                ConfirmationDialogButtons(
-                    dismissLabel = dismissLabel,
-                    confirmLabel = confirmLabel,
-                    confirmIcon = confirmIcon,
-                    onDismiss = onDismiss,
-                    onConfirm = onConfirm,
-                    containerColor = if (isDestructive) colors.error else colors.primary,
-                    contentColor = if (isDestructive) colors.onError else colors.onPrimary
-                )
-            }
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 22.dp, bottom = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                content = content
+            )
         }
     }
 }
 
 @Composable
-private fun ConfirmationDialogHeader(icon: ImageVector, isDestructive: Boolean) {
+internal fun RunicDialogIconBadge(icon: ImageVector, isDestructive: Boolean) {
     val colors = MaterialTheme.colorScheme
     Surface(
-        modifier = Modifier.size(56.dp),
+        modifier = Modifier.size(40.dp),
         shape = CircleShape,
-        color = if (isDestructive) colors.errorContainer else colors.primaryContainer
+        color = if (isDestructive) {
+            colors.errorContainer.copy(alpha = 0.45f)
+        } else {
+            colors.secondaryContainer.copy(alpha = 0.55f)
+        }
     ) {
         Icon(
             imageVector = icon,
             contentDescription = "Dialog icon",
-            modifier = Modifier.padding(15.dp).size(26.dp),
-            tint = if (isDestructive) colors.onErrorContainer else colors.onPrimaryContainer
+            modifier = Modifier.padding(11.dp).size(18.dp),
+            tint = if (isDestructive) colors.error else colors.onSecondaryContainer
         )
     }
 }
 
 @Composable
-private fun ConfirmationDialogButtons(
+internal fun RunicDialogButtonRow(
     dismissLabel: String,
     confirmLabel: String,
     confirmIcon: ImageVector?,
@@ -139,18 +173,21 @@ private fun ConfirmationDialogButtons(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically
     ) {
         TextButton(
             onClick = onDismiss,
-            modifier = Modifier.weight(1f).height(41.dp)
+            modifier = Modifier.weight(1f).height(40.dp)
         ) {
-            Text(text = dismissLabel)
+            Text(
+                text = dismissLabel,
+                style = MaterialTheme.typography.labelLarge
+            )
         }
         Button(
             onClick = onConfirm,
-            modifier = Modifier.weight(1f).height(41.dp),
+            modifier = Modifier.weight(1f).height(40.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = containerColor,
                 contentColor = contentColor
@@ -161,11 +198,14 @@ private fun ConfirmationDialogButtons(
                 Icon(
                     imageVector = confirmIcon,
                     contentDescription = confirmLabel,
-                    modifier = Modifier.size(15.dp)
+                    modifier = Modifier.size(14.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
             }
-            Text(text = confirmLabel)
+            Text(
+                text = confirmLabel,
+                style = MaterialTheme.typography.labelLarge
+            )
         }
     }
 }
