@@ -182,13 +182,23 @@ fun SettingsScreen(
                     }
                 )
                 ToggleSettingItem(
-                    title = "Show Latin Text",
-                    subtitle = "Display original text alongside runes",
+                    title = stringResource(R.string.settings_show_transliteration_title),
+                    subtitle = stringResource(R.string.settings_show_transliteration_subtitle),
                     icon = Icons.Default.Visibility,
                     checked = preferences.showTransliteration,
                     onCheckedChange = {
                         haptics.lightToggle()
                         viewModel.updateShowTransliteration(it)
+                    }
+                )
+                ToggleSettingItem(
+                    title = stringResource(R.string.settings_word_by_word_transliteration_title),
+                    subtitle = stringResource(R.string.settings_word_by_word_transliteration_subtitle),
+                    icon = Icons.Default.Translate,
+                    checked = preferences.wordByWordTransliterationEnabled,
+                    onCheckedChange = {
+                        haptics.lightToggle()
+                        viewModel.updateWordByWordTransliterationEnabled(it)
                     }
                 )
             }

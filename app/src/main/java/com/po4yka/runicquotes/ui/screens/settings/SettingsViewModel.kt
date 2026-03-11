@@ -98,6 +98,15 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
+     * Updates the default transliteration presentation mode.
+     */
+    fun updateWordByWordTransliterationEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesManager.updateWordByWordTransliterationEnabled(enabled)
+        }
+    }
+
+    /**
      * Updates the font size multiplier.
      */
     fun updateFontSize(size: Float) {

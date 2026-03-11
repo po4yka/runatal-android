@@ -17,6 +17,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -39,17 +40,28 @@ class QuoteViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<QuoteUiState>(QuoteUiState.Loading)
     val uiState: StateFlow<QuoteUiState> = _uiState.asStateFlow()
+    private val localWordByWordOverride = MutableStateFlow<Boolean?>(null)
     private var currentQuote: Quote? = null
     private var recentQuotes: List<RecentQuoteItem> = emptyList()
+    private var latestPreferences: UserPreferences = UserPreferences()
 
     init {
         // Observe preferences changes and keep quote rendering in sync.
         viewModelScope.launch {
-            userPreferencesManager.userPreferencesFlow.collectLatest { preferences ->
+            combine(
+                userPreferencesManager.userPreferencesFlow,
+                localWordByWordOverride
+            ) { preferences, wordByWordOverride ->
+                preferences to wordByWordOverride
+            }.collectLatest { (preferences, wordByWordOverride) ->
+                latestPreferences = preferences
                 if (currentQuote == null) {
                     loadQuoteOfTheDay(preferences = preferences, showLoading = true)
                 } else {
-                    applyPreferencesToCurrentQuote(preferences)
+                    applyPreferencesToCurrentQuote(
+                        preferences = preferences,
+                        wordByWordOverride = wordByWordOverride
+                    )
                 }
             }
         }
@@ -232,9 +244,21 @@ class QuoteViewModel @Inject constructor(
         }
     }
 
-    private fun applyPreferencesToCurrentQuote(preferences: UserPreferences) {
+    /**
+     * Toggles the local word-by-word transliteration presentation for the current screen session.
+     */
+    fun toggleWordByWordMode() {
+        localWordByWordOverride.update { currentOverride ->
+            !(currentOverride ?: latestPreferences.wordByWordTransliterationEnabled)
+        }
+    }
+
+    private fun applyPreferencesToCurrentQuote(
+        preferences: UserPreferences,
+        wordByWordOverride: Boolean? = localWordByWordOverride.value
+    ) {
         val quote = currentQuote ?: return
-        emitSuccessState(quote, preferences)
+        emitSuccessState(quote, preferences, wordByWordOverride)
     }
 
     private suspend fun loadRecentQuotes(preferences: UserPreferences, excludeId: Long) {
@@ -250,8 +274,17 @@ class QuoteViewModel @Inject constructor(
             }
     }
 
-    private fun emitSuccessState(quote: Quote, preferences: UserPreferences) {
+    private fun emitSuccessState(
+        quote: Quote,
+        preferences: UserPreferences,
+        wordByWordOverride: Boolean? = localWordByWordOverride.value
+    ) {
         val runicText = quote.getRunicText(preferences.selectedScript, transliterationFactory)
+        val wordBreakdown = transliterationFactory.transliterateWordByWord(
+            text = quote.textLatin,
+            script = preferences.selectedScript
+        ).wordPairs
+        val wordByWordEnabled = wordByWordOverride ?: preferences.wordByWordTransliterationEnabled
         // Re-render recent quotes runic text when script changes
         val updatedRecent = recentQuotes.map { item ->
             item.copy(
@@ -269,6 +302,8 @@ class QuoteViewModel @Inject constructor(
                 selectedScript = preferences.selectedScript,
                 selectedFont = preferences.selectedFont,
                 showTransliteration = preferences.showTransliteration,
+                wordByWordEnabled = wordByWordEnabled,
+                wordBreakdown = wordBreakdown,
                 recentQuotes = updatedRecent
             )
         }

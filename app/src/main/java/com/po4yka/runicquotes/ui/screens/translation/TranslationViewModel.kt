@@ -8,7 +8,9 @@ import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
+import com.po4yka.runicquotes.domain.transliteration.TransliterationBreakdown
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
+import com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,8 +35,11 @@ class TranslationViewModel @Inject constructor(
 
     private val _inputText = MutableStateFlow("")
     private val _selectedScript = MutableStateFlow(RunicScript.DEFAULT)
+    private val _selectedFont = MutableStateFlow("noto")
     private val _isSaving = MutableStateFlow(false)
     private val _feedbackMessage = MutableStateFlow<String?>(null)
+    private val _persistedWordByWordEnabled = MutableStateFlow(false)
+    private val _localWordByWordOverride = MutableStateFlow<Boolean?>(null)
 
     /** @suppress */
     companion object {
@@ -47,6 +52,8 @@ class TranslationViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesManager.userPreferencesFlow.collectLatest { preferences ->
                 _selectedScript.value = preferences.selectedScript
+                _selectedFont.value = preferences.selectedFont
+                _persistedWordByWordEnabled.value = preferences.wordByWordTransliterationEnabled
             }
         }
     }
@@ -54,22 +61,49 @@ class TranslationViewModel @Inject constructor(
     val feedbackMessage: StateFlow<String?> = _feedbackMessage.asStateFlow()
 
     val uiState: StateFlow<TranslationUiState> = combine(
-        _inputText,
-        _selectedScript,
-        _isSaving
-    ) { inputText, selectedScript, isSaving ->
-        val bundle = transliterateBundle(inputText)
-        val selectedOutput = bundle.outputFor(selectedScript)
+        combine(
+            _selectedScript,
+            _selectedFont,
+            _persistedWordByWordEnabled
+        ) { selectedScript, selectedFont, persistedWordByWordEnabled ->
+            TranslationPreferencesState(
+                selectedScript = selectedScript,
+                selectedFont = selectedFont,
+                persistedWordByWordEnabled = persistedWordByWordEnabled
+            )
+        },
+        combine(
+            _inputText,
+            _isSaving,
+            _localWordByWordOverride
+        ) { inputText, isSaving, localWordByWordOverride ->
+            TranslationInputState(
+                inputText = inputText,
+                isSaving = isSaving,
+                localWordByWordOverride = localWordByWordOverride
+            )
+        }
+    ) { preferences, inputState ->
+        val bundle = transliterateBundle(inputState.inputText)
+        val selectedOutput = bundle.outputFor(preferences.selectedScript)
+        val selectedBreakdown = bundle.breakdownFor(preferences.selectedScript)
+        val wordByWordEnabled =
+            inputState.localWordByWordOverride ?: preferences.persistedWordByWordEnabled
 
         TranslationUiState(
-            inputText = inputText,
+            inputText = inputState.inputText,
             transliteratedText = selectedOutput,
-            selectedScript = selectedScript,
+            selectedScript = preferences.selectedScript,
+            selectedFont = preferences.selectedFont,
             outputGlyphCount = selectedOutput.glyphCount(),
-            inputCharacterCount = inputText.length,
-            canSave = inputText.trim().isNotEmpty() && !isSaving && bundle.errorMessage == null,
-            isSaving = isSaving,
-            errorMessage = bundle.errorMessage
+            inputCharacterCount = inputState.inputText.length,
+            canSave = inputState.inputText.trim().isNotEmpty() &&
+                !inputState.isSaving &&
+                bundle.errorMessage == null,
+            isSaving = inputState.isSaving,
+            errorMessage = bundle.errorMessage,
+            wordByWordEnabled = wordByWordEnabled,
+            wordBreakdown = selectedBreakdown.wordPairs
         )
     }.stateIn(
         scope = viewModelScope,
@@ -108,6 +142,14 @@ class TranslationViewModel @Inject constructor(
      */
     fun clearInput() {
         _inputText.value = ""
+    }
+
+    /**
+     * Toggles the local word-by-word transliteration presentation for the current screen session.
+     */
+    fun toggleWordByWordMode() {
+        _localWordByWordOverride.value =
+            !(_localWordByWordOverride.value ?: _persistedWordByWordEnabled.value)
     }
 
     /**
@@ -167,7 +209,19 @@ class TranslationViewModel @Inject constructor(
             TransliterationBundle(
                 elder = transliterationFactory.transliterate(inputText, RunicScript.ELDER_FUTHARK),
                 younger = transliterationFactory.transliterate(inputText, RunicScript.YOUNGER_FUTHARK),
-                cirth = transliterationFactory.transliterate(inputText, RunicScript.CIRTH)
+                cirth = transliterationFactory.transliterate(inputText, RunicScript.CIRTH),
+                elderBreakdown = transliterationFactory.transliterateWordByWord(
+                    inputText,
+                    RunicScript.ELDER_FUTHARK
+                ),
+                youngerBreakdown = transliterationFactory.transliterateWordByWord(
+                    inputText,
+                    RunicScript.YOUNGER_FUTHARK
+                ),
+                cirthBreakdown = transliterationFactory.transliterateWordByWord(
+                    inputText,
+                    RunicScript.CIRTH
+                )
             )
         } catch (exception: Exception) {
             TransliterationBundle(errorMessage = exception.message ?: "Transliteration failed")
@@ -179,6 +233,9 @@ private data class TransliterationBundle(
     val elder: String = "",
     val younger: String = "",
     val cirth: String = "",
+    val elderBreakdown: TransliterationBreakdown = TransliterationBreakdown(),
+    val youngerBreakdown: TransliterationBreakdown = TransliterationBreakdown(),
+    val cirthBreakdown: TransliterationBreakdown = TransliterationBreakdown(),
     val errorMessage: String? = null
 ) {
     fun outputFor(script: RunicScript): String = when (script) {
@@ -186,7 +243,25 @@ private data class TransliterationBundle(
         RunicScript.YOUNGER_FUTHARK -> younger
         RunicScript.CIRTH -> cirth
     }
+
+    fun breakdownFor(script: RunicScript): TransliterationBreakdown = when (script) {
+        RunicScript.ELDER_FUTHARK -> elderBreakdown
+        RunicScript.YOUNGER_FUTHARK -> youngerBreakdown
+        RunicScript.CIRTH -> cirthBreakdown
+    }
 }
+
+private data class TranslationPreferencesState(
+    val selectedScript: RunicScript,
+    val selectedFont: String,
+    val persistedWordByWordEnabled: Boolean
+)
+
+private data class TranslationInputState(
+    val inputText: String,
+    val isSaving: Boolean,
+    val localWordByWordOverride: Boolean?
+)
 
 /**
  * UI state for the translation screen.
@@ -195,11 +270,14 @@ data class TranslationUiState(
     val inputText: String = "",
     val transliteratedText: String = "",
     val selectedScript: RunicScript = RunicScript.DEFAULT,
+    val selectedFont: String = "noto",
     val outputGlyphCount: Int = 0,
     val inputCharacterCount: Int = 0,
     val canSave: Boolean = false,
     val isSaving: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val wordByWordEnabled: Boolean = false,
+    val wordBreakdown: List<WordTransliterationPair> = emptyList()
 ) {
     /** Display name for the currently selected script. */
     val scriptDisplayName: String get() = selectedScript.displayName

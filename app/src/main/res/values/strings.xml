@@ -39,6 +39,8 @@
 
     <string name="settings_show_transliteration_title">Show Transliteration</string>
     <string name="settings_show_transliteration_subtitle">Display Latin text alongside runes</string>
+    <string name="settings_word_by_word_transliteration_title">Word-by-Word Transliteration</string>
+    <string name="settings_word_by_word_transliteration_subtitle">Default to paired Latin and rune words when transliteration is visible</string>
 
     <string name="settings_widget_mode_section">Widget Mode</string>
     <string name="settings_widget_frequency_section">Widget Update Frequency</string>

@@ -70,6 +70,9 @@ class SettingsViewModelTest {
         coEvery { userPreferencesManager.updateShowTransliteration(any()) } coAnswers {
             preferencesFlow.value = preferencesFlow.value.copy(showTransliteration = firstArg())
         }
+        coEvery { userPreferencesManager.updateWordByWordTransliterationEnabled(any()) } coAnswers {
+            preferencesFlow.value = preferencesFlow.value.copy(wordByWordTransliterationEnabled = firstArg())
+        }
         coEvery { userPreferencesManager.updateFontSize(any()) } coAnswers {
             preferencesFlow.value = preferencesFlow.value.copy(fontSize = firstArg())
         }
@@ -311,6 +314,27 @@ class SettingsViewModelTest {
             advanceUntilIdle()
             val prefs2 = awaitItem()
             assertThat(prefs2.showTransliteration).isTrue()
+        }
+    }
+
+    @Test
+    fun `updateWordByWordTransliterationEnabled calls preferences manager`() = runTest {
+        viewModel.updateWordByWordTransliterationEnabled(true)
+        advanceUntilIdle()
+
+        coVerify { userPreferencesManager.updateWordByWordTransliterationEnabled(true) }
+    }
+
+    @Test
+    fun `updateWordByWordTransliterationEnabled updates flow`() = runTest {
+        viewModel.userPreferences.test {
+            skipItems(1)
+
+            viewModel.updateWordByWordTransliterationEnabled(true)
+            advanceUntilIdle()
+
+            val updatedPrefs = awaitItem()
+            assertThat(updatedPrefs.wordByWordTransliterationEnabled).isTrue()
         }
     }
 

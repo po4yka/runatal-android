@@ -158,6 +158,7 @@ class QuoteViewModelTest {
             assertThat(state.selectedScript).isEqualTo(RunicScript.ELDER_FUTHARK)
             assertThat(state.selectedFont).isEqualTo("noto")
             assertThat(state.showTransliteration).isTrue()
+            assertThat(state.wordByWordEnabled).isFalse()
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -278,6 +279,78 @@ class QuoteViewModelTest {
 
             val state = awaitItem() as QuoteUiState.Success
             assertThat(state.selectedFont).isEqualTo("babelstone")
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `toggleWordByWordMode applies local override over persisted default`() = runTest {
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
+
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val initialState = awaitItem() as QuoteUiState.Success
+            assertThat(initialState.wordByWordEnabled).isFalse()
+
+            viewModel.toggleWordByWordMode()
+            advanceUntilIdle()
+
+            val locallyOverridden = awaitItem() as QuoteUiState.Success
+            assertThat(locallyOverridden.wordByWordEnabled).isTrue()
+
+            preferencesFlow.value = defaultPreferences.copy(
+                selectedScript = RunicScript.YOUNGER_FUTHARK,
+                wordByWordTransliterationEnabled = false
+            )
+            advanceUntilIdle()
+
+            val afterPreferenceChange = awaitItem() as QuoteUiState.Success
+            assertThat(afterPreferenceChange.selectedScript).isEqualTo(RunicScript.YOUNGER_FUTHARK)
+            assertThat(afterPreferenceChange.wordByWordEnabled).isTrue()
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `script changes recompute word breakdown`() = runTest {
+        val quote = testQuote.copy(textLatin = "thing strong")
+        coEvery { quoteRepository.quoteOfTheDay() } returns quote
+
+        viewModel = QuoteViewModel(quoteRepository, userPreferencesManager, quoteShareManager, transliterationFactory)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val elderState = awaitItem() as QuoteUiState.Success
+            assertThat(elderState.wordBreakdown).containsExactly(
+                com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair(
+                    sourceToken = "thing",
+                    runicToken = transliterationFactory.transliterate("thing", RunicScript.ELDER_FUTHARK)
+                ),
+                com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair(
+                    sourceToken = "strong",
+                    runicToken = transliterationFactory.transliterate("strong", RunicScript.ELDER_FUTHARK)
+                )
+            ).inOrder()
+
+            preferencesFlow.value = defaultPreferences.copy(selectedScript = RunicScript.CIRTH)
+            advanceUntilIdle()
+
+            val cirthState = awaitItem() as QuoteUiState.Success
+            assertThat(cirthState.wordBreakdown).containsExactly(
+                com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair(
+                    sourceToken = "thing",
+                    runicToken = transliterationFactory.transliterate("thing", RunicScript.CIRTH)
+                ),
+                com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair(
+                    sourceToken = "strong",
+                    runicToken = transliterationFactory.transliterate("strong", RunicScript.CIRTH)
+                )
+            ).inOrder()
+            assertThat(cirthState.wordBreakdown).isNotEqualTo(elderState.wordBreakdown)
 
             cancelAndIgnoreRemainingEvents()
         }

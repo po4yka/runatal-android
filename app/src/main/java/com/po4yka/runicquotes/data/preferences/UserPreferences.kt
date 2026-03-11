@@ -88,6 +88,11 @@ data class UserPreferences(
     val showTransliteration: Boolean = true,
 
     /**
+     * Whether transliteration should default to a word-by-word presentation.
+     */
+    val wordByWordTransliterationEnabled: Boolean = false,
+
+    /**
      * Font size multiplier for runic text.
      */
     val fontSize: Float = 1.0f,

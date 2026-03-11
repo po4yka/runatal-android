@@ -45,6 +45,7 @@ class UserPreferencesManager @Inject constructor(
             themePack = preferences[THEME_PACK] ?: "stone",
             appIconVariant = preferences[APP_ICON_VARIANT] ?: "storm_slate",
             showTransliteration = preferences[SHOW_TRANSLITERATION] ?: true,
+            wordByWordTransliterationEnabled = preferences[WORD_BY_WORD_TRANSLITERATION_ENABLED] ?: false,
             fontSize = preferences[FONT_SIZE] ?: 1.0f,
             largeRunesEnabled = preferences[LARGE_RUNES_ENABLED] ?: false,
             highContrastEnabled = preferences[HIGH_CONTRAST_ENABLED] ?: false,
@@ -201,6 +202,15 @@ class UserPreferencesManager @Inject constructor(
     }
 
     /**
+     * Updates the default transliteration presentation mode.
+     */
+    suspend fun updateWordByWordTransliterationEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[WORD_BY_WORD_TRANSLITERATION_ENABLED] = enabled
+        }
+    }
+
+    /**
      * Updates the font size multiplier.
      */
     suspend fun updateFontSize(size: Float) {
@@ -293,6 +303,8 @@ class UserPreferencesManager @Inject constructor(
         private val THEME_PACK = stringPreferencesKey("theme_pack")
         private val APP_ICON_VARIANT = stringPreferencesKey("app_icon_variant")
         private val SHOW_TRANSLITERATION = booleanPreferencesKey("show_transliteration")
+        private val WORD_BY_WORD_TRANSLITERATION_ENABLED =
+            booleanPreferencesKey("word_by_word_transliteration_enabled")
         private val FONT_SIZE = floatPreferencesKey("font_size")
         private val LARGE_RUNES_ENABLED = booleanPreferencesKey("large_runes_enabled")
         private val HIGH_CONTRAST_ENABLED = booleanPreferencesKey("high_contrast_enabled")

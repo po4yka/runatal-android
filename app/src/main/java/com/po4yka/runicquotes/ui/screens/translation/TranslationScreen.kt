@@ -51,6 +51,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -61,6 +62,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.segmentLabel
+import com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair
 import com.po4yka.runicquotes.ui.components.RunicActionButton
 import com.po4yka.runicquotes.ui.components.RunicActionButtonStyle
 import com.po4yka.runicquotes.ui.components.RunicArticleLinkCard
@@ -72,6 +74,8 @@ import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarActionStyle
 import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
+import com.po4yka.runicquotes.ui.components.WordByWordBreakdown
+import com.po4yka.runicquotes.ui.components.WordByWordModeToggleChip
 import com.po4yka.runicquotes.ui.components.runicActionButtonColors
 import com.po4yka.runicquotes.ui.components.runicChoiceChipColors
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
@@ -135,6 +139,8 @@ fun TranslationScreen(
             TranslationOutputHeader(
                 title = if (uiState.inputText.isBlank()) "Runic output" else uiState.scriptDisplayName,
                 hasOutput = uiState.transliteratedText.isNotBlank(),
+                wordByWordEnabled = uiState.wordByWordEnabled,
+                onToggleWordByWord = viewModel::toggleWordByWordMode,
                 onCopy = {
                     copyToClipboard(context, uiState.transliteratedText)
                     scope.launch {
@@ -146,9 +152,18 @@ fun TranslationScreen(
             TranslationOutputCard(
                 outputText = uiState.transliteratedText,
                 selectedScript = uiState.selectedScript,
+                selectedFont = uiState.selectedFont,
                 glyphCount = uiState.outputGlyphCount,
                 errorMessage = uiState.errorMessage
             )
+
+            if (uiState.wordByWordEnabled && uiState.wordBreakdown.isNotEmpty()) {
+                TranslationWordByWordSection(
+                    wordPairs = uiState.wordBreakdown,
+                    selectedScript = uiState.selectedScript,
+                    selectedFont = uiState.selectedFont
+                )
+            }
 
             TranslationActionRow(
                 hasInput = uiState.inputText.isNotBlank(),
@@ -289,7 +304,8 @@ private fun TranslationInputCard(
                 onValueChange = onTextChange,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .focusRequester(focusRequester),
+                    .focusRequester(focusRequester)
+                    .testTag("translation_input_text"),
                 textStyle = RunicTypeRoles.supporting(
                     SupportingTextRole.FormPlaceholderEmphasis
                 ).copy(color = MaterialTheme.colorScheme.onSurface),
@@ -330,6 +346,8 @@ private fun TranslationInputCard(
 private fun TranslationOutputHeader(
     title: String,
     hasOutput: Boolean,
+    wordByWordEnabled: Boolean,
+    onToggleWordByWord: () -> Unit,
     onCopy: () -> Unit
 ) {
     Row(
@@ -343,26 +361,38 @@ private fun TranslationOutputHeader(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        if (hasOutput) {
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable(onClick = onCopy)
-                    .padding(horizontal = 2.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ContentCopy,
-                    contentDescription = "Copy output",
-                    modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "Copy",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            WordByWordModeToggleChip(
+                selected = wordByWordEnabled,
+                enabled = hasOutput,
+                onClick = onToggleWordByWord,
+                modifier = Modifier.testTag("translation_word_by_word_toggle")
+            )
+
+            if (hasOutput) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(onClick = onCopy)
+                        .padding(horizontal = 2.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = "Copy output",
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Copy",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
@@ -372,6 +402,7 @@ private fun TranslationOutputHeader(
 private fun TranslationOutputCard(
     outputText: String,
     selectedScript: RunicScript,
+    selectedFont: String,
     glyphCount: Int,
     errorMessage: String?
 ) {
@@ -429,6 +460,7 @@ private fun TranslationOutputCard(
             ) {
                 RunicText(
                     text = outputText,
+                    font = selectedFont,
                     script = selectedScript,
                     role = RunicTextRole.TranslationResult,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -448,6 +480,38 @@ private fun TranslationOutputCard(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun TranslationWordByWordSection(
+    wordPairs: List<WordTransliterationPair>,
+    selectedScript: RunicScript,
+    selectedFont: String
+) {
+    RunicInfoCard(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f),
+        modifier = Modifier.testTag("translation_word_breakdown")
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Word by word",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            WordByWordBreakdown(
+                wordPairs = wordPairs,
+                selectedScript = selectedScript,
+                selectedFont = selectedFont,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

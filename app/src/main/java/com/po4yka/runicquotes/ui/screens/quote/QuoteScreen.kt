@@ -62,6 +62,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -70,6 +71,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.domain.model.segmentLabel
+import com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair
 import com.po4yka.runicquotes.ui.components.EmptyState
 import com.po4yka.runicquotes.ui.components.ErrorState
 import com.po4yka.runicquotes.ui.components.RunicActionButton
@@ -79,6 +81,8 @@ import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.components.SegmentedControl
 import com.po4yka.runicquotes.ui.components.SkeletonCard
 import com.po4yka.runicquotes.ui.components.SkeletonRect
+import com.po4yka.runicquotes.ui.components.WordByWordBreakdown
+import com.po4yka.runicquotes.ui.components.WordByWordModeToggleChip
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
@@ -136,6 +140,10 @@ fun QuoteScreen(
                         haptics.lightToggle()
                         viewModel.toggleTransliterationVisibility()
                     },
+                    onToggleWordByWord = {
+                        haptics.lightToggle()
+                        viewModel.toggleWordByWordMode()
+                    },
                     onSelectScript = { script ->
                         haptics.lightToggle()
                         viewModel.updateSelectedScript(script)
@@ -178,6 +186,7 @@ private fun TodayContent(
     onShare: () -> Unit,
     onNewQuote: () -> Unit,
     onToggleTransliteration: () -> Unit,
+    onToggleWordByWord: () -> Unit,
     onSelectScript: (RunicScript) -> Unit,
     onNavigateToHistory: () -> Unit
 ) {
@@ -240,28 +249,41 @@ private fun TodayContent(
                             style = MaterialTheme.typography.headlineLarge
                         )
                     }
-                    Surface(
-                        modifier = Modifier.size(controls.minimumTouchTarget),
-                        shape = RunicExpressiveTheme.shapes.pill,
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        onClick = onToggleTransliteration
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = if (state.showTransliteration) {
-                                    Icons.Default.Visibility
-                                } else {
-                                    Icons.Default.VisibilityOff
-                                },
-                                contentDescription = if (state.showTransliteration) {
-                                    "Hide transliteration"
-                                } else {
-                                    "Show transliteration"
-                                },
-                                modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        Surface(
+                            modifier = Modifier
+                                .size(controls.minimumTouchTarget)
+                                .testTag("quote_transliteration_toggle"),
+                            shape = RunicExpressiveTheme.shapes.pill,
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            onClick = onToggleTransliteration
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = if (state.showTransliteration) {
+                                        Icons.Default.Visibility
+                                    } else {
+                                        Icons.Default.VisibilityOff
+                                    },
+                                    contentDescription = if (state.showTransliteration) {
+                                        "Hide transliteration"
+                                    } else {
+                                        "Show transliteration"
+                                    },
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
+                        WordByWordModeToggleChip(
+                            selected = state.wordByWordEnabled,
+                            enabled = state.showTransliteration,
+                            onClick = onToggleWordByWord,
+                            modifier = Modifier.testTag("quote_word_by_word_toggle")
+                        )
                     }
                 }
             }
@@ -293,7 +315,9 @@ private fun TodayContent(
                     state.quote.author,
                     state.selectedScript,
                     state.selectedFont,
-                    state.showTransliteration
+                    state.showTransliteration,
+                    state.wordByWordEnabled,
+                    state.wordBreakdown
                 ) {
                     HeroQuoteCardState(
                         quoteId = state.quote.id,
@@ -303,7 +327,9 @@ private fun TodayContent(
                         scriptLabel = state.selectedScript.displayName,
                         selectedScript = state.selectedScript,
                         selectedFont = state.selectedFont,
-                        showTransliteration = state.showTransliteration
+                        showTransliteration = state.showTransliteration,
+                        wordByWordEnabled = state.wordByWordEnabled,
+                        wordBreakdown = state.wordBreakdown
                     )
                 }
 
@@ -325,6 +351,8 @@ private fun TodayContent(
                         selectedScript = heroState.selectedScript,
                         selectedFont = heroState.selectedFont,
                         showTransliteration = heroState.showTransliteration,
+                        wordByWordEnabled = heroState.wordByWordEnabled,
+                        wordBreakdown = heroState.wordBreakdown,
                         reducedMotion = reducedMotion,
                         contentVisible = contentVisible,
                         revealKey = heroState.quoteId
@@ -385,7 +413,9 @@ private fun TodayContent(
             visible = collapsedHeaderVisible,
             reducedMotion = reducedMotion,
             showTransliteration = state.showTransliteration,
+            wordByWordEnabled = state.wordByWordEnabled,
             onToggleTransliteration = onToggleTransliteration,
+            onToggleWordByWord = onToggleWordByWord,
             modifier = Modifier.align(Alignment.TopCenter)
         )
     }
@@ -396,7 +426,9 @@ private fun TodayCollapsedTopBar(
     visible: Boolean,
     reducedMotion: Boolean,
     showTransliteration: Boolean,
+    wordByWordEnabled: Boolean,
     onToggleTransliteration: () -> Unit,
+    onToggleWordByWord: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val motion = RunicExpressiveTheme.motion
@@ -457,28 +489,41 @@ private fun TodayCollapsedTopBar(
                     text = "Quote of the Day",
                     style = MaterialTheme.typography.titleLarge
                 )
-                Surface(
-                    modifier = Modifier.size(controls.minimumTouchTarget),
-                    shape = RunicExpressiveTheme.shapes.pill,
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    onClick = onToggleTransliteration
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = if (showTransliteration) {
-                                Icons.Default.Visibility
-                            } else {
-                                Icons.Default.VisibilityOff
-                            },
-                            contentDescription = if (showTransliteration) {
-                                "Hide transliteration"
-                            } else {
-                                "Show transliteration"
-                            },
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    Surface(
+                        modifier = Modifier
+                            .size(controls.minimumTouchTarget)
+                            .testTag("quote_transliteration_toggle_collapsed"),
+                        shape = RunicExpressiveTheme.shapes.pill,
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        onClick = onToggleTransliteration
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (showTransliteration) {
+                                    Icons.Default.Visibility
+                                } else {
+                                    Icons.Default.VisibilityOff
+                                },
+                                contentDescription = if (showTransliteration) {
+                                    "Hide transliteration"
+                                } else {
+                                    "Show transliteration"
+                                },
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
+                    WordByWordModeToggleChip(
+                        selected = wordByWordEnabled,
+                        enabled = showTransliteration,
+                        onClick = onToggleWordByWord,
+                        modifier = Modifier.testTag("quote_word_by_word_toggle_collapsed")
+                    )
                 }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f))
@@ -538,6 +583,8 @@ private fun HeroQuoteCard(
     selectedScript: RunicScript,
     selectedFont: String,
     showTransliteration: Boolean,
+    wordByWordEnabled: Boolean,
+    wordBreakdown: List<WordTransliterationPair>,
     reducedMotion: Boolean,
     contentVisible: Boolean,
     revealKey: Long
@@ -572,12 +619,23 @@ private fun HeroQuoteCard(
             if (reducedMotion) {
                 if (showTransliteration) {
                     Spacer(modifier = Modifier.height(14.dp))
-                    Text(
-                        text = "\"$latinText\"",
-                        style = RunicTypeRoles.supporting(SupportingTextRole.QuoteTransliteration),
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    if (wordByWordEnabled) {
+                        WordByWordBreakdown(
+                            wordPairs = wordBreakdown,
+                            selectedScript = selectedScript,
+                            selectedFont = selectedFont,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("quote_word_breakdown")
+                        )
+                    } else {
+                        Text(
+                            text = "\"$latinText\"",
+                            style = RunicTypeRoles.supporting(SupportingTextRole.QuoteTransliteration),
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             } else {
                 AnimatedVisibility(
@@ -611,12 +669,23 @@ private fun HeroQuoteCard(
                 ) {
                     Column {
                         Spacer(modifier = Modifier.height(14.dp))
-                        Text(
-                            text = "\"$latinText\"",
-                            style = RunicTypeRoles.supporting(SupportingTextRole.QuoteTransliteration),
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        if (wordByWordEnabled) {
+                            WordByWordBreakdown(
+                                wordPairs = wordBreakdown,
+                                selectedScript = selectedScript,
+                                selectedFont = selectedFont,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("quote_word_breakdown")
+                            )
+                        } else {
+                            Text(
+                                text = "\"$latinText\"",
+                                style = RunicTypeRoles.supporting(SupportingTextRole.QuoteTransliteration),
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
@@ -1044,5 +1113,7 @@ private data class HeroQuoteCardState(
     val scriptLabel: String,
     val selectedScript: RunicScript,
     val selectedFont: String,
-    val showTransliteration: Boolean
+    val showTransliteration: Boolean,
+    val wordByWordEnabled: Boolean,
+    val wordBreakdown: List<WordTransliterationPair>
 )

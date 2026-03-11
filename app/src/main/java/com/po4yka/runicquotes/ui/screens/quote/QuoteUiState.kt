@@ -2,6 +2,7 @@ package com.po4yka.runicquotes.ui.screens.quote
 
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair
 
 /**
  * UI state for the Quote screen.
@@ -23,6 +24,8 @@ sealed class QuoteUiState {
         val selectedScript: RunicScript,
         val selectedFont: String,
         val showTransliteration: Boolean,
+        val wordByWordEnabled: Boolean,
+        val wordBreakdown: List<WordTransliterationPair> = emptyList(),
         val recentQuotes: List<RecentQuoteItem> = emptyList()
     ) : QuoteUiState()
 

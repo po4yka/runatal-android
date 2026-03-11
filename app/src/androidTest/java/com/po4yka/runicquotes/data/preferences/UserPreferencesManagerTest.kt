@@ -76,6 +76,7 @@ class UserPreferencesManagerTest {
         assertEquals(0L, preferences.lastDailyQuoteId)
         assertEquals("system", preferences.themeMode)
         assertTrue(preferences.showTransliteration)
+        assertFalse(preferences.wordByWordTransliterationEnabled)
         assertEquals(1.0f, preferences.fontSize, 0.001f)
     }
 
@@ -289,6 +290,25 @@ class UserPreferencesManagerTest {
         assertFalse(prefs.showTransliteration)
     }
 
+    @Test
+    fun updateWordByWordTransliterationEnabled_updatesAndPersists() = testScope.runTest {
+        preferencesManager.updateWordByWordTransliterationEnabled(true)
+
+        val preferences = preferencesManager.userPreferencesFlow.first()
+        assertTrue(preferences.wordByWordTransliterationEnabled)
+    }
+
+    @Test
+    fun updateWordByWordTransliterationEnabled_togglesCorrectly() = testScope.runTest {
+        preferencesManager.updateWordByWordTransliterationEnabled(true)
+        var prefs = preferencesManager.userPreferencesFlow.first()
+        assertTrue(prefs.wordByWordTransliterationEnabled)
+
+        preferencesManager.updateWordByWordTransliterationEnabled(false)
+        prefs = preferencesManager.userPreferencesFlow.first()
+        assertFalse(prefs.wordByWordTransliterationEnabled)
+    }
+
     // ==================== Update Font Size Tests ====================
 
     @Test
@@ -354,6 +374,7 @@ class UserPreferencesManagerTest {
         assertEquals(0L, preferences.lastDailyQuoteId)
         assertEquals("system", preferences.themeMode)
         assertTrue(preferences.showTransliteration)
+        assertFalse(preferences.wordByWordTransliterationEnabled)
         assertEquals(1.0f, preferences.fontSize, 0.001f)
     }
 
@@ -366,6 +387,7 @@ class UserPreferencesManagerTest {
         preferencesManager.updateSelectedFont("babelstone")
         preferencesManager.updateThemeMode("dark")
         preferencesManager.updateShowTransliteration(false)
+        preferencesManager.updateWordByWordTransliterationEnabled(true)
         preferencesManager.updateFontSize(1.8f)
         preferencesManager.updateWidgetUpdateMode("manual")
         preferencesManager.updateLastQuoteDate(99999L)
@@ -377,6 +399,7 @@ class UserPreferencesManagerTest {
         assertEquals("babelstone", preferences.selectedFont)
         assertEquals("dark", preferences.themeMode)
         assertFalse(preferences.showTransliteration)
+        assertTrue(preferences.wordByWordTransliterationEnabled)
         assertEquals(1.8f, preferences.fontSize, 0.001f)
         assertEquals("manual", preferences.widgetUpdateMode)
         assertEquals(99999L, preferences.lastQuoteDate)

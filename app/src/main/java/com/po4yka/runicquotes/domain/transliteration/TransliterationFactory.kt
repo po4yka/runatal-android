@@ -14,6 +14,9 @@ class TransliterationFactory @Inject constructor(
     private val youngerFutharkTransliterator: YoungerFutharkTransliterator,
     private val cirthTransliterator: CirthTransliterator
 ) {
+    private companion object {
+        val NonWhitespaceTokenRegex = Regex("\\S+")
+    }
 
     /**
      * Returns the transliterator for the specified runic script.
@@ -38,5 +41,29 @@ class TransliterationFactory @Inject constructor(
      */
     fun transliterate(text: String, script: RunicScript): String {
         return create(script).transliterate(text)
+    }
+
+    /**
+     * Transliterates text and provides a per-token breakdown based on whitespace boundaries.
+     */
+    fun transliterateWordByWord(text: String, script: RunicScript): TransliterationBreakdown {
+        if (text.isEmpty()) {
+            return TransliterationBreakdown()
+        }
+
+        val transliterator = create(script)
+        val fullText = transliterator.transliterate(text)
+        val wordPairs = NonWhitespaceTokenRegex.findAll(text).map { match ->
+            val sourceToken = match.value
+            WordTransliterationPair(
+                sourceToken = sourceToken,
+                runicToken = transliterator.transliterate(sourceToken)
+            )
+        }.toList()
+
+        return TransliterationBreakdown(
+            fullText = fullText,
+            wordPairs = wordPairs
+        )
     }
 }
