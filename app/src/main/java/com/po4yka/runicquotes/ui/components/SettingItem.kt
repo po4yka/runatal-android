@@ -21,8 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.unit.dp
+import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 
 /**
  * A single setting item with title, subtitle, and optional leading/trailing content.
@@ -45,6 +44,9 @@ fun SettingItem(
     leadingIcon: @Composable (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null
 ) {
+    val spacing = RunicExpressiveTheme.spacing
+    val controls = RunicExpressiveTheme.controls
+    val itemShape = RunicExpressiveTheme.shapes.collectionCard
     val containerColor by animateColorAsState(
         targetValue = if (selected) {
             MaterialTheme.colorScheme.secondaryContainer
@@ -58,15 +60,15 @@ fun SettingItem(
         modifier = modifier
             .fillMaxWidth(),
         color = containerColor,
-        shape = RoundedCornerShape(12.dp)
+        shape = itemShape
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 57.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .heightIn(min = controls.settingItemMinHeight)
+                .clip(itemShape)
                 .clickable(enabled = onClick != null) { onClick?.invoke() }
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = spacing.comfortable, vertical = spacing.standard),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (leadingIcon != null) {
@@ -76,7 +78,7 @@ fun SettingItem(
                 ) {
                     leadingIcon()
                 }
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(spacing.standard))
             }
 
             Column(
@@ -95,7 +97,7 @@ fun SettingItem(
                 }
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(spacing.comfortable))
 
             // Show trailing content if provided, otherwise show checkmark if selected
             if (trailing != null) {

@@ -12,7 +12,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
-import androidx.compose.ui.unit.dp
 
 /**
  * A section in the settings screen with a title and content.
@@ -24,22 +23,24 @@ fun SettingSection(
     subtitle: String? = null,
     content: @Composable () -> Unit
 ) {
+    val spacing = RunicExpressiveTheme.spacing
+    val strokes = RunicExpressiveTheme.strokes
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(spacing.compact)
     ) {
         Text(
             text = title,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 4.dp)
+            modifier = Modifier.padding(start = spacing.tight)
         )
         if (subtitle != null) {
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp)
+                modifier = Modifier.padding(start = spacing.tight)
             )
         }
 
@@ -50,15 +51,15 @@ fun SettingSection(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow
             ),
             border = BorderStroke(
-                width = 1.dp,
+                width = strokes.subtle,
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
             )
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(5.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                    .padding(spacing.tight),
+                verticalArrangement = Arrangement.spacedBy(spacing.tight)
             ) {
                 content()
             }

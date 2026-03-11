@@ -37,6 +37,52 @@ data class RunicElevationTokens(
     val overlay: Dp
 )
 
+/** Spacing scale for layout gaps, padding, and compact surface insets. */
+@Immutable
+data class RunicSpacingTokens(
+    val micro: Dp,
+    val tight: Dp,
+    val compact: Dp,
+    val small: Dp,
+    val medium: Dp,
+    val standard: Dp,
+    val comfortable: Dp,
+    val roomy: Dp,
+    val spacious: Dp
+)
+
+/** Stroke widths for borders, dividers, and emphasized outlines. */
+@Immutable
+data class RunicStrokeTokens(
+    val subtle: Dp,
+    val emphasized: Dp
+)
+
+/** Component size roles for shared controls and selection affordances. */
+@Immutable
+data class RunicControlSizeTokens(
+    val segmentedControlMinHeight: Dp,
+    val settingItemMinHeight: Dp,
+    val dialogActionHeight: Dp,
+    val leadingBadgeLarge: Dp,
+    val leadingBadgeMedium: Dp,
+    val aboutBadge: Dp,
+    val selectionTrack: Dp,
+    val selectionThumb: Dp,
+    val selectionDot: Dp,
+    val switchThumbContent: Dp
+)
+
+/** Icon scale roles for compact inline icons and larger badge treatments. */
+@Immutable
+data class RunicIconSizeTokens(
+    val compact: Dp,
+    val inline: Dp,
+    val standard: Dp,
+    val appIcon: Dp,
+    val selectedAppIcon: Dp
+)
+
 /** Motion and animation tokens for runic UI components. */
 @Immutable
 data class RunicMotionTokens(
@@ -76,6 +122,44 @@ private val DefaultRunicElevationTokens = RunicElevationTokens(
     overlay = 12.dp
 )
 
+private val DefaultRunicSpacingTokens = RunicSpacingTokens(
+    micro = 2.dp,
+    tight = 4.dp,
+    compact = 6.dp,
+    small = 8.dp,
+    medium = 10.dp,
+    standard = 12.dp,
+    comfortable = 16.dp,
+    roomy = 20.dp,
+    spacious = 24.dp
+)
+
+private val DefaultRunicStrokeTokens = RunicStrokeTokens(
+    subtle = 1.dp,
+    emphasized = 2.dp
+)
+
+private val DefaultRunicControlSizeTokens = RunicControlSizeTokens(
+    segmentedControlMinHeight = 40.dp,
+    settingItemMinHeight = 57.dp,
+    dialogActionHeight = 40.dp,
+    leadingBadgeLarge = 40.dp,
+    leadingBadgeMedium = 36.dp,
+    aboutBadge = 44.dp,
+    selectionTrack = 20.dp,
+    selectionThumb = 16.dp,
+    selectionDot = 10.dp,
+    switchThumbContent = 18.dp
+)
+
+private val DefaultRunicIconSizeTokens = RunicIconSizeTokens(
+    compact = 14.dp,
+    inline = 16.dp,
+    standard = 18.dp,
+    appIcon = 21.dp,
+    selectedAppIcon = 23.dp
+)
+
 private val DefaultRunicMotionTokens = RunicMotionTokens(
     shortDurationMillis = 220,
     mediumDurationMillis = 420,
@@ -103,11 +187,27 @@ fun runicMaterialShapes(shapeTokens: RunicShapeTokens = DefaultRunicShapeTokens)
 /** Returns default [RunicElevationTokens]. */
 fun runicElevationTokens(): RunicElevationTokens = DefaultRunicElevationTokens
 
+/** Returns default [RunicSpacingTokens]. */
+fun runicSpacingTokens(): RunicSpacingTokens = DefaultRunicSpacingTokens
+
+/** Returns default [RunicStrokeTokens]. */
+fun runicStrokeTokens(): RunicStrokeTokens = DefaultRunicStrokeTokens
+
+/** Returns default [RunicControlSizeTokens]. */
+fun runicControlSizeTokens(): RunicControlSizeTokens = DefaultRunicControlSizeTokens
+
+/** Returns default [RunicIconSizeTokens]. */
+fun runicIconSizeTokens(): RunicIconSizeTokens = DefaultRunicIconSizeTokens
+
 /** Returns default [RunicMotionTokens]. */
 fun runicMotionTokens(): RunicMotionTokens = DefaultRunicMotionTokens
 
 val LocalRunicShapeTokens = staticCompositionLocalOf { DefaultRunicShapeTokens }
 val LocalRunicElevationTokens = staticCompositionLocalOf { DefaultRunicElevationTokens }
+val LocalRunicSpacingTokens = staticCompositionLocalOf { DefaultRunicSpacingTokens }
+val LocalRunicStrokeTokens = staticCompositionLocalOf { DefaultRunicStrokeTokens }
+val LocalRunicControlSizeTokens = staticCompositionLocalOf { DefaultRunicControlSizeTokens }
+val LocalRunicIconSizeTokens = staticCompositionLocalOf { DefaultRunicIconSizeTokens }
 val LocalRunicMotionTokens = staticCompositionLocalOf { DefaultRunicMotionTokens }
 
 /** Provides access to runic expressive design tokens via composition locals. */
@@ -117,6 +217,18 @@ object RunicExpressiveTheme {
 
     val elevations: RunicElevationTokens
         @Composable get() = LocalRunicElevationTokens.current
+
+    val spacing: RunicSpacingTokens
+        @Composable get() = LocalRunicSpacingTokens.current
+
+    val strokes: RunicStrokeTokens
+        @Composable get() = LocalRunicStrokeTokens.current
+
+    val controls: RunicControlSizeTokens
+        @Composable get() = LocalRunicControlSizeTokens.current
+
+    val icons: RunicIconSizeTokens
+        @Composable get() = LocalRunicIconSizeTokens.current
 
     val motion: RunicMotionTokens
         @Composable get() = LocalRunicMotionTokens.current

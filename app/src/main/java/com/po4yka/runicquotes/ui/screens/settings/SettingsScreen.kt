@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -46,7 +45,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.R
@@ -54,6 +52,7 @@ import com.po4yka.runicquotes.RunicQuotesApplication
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.ui.components.SettingItem
 import com.po4yka.runicquotes.ui.components.SettingSection
+import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.util.AppIconManager
 import com.po4yka.runicquotes.util.AppIconVariant
 import com.po4yka.runicquotes.util.rememberHapticFeedback
@@ -71,6 +70,7 @@ fun SettingsScreen(
     val preferences by viewModel.userPreferences.collectAsStateWithLifecycle()
     val haptics = rememberHapticFeedback()
     val context = LocalContext.current
+    val spacing = RunicExpressiveTheme.spacing
     val dynamicColorSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val refreshWidgets = {
         RunicQuotesApplication.widgetSyncManager(context).refreshAllAsync(context)
@@ -82,8 +82,8 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(horizontal = spacing.roomy, vertical = spacing.standard),
+            verticalArrangement = Arrangement.spacedBy(spacing.roomy)
         ) {
             Text(
                 text = stringResource(R.string.settings),
@@ -418,6 +418,7 @@ private fun LinkSettingItem(
     icon: ImageVector,
     onClick: () -> Unit
 ) {
+    val iconSizes = RunicExpressiveTheme.icons
     SettingItem(
         title = title,
         onClick = onClick,
@@ -426,7 +427,8 @@ private fun LinkSettingItem(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = title,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(iconSizes.standard)
             )
         }
     )
@@ -437,21 +439,24 @@ private fun AppIconBadge(
     variant: AppIconVariant,
     selected: Boolean
 ) {
+    val spacing = RunicExpressiveTheme.spacing
+    val controls = RunicExpressiveTheme.controls
+    val icons = RunicExpressiveTheme.icons
     Box(
         modifier = Modifier
-            .size(40.dp)
+            .size(controls.leadingBadgeLarge)
             .background(
                 color = colorResource(id = variant.backgroundColorRes),
-                shape = RoundedCornerShape(14.dp)
+                shape = RunicExpressiveTheme.shapes.segment
             )
-            .padding(9.dp),
+            .padding(spacing.small),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             painter = painterResource(id = variant.foregroundDrawableRes),
             contentDescription = variant.title,
             tint = Color.Unspecified,
-            modifier = Modifier.size(if (selected) 23.dp else 21.dp)
+            modifier = Modifier.size(if (selected) icons.selectedAppIcon else icons.appIcon)
         )
     }
 }
@@ -461,16 +466,17 @@ private fun RuneBadge(
     rune: String,
     selected: Boolean
 ) {
+    val controls = RunicExpressiveTheme.controls
     Box(
         modifier = Modifier
-            .size(36.dp)
+            .size(controls.leadingBadgeMedium)
             .background(
                 color = if (selected) {
                     MaterialTheme.colorScheme.surface.copy(alpha = 0.55f)
                 } else {
                     MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f)
                 },
-                shape = RoundedCornerShape(10.dp)
+                shape = RunicExpressiveTheme.shapes.segment
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -487,59 +493,64 @@ private fun SettingsIconBadge(
     icon: ImageVector,
     emphasized: Boolean = false
 ) {
+    val controls = RunicExpressiveTheme.controls
+    val icons = RunicExpressiveTheme.icons
     Box(
         modifier = Modifier
-            .size(36.dp)
+            .size(controls.leadingBadgeMedium)
             .background(
                 color = if (emphasized) {
                     MaterialTheme.colorScheme.surface.copy(alpha = 0.45f)
                 } else {
                     MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.45f)
                 },
-                shape = RoundedCornerShape(10.dp)
+                shape = RunicExpressiveTheme.shapes.segment
             ),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(icons.standard)
         )
     }
 }
 
 @Composable
 private fun SelectionIndicator(selected: Boolean) {
+    val spacing = RunicExpressiveTheme.spacing
+    val controls = RunicExpressiveTheme.controls
     Box(
         modifier = Modifier
-            .size(20.dp)
+            .size(controls.selectionTrack)
             .background(
                 color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(999.dp)
+                shape = RunicExpressiveTheme.shapes.pill
             )
-            .padding(2.dp),
+            .padding(spacing.micro),
         contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
-                .size(16.dp)
+                .size(controls.selectionThumb)
                 .background(
                     color = if (selected) {
                         MaterialTheme.colorScheme.secondary
                     } else {
                         MaterialTheme.colorScheme.surface
                     },
-                    shape = RoundedCornerShape(999.dp)
+                    shape = RunicExpressiveTheme.shapes.pill
                 ),
             contentAlignment = Alignment.Center
         ) {
             if (selected) {
                 Box(
                     modifier = Modifier
-                        .size(10.dp)
+                        .size(controls.selectionDot)
                         .background(
                             color = MaterialTheme.colorScheme.surface,
-                            shape = RoundedCornerShape(999.dp)
+                            shape = RunicExpressiveTheme.shapes.pill
                         )
                 )
             }
@@ -553,6 +564,7 @@ private fun RunatalSwitch(
     enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit
 ) {
+    val controls = RunicExpressiveTheme.controls
     Switch(
         checked = checked,
         onCheckedChange = onCheckedChange,
@@ -561,10 +573,10 @@ private fun RunatalSwitch(
             {
                 Box(
                     modifier = Modifier
-                        .size(18.dp)
+                        .size(controls.switchThumbContent)
                         .background(
                             color = MaterialTheme.colorScheme.surface,
-                            shape = RoundedCornerShape(999.dp)
+                            shape = RunicExpressiveTheme.shapes.pill
                         ),
                     contentAlignment = Alignment.Center
                 ) {
@@ -595,22 +607,24 @@ private fun RunatalSwitch(
 
 @Composable
 private fun SettingsAboutCard() {
+    val spacing = RunicExpressiveTheme.spacing
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = spacing.comfortable, vertical = spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(spacing.standard)
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(spacing.standard),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val controls = RunicExpressiveTheme.controls
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(controls.aboutBadge)
                     .background(
                         color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.45f),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RunicExpressiveTheme.shapes.contentCard
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -620,7 +634,7 @@ private fun SettingsAboutCard() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(spacing.compact)) {
                 Text(
                     text = "Runatal",
                     style = MaterialTheme.typography.titleMedium

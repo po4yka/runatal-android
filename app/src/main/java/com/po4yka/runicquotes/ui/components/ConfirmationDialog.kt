@@ -2,16 +2,17 @@ package com.po4yka.runicquotes.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -27,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
@@ -65,6 +65,7 @@ fun ConfirmationDialog(
     supportingContent: (@Composable ColumnScope.() -> Unit)? = null
 ) {
     val colors = MaterialTheme.colorScheme
+    val spacing = RunicExpressiveTheme.spacing
 
     RunicDialogSurface(
         onDismiss = onDismiss,
@@ -74,7 +75,7 @@ fun ConfirmationDialog(
             icon = icon,
             isDestructive = isDestructive
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(spacing.comfortable))
         Text(
             text = title,
             style = MaterialTheme.typography.titleLarge,
@@ -82,7 +83,7 @@ fun ConfirmationDialog(
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(spacing.medium))
         Text(
             text = message,
             style = MaterialTheme.typography.bodySmall,
@@ -91,10 +92,10 @@ fun ConfirmationDialog(
             modifier = Modifier.fillMaxWidth()
         )
         if (supportingContent != null) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(spacing.comfortable))
             supportingContent()
         }
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(spacing.roomy))
         RunicDialogButtonRow(
             dismissLabel = dismissLabel,
             confirmLabel = confirmLabel,
@@ -114,6 +115,8 @@ internal fun RunicDialogSurface(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
+    val spacing = RunicExpressiveTheme.spacing
+    val strokes = RunicExpressiveTheme.strokes
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -122,17 +125,22 @@ internal fun RunicDialogSurface(
         Surface(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = 34.dp),
+                .padding(horizontal = spacing.spacious + spacing.medium),
             shape = RunicExpressiveTheme.shapes.dialog,
             tonalElevation = RunicExpressiveTheme.elevations.overlay,
             color = colors.surfaceContainerLow,
             border = BorderStroke(
-                width = 1.dp,
+                width = strokes.subtle,
                 color = colors.outlineVariant.copy(alpha = 0.72f)
             )
         ) {
             Column(
-                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 22.dp, bottom = 20.dp),
+                modifier = Modifier.padding(
+                    start = spacing.spacious,
+                    end = spacing.spacious,
+                    top = spacing.roomy + spacing.micro,
+                    bottom = spacing.roomy
+                ),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 content = content
             )
@@ -143,21 +151,28 @@ internal fun RunicDialogSurface(
 @Composable
 internal fun RunicDialogIconBadge(icon: ImageVector, isDestructive: Boolean) {
     val colors = MaterialTheme.colorScheme
+    val controls = RunicExpressiveTheme.controls
+    val icons = RunicExpressiveTheme.icons
     Surface(
-        modifier = Modifier.size(40.dp),
-        shape = CircleShape,
+        modifier = Modifier.size(controls.leadingBadgeLarge),
+        shape = RunicExpressiveTheme.shapes.pill,
         color = if (isDestructive) {
             colors.errorContainer.copy(alpha = 0.45f)
         } else {
             colors.secondaryContainer.copy(alpha = 0.55f)
         }
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = "Dialog icon",
-            modifier = Modifier.padding(11.dp).size(18.dp),
-            tint = if (isDestructive) colors.error else colors.onSecondaryContainer
-        )
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = "Dialog icon",
+                modifier = Modifier.size(icons.standard),
+                tint = if (isDestructive) colors.error else colors.onSecondaryContainer
+            )
+        }
     }
 }
 
@@ -171,14 +186,17 @@ internal fun RunicDialogButtonRow(
     containerColor: Color,
     contentColor: Color
 ) {
+    val spacing = RunicExpressiveTheme.spacing
+    val controls = RunicExpressiveTheme.controls
+    val icons = RunicExpressiveTheme.icons
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(spacing.medium, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically
     ) {
         TextButton(
             onClick = onDismiss,
-            modifier = Modifier.weight(1f).height(40.dp)
+            modifier = Modifier.weight(1f).height(controls.dialogActionHeight)
         ) {
             Text(
                 text = dismissLabel,
@@ -187,7 +205,7 @@ internal fun RunicDialogButtonRow(
         }
         Button(
             onClick = onConfirm,
-            modifier = Modifier.weight(1f).height(40.dp),
+            modifier = Modifier.weight(1f).height(controls.dialogActionHeight),
             colors = ButtonDefaults.buttonColors(
                 containerColor = containerColor,
                 contentColor = contentColor
@@ -198,9 +216,9 @@ internal fun RunicDialogButtonRow(
                 Icon(
                     imageVector = confirmIcon,
                     contentDescription = confirmLabel,
-                    modifier = Modifier.size(14.dp)
+                    modifier = Modifier.size(icons.compact)
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(spacing.compact))
             }
             Text(
                 text = confirmLabel,

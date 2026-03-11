@@ -28,7 +28,6 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 
@@ -56,6 +55,7 @@ fun SegmentedControl(
 ) {
     val reducedMotion = LocalReduceMotion.current
     val motion = RunicExpressiveTheme.motion
+    val spacing = RunicExpressiveTheme.spacing
     val animDuration = motion.duration(reducedMotion, motion.shortDurationMillis)
 
     Surface(
@@ -66,8 +66,8 @@ fun SegmentedControl(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                .padding(spacing.tight),
+            horizontalArrangement = Arrangement.spacedBy(spacing.micro)
         ) {
             segments.forEachIndexed { index, label ->
                 Segment(
@@ -94,6 +94,9 @@ private fun Segment(
     count: Int? = null,
     modifier: Modifier = Modifier
 ) {
+    val spacing = RunicExpressiveTheme.spacing
+    val controls = RunicExpressiveTheme.controls
+    val icons = RunicExpressiveTheme.icons
     val backgroundColor by animateColorAsState(
         targetValue = if (isSelected) {
             MaterialTheme.colorScheme.secondaryContainer
@@ -123,12 +126,12 @@ private fun Segment(
                 role = Role.Tab
                 selected = isSelected
             }
-            .heightIn(min = 40.dp)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .heightIn(min = controls.segmentedControlMinHeight)
+            .padding(horizontal = spacing.standard, vertical = spacing.small),
         contentAlignment = Alignment.Center
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(spacing.tight),
             verticalAlignment = Alignment.CenterVertically
         ) {
             val icon = leadingIcon ?: if (isSelected) Icons.Default.Check else null
@@ -136,7 +139,7 @@ private fun Segment(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(icons.inline),
                     tint = contentColor
                 )
             }
