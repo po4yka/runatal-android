@@ -18,8 +18,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -56,6 +54,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.ui.components.ErrorState
 import com.po4yka.runicquotes.ui.components.RunicText
+import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
+import com.po4yka.runicquotes.ui.theme.RunicSharePalette
+import com.po4yka.runicquotes.ui.theme.RunicShareStyleTokens
+import com.po4yka.runicquotes.ui.theme.runicSharePalette
+import com.po4yka.runicquotes.ui.theme.runicShareStyleTokens
 import com.po4yka.runicquotes.util.ShareAppearance
 import com.po4yka.runicquotes.util.ShareTemplate
 
@@ -174,7 +177,8 @@ private fun ShareContent(
     onCopyQuote: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val palette = remember(selectedAppearance) { previewPaletteFor(selectedAppearance) }
+    val palette = remember(selectedAppearance) { runicSharePalette(selectedAppearance) }
+    val shareStyle = remember { runicShareStyleTokens() }
 
     Column(
         modifier = modifier
@@ -185,13 +189,15 @@ private fun ShareContent(
     ) {
         AppearanceToggle(
             selectedAppearance = selectedAppearance,
-            onSelectAppearance = onSelectAppearance
+            onSelectAppearance = onSelectAppearance,
+            shareStyle = shareStyle
         )
 
         SharePreview(
             quote = quote,
             selectedTemplate = selectedTemplate,
-            palette = palette
+            palette = palette,
+            shareStyle = shareStyle
         )
 
         selectedTemplate.helperText?.let { helper ->
@@ -207,12 +213,14 @@ private fun ShareContent(
         TemplateSelector(
             selectedTemplate = selectedTemplate,
             onSelectTemplate = onSelectTemplate,
-            palette = palette
+            palette = palette,
+            shareStyle = shareStyle
         )
 
         ShareActions(
             selectedTemplate = selectedTemplate,
             palette = palette,
+            shareStyle = shareStyle,
             onShareAsText = onShareAsText,
             onShareAsImage = onShareAsImage,
             onCopyQuote = onCopyQuote
@@ -225,14 +233,15 @@ private fun ShareContent(
 @Composable
 private fun AppearanceToggle(
     selectedAppearance: ShareAppearance,
-    onSelectAppearance: (ShareAppearance) -> Unit
+    onSelectAppearance: (ShareAppearance) -> Unit,
+    shareStyle: RunicShareStyleTokens
 ) {
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
     ) {
         Surface(
-            shape = RoundedCornerShape(12.dp),
+            shape = shareStyle.appearanceToggleShape,
             color = MaterialTheme.colorScheme.surfaceContainerLow,
             border = BorderStroke(
                 1.dp,
@@ -245,8 +254,9 @@ private fun AppearanceToggle(
             ) {
                 ShareAppearance.entries.forEach { appearance ->
                     val selected = appearance == selectedAppearance
+                    val appearancePalette = runicSharePalette(appearance)
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
+                        shape = shareStyle.appearanceOptionShape,
                         color = if (selected) {
                             MaterialTheme.colorScheme.secondaryContainer
                         } else {
@@ -262,14 +272,8 @@ private fun AppearanceToggle(
                             Box(
                                 modifier = Modifier
                                     .size(14.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (appearance == ShareAppearance.DARK) {
-                                            Color(0xFF181A1D)
-                                        } else {
-                                            Color(0xFFF7F8FA)
-                                        }
-                                    )
+                                    .clip(RunicExpressiveTheme.shapes.pill)
+                                    .background(appearancePalette.appearanceSwatch)
                             )
                             Text(
                                 text = appearance.displayName,
@@ -292,28 +296,30 @@ private fun AppearanceToggle(
 private fun SharePreview(
     quote: Quote,
     selectedTemplate: ShareTemplate,
-    palette: PreviewPalette
+    palette: RunicSharePalette,
+    shareStyle: RunicShareStyleTokens
 ) {
     when (selectedTemplate) {
-        ShareTemplate.CARD -> CardPreview(quote = quote, palette = palette)
-        ShareTemplate.VERSE -> VersePreview(quote = quote, palette = palette)
-        ShareTemplate.LANDSCAPE -> LandscapePreview(quote = quote, palette = palette)
+        ShareTemplate.CARD -> CardPreview(quote = quote, palette = palette, shareStyle = shareStyle)
+        ShareTemplate.VERSE -> VersePreview(quote = quote, palette = palette, shareStyle = shareStyle)
+        ShareTemplate.LANDSCAPE -> LandscapePreview(quote = quote, palette = palette, shareStyle = shareStyle)
     }
 }
 
 @Composable
 private fun CardPreview(
     quote: Quote,
-    palette: PreviewPalette
+    palette: RunicSharePalette,
+    shareStyle: RunicShareStyleTokens
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp)
             .aspectRatio(292f / 365f),
-        shape = RoundedCornerShape(16.dp),
+        shape = shareStyle.cardPreviewShape,
         color = palette.surface,
-        shadowElevation = 12.dp,
+        shadowElevation = shareStyle.previewCardElevation,
         border = BorderStroke(1.dp, palette.outline)
     ) {
         Column(
@@ -324,7 +330,7 @@ private fun CardPreview(
         ) {
             PreviewBrandBar(palette = palette)
 
-            DecorativeRule(palette = palette)
+            DecorativeRule(palette = palette, shareStyle = shareStyle)
 
             RunicText(
                 text = quote.previewRunicText,
@@ -380,16 +386,17 @@ private fun CardPreview(
 @Composable
 private fun VersePreview(
     quote: Quote,
-    palette: PreviewPalette
+    palette: RunicSharePalette,
+    shareStyle: RunicShareStyleTokens
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp)
             .aspectRatio(292f / 389.328125f),
-        shape = RoundedCornerShape(16.dp),
+        shape = shareStyle.cardPreviewShape,
         color = palette.surface,
-        shadowElevation = 12.dp,
+        shadowElevation = shareStyle.previewCardElevation,
         border = BorderStroke(1.dp, palette.outline)
     ) {
         Column(
@@ -398,7 +405,7 @@ private fun VersePreview(
                 .padding(horizontal = 24.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            DecorativeDots(palette = palette)
+            DecorativeDots(palette = palette, shareStyle = shareStyle)
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -411,7 +418,7 @@ private fun VersePreview(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            DividerWithDots(palette = palette)
+            DividerWithDots(palette = palette, shareStyle = shareStyle)
 
             Spacer(modifier = Modifier.height(18.dp))
 
@@ -452,16 +459,17 @@ private fun VersePreview(
 @Composable
 private fun LandscapePreview(
     quote: Quote,
-    palette: PreviewPalette
+    palette: RunicSharePalette,
+    shareStyle: RunicShareStyleTokens
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp)
             .aspectRatio(16f / 9f),
-        shape = RoundedCornerShape(14.dp),
+        shape = shareStyle.landscapePreviewShape,
         color = palette.surface,
-        shadowElevation = 14.dp,
+        shadowElevation = shareStyle.landscapePreviewElevation,
         border = BorderStroke(1.dp, palette.outline)
     ) {
         Column(
@@ -487,7 +495,7 @@ private fun LandscapePreview(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            AuthorRule(author = quote.author, palette = palette)
+            AuthorRule(author = quote.author, palette = palette, shareStyle = shareStyle)
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -513,7 +521,8 @@ private fun LandscapePreview(
 private fun TemplateSelector(
     selectedTemplate: ShareTemplate,
     onSelectTemplate: (ShareTemplate) -> Unit,
-    palette: PreviewPalette
+    palette: RunicSharePalette,
+    shareStyle: RunicShareStyleTokens
 ) {
     Row(
         modifier = Modifier
@@ -525,7 +534,7 @@ private fun TemplateSelector(
             val selected = template == selectedTemplate
             Surface(
                 modifier = Modifier.size(width = 124.dp, height = 94.dp),
-                shape = RoundedCornerShape(14.dp),
+                shape = shareStyle.templateTileShape,
                 color = if (selected) {
                     MaterialTheme.colorScheme.secondaryContainer
                 } else {
@@ -549,7 +558,8 @@ private fun TemplateSelector(
                 ) {
                     MiniTemplatePreview(
                         template = template,
-                        palette = palette
+                        palette = palette,
+                        shareStyle = shareStyle
                     )
                     Text(
                         text = template.displayName,
@@ -569,13 +579,14 @@ private fun TemplateSelector(
 @Composable
 private fun MiniTemplatePreview(
     template: ShareTemplate,
-    palette: PreviewPalette
+    palette: RunicSharePalette,
+    shareStyle: RunicShareStyleTokens
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .height(44.dp),
-        shape = RoundedCornerShape(10.dp),
+        shape = shareStyle.miniPreviewShape,
         color = palette.surface,
         border = BorderStroke(1.dp, palette.outline)
     ) {
@@ -595,7 +606,7 @@ private fun MiniTemplatePreview(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                DecorativeDots(palette = palette)
+                DecorativeDots(palette = palette, shareStyle = shareStyle)
             }
 
             ShareTemplate.LANDSCAPE -> Box(
@@ -617,7 +628,8 @@ private fun MiniTemplatePreview(
 @Composable
 private fun ShareActions(
     selectedTemplate: ShareTemplate,
-    palette: PreviewPalette,
+    palette: RunicSharePalette,
+    shareStyle: RunicShareStyleTokens,
     onShareAsText: () -> Unit,
     onShareAsImage: () -> Unit,
     onCopyQuote: () -> Unit
@@ -633,7 +645,8 @@ private fun ShareActions(
                 )
             },
             onClick = onShareAsText,
-            palette = palette
+            palette = palette,
+            shareStyle = shareStyle
         )
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -648,7 +661,8 @@ private fun ShareActions(
                 )
             },
             onClick = onShareAsImage,
-            palette = palette
+            palette = palette,
+            shareStyle = shareStyle
         )
     } else {
         Row(
@@ -667,6 +681,7 @@ private fun ShareActions(
                 },
                 onClick = onShareAsImage,
                 palette = palette,
+                shareStyle = shareStyle,
                 modifier = Modifier.weight(1f)
             )
 
@@ -674,14 +689,16 @@ private fun ShareActions(
                 icon = Icons.AutoMirrored.Filled.Send,
                 label = "Share text",
                 onClick = onShareAsText,
-                palette = palette
+                palette = palette,
+                shareStyle = shareStyle
             )
 
             UtilityActionButton(
                 icon = Icons.Default.ContentCopy,
                 label = "Copy quote",
                 onClick = onCopyQuote,
-                palette = palette
+                palette = palette,
+                shareStyle = shareStyle
             )
         }
     }
@@ -692,14 +709,15 @@ private fun PrimaryShareButton(
     label: String,
     icon: @Composable () -> Unit,
     onClick: () -> Unit,
-    palette: PreviewPalette,
+    palette: RunicSharePalette,
+    shareStyle: RunicShareStyleTokens,
     modifier: Modifier = Modifier
 ) {
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .height(48.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = shareStyle.actionButtonShape,
         color = palette.actionFill,
         onClick = onClick
     ) {
@@ -728,13 +746,14 @@ private fun SecondaryShareButton(
     label: String,
     icon: @Composable () -> Unit,
     onClick: () -> Unit,
-    palette: PreviewPalette
+    palette: RunicSharePalette,
+    shareStyle: RunicShareStyleTokens
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = shareStyle.actionButtonShape,
         color = palette.utilityFill,
         border = BorderStroke(1.dp, palette.utilityBorder),
         onClick = onClick
@@ -764,11 +783,12 @@ private fun UtilityActionButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     onClick: () -> Unit,
-    palette: PreviewPalette
+    palette: RunicSharePalette,
+    shareStyle: RunicShareStyleTokens
 ) {
     Surface(
         modifier = Modifier.size(48.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = shareStyle.actionButtonShape,
         color = palette.utilityFill,
         border = BorderStroke(1.dp, palette.utilityBorder),
         onClick = onClick
@@ -784,7 +804,7 @@ private fun UtilityActionButton(
 }
 
 @Composable
-private fun PreviewBrandBar(palette: PreviewPalette) {
+private fun PreviewBrandBar(palette: RunicSharePalette) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -811,30 +831,40 @@ private fun PreviewBrandBar(palette: PreviewPalette) {
 }
 
 @Composable
-private fun DecorativeRule(palette: PreviewPalette) {
+private fun DecorativeRule(
+    palette: RunicSharePalette,
+    shareStyle: RunicShareStyleTokens
+) {
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
     ) {
         Spacer(
             modifier = Modifier
-                .size(width = 32.dp, height = 1.dp)
+                .size(width = shareStyle.ruleWidth, height = 1.dp)
                 .background(palette.rule)
         )
     }
 }
 
 @Composable
-private fun DecorativeDots(palette: PreviewPalette) {
+private fun DecorativeDots(
+    palette: RunicSharePalette,
+    shareStyle: RunicShareStyleTokens
+) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        listOf(3.dp, 4.dp, 3.dp).forEach { size ->
+        listOf(
+            shareStyle.dotSmallSize,
+            shareStyle.dotLargeSize,
+            shareStyle.dotSmallSize
+        ).forEach { size ->
             Box(
                 modifier = Modifier
                     .size(size)
-                    .clip(CircleShape)
+                    .clip(RunicExpressiveTheme.shapes.pill)
                     .background(palette.secondaryText.copy(alpha = 0.65f))
             )
         }
@@ -842,7 +872,10 @@ private fun DecorativeDots(palette: PreviewPalette) {
 }
 
 @Composable
-private fun DividerWithDots(palette: PreviewPalette) {
+private fun DividerWithDots(
+    palette: RunicSharePalette,
+    shareStyle: RunicShareStyleTokens
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -856,7 +889,7 @@ private fun DividerWithDots(palette: PreviewPalette) {
         }
         Box(
             modifier = Modifier
-                .size(width = 32.dp, height = 1.dp)
+                .size(width = shareStyle.ruleWidth, height = 1.dp)
                 .background(palette.rule)
         )
         repeat(2) {
@@ -872,7 +905,8 @@ private fun DividerWithDots(palette: PreviewPalette) {
 @Composable
 private fun AuthorRule(
     author: String,
-    palette: PreviewPalette
+    palette: RunicSharePalette,
+    shareStyle: RunicShareStyleTokens
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -881,7 +915,7 @@ private fun AuthorRule(
     ) {
         Spacer(
             modifier = Modifier
-                .size(width = 16.dp, height = 1.dp)
+                .size(width = shareStyle.authorRuleWidth, height = 1.dp)
                 .background(palette.rule)
         )
         Spacer(modifier = Modifier.size(8.dp))
@@ -893,7 +927,7 @@ private fun AuthorRule(
         Spacer(modifier = Modifier.size(8.dp))
         Spacer(
             modifier = Modifier
-                .size(width = 16.dp, height = 1.dp)
+                .size(width = shareStyle.authorRuleWidth, height = 1.dp)
                 .background(palette.rule)
         )
     }
@@ -906,52 +940,6 @@ private fun ShareLoading(modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator()
-    }
-}
-
-private data class PreviewPalette(
-    val surface: Color,
-    val primaryText: Color,
-    val secondaryText: Color,
-    val tertiaryText: Color,
-    val outline: Color,
-    val rule: Color,
-    val actionFill: Color,
-    val actionText: Color,
-    val utilityFill: Color,
-    val utilityBorder: Color,
-    val utilityContent: Color
-)
-
-private fun previewPaletteFor(appearance: ShareAppearance): PreviewPalette {
-    return when (appearance) {
-        ShareAppearance.DARK -> PreviewPalette(
-            surface = Color(0xFF181A1D),
-            primaryText = Color(0xFFE0E2E5),
-            secondaryText = Color(0xFF8A8E95),
-            tertiaryText = Color(0x4F8A929C),
-            outline = Color(0x10E0E2E5),
-            rule = Color(0x21AEB6C0),
-            actionFill = Color(0xFF68707A),
-            actionText = Color.White,
-            utilityFill = Color(0x0DE0E2E5),
-            utilityBorder = Color(0x14E0E2E5),
-            utilityContent = Color(0xFFE0E2E5)
-        )
-
-        ShareAppearance.LIGHT -> PreviewPalette(
-            surface = Color(0xFFFDFDFE),
-            primaryText = Color(0xFF191C1E),
-            secondaryText = Color(0xFF5A5E64),
-            tertiaryText = Color(0x4F68707A),
-            outline = Color(0x1A191C1E),
-            rule = Color(0x19191C1E),
-            actionFill = Color(0xFF68707A),
-            actionText = Color.White,
-            utilityFill = Color(0x0A191C1E),
-            utilityBorder = Color(0x14191C1E),
-            utilityContent = Color(0xFF191C1E)
-        )
     }
 }
 

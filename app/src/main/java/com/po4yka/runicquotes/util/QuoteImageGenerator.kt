@@ -4,11 +4,12 @@ package com.po4yka.runicquotes.util
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
+import androidx.compose.ui.graphics.toArgb
 import com.po4yka.runicquotes.domain.transliteration.CirthGlyphCompat
+import com.po4yka.runicquotes.ui.theme.runicSharePalette
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -392,27 +393,16 @@ class QuoteImageGenerator @Inject constructor() {
     }
 
     private fun paletteFor(appearance: ShareAppearance): SharePalette {
-        return when (appearance) {
-            ShareAppearance.DARK -> SharePalette(
-                background = Color.parseColor("#101214"),
-                surface = Color.parseColor("#181A1D"),
-                primaryText = Color.parseColor("#E0E2E5"),
-                secondaryText = Color.parseColor("#8A8E95"),
-                tertiaryText = Color.parseColor("#4F8A929C"),
-                outline = Color.parseColor("#14E0E2E5"),
-                rule = Color.parseColor("#21AEB6C0")
-            )
-
-            ShareAppearance.LIGHT -> SharePalette(
-                background = Color.parseColor("#EBEDF0"),
-                surface = Color.parseColor("#FCFCFD"),
-                primaryText = Color.parseColor("#191C1E"),
-                secondaryText = Color.parseColor("#5A5E64"),
-                tertiaryText = Color.parseColor("#4F68707A"),
-                outline = Color.parseColor("#14191C1E"),
-                rule = Color.parseColor("#19191C1E")
-            )
-        }
+        val palette = runicSharePalette(appearance)
+        return SharePalette(
+            background = palette.background.toArgb(),
+            surface = palette.surface.toArgb(),
+            primaryText = palette.primaryText.toArgb(),
+            secondaryText = palette.secondaryText.toArgb(),
+            tertiaryText = palette.tertiaryText.toArgb(),
+            outline = palette.outline.toArgb(),
+            rule = palette.rule.toArgb()
+        )
     }
 
     private fun paint(
