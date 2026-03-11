@@ -1,6 +1,5 @@
 package com.po4yka.runicquotes.ui.screens.references
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,10 +35,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RuneReference
+import com.po4yka.runicquotes.ui.components.RunicArticleCard
+import com.po4yka.runicquotes.ui.components.RunicArticleSectionCard
 import com.po4yka.runicquotes.ui.components.ErrorState
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarActionStyle
 import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
+import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 
 @Composable
 fun RuneDetailScreen(
@@ -136,57 +138,50 @@ private fun RuneDetailContent(rune: RuneReference) {
 
 @Composable
 private fun RuneHeroCard(rune: RuneReference) {
-    Surface(
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
+    RunicArticleCard(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 22.dp),
+        contentGap = 14.dp,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 22.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .size(116.dp)
+                .clip(RunicExpressiveTheme.shapes.heroCard)
+                .background(MaterialTheme.colorScheme.secondaryContainer)
+                .semantics { contentDescription = "Rune character: ${rune.character}" },
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(116.dp)
-                    .clip(MaterialTheme.shapes.extraLarge)
-                    .background(MaterialTheme.colorScheme.secondaryContainer)
-                    .semantics { contentDescription = "Rune character: ${rune.character}" },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = rune.character,
-                    style = MaterialTheme.typography.displayMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-            }
+            Text(
+                text = rune.character,
+                style = MaterialTheme.typography.displayMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
 
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = rune.name,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = "/${rune.pronunciation}/",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-            }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = rune.name,
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = "/${rune.pronunciation}/",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                RuneMetaChip(text = formatScriptName(rune.script))
-                RuneMetaChip(text = rune.meaning)
-            }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            RuneMetaChip(text = formatScriptName(rune.script))
+            RuneMetaChip(text = rune.meaning)
         }
     }
 }
@@ -212,33 +207,15 @@ private fun RuneDetailSection(
     text: String,
     emphasis: Boolean = false
 ) {
-    Surface(
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.secondary
-            )
-            Text(
-                text = text,
-                style = if (emphasis) {
-                    MaterialTheme.typography.titleMedium
-                } else {
-                    MaterialTheme.typography.bodyMedium
-                },
-                color = MaterialTheme.colorScheme.onSurface
-            )
+    RunicArticleSectionCard(
+        label = label,
+        body = text,
+        bodyStyle = if (emphasis) {
+            MaterialTheme.typography.titleMedium
+        } else {
+            MaterialTheme.typography.bodyMedium
         }
-    }
+    )
 }
 
 @Composable

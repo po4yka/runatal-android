@@ -63,6 +63,7 @@ import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.segmentLabel
 import com.po4yka.runicquotes.ui.components.RunicActionButton
 import com.po4yka.runicquotes.ui.components.RunicActionButtonStyle
+import com.po4yka.runicquotes.ui.components.RunicArticleLinkCard
 import com.po4yka.runicquotes.ui.components.RunicChoiceChip
 import com.po4yka.runicquotes.ui.components.RunicChoiceGroup
 import com.po4yka.runicquotes.ui.components.RunicInfoCard
@@ -507,35 +508,12 @@ private fun TranslationActionRow(
 
 @Composable
 private fun AccuracyContextLink(onClick: () -> Unit) {
-    RunicInfoCard(
+    RunicArticleLinkCard(
+        title = "Accuracy & context",
+        description = "Modern conventions, limitations, and historical notes",
         onClick = onClick,
-        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(
-                    text = "Accuracy & context",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Modern conventions, limitations, and historical notes",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "Open accuracy and context",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
+        titleColor = MaterialTheme.colorScheme.onSurface
+    )
 }
 
 private fun copyToClipboard(context: Context, text: String) {
