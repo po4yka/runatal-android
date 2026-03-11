@@ -8,6 +8,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
@@ -149,14 +150,12 @@ val RunicTypography = Typography(
  */
 fun typographyForThemePack(@Suppress("UNUSED_PARAMETER") themePack: String): Typography = RunicTypography
 
-/** Expressive typography roles for runic and Latin quote text. */
+/** Expressive typography roles for runic display and collection text. */
 @Immutable
 data class RunicExpressiveTypography(
     val runicHero: TextStyle,
     val runicCard: TextStyle,
-    val runicCollection: TextStyle,
-    val latinQuote: TextStyle,
-    val quoteMeta: TextStyle
+    val runicCollection: TextStyle
 )
 
 /** Semantic roles for runic copy so screens consume shared typography tokens. */
@@ -174,6 +173,23 @@ enum class RunicTextRole {
     BottomSheetPreview,
     TranslationPlaceholder,
     TranslationResult
+}
+
+/** Semantic roles for Latin and supporting copy so screens avoid ad hoc style overrides. */
+enum class SupportingTextRole {
+    DateMeta,
+    HelperText,
+    CompactMeta,
+    QuoteTransliteration,
+    QuoteMeta,
+    SupportingBodyItalic,
+    FormPlaceholder,
+    FormPlaceholderEmphasis,
+    ShareCardQuote,
+    ShareVerseQuote,
+    ShareLandscapeQuote,
+    ShareAuthor,
+    ShareMeta
 }
 
 /** Resolved runic text token bundle for a semantic [RunicTextRole]. */
@@ -207,14 +223,6 @@ private fun baseExpressiveTypography(typography: Typography): RunicExpressiveTyp
         runicCollection = typography.titleLarge.copy(
             fontFamily = RobotoFlex,
             fontWeight = FontWeight.SemiBold,
-            letterSpacing = 0.1.sp
-        ),
-        latinQuote = typography.bodyLarge.copy(
-            fontFamily = RobotoFlex,
-            letterSpacing = 0.sp
-        ),
-        quoteMeta = typography.labelLarge.copy(
-            fontFamily = RobotoFlex,
             letterSpacing = 0.1.sp
         )
     )
@@ -353,6 +361,55 @@ fun expressiveTypographyForThemePack(
     typography: Typography
 ): RunicExpressiveTypography = baseExpressiveTypography(typography)
 
+/** Resolves the typography tokens for a semantic [SupportingTextRole]. */
+fun supportingTextStyleForRole(
+    role: SupportingTextRole,
+    typography: Typography
+): TextStyle {
+    return when (role) {
+        SupportingTextRole.DateMeta -> typography.bodySmall
+        SupportingTextRole.HelperText -> typography.bodySmall
+        SupportingTextRole.CompactMeta -> typography.labelSmall
+        SupportingTextRole.QuoteTransliteration -> typography.bodySmall.copy(
+            fontStyle = FontStyle.Italic,
+            lineHeight = 20.sp
+        )
+
+        SupportingTextRole.QuoteMeta -> typography.labelMedium.copy(
+            fontWeight = FontWeight.Medium,
+            lineHeight = 20.sp,
+            letterSpacing = 0.1.sp
+        )
+
+        SupportingTextRole.SupportingBodyItalic -> typography.bodySmall.copy(
+            fontStyle = FontStyle.Italic
+        )
+
+        SupportingTextRole.FormPlaceholder -> typography.bodyMedium
+        SupportingTextRole.FormPlaceholderEmphasis -> typography.bodyLarge.copy(
+            fontStyle = FontStyle.Italic
+        )
+
+        SupportingTextRole.ShareCardQuote -> typography.bodyMedium.copy(
+            fontStyle = FontStyle.Italic
+        )
+
+        SupportingTextRole.ShareVerseQuote -> typography.headlineSmall.copy(
+            fontStyle = FontStyle.Italic
+        )
+
+        SupportingTextRole.ShareLandscapeQuote -> typography.titleLarge.copy(
+            fontStyle = FontStyle.Italic
+        )
+
+        SupportingTextRole.ShareAuthor -> typography.labelLarge.copy(
+            fontWeight = FontWeight.Medium
+        )
+
+        SupportingTextRole.ShareMeta -> typography.labelSmall
+    }
+}
+
 val LocalRunicExpressiveType = staticCompositionLocalOf {
     expressiveTypographyForThemePack(
         themePack = "stone",
@@ -373,6 +430,15 @@ object RunicTypeRoles {
             script = script,
             typography = MaterialTheme.typography,
             expressiveTypography = current
+        )
+    }
+
+    /** Reads the resolved supporting typography tokens for [role] from the active theme. */
+    @Composable
+    fun supporting(role: SupportingTextRole): TextStyle {
+        return supportingTextStyleForRole(
+            role = role,
+            typography = MaterialTheme.typography
         )
     }
 }

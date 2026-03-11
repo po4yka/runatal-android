@@ -24,6 +24,8 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
+import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
+import com.po4yka.runicquotes.ui.theme.SupportingTextRole
 
 /**
  * Shared bordered information card for read-only or lightly interactive surfaces.
@@ -119,7 +121,7 @@ fun RunicSearchField(
         placeholder = {
             Text(
                 text = placeholderText,
-                style = MaterialTheme.typography.bodyMedium,
+                style = RunicTypeRoles.supporting(SupportingTextRole.FormPlaceholder),
                 color = colors.onSurfaceVariant.copy(alpha = 0.72f)
             )
         },

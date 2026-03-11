@@ -70,6 +70,8 @@ import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
 import com.po4yka.runicquotes.ui.components.runicChoiceChipColors
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.theme.RunicTextRole
+import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
+import com.po4yka.runicquotes.ui.theme.SupportingTextRole
 import kotlinx.coroutines.launch
 
 @Composable
@@ -282,11 +284,9 @@ private fun TranslationInputCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontStyle = FontStyle.Italic,
-                    lineHeight = 24.sp
-                ),
+                textStyle = RunicTypeRoles.supporting(
+                    SupportingTextRole.FormPlaceholderEmphasis
+                ).copy(color = MaterialTheme.colorScheme.onSurface),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.secondary),
                 minLines = 2,
                 maxLines = 4,
@@ -299,7 +299,9 @@ private fun TranslationInputCard(
                         if (text.isBlank()) {
                             Text(
                                 text = "Enter English text to translate…",
-                                style = MaterialTheme.typography.bodyLarge.copy(fontStyle = FontStyle.Italic),
+                                style = RunicTypeRoles.supporting(
+                                    SupportingTextRole.FormPlaceholderEmphasis
+                                ),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }

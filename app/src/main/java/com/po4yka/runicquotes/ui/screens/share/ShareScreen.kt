@@ -63,6 +63,8 @@ import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.theme.RunicSharePalette
 import com.po4yka.runicquotes.ui.theme.RunicShareStyleTokens
 import com.po4yka.runicquotes.ui.theme.RunicTextRole
+import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
+import com.po4yka.runicquotes.ui.theme.SupportingTextRole
 import com.po4yka.runicquotes.ui.theme.runicSharePalette
 import com.po4yka.runicquotes.ui.theme.runicShareStyleTokens
 import com.po4yka.runicquotes.util.ShareAppearance
@@ -193,7 +195,7 @@ private fun ShareContent(
         selectedTemplate.helperText?.let { helper ->
             Text(
                 text = helper,
-                style = MaterialTheme.typography.labelSmall,
+                style = RunicTypeRoles.supporting(SupportingTextRole.HelperText),
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
@@ -330,7 +332,7 @@ private fun CardPreview(
 
             Text(
                 text = "“${quote.textLatin}”",
-                style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
+                style = RunicTypeRoles.supporting(SupportingTextRole.ShareCardQuote),
                 color = palette.secondaryText,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
@@ -338,7 +340,7 @@ private fun CardPreview(
 
             Text(
                 text = "— ${quote.author}",
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
+                style = RunicTypeRoles.supporting(SupportingTextRole.ShareAuthor),
                 color = palette.secondaryText,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
@@ -348,7 +350,7 @@ private fun CardPreview(
 
             Text(
                 text = "Runatal · ${quote.previewScriptLabel}",
-                style = MaterialTheme.typography.labelSmall,
+                style = RunicTypeRoles.supporting(SupportingTextRole.ShareMeta),
                 color = palette.tertiaryText,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
@@ -385,7 +387,7 @@ private fun VersePreview(
 
             Text(
                 text = "“${quote.textLatin}”",
-                style = MaterialTheme.typography.headlineSmall.copy(fontStyle = FontStyle.Italic),
+                style = RunicTypeRoles.supporting(SupportingTextRole.ShareVerseQuote),
                 color = palette.primaryText,
                 textAlign = TextAlign.Center
             )
@@ -410,7 +412,7 @@ private fun VersePreview(
 
             Text(
                 text = quote.author,
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
+                style = RunicTypeRoles.supporting(SupportingTextRole.ShareAuthor),
                 color = palette.secondaryText,
                 textAlign = TextAlign.Center
             )
@@ -419,7 +421,7 @@ private fun VersePreview(
 
             Text(
                 text = "ᚱ  Runatal",
-                style = MaterialTheme.typography.labelSmall,
+                style = RunicTypeRoles.supporting(SupportingTextRole.ShareMeta),
                 color = palette.tertiaryText,
                 textAlign = TextAlign.Center
             )
@@ -450,7 +452,7 @@ private fun LandscapePreview(
         ) {
             Text(
                 text = "ᚱ  Runatal · ${quote.previewScriptLabel}",
-                style = MaterialTheme.typography.labelSmall,
+                style = RunicTypeRoles.supporting(SupportingTextRole.ShareMeta),
                 color = palette.tertiaryText
             )
 
@@ -458,7 +460,7 @@ private fun LandscapePreview(
 
             Text(
                 text = "“${quote.textLatin}”",
-                style = MaterialTheme.typography.titleLarge.copy(fontStyle = FontStyle.Italic),
+                style = RunicTypeRoles.supporting(SupportingTextRole.ShareLandscapeQuote),
                 color = palette.primaryText,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
@@ -585,7 +587,7 @@ private fun MiniTemplatePreview(
             ) {
                 Text(
                     text = "16:9",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = RunicTypeRoles.supporting(SupportingTextRole.ShareMeta),
                     color = palette.tertiaryText
                 )
             }

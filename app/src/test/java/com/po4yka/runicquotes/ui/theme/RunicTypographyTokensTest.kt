@@ -4,6 +4,8 @@ import com.google.common.truth.Truth.assertThat
 import com.po4yka.runicquotes.domain.model.RunicScript
 import org.junit.Test
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 
 class RunicTypographyTokensTest {
 
@@ -52,5 +54,29 @@ class RunicTypographyTokensTest {
         assertThat(spec.fontSize).isEqualTo(28.sp)
         assertThat(spec.lineHeight).isEqualTo(36.sp)
         assertThat(spec.letterSpacing).isEqualTo(0.15.sp)
+    }
+
+    @Test
+    fun `quote transliteration supporting role keeps compact italic metrics`() {
+        val style = supportingTextStyleForRole(
+            role = SupportingTextRole.QuoteTransliteration,
+            typography = RunicTypography
+        )
+
+        assertThat(style.fontSize).isEqualTo(13.sp)
+        assertThat(style.lineHeight).isEqualTo(20.sp)
+        assertThat(style.fontStyle).isEqualTo(FontStyle.Italic)
+    }
+
+    @Test
+    fun `share author supporting role keeps medium label emphasis`() {
+        val style = supportingTextStyleForRole(
+            role = SupportingTextRole.ShareAuthor,
+            typography = RunicTypography
+        )
+
+        assertThat(style.fontSize).isEqualTo(14.sp)
+        assertThat(style.fontWeight).isEqualTo(FontWeight.Medium)
+        assertThat(style.lineHeight).isEqualTo(20.sp)
     }
 }

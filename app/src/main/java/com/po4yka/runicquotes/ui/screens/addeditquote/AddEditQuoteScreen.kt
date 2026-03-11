@@ -75,6 +75,8 @@ import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
 import com.po4yka.runicquotes.ui.components.runicChoiceChipColors
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.theme.RunicTextRole
+import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
+import com.po4yka.runicquotes.ui.theme.SupportingTextRole
 import com.po4yka.runicquotes.util.rememberHapticFeedback
 import java.time.Instant
 import java.time.ZoneId
@@ -305,14 +307,14 @@ private fun EditorTopBar(
                     ) {
                         Text(
                             text = "Custom",
-                            style = MaterialTheme.typography.labelSmall,
+                            style = RunicTypeRoles.supporting(SupportingTextRole.CompactMeta),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp)
                         )
                     }
                     Text(
                         text = formatCreatedAt(uiState.createdAtMillis),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = RunicTypeRoles.supporting(SupportingTextRole.CompactMeta),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -352,7 +354,7 @@ private fun EditorPreviewCard(
             ) {
                 Text(
                     text = "Preview",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = RunicTypeRoles.supporting(SupportingTextRole.CompactMeta),
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                 )
                 CompactScriptSelector(
@@ -391,7 +393,7 @@ private fun EditorPreviewCard(
                 if (hasText) {
                     Text(
                         text = "\u201C${uiState.textLatin.trim()}\u201D",
-                        style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
+                        style = RunicTypeRoles.supporting(SupportingTextRole.SupportingBodyItalic),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
@@ -399,7 +401,7 @@ private fun EditorPreviewCard(
                 } else {
                     Text(
                         text = "Your live preview appears here as you type.",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = RunicTypeRoles.supporting(SupportingTextRole.HelperText),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -415,13 +417,13 @@ private fun EditorPreviewCard(
                         } else {
                             "\u2014 Add an author"
                         },
-                        style = MaterialTheme.typography.labelSmall,
+                        style = RunicTypeRoles.supporting(SupportingTextRole.CompactMeta),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (charsLabel != null) {
                         Text(
                             text = charsLabel,
-                            style = MaterialTheme.typography.labelSmall,
+                            style = RunicTypeRoles.supporting(SupportingTextRole.CompactMeta),
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
@@ -614,7 +616,7 @@ private fun EditorTextField(
                 placeholder = {
                     Text(
                         text = placeholder,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = RunicTypeRoles.supporting(SupportingTextRole.FormPlaceholder),
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
                 },

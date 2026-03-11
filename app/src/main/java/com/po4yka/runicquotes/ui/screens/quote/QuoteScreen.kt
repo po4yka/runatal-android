@@ -58,7 +58,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
@@ -75,6 +74,7 @@ import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.theme.RunicTextRole
 import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
+import com.po4yka.runicquotes.ui.theme.SupportingTextRole
 import com.po4yka.runicquotes.util.rememberHapticFeedback
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -208,11 +208,11 @@ private fun TodayContent(
                     verticalAlignment = Alignment.Top
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = todayDate,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                Text(
+                    text = todayDate,
+                    style = RunicTypeRoles.supporting(SupportingTextRole.DateMeta),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                         Text(
                             text = "Quote of the Day",
                             style = MaterialTheme.typography.headlineLarge
@@ -487,7 +487,6 @@ private fun HeroQuoteCard(
     contentVisible: Boolean
 ) {
     val motion = RunicExpressiveTheme.motion
-    val typeRoles = RunicTypeRoles.current
     val transliterationAlpha by animateFloatAsState(
         targetValue = if (showTransliteration && contentVisible) 1f else 0f,
         animationSpec = tween(
@@ -524,10 +523,7 @@ private fun HeroQuoteCard(
                 Spacer(modifier = Modifier.height(14.dp))
                 Text(
                     text = "\"$latinText\"",
-                    style = typeRoles.latinQuote.copy(
-                        fontSize = 13.sp,
-                        lineHeight = 20.sp
-                    ),
+                    style = RunicTypeRoles.supporting(SupportingTextRole.QuoteTransliteration),
                     modifier = Modifier
                         .fillMaxWidth()
                         .alpha(transliterationAlpha),
@@ -544,15 +540,12 @@ private fun HeroQuoteCard(
             ) {
                 Text(
                     text = "— $author",
-                    style = typeRoles.quoteMeta.copy(
-                        fontSize = 13.sp,
-                        lineHeight = 20.sp
-                    ),
+                    style = RunicTypeRoles.supporting(SupportingTextRole.QuoteMeta),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = scriptLabel,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = RunicTypeRoles.supporting(SupportingTextRole.CompactMeta),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -703,9 +696,7 @@ private fun RecentQuoteCard(
 
                 Text(
                     text = latinText,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                    ),
+                    style = RunicTypeRoles.supporting(SupportingTextRole.SupportingBodyItalic),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -715,7 +706,7 @@ private fun RecentQuoteCard(
 
                 Text(
                     text = author,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = RunicTypeRoles.supporting(SupportingTextRole.CompactMeta),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

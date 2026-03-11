@@ -30,9 +30,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
+import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
+import com.po4yka.runicquotes.ui.theme.SupportingTextRole
 
 @Composable
 fun CreateScreen(
@@ -55,7 +56,7 @@ fun CreateScreen(
             )
             Text(
                 text = "Compose a custom quote, browse packs, or open live transliteration tools.",
-                style = MaterialTheme.typography.bodySmall,
+                style = RunicTypeRoles.supporting(SupportingTextRole.HelperText),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
@@ -139,7 +140,7 @@ private fun CreateHeroCard(onCreateQuote: () -> Unit) {
                     )
                     Text(
                         text = "Turn your own words into runic form.",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = RunicTypeRoles.supporting(SupportingTextRole.HelperText),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -152,7 +153,7 @@ private fun CreateHeroCard(onCreateQuote: () -> Unit) {
             )
             Text(
                 text = "\"Write. Preview. Save.\"",
-                style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
+                style = RunicTypeRoles.supporting(SupportingTextRole.FormPlaceholderEmphasis),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Button(onClick = onCreateQuote) {
