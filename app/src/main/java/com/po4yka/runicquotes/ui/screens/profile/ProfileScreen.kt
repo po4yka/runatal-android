@@ -1,10 +1,8 @@
 package com.po4yka.runicquotes.ui.screens.profile
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -13,45 +11,46 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.po4yka.runicquotes.ui.components.RunicArticleCard
+import com.po4yka.runicquotes.ui.components.RunicArticleLinkCard
+import com.po4yka.runicquotes.ui.components.RunicBadge
+import com.po4yka.runicquotes.ui.components.RunicBadgeRow
+import com.po4yka.runicquotes.ui.components.RunicGlyphBadge
+import com.po4yka.runicquotes.ui.components.RunicInfoCard
+import com.po4yka.runicquotes.ui.components.RunicTopBar
+import com.po4yka.runicquotes.ui.components.RunicTopBarActionStyle
+import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 
 /**
  * Profile screen displaying user statistics and menu items.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     onNavigateBack: () -> Unit = {},
@@ -61,17 +60,7 @@ fun ProfileScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Profile") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                }
-            )
+            ProfileTopBar(onNavigateBack = onNavigateBack)
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
@@ -80,68 +69,12 @@ fun ProfileScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 24.dp),
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Avatar
-            Box(
-                modifier = Modifier
-                    .size(96.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainer),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "Profile avatar",
-                    modifier = Modifier.size(28.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            ProfileHeroCard(streakDays = state.streakDays)
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Rune Seeker",
-                style = MaterialTheme.typography.headlineMedium
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Member since February 2026",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            if (state.streakDays > 0) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.tertiaryContainer
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocalFireDepartment,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                        Text(
-                            text = "${state.streakDays}-day streak",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Stats row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -166,19 +99,8 @@ fun ProfileScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            ProfileSectionHeader("Account")
 
-            // Account section header
-            Text(
-                text = "Account",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp)
-            )
-
-            // Menu items
             ProfileMenuItem(
                 icon = Icons.Default.Share,
                 title = "Share Profile",
@@ -202,31 +124,117 @@ fun ProfileScreen(
 }
 
 @Composable
+private fun ProfileTopBar(onNavigateBack: () -> Unit) {
+    RunicTopBar(
+        navigationIcon = {
+            RunicTopBarIconAction(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                onClick = onNavigateBack,
+                style = RunicTopBarActionStyle.Tonal
+            )
+        },
+        titleContent = {
+            Text(
+                text = "Profile",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    )
+}
+
+@Composable
+private fun ProfileHeroCard(streakDays: Int) {
+    RunicArticleCard(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
+        contentGap = 14.dp,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        RunicGlyphBadge(
+            size = 96.dp,
+            shape = RunicExpressiveTheme.shapes.heroCard,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = "Profile avatar",
+                modifier = Modifier.size(30.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Text(
+            text = "Rune Seeker",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        RunicBadgeRow {
+            RunicBadge(text = "Member since February 2026")
+            if (streakDays > 0) {
+                RunicBadge(
+                    text = "$streakDays-day streak",
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+            }
+        }
+
+        if (streakDays > 0) {
+            RunicBadgeRow {
+                RunicGlyphBadge(
+                    size = RunicExpressiveTheme.controls.leadingBadgeMedium,
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocalFireDepartment,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                }
+                Text(
+                    text = "Consistency matters more than volume. Keep the runes moving.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun StatCard(
     icon: ImageVector,
     value: Int,
     label: String,
     modifier: Modifier = Modifier
 ) {
-    Surface(
+    RunicInfoCard(
         modifier = modifier,
-        shape = RunicExpressiveTheme.shapes.contentCard,
-        color = MaterialTheme.colorScheme.surfaceContainer
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        contentPadding = PaddingValues(vertical = 16.dp, horizontal = 10.dp)
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            RunicGlyphBadge(
+                size = RunicExpressiveTheme.controls.leadingBadgeMedium,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Text(
                 text = value.toString(),
-                style = MaterialTheme.typography.headlineLarge
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = label,
@@ -244,42 +252,24 @@ private fun ProfileMenuItem(
     subtitle: String,
     onClick: () -> Unit
 ) {
-    Surface(
+    RunicArticleLinkCard(
+        title = title,
+        description = subtitle,
+        onClick = onClick,
+        titleColor = MaterialTheme.colorScheme.onSurface,
+        leadingIcon = icon,
+        trailingIcon = Icons.AutoMirrored.Filled.KeyboardArrowRight
+    )
+}
+
+@Composable
+private fun ProfileSectionHeader(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = MaterialTheme.shapes.medium
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = title,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
+            .padding(top = 2.dp)
+    )
 }

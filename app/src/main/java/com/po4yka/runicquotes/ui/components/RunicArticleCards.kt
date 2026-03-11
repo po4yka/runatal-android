@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -216,7 +217,12 @@ fun RunicArticleLinkCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
-    titleColor: Color = MaterialTheme.colorScheme.secondary
+    titleColor: Color = MaterialTheme.colorScheme.secondary,
+    leadingIcon: ImageVector? = null,
+    leadingIconContainerColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    leadingIconTint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    trailingIcon: ImageVector = Icons.AutoMirrored.Filled.ArrowForward,
+    trailingIconTint: Color = MaterialTheme.colorScheme.onSurfaceVariant
 ) {
     RunicArticleCard(
         modifier = modifier,
@@ -230,6 +236,19 @@ fun RunicArticleLinkCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (leadingIcon != null) {
+                RunicGlyphBadge(
+                    size = RunicExpressiveTheme.controls.leadingBadgeMedium,
+                    containerColor = leadingIconContainerColor
+                ) {
+                    Icon(
+                        imageVector = leadingIcon,
+                        contentDescription = null,
+                        tint = leadingIconTint
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+            }
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -246,9 +265,9 @@ fun RunicArticleLinkCard(
                 )
             }
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                imageVector = trailingIcon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = trailingIconTint
             )
         }
     }

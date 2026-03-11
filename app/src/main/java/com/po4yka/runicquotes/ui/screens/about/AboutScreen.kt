@@ -2,11 +2,9 @@ package com.po4yka.runicquotes.ui.screens.about
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -14,38 +12,38 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.po4yka.runicquotes.BuildConfig
+import com.po4yka.runicquotes.ui.components.RunicArticleCard
+import com.po4yka.runicquotes.ui.components.RunicArticleDivider
+import com.po4yka.runicquotes.ui.components.RunicArticleLinkCard
+import com.po4yka.runicquotes.ui.components.RunicBadge
+import com.po4yka.runicquotes.ui.components.RunicBadgeRow
+import com.po4yka.runicquotes.ui.components.RunicGlyphBadge
+import com.po4yka.runicquotes.ui.components.RunicTopBar
+import com.po4yka.runicquotes.ui.components.RunicTopBarActionStyle
+import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
+import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(
     onNavigateBack: () -> Unit = {}
@@ -56,17 +54,7 @@ fun AboutScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("About") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                }
-            )
+            AboutTopBar(onNavigateBack = onNavigateBack)
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
@@ -75,263 +63,245 @@ fun AboutScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // App header
-            AppHeader(
+            AboutHeader(
                 versionName = versionName,
                 versionCode = versionCode
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            AboutSectionHeader(text = "Links")
 
-            // Links section
-            SectionLabel("Links")
-
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Column {
-                    LinkItem(
-                        title = "Source Code",
-                        subtitle = "github.com/runatal",
-                        leadingIcon = Icons.Filled.Code,
-                        onClick = {
-                            context.startActivity(
-                                Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/runatal"))
-                            )
-                        }
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 48.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant
-                    )
-                    LinkItem(
-                        title = "Privacy Policy",
-                        subtitle = "runatal.app/privacy",
-                        leadingIcon = Icons.Filled.Description,
-                        onClick = {
-                            context.startActivity(
-                                Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse("https://runatal.app/privacy")
-                                )
-                            )
-                        }
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 48.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant
-                    )
-                    LinkItem(
-                        title = "Acknowledgments",
-                        subtitle = "Contributors & translators",
-                        leadingIcon = Icons.Filled.FavoriteBorder
+            AboutLinkCard(
+                title = "Source Code",
+                subtitle = "github.com/runatal",
+                leadingIcon = Icons.Filled.Code,
+                onClick = {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/runatal"))
                     )
                 }
-            }
+            )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            AboutLinkCard(
+                title = "Privacy Policy",
+                subtitle = "runatal.app/privacy",
+                leadingIcon = Icons.Filled.Description,
+                onClick = {
+                    context.startActivity(
+                        Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://runatal.app/privacy")
+                        )
+                    )
+                }
+            )
 
-            // Open source licenses header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Open source licenses",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "${LICENSES.size} packages",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            AboutLinkCard(
+                title = "Acknowledgments",
+                subtitle = "Contributors & translators",
+                leadingIcon = Icons.Filled.FavoriteBorder,
+                onClick = null
+            )
 
-            // Built With / Licenses list
-            Column(
-                modifier = Modifier.padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
+            AboutSectionHeader(
+                text = "Open source licenses",
+                meta = "${LICENSES.size} packages"
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 LICENSES.forEach { license ->
                     LicenseItem(license)
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }
 
 @Composable
-private fun AppHeader(
+private fun AboutTopBar(onNavigateBack: () -> Unit) {
+    RunicTopBar(
+        navigationIcon = {
+            RunicTopBarIconAction(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                onClick = onNavigateBack,
+                style = RunicTopBarActionStyle.Tonal
+            )
+        },
+        titleContent = {
+            Text(
+                text = "About",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    )
+}
+
+@Composable
+private fun AboutHeader(
     versionName: String,
     versionCode: Int
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 4.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = MaterialTheme.shapes.medium
+    RunicArticleCard(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp),
+        contentGap = 14.dp
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(vertical = 8.dp)
+            RunicGlyphBadge(
+                size = RunicExpressiveTheme.controls.aboutBadge,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
             ) {
-                // Rune icon
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "\u16B1",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                Text(
+                    text = "\u16B1",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "Runatal",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                RunicBadgeRow {
+                    RunicBadge(text = "v$versionName")
+                    RunicBadge(
+                        text = "build $versionCode",
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f),
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
+            }
+        }
+
+        RunicArticleDivider()
+
+        Text(
+            text = "Transliterates quotes into ancient runic scripts. Built for readers drawn to " +
+                "Norse mythology, rune history, and expressive lettering.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Start,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun AboutLinkCard(
+    title: String,
+    subtitle: String,
+    leadingIcon: ImageVector,
+    onClick: (() -> Unit)?
+) {
+    if (onClick == null) {
+        RunicArticleCard(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+            contentGap = 0.dp
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RunicGlyphBadge(
+                    size = RunicExpressiveTheme.controls.leadingBadgeMedium,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                ) {
+                    androidx.compose.material3.Icon(
+                        imageVector = leadingIcon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     Text(
-                        text = "Runatal",
-                        style = MaterialTheme.typography.titleLarge
+                        text = title,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "v$versionName (build $versionCode)",
+                        text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
-
-            Text(
-                text = "Transliterates quotes into ancient runic scripts. " +
-                    "Built for lovers of Norse mythology and runic writing.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Start,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
+    } else {
+        RunicArticleLinkCard(
+            title = title,
+            description = subtitle,
+            onClick = onClick,
+            titleColor = MaterialTheme.colorScheme.onSurface,
+            leadingIcon = leadingIcon,
+            trailingIcon = Icons.AutoMirrored.Filled.OpenInNew
+        )
     }
 }
 
 @Composable
-private fun LinkItem(
-    title: String,
-    subtitle: String,
-    leadingIcon: ImageVector? = null,
-    onClick: (() -> Unit)? = null
-) {
+private fun AboutSectionHeader(text: String, meta: String? = null) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = onClick != null) { onClick?.invoke() }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (leadingIcon != null) {
-            Icon(
-                imageVector = leadingIcon,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        if (onClick != null) {
-            Icon(
-                imageVector = Icons.Filled.OpenInNew,
-                contentDescription = "Open link",
-                modifier = Modifier.size(18.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (meta != null) {
+            RunicBadge(text = meta)
         }
     }
-}
-
-@Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
-    )
 }
 
 @Composable
 private fun LicenseItem(license: LicenseEntry) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = MaterialTheme.shapes.medium,
-        modifier = Modifier.fillMaxWidth()
+    RunicArticleCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+        contentGap = 8.dp
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 11.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = license.name,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = license.version,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Text(
-                    text = license.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                shape = RoundedCornerShape(4.dp)
-            ) {
-                Text(
-                    text = license.license,
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                )
-            }
+        Text(
+            text = license.name,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        RunicBadgeRow {
+            RunicBadge(text = license.version)
+            RunicBadge(
+                text = license.license,
+                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f),
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            )
         }
+        Text(
+            text = license.description,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
