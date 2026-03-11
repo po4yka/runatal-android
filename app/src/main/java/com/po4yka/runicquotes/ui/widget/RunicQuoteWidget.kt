@@ -16,27 +16,33 @@ import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.action.actionRunCallback
+import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.size
 import androidx.glance.layout.width
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.po4yka.runicquotes.MainActivity
+import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.domain.transliteration.CirthGlyphCompat
-import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import com.po4yka.runicquotes.util.BitmapCache
 import com.po4yka.runicquotes.util.RenderConfig
+import com.po4yka.runicquotes.util.RenderTextAlign
 import com.po4yka.runicquotes.util.RunicTextRenderer
 import dagger.hilt.android.EntryPointAccessors
 import java.io.IOException
@@ -46,23 +52,20 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
 /**
- * Glance widget that displays a daily runic quote.
+ * Glance widget aligned to the Runatal Figma widget cluster.
  */
+@Suppress("TooManyFunctions")
 class RunicQuoteWidget : GlanceAppWidget() {
 
-    /** Widget dimension constants and size thresholds. */
-    companion object {
+    private companion object {
         private const val TAG = "RunicQuoteWidget"
-        private const val SMALL_WIDGET_WIDTH = 150
-        private const val SMALL_WIDGET_HEIGHT = 120
-        private const val MEDIUM_WIDGET_WIDTH = 250
+        private const val COMPACT_WIDGET_HEIGHT = 100
         private const val MEDIUM_WIDGET_HEIGHT = 180
-        private const val TEXT_SIZE_SMALL = 14f
-        private const val TEXT_SIZE_MEDIUM = 20f
-        private const val TEXT_SIZE_LARGE = 24f
-        private const val MAX_WIDTH_FACTOR = 0.9f
-        private const val DEFAULT_WIDGET_WIDTH = 200
-        private const val DEFAULT_WIDGET_HEIGHT = 150
+        private const val TEXT_SIZE_COMPACT = 12f
+        private const val TEXT_SIZE_MEDIUM = 14f
+        private const val TEXT_SIZE_LARGE = 15f
+        private const val DEFAULT_WIDGET_WIDTH = 300
+        private const val DEFAULT_WIDGET_HEIGHT = 151
     }
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -72,15 +75,12 @@ class RunicQuoteWidget : GlanceAppWidget() {
         )
         val quoteRepository = entryPoint.quoteRepository()
         val preferencesManager = entryPoint.userPreferencesManager()
-        val transliterationFactory = entryPoint.transliterationFactory()
 
         val widgetKey = id.toString()
-        val widgetSize = GlanceAppWidgetManager(context)
-            .getAppWidgetSizes(id)
-            .firstOrNull()
+        val widgetSize = GlanceAppWidgetManager(context).getAppWidgetSizes(id).firstOrNull()
         val widgetWidth = widgetSize?.width?.value?.toInt() ?: DEFAULT_WIDGET_WIDTH
         val widgetHeight = widgetSize?.height?.value?.toInt() ?: DEFAULT_WIDGET_HEIGHT
-        val sizeClass = resolveSizeClass(widgetWidth, widgetHeight)
+        val sizeClass = resolveSizeClass(widgetHeight)
 
         val state = withContext(Dispatchers.IO) {
             try {
@@ -91,7 +91,6 @@ class RunicQuoteWidget : GlanceAppWidget() {
                 val randomRequested = WidgetInteractionState.consumeRandomQuoteRequest(widgetKey)
                 val palette = resolveWidgetPalette(context, preferences)
 
-                // Reuse cache only when we are not forcing a random quote refresh.
                 if (!randomRequested) {
                     val cachedState = WidgetStateCache.get(
                         widgetKey = widgetKey,
@@ -118,18 +117,16 @@ class RunicQuoteWidget : GlanceAppWidget() {
                 }
 
                 if (quote != null) {
-                    val runicText = quote.getRunicText(preferences.selectedScript, transliterationFactory)
+                    val runicText = quote.getRunicText(
+                        script = preferences.selectedScript,
+                        transliterationFactory = entryPoint.transliterationFactory()
+                    )
                     val normalizedRunicText = CirthGlyphCompat.normalizeLegacyPuaGlyphs(runicText)
-                    val textSize = runicTextSize(widgetWidth, widgetHeight)
-                    val maxWidth = (
-                        widgetWidth *
-                            context.resources.displayMetrics.density *
-                            MAX_WIDTH_FACTOR
-                        ).toInt()
-
+                    val textSize = runicTextSize(sizeClass)
+                    val maxWidth = maxRunicWidthPx(context, widgetWidth, sizeClass)
                     val fontResource = RunicTextRenderer.getFontResource(preferences.selectedFont)
                     val cacheKey = BitmapCache.generateKey(
-                        text = normalizedRunicText,
+                        text = "${sizeClass.name}:${normalizedRunicText}",
                         fontResource = fontResource,
                         textSize = textSize,
                         maxWidth = maxWidth
@@ -143,7 +140,9 @@ class RunicQuoteWidget : GlanceAppWidget() {
                                 textSizeSp = textSize,
                                 textColor = palette.runicText,
                                 backgroundColor = null,
-                                maxWidth = maxWidth
+                                maxWidth = maxWidth,
+                                textAlign = RenderTextAlign.START,
+                                maxLines = if (sizeClass == WidgetSizeClass.EXPANDED) 2 else 1
                             )
                         )
                         BitmapCache.put(cacheKey, bitmap)
@@ -152,7 +151,7 @@ class RunicQuoteWidget : GlanceAppWidget() {
                         Log.e(TAG, "Failed to render runic text bitmap", e)
                         null
                     } catch (e: OutOfMemoryError) {
-                        Log.e(TAG, "Out of memory rendering bitmap", e)
+                        Log.e(TAG, "Out of memory rendering widget bitmap", e)
                         null
                     }
 
@@ -161,7 +160,7 @@ class RunicQuoteWidget : GlanceAppWidget() {
                         runicBitmap = runicBitmap,
                         latinText = quote.textLatin,
                         author = quote.author,
-                        scriptLabel = scriptLabel(preferences.selectedScript.name),
+                        scriptLabel = preferences.selectedScript.displayName,
                         modeLabel = displayMode.displayName,
                         updateModeLabel = updateMode.displayName,
                         palette = palette,
@@ -169,6 +168,7 @@ class RunicQuoteWidget : GlanceAppWidget() {
                         displayMode = displayMode,
                         isLoading = false
                     )
+
                     WidgetStateCache.put(
                         widgetKey = widgetKey,
                         date = today,
@@ -180,31 +180,22 @@ class RunicQuoteWidget : GlanceAppWidget() {
                     newState
                 } else {
                     WidgetState(
-                        runicText = "",
                         latinText = "No quote available",
-                        author = "",
-                        scriptLabel = scriptLabel(preferences.selectedScript.name),
+                        scriptLabel = RunicScript.DEFAULT.displayName,
                         modeLabel = displayMode.displayName,
                         updateModeLabel = updateMode.displayName,
                         palette = palette,
                         sizeClass = sizeClass,
-                        displayMode = displayMode,
-                        isLoading = false
+                        displayMode = displayMode
                     )
                 }
             } catch (e: IOException) {
                 Log.e(TAG, "IO error loading widget state", e)
                 WidgetState(
-                    runicText = "",
                     latinText = "",
-                    author = "",
-                    scriptLabel = "",
-                    modeLabel = "Unavailable",
-                    updateModeLabel = "",
                     palette = WidgetPalette.default(),
                     sizeClass = sizeClass,
                     displayMode = WidgetDisplayMode.RUNE_LATIN,
-                    isLoading = false,
                     error = e.message
                 )
             }
@@ -218,219 +209,375 @@ class RunicQuoteWidget : GlanceAppWidget() {
     @Composable
     private fun WidgetContent(state: WidgetState) {
         val openAppAction: Action = actionStartActivity<MainActivity>()
-        Column(
+        val primaryAction = if (state.displayMode == WidgetDisplayMode.DAILY_RANDOM_TAP) {
+            actionRunCallback<RefreshQuoteAction>()
+        } else {
+            openAppAction
+        }
+
+        Box(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(widgetColor(state.palette.background))
-                .padding(16.dp)
-                .clickable(onClick = openAppAction),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(12.dp)
+                .clickable(onClick = primaryAction)
         ) {
             when {
                 state.isLoading -> LoadingState(state)
-                state.error != null -> ErrorState(state)
-                else -> LoadedState(state, openAppAction)
+                state.error != null -> ErrorState(state, openAppAction)
+                else -> when (state.sizeClass) {
+                    WidgetSizeClass.COMPACT -> CompactWidget(state)
+                    WidgetSizeClass.MEDIUM -> MediumWidget(state)
+                    WidgetSizeClass.EXPANDED -> LargeWidget(state)
+                }
             }
         }
     }
 
     @Composable
     private fun LoadingState(state: WidgetState) {
-        Text(
-                text = "Loading...",
-                style = TextStyle(
-                    color = widgetColor(state.palette.onBackground),
-                    fontSize = 14.sp
+        WidgetCard(state = state) {
+            Column(
+                modifier = GlanceModifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Loading quote...",
+                    style = TextStyle(
+                        color = widgetColor(state.palette.onSurfaceVariant),
+                        fontSize = 12.sp
+                    )
                 )
-            )
+            }
+        }
     }
 
     @Composable
-    private fun ErrorState(state: WidgetState) {
-        val error = state.error.orEmpty()
-        val message = when {
-            error.contains("database", ignoreCase = true) -> "Database error"
-            error.contains("network", ignoreCase = true) -> "Network error"
-            else -> "Error loading quote"
+    private fun ErrorState(state: WidgetState, openAppAction: Action) {
+        WidgetCard(state = state) {
+            Column(
+                modifier = GlanceModifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Widget unavailable",
+                    style = TextStyle(
+                        color = widgetColor(state.palette.error),
+                        fontSize = 12.sp
+                    )
+                )
+                Spacer(modifier = GlanceModifier.height(6.dp))
+                Text(
+                    text = "Tap to open Runatal",
+                    style = TextStyle(
+                        color = widgetColor(state.palette.onSurfaceVariant),
+                        fontSize = 10.sp
+                    ),
+                    modifier = GlanceModifier.clickable(onClick = openAppAction)
+                )
+            }
         }
+    }
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalAlignment = Alignment.CenterVertically
+    @Composable
+    private fun CompactWidget(state: WidgetState) {
+        WidgetCard(state = state) {
+            Row(
+                modifier = GlanceModifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RuneBadge(
+                    state = state,
+                    size = 36.dp,
+                    textSize = 13.sp
+                )
+                Spacer(modifier = GlanceModifier.width(14.dp))
+                Column(
+                    modifier = GlanceModifier.width(208.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    RunicImage(
+                        state = state,
+                        height = 18.dp
+                    )
+                    if (state.author.isNotEmpty()) {
+                        Spacer(modifier = GlanceModifier.height(3.dp))
+                        Text(
+                            text = "— ${state.author}",
+                            style = TextStyle(
+                                color = widgetColor(state.palette.onSurfaceVariant),
+                                fontSize = 10.sp
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun MediumWidget(state: WidgetState) {
+        WidgetCard(state = state) {
+            Column(
+                modifier = GlanceModifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = GlanceModifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RuneBadge(
+                        state = state,
+                        size = 24.dp,
+                        textSize = 9.sp
+                    )
+                    Spacer(modifier = GlanceModifier.width(10.dp))
+                    Text(
+                        text = "Runatal · Quote of the Day",
+                        style = TextStyle(
+                            color = widgetColor(state.palette.onSurfaceVariant),
+                            fontSize = 10.sp
+                        )
+                    )
+                }
+                Spacer(modifier = GlanceModifier.height(12.dp))
+                RunicImage(
+                    state = state,
+                    height = 24.dp
+                )
+                if (state.displayMode != WidgetDisplayMode.RUNE_ONLY && state.latinText.isNotEmpty()) {
+                    Spacer(modifier = GlanceModifier.height(10.dp))
+                    Text(
+                        text = state.latinText,
+                        style = TextStyle(
+                            color = widgetColor(state.palette.onSurfaceVariant),
+                            fontSize = 12.sp
+                        ),
+                        maxLines = 2
+                    )
+                }
+                if (state.author.isNotEmpty()) {
+                    Spacer(modifier = GlanceModifier.height(10.dp))
+                    AuthorRow(state)
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun LargeWidget(state: WidgetState) {
+        WidgetCard(
+            state = state,
+            paddingHorizontal = 0.dp,
+            paddingVertical = 0.dp
         ) {
-            Text(
-                text = message,
-                style = TextStyle(
-                    color = widgetColor(state.palette.error),
-                    fontSize = 12.sp,
-                    textAlign = TextAlign.Center
-                ),
-                modifier = GlanceModifier.padding(bottom = 8.dp)
-            )
-            Text(
-                text = "↻ Retry",
-                style = TextStyle(
-                    color = widgetColor(state.palette.primary),
-                    fontSize = 14.sp
-                ),
-                modifier = GlanceModifier
-                    .clickable(onClick = actionRunCallback<RefreshQuoteAction>())
-                    .padding(8.dp)
-            )
+            Column(
+                modifier = GlanceModifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = GlanceModifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RuneBadge(
+                            state = state,
+                            size = 22.dp,
+                            textSize = 7.sp
+                        )
+                        Spacer(modifier = GlanceModifier.width(10.dp))
+                        Text(
+                            text = "Runatal",
+                            style = TextStyle(
+                                color = widgetColor(state.palette.onSurface),
+                                fontSize = 12.sp
+                            )
+                        )
+                    }
+                    Spacer(modifier = GlanceModifier.width(64.dp))
+                    ScriptChip(state)
+                }
+                DividerLine(state)
+                Column(
+                    modifier = GlanceModifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp, vertical = 16.dp)
+                ) {
+                    RunicImage(
+                        state = state,
+                        height = 52.dp
+                    )
+                    if (state.displayMode != WidgetDisplayMode.RUNE_ONLY && state.latinText.isNotEmpty()) {
+                        Spacer(modifier = GlanceModifier.height(12.dp))
+                        Text(
+                            text = "\"${state.latinText}\"",
+                            style = TextStyle(
+                                color = widgetColor(state.palette.onSurfaceVariant),
+                                fontSize = 12.sp
+                            ),
+                            maxLines = 3
+                        )
+                    }
+                    if (state.author.isNotEmpty()) {
+                        Spacer(modifier = GlanceModifier.height(10.dp))
+                        AuthorRow(state)
+                    }
+                }
+            }
         }
     }
 
     @Composable
-    private fun LoadedState(state: WidgetState, openAppAction: Action) {
-        val showContextBadge = state.sizeClass != WidgetSizeClass.COMPACT
-        if (showContextBadge) {
-            Text(
-                text = "${state.scriptLabel} • ${state.modeLabel}",
-                style = TextStyle(
-                    color = widgetColor(state.palette.onPrimaryContainer),
-                    fontSize = 9.sp,
-                    textAlign = TextAlign.Center
-                ),
-                modifier = GlanceModifier
-                    .background(widgetColor(state.palette.primaryContainer))
-                    .padding(horizontal = 8.dp, vertical = 3.dp)
-            )
-            Text(
-                text = state.updateModeLabel,
-                style = TextStyle(
-                    color = widgetColor(state.palette.primary),
-                    fontSize = 8.sp,
-                    textAlign = TextAlign.Center
-                ),
-                modifier = GlanceModifier.padding(top = 4.dp, bottom = 4.dp)
-            )
-        }
-
+    private fun RunicImage(state: WidgetState, height: androidx.compose.ui.unit.Dp) {
         if (state.runicBitmap != null) {
             Image(
                 provider = ImageProvider(state.runicBitmap),
-                contentDescription = "Runic quote: ${state.latinText}",
-                contentScale = ContentScale.Fit,
+                contentDescription = "Runic quote",
+                contentScale = ContentScale.FillBounds,
                 modifier = GlanceModifier
                     .fillMaxWidth()
-                    .padding(bottom = 8.dp)
+                    .height(height)
             )
         } else if (state.runicText.isNotEmpty()) {
             Text(
                 text = state.runicText,
                 style = TextStyle(
                     color = widgetColor(state.palette.runicText),
-                    fontSize = when (state.sizeClass) {
-                        WidgetSizeClass.COMPACT -> 13.sp
-                        WidgetSizeClass.MEDIUM -> 16.sp
-                        WidgetSizeClass.EXPANDED -> 18.sp
-                    },
-                    textAlign = TextAlign.Center
+                    fontSize = if (state.sizeClass == WidgetSizeClass.EXPANDED) 15.sp else 13.sp
                 ),
-                modifier = GlanceModifier.padding(bottom = 8.dp)
+                maxLines = if (state.sizeClass == WidgetSizeClass.EXPANDED) 2 else 1
             )
         }
-
-        val showLatin = state.displayMode != WidgetDisplayMode.RUNE_ONLY
-        val showAuthor = showLatin && state.sizeClass == WidgetSizeClass.EXPANDED
-
-        if (showLatin && state.latinText.isNotEmpty()) {
-            Text(
-                text = state.latinText,
-                style = TextStyle(
-                    color = widgetColor(state.palette.onBackground),
-                    fontSize = if (state.sizeClass == WidgetSizeClass.COMPACT) 11.sp else 12.sp,
-                    textAlign = TextAlign.Center
-                ),
-                modifier = GlanceModifier.padding(bottom = if (showAuthor) 4.dp else 8.dp)
-            )
-        }
-
-        if (showAuthor && state.author.isNotEmpty()) {
-            Text(
-                text = "— ${state.author}",
-                style = TextStyle(
-                    color = widgetColor(state.palette.onSurface),
-                    fontSize = 10.sp,
-                    textAlign = TextAlign.Center
-                ),
-                modifier = GlanceModifier.padding(bottom = 8.dp)
-            )
-        }
-
-        ActionRow(
-            state = state,
-            openAppAction = openAppAction
-        )
     }
 
     @Composable
-    private fun ActionRow(
-        state: WidgetState,
-        openAppAction: Action
-    ) {
-        Row(
-            modifier = GlanceModifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalAlignment = Alignment.CenterVertically
+    private fun AuthorRow(state: WidgetState) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = GlanceModifier
+                    .width(18.dp)
+                    .height(1.5.dp)
+                    .background(widgetColor(state.palette.onSurfaceVariant))
+            ) {}
+            Spacer(modifier = GlanceModifier.width(8.dp))
+            Text(
+                text = state.author,
+                style = TextStyle(
+                    color = widgetColor(state.palette.onSurfaceVariant),
+                    fontSize = 11.sp
+                )
+            )
+        }
+    }
+
+    @Composable
+    private fun ScriptChip(state: WidgetState) {
+        Box(
+            modifier = GlanceModifier
+                .background(widgetColor(state.palette.surfaceMuted))
+                .cornerRadius(10.dp)
+                .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
             Text(
-                text = "Open",
+                text = state.scriptLabel,
                 style = TextStyle(
-                    color = widgetColor(state.palette.onPrimaryContainer),
-                    fontSize = 10.sp
-                ),
-                modifier = GlanceModifier
-                    .background(widgetColor(state.palette.primaryContainer))
-                    .clickable(onClick = openAppAction)
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            )
-
-            if (state.displayMode == WidgetDisplayMode.DAILY_RANDOM_TAP) {
-                Spacer(modifier = GlanceModifier.width(8.dp))
-                Text(
-                    text = "Random",
-                    style = TextStyle(
-                        color = widgetColor(state.palette.onPrimaryContainer),
-                        fontSize = 10.sp
-                    ),
-                    modifier = GlanceModifier
-                        .background(widgetColor(state.palette.primaryContainer))
-                        .clickable(onClick = actionRunCallback<RefreshQuoteAction>())
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                    color = widgetColor(state.palette.onSurfaceVariant),
+                    fontSize = 9.sp
                 )
+            )
+        }
+    }
+
+    @Composable
+    private fun RuneBadge(
+        state: WidgetState,
+        size: androidx.compose.ui.unit.Dp,
+        textSize: androidx.compose.ui.unit.TextUnit
+    ) {
+        Box(
+            modifier = GlanceModifier
+                .size(size)
+                .background(widgetColor(state.palette.surfaceMuted))
+                .cornerRadius(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "\u16B1",
+                style = TextStyle(
+                    color = widgetColor(state.palette.onSurfaceVariant),
+                    fontSize = textSize,
+                    textAlign = TextAlign.Center
+                )
+            )
+        }
+    }
+
+    @Composable
+    private fun DividerLine(state: WidgetState) {
+        Box(
+            modifier = GlanceModifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(widgetColor(state.palette.outline))
+        ) {}
+    }
+
+    @Composable
+    private fun WidgetCard(
+        state: WidgetState,
+        paddingHorizontal: androidx.compose.ui.unit.Dp = 17.dp,
+        paddingVertical: androidx.compose.ui.unit.Dp = 15.dp,
+        content: @Composable () -> Unit
+    ) {
+        Box(
+            modifier = GlanceModifier
+                .fillMaxWidth()
+                .background(widgetColor(state.palette.outline))
+                .cornerRadius(16.dp)
+                .padding(1.dp)
+        ) {
+            Column(
+                modifier = GlanceModifier
+                    .fillMaxWidth()
+                    .background(widgetColor(state.palette.surface))
+                    .cornerRadius(15.dp)
+                    .padding(horizontal = paddingHorizontal, vertical = paddingVertical)
+            ) {
+                content()
             }
         }
     }
 
-    private fun runicTextSize(widgetWidth: Int, widgetHeight: Int): Float {
-        return when {
-            widgetWidth < SMALL_WIDGET_WIDTH || widgetHeight < SMALL_WIDGET_HEIGHT -> TEXT_SIZE_SMALL
-            widgetWidth < MEDIUM_WIDGET_WIDTH || widgetHeight < MEDIUM_WIDGET_HEIGHT -> TEXT_SIZE_MEDIUM
-            else -> TEXT_SIZE_LARGE
+    private fun runicTextSize(sizeClass: WidgetSizeClass): Float {
+        return when (sizeClass) {
+            WidgetSizeClass.COMPACT -> TEXT_SIZE_COMPACT
+            WidgetSizeClass.MEDIUM -> TEXT_SIZE_MEDIUM
+            WidgetSizeClass.EXPANDED -> TEXT_SIZE_LARGE
         }
     }
 
-    private fun resolveSizeClass(widgetWidth: Int, widgetHeight: Int): WidgetSizeClass {
+    private fun maxRunicWidthPx(
+        context: Context,
+        widgetWidthDp: Int,
+        sizeClass: WidgetSizeClass
+    ): Int {
+        val density = context.resources.displayMetrics.density
+        val contentWidthDp = when (sizeClass) {
+            WidgetSizeClass.COMPACT -> widgetWidthDp - 98
+            WidgetSizeClass.MEDIUM -> widgetWidthDp - 70
+            WidgetSizeClass.EXPANDED -> widgetWidthDp - 72
+        }.coerceAtLeast(120)
+        return (contentWidthDp * density).toInt()
+    }
+
+    private fun resolveSizeClass(widgetHeight: Int): WidgetSizeClass {
         return when {
-            widgetWidth < SMALL_WIDGET_WIDTH || widgetHeight < SMALL_WIDGET_HEIGHT ->
-                WidgetSizeClass.COMPACT
-            widgetWidth < MEDIUM_WIDGET_WIDTH || widgetHeight < MEDIUM_WIDGET_HEIGHT ->
-                WidgetSizeClass.MEDIUM
+            widgetHeight < COMPACT_WIDGET_HEIGHT -> WidgetSizeClass.COMPACT
+            widgetHeight < MEDIUM_WIDGET_HEIGHT -> WidgetSizeClass.MEDIUM
             else -> WidgetSizeClass.EXPANDED
         }
     }
 
-    private fun scriptLabel(scriptName: String): String {
-        return when (scriptName) {
-            "YOUNGER_FUTHARK" -> "Younger"
-            "CIRTH" -> "Cirth"
-            else -> "Elder"
-        }
-    }
-
-    private fun widgetColor(color: Int): ColorProvider {
-        return ColorProvider(Color(color))
-    }
+    private fun widgetColor(color: Int): ColorProvider = ColorProvider(Color(color))
 }

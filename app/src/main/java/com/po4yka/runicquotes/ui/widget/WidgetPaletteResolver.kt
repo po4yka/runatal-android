@@ -35,8 +35,11 @@ private fun highContrastPalette(darkTheme: Boolean): WidgetPalette {
         WidgetPalette(
             background = Color.BLACK,
             surface = Color.BLACK,
+            surfaceMuted = Color.parseColor("#101010"),
             onBackground = Color.WHITE,
             onSurface = Color.WHITE,
+            onSurfaceVariant = Color.WHITE,
+            outline = Color.parseColor("#5A5A5A"),
             primary = Color.WHITE,
             primaryContainer = Color.BLACK,
             onPrimaryContainer = Color.WHITE,
@@ -47,8 +50,11 @@ private fun highContrastPalette(darkTheme: Boolean): WidgetPalette {
         WidgetPalette(
             background = Color.WHITE,
             surface = Color.WHITE,
+            surfaceMuted = Color.parseColor("#F5F5F5"),
             onBackground = Color.BLACK,
             onSurface = Color.BLACK,
+            onSurfaceVariant = Color.BLACK,
+            outline = Color.parseColor("#3A3A3A"),
             primary = Color.BLACK,
             primaryContainer = Color.WHITE,
             onPrimaryContainer = Color.BLACK,
@@ -62,26 +68,32 @@ private fun foundationPalette(darkTheme: Boolean): WidgetPalette {
     return if (darkTheme) {
         WidgetPalette(
             background = Color.parseColor("#0E1113"),
-            surface = Color.parseColor("#14171A"),
-            onBackground = Color.parseColor("#E0E2E5"),
-            onSurface = Color.parseColor("#E0E2E5"),
-            primary = Color.parseColor("#C1C7D0"),
-            primaryContainer = Color.parseColor("#50575F"),
-            onPrimaryContainer = Color.parseColor("#DEE4EC"),
+            surface = Color.parseColor("#14181C"),
+            surfaceMuted = Color.parseColor("#1A1F24"),
+            onBackground = Color.parseColor("#E6E9EC"),
+            onSurface = Color.parseColor("#E6E9EC"),
+            onSurfaceVariant = Color.parseColor("#98A0A9"),
+            outline = Color.parseColor("#242A31"),
+            primary = Color.parseColor("#BAC2CB"),
+            primaryContainer = Color.parseColor("#23292F"),
+            onPrimaryContainer = Color.parseColor("#DDE4EB"),
             error = Color.parseColor("#F0B8BF"),
-            runicText = Color.parseColor("#E7EAEE")
+            runicText = Color.parseColor("#F5F7F9")
         )
     } else {
         WidgetPalette(
             background = Color.parseColor("#F4F6F8"),
-            surface = Color.parseColor("#EBEDF0"),
+            surface = Color.parseColor("#F0F1F3"),
+            surfaceMuted = Color.parseColor("#E7E9EC"),
             onBackground = Color.parseColor("#191C1E"),
             onSurface = Color.parseColor("#191C1E"),
+            onSurfaceVariant = Color.parseColor("#5A5E64"),
+            outline = Color.parseColor("#D6DADF"),
             primary = Color.parseColor("#68707A"),
-            primaryContainer = Color.parseColor("#D8DEE6"),
-            onPrimaryContainer = Color.parseColor("#1E2328"),
+            primaryContainer = Color.parseColor("#E7E9EC"),
+            onPrimaryContainer = Color.parseColor("#5A5E64"),
             error = Color.parseColor("#96404A"),
-            runicText = Color.parseColor("#1E2328")
+            runicText = Color.parseColor("#191C1E")
         )
     }
 }
@@ -118,6 +130,12 @@ private fun harmonizeWithDynamic(
             dynamicScheme.onPrimaryContainer.toArgb(),
             foundationPalette.onPrimaryContainer
         ),
+        surfaceMuted = blend(dynamicScheme.surfaceContainerHighest.toArgb(), foundationPalette.surfaceMuted),
+        onSurfaceVariant = blend(
+            dynamicScheme.onSurfaceVariant.toArgb(),
+            foundationPalette.onSurfaceVariant
+        ),
+        outline = blend(dynamicScheme.outlineVariant.toArgb(), foundationPalette.outline),
         error = blend(dynamicScheme.error.toArgb(), foundationPalette.error),
         runicText = blend(dynamicScheme.primary.toArgb(), foundationPalette.runicText)
     )

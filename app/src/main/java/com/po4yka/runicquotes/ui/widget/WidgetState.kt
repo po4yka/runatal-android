@@ -32,8 +32,11 @@ data class WidgetState(
 data class WidgetPalette(
     val background: Int,
     val surface: Int,
+    val surfaceMuted: Int,
     val onBackground: Int,
     val onSurface: Int,
+    val onSurfaceVariant: Int,
+    val outline: Int,
     val primary: Int,
     val primaryContainer: Int,
     val onPrimaryContainer: Int,
@@ -46,8 +49,11 @@ data class WidgetPalette(
         fun default() = WidgetPalette(
             background = Color.parseColor("#101419"),
             surface = Color.parseColor("#171C21"),
+            surfaceMuted = Color.parseColor("#1E2329"),
             onBackground = Color.parseColor("#E3E8EE"),
             onSurface = Color.parseColor("#E3E8EE"),
+            onSurfaceVariant = Color.parseColor("#98A0AA"),
+            outline = Color.parseColor("#2B3138"),
             primary = Color.parseColor("#B8C8D9"),
             primaryContainer = Color.parseColor("#364757"),
             onPrimaryContainer = Color.parseColor("#D6E4F2"),

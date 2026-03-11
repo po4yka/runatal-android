@@ -5,8 +5,11 @@ import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Paint
 import android.graphics.Typeface
+import android.text.Layout
+import android.text.StaticLayout
+import android.text.TextPaint
+import android.text.TextUtils
 import android.util.Log
 import android.util.TypedValue
 import androidx.core.content.res.ResourcesCompat
@@ -25,12 +28,20 @@ data class RenderConfig(
     val textSizeSp: Float = DEFAULT_TEXT_SIZE_SP,
     val textColor: Int = Color.WHITE,
     val backgroundColor: Int? = null,
-    val maxWidth: Int = 0
+    val maxWidth: Int = 0,
+    val textAlign: RenderTextAlign = RenderTextAlign.CENTER,
+    val maxLines: Int = Int.MAX_VALUE
 ) {
     /** Default constants for [RenderConfig]. */
     companion object {
         private const val DEFAULT_TEXT_SIZE_SP = 20f
     }
+}
+
+/** Horizontal alignment options for bitmap-rendered runic text. */
+enum class RenderTextAlign {
+    START,
+    CENTER
 }
 
 /**
@@ -65,31 +76,35 @@ object RunicTextRenderer {
             context.resources.displayMetrics
         )
 
-        // Create paint for text
-        val paint = Paint().apply {
+        val paint = TextPaint().apply {
             this.typeface = typeface
             this.textSize = textSizePx
             this.color = config.textColor
             isAntiAlias = true
-            textAlign = Paint.Align.CENTER
         }
 
         val padding = (textSizePx * PADDING_FACTOR).toInt()
-        var measuredTextWidth = paint.measureText(normalizedText)
-
-        // Apply max width if specified
-        if (config.maxWidth > 0) {
-            val drawableWidth = (config.maxWidth - (padding * 2)).coerceAtLeast(MIN_BITMAP_SIZE)
-            if (measuredTextWidth > drawableWidth) {
-                val scale = drawableWidth / measuredTextWidth
-                paint.textSize = textSizePx * scale
-                measuredTextWidth = paint.measureText(normalizedText)
-            }
+        val drawableWidth = if (config.maxWidth > 0) {
+            (config.maxWidth - (padding * 2)).coerceAtLeast(MIN_BITMAP_SIZE)
+        } else {
+            ceil(paint.measureText(normalizedText).toDouble()).toInt().coerceAtLeast(MIN_BITMAP_SIZE)
         }
 
-        val fontMetrics = paint.fontMetricsInt
-        var width = ceil(measuredTextWidth.toDouble()).toInt() + padding * 2
-        var height = (fontMetrics.descent - fontMetrics.ascent) + padding * 2
+        val layout = StaticLayout.Builder
+            .obtain(normalizedText, 0, normalizedText.length, paint, drawableWidth)
+            .setAlignment(
+                when (config.textAlign) {
+                    RenderTextAlign.START -> Layout.Alignment.ALIGN_NORMAL
+                    RenderTextAlign.CENTER -> Layout.Alignment.ALIGN_CENTER
+                }
+            )
+            .setIncludePad(false)
+            .setEllipsize(TextUtils.TruncateAt.END)
+            .setMaxLines(config.maxLines)
+            .build()
+
+        var width = layout.width + padding * 2
+        var height = layout.height + padding * 2
 
         // Ensure minimum size
         width = width.coerceAtLeast(MIN_BITMAP_SIZE)
@@ -104,10 +119,10 @@ object RunicTextRenderer {
             canvas.drawColor(it)
         }
 
-        // Draw text centered
-        val x = width / 2f
-        val y = height / 2f - (paint.descent() + paint.ascent()) / 2f
-        canvas.drawText(normalizedText, x, y, paint)
+        canvas.save()
+        canvas.translate(padding.toFloat(), padding.toFloat())
+        layout.draw(canvas)
+        canvas.restore()
 
         return bitmap
     }
