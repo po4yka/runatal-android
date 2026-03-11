@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -52,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RuneReference
 import com.po4yka.runicquotes.ui.components.EmptyState
 import com.po4yka.runicquotes.ui.components.ErrorState
+import com.po4yka.runicquotes.ui.components.RunicSearchField
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarActionStyle
 import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
@@ -136,35 +136,11 @@ private fun ReferencesSearchField(
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier = modifier.fillMaxWidth(),
-        singleLine = true,
-        placeholder = {
-            Text(
-                text = "Search rune, sound, or meaning",
-                style = MaterialTheme.typography.bodyMedium
-            )
-        },
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = null
-            )
-        },
-        trailingIcon = if (query.isNotBlank()) {
-            {
-                RunicTopBarIconAction(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Clear search",
-                    onClick = { onQueryChange("") },
-                    style = RunicTopBarActionStyle.Tonal
-                )
-            }
-        } else {
-            null
-        }
+    RunicSearchField(
+        query = query,
+        onQueryChange = onQueryChange,
+        modifier = modifier,
+        placeholderText = "Search rune, sound, or meaning"
     )
 }
 

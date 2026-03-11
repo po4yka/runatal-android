@@ -48,6 +48,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.QuotePack
 import com.po4yka.runicquotes.ui.components.ErrorState
+import com.po4yka.runicquotes.ui.components.RunicInfoCard
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
 import com.po4yka.runicquotes.ui.components.SkeletonCard
@@ -187,15 +188,12 @@ private fun PackHeroCard(
     readTimeLabel: String,
     onToggleLibrary: () -> Unit
 ) {
-    Surface(
-        shape = RoundedCornerShape(22.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.85f))
+    RunicInfoCard(
+        shape = RunicExpressiveTheme.shapes.panel,
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 18.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 18.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
@@ -316,26 +314,21 @@ private fun PackMetaPill(text: String) {
 
 @Composable
 private fun PackQuoteCard(quote: PackPreviewQuote) {
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = if (quote.isHighlighted) {
+    RunicInfoCard(
+        containerColor = if (quote.isHighlighted) {
             MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
         } else {
             MaterialTheme.colorScheme.surfaceContainer
         },
-        border = BorderStroke(
-            1.dp,
-            if (quote.isHighlighted) {
-                MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f)
-            } else {
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f)
-            }
-        )
+        borderColor = if (quote.isHighlighted) {
+            MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f)
+        } else {
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f)
+        },
+        contentPadding = PaddingValues(horizontal = 15.dp, vertical = 13.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 15.dp, vertical = 13.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(

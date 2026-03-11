@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -51,6 +52,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -62,6 +64,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.ui.components.ConfirmationDialog
+import com.po4yka.runicquotes.ui.components.RunicInfoCard
+import com.po4yka.runicquotes.ui.components.RunicInputCard
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarActionStyle
@@ -329,14 +333,9 @@ private fun EditorPreviewCard(
         null
     }
 
-    Surface(
+    RunicInfoCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-        )
+        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
     ) {
         Column(
             modifier = Modifier.fillMaxWidth()
@@ -602,49 +601,54 @@ private fun EditorTextField(
             }
         }
 
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = modifier.fillMaxWidth(),
+        RunicInputCard(
+            modifier = Modifier.fillMaxWidth(),
             enabled = enabled,
-            singleLine = singleLine,
-            minLines = minLines,
-            maxLines = maxLines,
             isError = error != null,
-            shape = RoundedCornerShape(14.dp),
-            textStyle = MaterialTheme.typography.bodyMedium,
-            placeholder = {
-                Text(
-                    text = placeholder,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
+            borderColor = if (error != null) {
+                MaterialTheme.colorScheme.error.copy(alpha = 0.88f)
+            } else {
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.9f)
             },
-            keyboardOptions = keyboardOptions,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                errorContainerColor = MaterialTheme.colorScheme.surface,
-                focusedBorderColor = if (error != null) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.outline
+            contentPadding = PaddingValues(0.dp)
+        ) {
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = modifier.fillMaxWidth(),
+                enabled = enabled,
+                singleLine = singleLine,
+                minLines = minLines,
+                maxLines = maxLines,
+                isError = error != null,
+                shape = RoundedCornerShape(14.dp),
+                textStyle = MaterialTheme.typography.bodyMedium,
+                placeholder = {
+                    Text(
+                        text = placeholder,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
                 },
-                unfocusedBorderColor = if (error != null) {
-                    MaterialTheme.colorScheme.error.copy(alpha = 0.75f)
-                } else {
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.9f)
-                },
-                errorBorderColor = MaterialTheme.colorScheme.error,
-                focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                cursorColor = MaterialTheme.colorScheme.onSurface
+                keyboardOptions = keyboardOptions,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                    errorContainerColor = Color.Transparent,
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    disabledBorderColor = Color.Transparent,
+                    errorBorderColor = Color.Transparent,
+                    focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    cursorColor = MaterialTheme.colorScheme.onSurface
+                )
             )
-        )
+        }
 
         if (error != null) {
             Text(

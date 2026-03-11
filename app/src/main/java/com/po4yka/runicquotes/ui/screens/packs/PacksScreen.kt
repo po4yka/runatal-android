@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,6 +45,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.QuotePack
 import com.po4yka.runicquotes.ui.components.ErrorState
+import com.po4yka.runicquotes.ui.components.RunicInfoCard
+import com.po4yka.runicquotes.ui.components.RunicSearchField
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
 import com.po4yka.runicquotes.ui.components.SkeletonCard
@@ -176,19 +177,11 @@ private fun PacksHeader() {
 
 @Composable
 private fun PacksSearchBar(query: String, onQueryChange: (String) -> Unit) {
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text("Search packs...") },
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search"
-            )
-        },
-        singleLine = true,
-        shape = RoundedCornerShape(14.dp)
+    RunicSearchField(
+        query = query,
+        onQueryChange = onQueryChange,
+        placeholderText = "Search packs...",
+        leadingContentDescription = "Search packs"
     )
 }
 
@@ -209,17 +202,13 @@ private fun PackListCard(
 ) {
     val sourceLabel = PackPresentationCatalog.sourceLabel(pack)
 
-    Surface(
+    RunicInfoCard(
+        modifier = Modifier.semantics { contentDescription = "Pack: ${pack.name}" },
         onClick = onClick,
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)),
-        modifier = Modifier.semantics { contentDescription = "Pack: ${pack.name}" }
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 15.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 15.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.Top
         ) {

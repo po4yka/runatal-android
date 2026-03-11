@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -65,6 +66,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.segmentLabel
+import com.po4yka.runicquotes.ui.components.RunicInfoCard
+import com.po4yka.runicquotes.ui.components.RunicInputCard
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarActionStyle
@@ -287,16 +290,14 @@ private fun TranslationInputCard(
     focusRequester: FocusRequester,
     onTextChange: (String) -> Unit
 ) {
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline)
+    RunicInputCard(
+        borderWidth = 1.5.dp,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = if (text.isBlank()) 126.dp else 104.dp)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .heightIn(min = if (text.isBlank()) 126.dp else 104.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             BasicTextField(
@@ -390,10 +391,9 @@ private fun TranslationOutputCard(
     glyphCount: Int,
     errorMessage: String?
 ) {
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
+    RunicInfoCard(
+        containerColor = MaterialTheme.colorScheme.surface,
+        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)
     ) {
         when {
             errorMessage != null -> Column(
@@ -551,16 +551,13 @@ private fun TranslationActionButton(
 
 @Composable
 private fun AccuracyContextLink(onClick: () -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
-        onClick = onClick
+    RunicInfoCard(
+        onClick = onClick,
+        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
