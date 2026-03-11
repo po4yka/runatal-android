@@ -50,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -522,6 +523,7 @@ private fun ArchiveEmptyState(selectedTab: ArchiveTab, modifier: Modifier = Modi
 
 @Composable
 private fun ArchiveLoadingState(selectedTab: ArchiveTab) {
+    val brush = rememberShimmerBrush()
     Column(modifier = Modifier.fillMaxSize()) {
         ArchiveInfoRow(
             ArchiveUiState(
@@ -531,7 +533,8 @@ private fun ArchiveLoadingState(selectedTab: ArchiveTab) {
             )
         )
         ArchiveLoadingSkeleton(
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            brush = brush
         )
         if (selectedTab != ArchiveTab.HIDDEN) {
             Box(
@@ -540,15 +543,17 @@ private fun ArchiveLoadingState(selectedTab: ArchiveTab) {
                     .padding(horizontal = 16.dp, vertical = 12.dp)
                     .navigationBarsPadding()
             ) {
-                SkeletonCard(height = 44.dp, brush = rememberShimmerBrush())
+                SkeletonCard(height = 44.dp, brush = brush)
             }
         }
     }
 }
 
 @Composable
-private fun ArchiveLoadingSkeleton(modifier: Modifier = Modifier) {
-    val brush = rememberShimmerBrush()
+private fun ArchiveLoadingSkeleton(
+    modifier: Modifier = Modifier,
+    brush: Brush
+) {
     Column(
         modifier = modifier.padding(horizontal = 20.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)

@@ -1,6 +1,9 @@
 package com.po4yka.runicquotes.ui.screens.packs
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
@@ -55,6 +58,7 @@ import com.po4yka.runicquotes.ui.components.RunicInlineBanner
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
 import com.po4yka.runicquotes.ui.components.SkeletonCard
+import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.components.SkeletonCircle
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
@@ -70,6 +74,8 @@ fun PackDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val feedbackMessage by viewModel.feedbackMessage.collectAsStateWithLifecycle()
+    val reducedMotion = LocalReduceMotion.current
+    val motion = RunicExpressiveTheme.motion
 
     LaunchedEffect(packId) {
         viewModel.initializePackIfNeeded(packId)
@@ -117,8 +123,26 @@ fun PackDetailScreen(
 
             AnimatedVisibility(
                 visible = feedbackMessage != null,
-                enter = fadeIn(),
-                exit = fadeOut(),
+                enter = if (reducedMotion) {
+                    EnterTransition.None
+                } else {
+                    fadeIn(
+                        animationSpec = tween(
+                            durationMillis = motion.shortDurationMillis,
+                            easing = motion.standardEasing
+                        )
+                    )
+                },
+                exit = if (reducedMotion) {
+                    ExitTransition.None
+                } else {
+                    fadeOut(
+                        animationSpec = tween(
+                            durationMillis = motion.shortDurationMillis,
+                            easing = motion.standardEasing
+                        )
+                    )
+                },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(horizontal = 16.dp, vertical = 20.dp)

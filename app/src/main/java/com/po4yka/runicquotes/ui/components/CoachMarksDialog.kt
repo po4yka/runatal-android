@@ -1,6 +1,9 @@
 package com.po4yka.runicquotes.ui.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -32,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 
 /** Step-by-step feature tour dialog with skip/next navigation. */
@@ -46,6 +50,8 @@ fun CoachMarksDialog(
     val isLast = currentIndex == steps.lastIndex
     val colors = MaterialTheme.colorScheme
     val controls = RunicExpressiveTheme.controls
+    val reducedMotion = LocalReduceMotion.current
+    val motion = RunicExpressiveTheme.motion
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -71,7 +77,23 @@ fun CoachMarksDialog(
                 ) {
                     AnimatedContent(
                         targetState = step,
-                        transitionSpec = { fadeIn() togetherWith fadeOut() },
+                        transitionSpec = {
+                            if (reducedMotion) {
+                                EnterTransition.None togetherWith ExitTransition.None
+                            } else {
+                                fadeIn(
+                                    animationSpec = tween(
+                                        durationMillis = motion.shortDurationMillis,
+                                        easing = motion.standardEasing
+                                    )
+                                ) togetherWith fadeOut(
+                                    animationSpec = tween(
+                                        durationMillis = motion.shortDurationMillis,
+                                        easing = motion.standardEasing
+                                    )
+                                )
+                            }
+                        },
                         label = "coachStep"
                     ) { current ->
                         CoachStepContent(current, colors)

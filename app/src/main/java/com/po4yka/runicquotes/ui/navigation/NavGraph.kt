@@ -526,7 +526,9 @@ private fun AnimatedContentTransitionScope<Scene<Any>>.resolveSceneTransition(
     val initialKind = routeKind(initialState)
     val targetKind = routeKind(targetState)
     val shouldUseFade = (initialKind == RouteKind.TOP_LEVEL && targetKind == RouteKind.TOP_LEVEL) ||
-        initialKind == RouteKind.ONBOARDING || targetKind == RouteKind.ONBOARDING
+        initialKind == RouteKind.ONBOARDING ||
+        targetKind == RouteKind.ONBOARDING ||
+        (initialKind == RouteKind.DETAIL && targetKind == RouteKind.TOP_LEVEL)
 
     if (shouldUseFade) {
         return fadeIn(animationSpec = tween(durationMillis = duration, easing = easing)) togetherWith

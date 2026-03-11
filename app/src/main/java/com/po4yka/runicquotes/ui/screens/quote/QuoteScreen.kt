@@ -2,8 +2,11 @@ package com.po4yka.runicquotes.ui.screens.quote
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.animateFloatAsState
@@ -52,7 +55,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
@@ -373,7 +375,7 @@ private fun TodayCollapsedTopBar(
             )
         },
         exit = if (reducedMotion) {
-            androidx.compose.animation.ExitTransition.None
+            ExitTransition.None
         } else {
             fadeOut(
                 animationSpec = tween(
@@ -490,15 +492,7 @@ private fun HeroQuoteCard(
     contentVisible: Boolean
 ) {
     val motion = RunicExpressiveTheme.motion
-    val transliterationAlpha by animateFloatAsState(
-        targetValue = if (showTransliteration && contentVisible) 1f else 0f,
-        animationSpec = tween(
-            durationMillis = motion.duration(reducedMotion, motion.mediumDurationMillis),
-            delayMillis = motion.delay(reducedMotion, motion.shortDurationMillis / 3),
-            easing = motion.standardEasing
-        ),
-        label = "transliterationAlpha"
-    )
+    val transliterationVisible = showTransliteration && contentVisible
 
     Card(
         shape = RunicExpressiveTheme.shapes.contentCard,
@@ -522,16 +516,56 @@ private fun HeroQuoteCard(
                 selectedFont = selectedFont
             )
 
-            if (showTransliteration || transliterationAlpha > 0.01f) {
-                Spacer(modifier = Modifier.height(14.dp))
-                Text(
-                    text = "\"$latinText\"",
-                    style = RunicTypeRoles.supporting(SupportingTextRole.QuoteTransliteration),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .alpha(transliterationAlpha),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            if (reducedMotion) {
+                if (showTransliteration) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Text(
+                        text = "\"$latinText\"",
+                        style = RunicTypeRoles.supporting(SupportingTextRole.QuoteTransliteration),
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                AnimatedVisibility(
+                    visible = transliterationVisible,
+                    enter = fadeIn(
+                        animationSpec = tween(
+                            durationMillis = motion.mediumDurationMillis,
+                            delayMillis = motion.shortDurationMillis / 3,
+                            easing = motion.standardEasing
+                        )
+                    ) + expandVertically(
+                        animationSpec = tween(
+                            durationMillis = motion.mediumDurationMillis,
+                            delayMillis = motion.shortDurationMillis / 3,
+                            easing = motion.emphasizedEasing
+                        ),
+                        expandFrom = Alignment.Top
+                    ),
+                    exit = fadeOut(
+                        animationSpec = tween(
+                            durationMillis = motion.shortDurationMillis,
+                            easing = motion.standardEasing
+                        )
+                    ) + shrinkVertically(
+                        animationSpec = tween(
+                            durationMillis = motion.shortDurationMillis,
+                            easing = motion.emphasizedEasing
+                        ),
+                        shrinkTowards = Alignment.Top
+                    )
+                ) {
+                    Column {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Text(
+                            text = "\"$latinText\"",
+                            style = RunicTypeRoles.supporting(SupportingTextRole.QuoteTransliteration),
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(14.dp))

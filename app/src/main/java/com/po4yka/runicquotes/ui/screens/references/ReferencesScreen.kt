@@ -1,6 +1,11 @@
 package com.po4yka.runicquotes.ui.screens.references
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -35,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -56,6 +62,8 @@ import com.po4yka.runicquotes.ui.components.RunicTopBarActionStyle
 import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
 import com.po4yka.runicquotes.ui.components.SkeletonCard
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
+import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
+import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 
 @Composable
 fun ReferencesScreen(
@@ -64,6 +72,8 @@ fun ReferencesScreen(
     viewModel: ReferencesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val reducedMotion = LocalReduceMotion.current
+    val motion = RunicExpressiveTheme.motion
 
     Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0)) { paddingValues ->
         Column(
@@ -77,7 +87,29 @@ fun ReferencesScreen(
                 onToggleSearch = viewModel::toggleSearch
             )
 
-            AnimatedVisibility(visible = uiState.isSearchVisible) {
+            AnimatedVisibility(
+                visible = uiState.isSearchVisible,
+                enter = if (reducedMotion) {
+                    EnterTransition.None
+                } else {
+                    fadeIn(
+                        animationSpec = tween(
+                            durationMillis = motion.shortDurationMillis,
+                            easing = motion.standardEasing
+                        )
+                    )
+                },
+                exit = if (reducedMotion) {
+                    ExitTransition.None
+                } else {
+                    fadeOut(
+                        animationSpec = tween(
+                            durationMillis = motion.shortDurationMillis,
+                            easing = motion.standardEasing
+                        )
+                    )
+                }
+            ) {
                 ReferencesSearchField(
                     query = uiState.searchQuery,
                     onQueryChange = viewModel::updateSearchQuery,
@@ -152,6 +184,7 @@ private fun ReferencesContent(
     modifier: Modifier = Modifier
 ) {
     val sections = buildRuneSections(uiState.selectedTab, uiState.runes)
+    val loadingBrush = rememberShimmerBrush()
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(4),
@@ -172,7 +205,7 @@ private fun ReferencesContent(
         }
 
         when {
-            uiState.isLoading -> referencesLoadingItems()
+            uiState.isLoading -> referencesLoadingItems(brush = loadingBrush)
             uiState.errorMessage != null -> item(span = { GridItemSpan(maxLineSpan) }) {
                 ErrorState(
                     title = "Something Went Wrong",
@@ -220,12 +253,11 @@ private fun ReferencesContent(
     }
 }
 
-private fun androidx.compose.foundation.lazy.grid.LazyGridScope.referencesLoadingItems() {
+private fun androidx.compose.foundation.lazy.grid.LazyGridScope.referencesLoadingItems(brush: Brush) {
     item(span = { GridItemSpan(maxLineSpan) }) {
         Spacer(modifier = Modifier.height(4.dp))
     }
-    items(12) {
-        val brush = rememberShimmerBrush()
+    items(count = 12, contentType = { "loading_rune_card" }) {
         SkeletonCard(
             height = 76.dp,
             brush = brush

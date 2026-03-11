@@ -1,6 +1,7 @@
 package com.po4yka.runicquotes.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 
 /**
@@ -44,6 +46,8 @@ fun SettingItem(
     leadingIcon: @Composable (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null
 ) {
+    val reducedMotion = LocalReduceMotion.current
+    val motion = RunicExpressiveTheme.motion
     val spacing = RunicExpressiveTheme.spacing
     val controls = RunicExpressiveTheme.controls
     val itemShape = RunicExpressiveTheme.shapes.collectionCard
@@ -53,6 +57,9 @@ fun SettingItem(
         } else {
             MaterialTheme.colorScheme.surface
         },
+        animationSpec = tween(
+            durationMillis = motion.duration(reducedMotion, motion.shortDurationMillis)
+        ),
         label = "settingItemContainer"
     )
 

@@ -19,8 +19,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.LinearGradientShader
+import androidx.compose.ui.graphics.Shader
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
@@ -42,23 +46,43 @@ fun rememberShimmerBrush(
     }
 
     val transition: InfiniteTransition = rememberInfiniteTransition(label = "shimmer")
-    val translateX by transition.animateFloat(
-        initialValue = -400f,
-        targetValue = 400f,
+    val progress by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(
                 durationMillis = RunicExpressiveTheme.motion.longDurationMillis * 2,
                 easing = LinearEasing
             )
         ),
-        label = "shimmerTranslateX"
+        label = "shimmerProgress"
     )
 
-    return Brush.linearGradient(
-        colors = listOf(baseColor, highlightColor, baseColor),
-        start = Offset(translateX, 0f),
-        end = Offset(translateX + 400f, 0f)
+    return SizeAwareShimmerBrush(
+        baseColor = baseColor,
+        highlightColor = highlightColor,
+        progress = progress
     )
+}
+
+private class SizeAwareShimmerBrush(
+    private val baseColor: Color,
+    private val highlightColor: Color,
+    private val progress: Float
+) : ShaderBrush() {
+    override fun createShader(size: Size): Shader {
+        val width = size.width.coerceAtLeast(1f)
+        val height = size.height.coerceAtLeast(1f)
+        val highlightWidth = (width * 0.45f).coerceAtLeast(height * 1.2f)
+        val travel = width + highlightWidth
+        val startX = -highlightWidth + (travel * progress)
+
+        return LinearGradientShader(
+            from = Offset(startX, 0f),
+            to = Offset(startX + highlightWidth, height),
+            colors = listOf(baseColor, highlightColor, baseColor)
+        )
+    }
 }
 
 /**
