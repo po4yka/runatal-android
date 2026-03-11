@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -250,6 +251,7 @@ private fun EditorTopBar(
     onSave: () -> Unit
 ) {
     val title = if (uiState.isEditing) "Edit Quote" else "Create Quote"
+    val controls = RunicExpressiveTheme.controls
 
     Surface(color = MaterialTheme.colorScheme.background) {
         Box(
@@ -265,7 +267,7 @@ private fun EditorTopBar(
                 IconButton(
                     onClick = onNavigateBack,
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(controls.minimumTouchTarget)
                         .background(
                             color = MaterialTheme.colorScheme.surfaceContainerLow,
                             shape = RunicExpressiveTheme.shapes.pill
@@ -281,7 +283,7 @@ private fun EditorTopBar(
                 FilledIconButton(
                     onClick = onSave,
                     enabled = saveEnabled,
-                    modifier = Modifier.size(38.dp),
+                    modifier = Modifier.size(controls.minimumTouchTarget),
                     shape = RoundedCornerShape(12.dp),
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.secondary,
@@ -455,6 +457,7 @@ private fun CompactScriptSelector(
     onScriptSelected: (RunicScript) -> Unit,
     enabled: Boolean
 ) {
+    val controls = RunicExpressiveTheme.controls
     val scripts = RunicScript.entries
 
     Surface(
@@ -478,7 +481,7 @@ private fun CompactScriptSelector(
                 }
 
                 Surface(
-                    modifier = Modifier.height(30.dp),
+                    modifier = Modifier.heightIn(min = controls.minimumTouchTarget),
                     shape = RoundedCornerShape(10.dp),
                     color = if (selected) {
                         MaterialTheme.colorScheme.secondaryContainer

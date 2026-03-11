@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -132,6 +133,7 @@ private fun ShareTopBar(
     title: String,
     onNavigateBack: () -> Unit
 ) {
+    val controls = RunicExpressiveTheme.controls
     Surface(color = MaterialTheme.colorScheme.background) {
         Box(
             modifier = Modifier
@@ -142,7 +144,7 @@ private fun ShareTopBar(
                 onClick = onNavigateBack,
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .size(42.dp)
+                    .size(controls.minimumTouchTarget)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -159,7 +161,7 @@ private fun ShareTopBar(
             Spacer(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .size(42.dp)
+                    .size(controls.minimumTouchTarget)
             )
         }
     }
@@ -236,6 +238,7 @@ private fun AppearanceToggle(
     onSelectAppearance: (ShareAppearance) -> Unit,
     shareStyle: RunicShareStyleTokens
 ) {
+    val controls = RunicExpressiveTheme.controls
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
@@ -256,6 +259,7 @@ private fun AppearanceToggle(
                     val selected = appearance == selectedAppearance
                     val appearancePalette = runicSharePalette(appearance)
                     Surface(
+                        modifier = Modifier.heightIn(min = controls.minimumTouchTarget),
                         shape = shareStyle.appearanceOptionShape,
                         color = if (selected) {
                             MaterialTheme.colorScheme.secondaryContainer

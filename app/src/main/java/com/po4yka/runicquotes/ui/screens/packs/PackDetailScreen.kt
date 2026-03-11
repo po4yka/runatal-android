@@ -50,6 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.QuotePack
 import com.po4yka.runicquotes.ui.components.ErrorState
 import com.po4yka.runicquotes.ui.components.SkeletonCard
+import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.components.SkeletonCircle
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
 import kotlinx.coroutines.delay
@@ -129,6 +130,7 @@ fun PackDetailScreen(
 
 @Composable
 private fun PackDetailTopBar(onNavigateBack: () -> Unit) {
+    val controls = RunicExpressiveTheme.controls
     Surface(color = MaterialTheme.colorScheme.background) {
         Box(
             modifier = Modifier
@@ -139,7 +141,7 @@ private fun PackDetailTopBar(onNavigateBack: () -> Unit) {
                 onClick = onNavigateBack,
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .size(42.dp)
+                    .size(controls.minimumTouchTarget)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -150,7 +152,7 @@ private fun PackDetailTopBar(onNavigateBack: () -> Unit) {
             Spacer(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .size(42.dp)
+                    .size(controls.minimumTouchTarget)
             )
         }
     }

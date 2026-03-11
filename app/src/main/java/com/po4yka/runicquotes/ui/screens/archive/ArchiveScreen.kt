@@ -363,7 +363,7 @@ private fun ArchiveQuoteCard(
                 }
                 IconButton(
                     onClick = if (selectedTab == ArchiveTab.DELETED) onDelete else onRestore,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(RunicExpressiveTheme.controls.minimumTouchTarget)
                 ) {
                     Icon(
                         imageVector = if (selectedTab == ArchiveTab.DELETED) {
@@ -439,7 +439,7 @@ private fun ArchiveBottomAction(
             onClick = actionConfig.onClick,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(44.dp),
+                .height(RunicExpressiveTheme.controls.minimumTouchTarget),
             shape = RunicExpressiveTheme.shapes.segmentedControl,
             colors = actionConfig.colors
         ) {

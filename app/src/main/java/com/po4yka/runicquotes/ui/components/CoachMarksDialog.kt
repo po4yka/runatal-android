@@ -45,6 +45,7 @@ fun CoachMarksDialog(
     val step = steps[currentIndex]
     val isLast = currentIndex == steps.lastIndex
     val colors = MaterialTheme.colorScheme
+    val controls = RunicExpressiveTheme.controls
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -84,14 +85,14 @@ fun CoachMarksDialog(
                     Row(modifier = Modifier.fillMaxWidth()) {
                         TextButton(
                             onClick = onDismiss,
-                            modifier = Modifier.weight(1f).height(40.dp)
+                            modifier = Modifier.weight(1f).height(controls.dialogActionHeight)
                         ) {
                             Text(text = "Skip")
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Button(
                             onClick = { if (isLast) onDismiss() else currentIndex++ },
-                            modifier = Modifier.weight(1f).height(40.dp),
+                            modifier = Modifier.weight(1f).height(controls.dialogActionHeight),
                             shape = RunicExpressiveTheme.shapes.segmentedControl,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = colors.secondary,

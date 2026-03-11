@@ -61,6 +61,7 @@ data class RunicStrokeTokens(
 /** Component size roles for shared controls and selection affordances. */
 @Immutable
 data class RunicControlSizeTokens(
+    val minimumTouchTarget: Dp,
     val segmentedControlMinHeight: Dp,
     val settingItemMinHeight: Dp,
     val dialogActionHeight: Dp,
@@ -140,9 +141,10 @@ private val DefaultRunicStrokeTokens = RunicStrokeTokens(
 )
 
 private val DefaultRunicControlSizeTokens = RunicControlSizeTokens(
-    segmentedControlMinHeight = 40.dp,
+    minimumTouchTarget = 48.dp,
+    segmentedControlMinHeight = 48.dp,
     settingItemMinHeight = 57.dp,
-    dialogActionHeight = 40.dp,
+    dialogActionHeight = 48.dp,
     leadingBadgeLarge = 40.dp,
     leadingBadgeMedium = 36.dp,
     aboutBadge = 44.dp,

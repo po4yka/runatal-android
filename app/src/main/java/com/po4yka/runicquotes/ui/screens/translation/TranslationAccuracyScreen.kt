@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 
 @Composable
 fun TranslationAccuracyScreen(
@@ -81,6 +82,7 @@ private fun AccuracySectionLabel(text: String) {
 
 @Composable
 private fun TranslationAccuracyTopBar(onNavigateBack: () -> Unit) {
+    val controls = RunicExpressiveTheme.controls
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -91,7 +93,7 @@ private fun TranslationAccuracyTopBar(onNavigateBack: () -> Unit) {
             onClick = onNavigateBack,
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .size(42.dp)
+                .size(controls.minimumTouchTarget)
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,

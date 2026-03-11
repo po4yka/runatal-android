@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -48,6 +49,7 @@ import com.po4yka.runicquotes.domain.model.QuotePack
 import com.po4yka.runicquotes.ui.components.ErrorState
 import com.po4yka.runicquotes.ui.components.SkeletonCard
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
+import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 
 @Composable
 fun PacksScreen(
@@ -91,6 +93,7 @@ fun PacksScreen(
 
 @Composable
 private fun PacksTopBar(onNavigateBack: () -> Unit) {
+    val controls = RunicExpressiveTheme.controls
     Surface(color = MaterialTheme.colorScheme.background) {
         Box(
             modifier = Modifier
@@ -101,7 +104,7 @@ private fun PacksTopBar(onNavigateBack: () -> Unit) {
                 onClick = onNavigateBack,
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .size(42.dp)
+                    .size(controls.minimumTouchTarget)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -112,7 +115,7 @@ private fun PacksTopBar(onNavigateBack: () -> Unit) {
             Spacer(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .size(42.dp)
+                    .size(controls.minimumTouchTarget)
             )
         }
     }
@@ -295,7 +298,9 @@ private fun PackLibraryPill(
     isInLibrary: Boolean,
     onClick: () -> Unit
 ) {
+    val controls = RunicExpressiveTheme.controls
     Surface(
+        modifier = Modifier.heightIn(min = controls.minimumTouchTarget),
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
         color = if (isInLibrary) {

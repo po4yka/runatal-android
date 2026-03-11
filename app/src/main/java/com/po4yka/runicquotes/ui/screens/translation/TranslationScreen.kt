@@ -67,6 +67,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.segmentLabel
 import com.po4yka.runicquotes.ui.components.RunicText
+import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.theme.RunicTextRole
 import kotlinx.coroutines.launch
 
@@ -169,6 +170,7 @@ fun TranslationScreen(
 
 @Composable
 private fun TranslationTopBar(onNavigateBack: () -> Unit) {
+    val controls = RunicExpressiveTheme.controls
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -179,7 +181,7 @@ private fun TranslationTopBar(onNavigateBack: () -> Unit) {
             onClick = onNavigateBack,
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .size(42.dp)
+                .size(controls.minimumTouchTarget)
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -197,7 +199,7 @@ private fun TranslationTopBar(onNavigateBack: () -> Unit) {
         Surface(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .size(42.dp),
+                .size(controls.minimumTouchTarget),
             shape = RoundedCornerShape(12.dp),
             color = MaterialTheme.colorScheme.surfaceContainerLow,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
@@ -218,6 +220,7 @@ private fun TranslationScriptSelector(
     selectedScript: RunicScript,
     onSelectScript: (RunicScript) -> Unit
 ) {
+    val controls = RunicExpressiveTheme.controls
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -245,6 +248,7 @@ private fun TranslationScriptSelector(
                 Row(
                     modifier = Modifier
                         .weight(1f)
+                        .heightIn(min = controls.minimumTouchTarget)
                         .clip(
                             when (index) {
                                 0 -> RoundedCornerShape(topStart = 11.dp, bottomStart = 11.dp)

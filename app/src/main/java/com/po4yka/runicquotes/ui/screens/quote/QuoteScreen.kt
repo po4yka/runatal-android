@@ -171,6 +171,7 @@ private fun TodayContent(
     onNavigateToHistory: () -> Unit
 ) {
     val motion = RunicExpressiveTheme.motion
+    val controls = RunicExpressiveTheme.controls
     val reducedMotion = LocalReduceMotion.current
     val scrollState = rememberScrollState()
     var contentVisible by remember(state.quote.id) { mutableStateOf(false) }
@@ -218,7 +219,7 @@ private fun TodayContent(
                         )
                     }
                     Surface(
-                        modifier = Modifier.size(40.dp),
+                        modifier = Modifier.size(controls.minimumTouchTarget),
                         shape = RunicExpressiveTheme.shapes.pill,
                         color = MaterialTheme.colorScheme.surfaceContainerLow,
                         onClick = onToggleTransliteration
@@ -344,6 +345,7 @@ private fun TodayCollapsedTopBar(
     modifier: Modifier = Modifier
 ) {
     val motion = RunicExpressiveTheme.motion
+    val controls = RunicExpressiveTheme.controls
 
     AnimatedVisibility(
         visible = visible,
@@ -401,7 +403,7 @@ private fun TodayCollapsedTopBar(
                     style = MaterialTheme.typography.titleLarge
                 )
                 Surface(
-                    modifier = Modifier.size(36.dp),
+                    modifier = Modifier.size(controls.minimumTouchTarget),
                     shape = RunicExpressiveTheme.shapes.pill,
                     color = MaterialTheme.colorScheme.surfaceContainerLow,
                     onClick = onToggleTransliteration
@@ -582,6 +584,7 @@ private fun ActionButtonsRow(
     onShare: () -> Unit,
     onNewQuote: () -> Unit
 ) {
+    val controls = RunicExpressiveTheme.controls
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -643,7 +646,7 @@ private fun ActionButtonsRow(
         }
 
         Surface(
-            modifier = Modifier.size(42.dp),
+            modifier = Modifier.size(controls.minimumTouchTarget),
             shape = RunicExpressiveTheme.shapes.segment,
             color = MaterialTheme.colorScheme.surfaceContainerLow,
             onClick = onNewQuote
