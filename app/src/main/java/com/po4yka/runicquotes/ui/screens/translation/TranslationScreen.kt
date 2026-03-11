@@ -67,6 +67,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.segmentLabel
 import com.po4yka.runicquotes.ui.components.RunicText
+import com.po4yka.runicquotes.ui.theme.RunicTextRole
 import kotlinx.coroutines.launch
 
 @Composable
@@ -436,10 +437,8 @@ private fun TranslationOutputCard(
                 RunicText(
                     text = "\u16A0\u16A2\u16A6\u16A8\u16B1\u16B2",
                     script = RunicScript.ELDER_FUTHARK,
-                    style = MaterialTheme.typography.headlineSmall,
+                    role = RunicTextRole.TranslationPlaceholder,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 28.sp,
-                    overrideLineHeight = 34.sp
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
@@ -459,10 +458,8 @@ private fun TranslationOutputCard(
                 RunicText(
                     text = outputText,
                     script = selectedScript,
-                    style = MaterialTheme.typography.headlineSmall,
+                    role = RunicTextRole.TranslationResult,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 28.sp,
-                    overrideLineHeight = 36.sp
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically

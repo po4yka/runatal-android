@@ -57,7 +57,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -74,6 +73,7 @@ import com.po4yka.runicquotes.ui.components.SkeletonRect
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
+import com.po4yka.runicquotes.ui.theme.RunicTextRole
 import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
 import com.po4yka.runicquotes.util.rememberHapticFeedback
 import java.time.LocalDate
@@ -472,22 +472,6 @@ private fun TodaySectionReveal(
     }
 }
 
-private fun runicParagraphStyle(selectedScript: RunicScript): Pair<TextUnit, Pair<TextUnit, TextUnit>> {
-    return when (selectedScript) {
-        RunicScript.ELDER_FUTHARK -> 19.sp to (0.72.sp to 34.sp)
-        RunicScript.YOUNGER_FUTHARK -> 18.sp to (0.5.sp to 32.sp)
-        RunicScript.CIRTH -> 20.sp to (0.56.sp to 34.sp)
-    }
-}
-
-private fun runicCardStyle(selectedScript: RunicScript): Pair<TextUnit, Pair<TextUnit, TextUnit>> {
-    return when (selectedScript) {
-        RunicScript.ELDER_FUTHARK -> 15.sp to (0.42.sp to 25.sp)
-        RunicScript.YOUNGER_FUTHARK -> 14.sp to (0.3.sp to 24.sp)
-        RunicScript.CIRTH -> 16.sp to (0.34.sp to 25.sp)
-    }
-}
-
 @Composable
 private fun HeroQuoteCard(
     runicText: String,
@@ -502,8 +486,6 @@ private fun HeroQuoteCard(
 ) {
     val motion = RunicExpressiveTheme.motion
     val typeRoles = RunicTypeRoles.current
-    val (fontSize, metrics) = runicParagraphStyle(selectedScript)
-    val (letterSpacing, lineHeight) = metrics
     val transliterationAlpha by animateFloatAsState(
         targetValue = if (showTransliteration && contentVisible) 1f else 0f,
         animationSpec = tween(
@@ -533,10 +515,7 @@ private fun HeroQuoteCard(
             HeroRunicText(
                 text = runicText,
                 selectedScript = selectedScript,
-                selectedFont = selectedFont,
-                fontSize = fontSize,
-                lineHeight = lineHeight,
-                letterSpacing = letterSpacing
+                selectedFont = selectedFont
             )
 
             if (showTransliteration || transliterationAlpha > 0.01f) {
@@ -584,21 +563,15 @@ private fun HeroQuoteCard(
 private fun HeroRunicText(
     text: String,
     selectedScript: RunicScript,
-    selectedFont: String,
-    fontSize: TextUnit,
-    lineHeight: TextUnit,
-    letterSpacing: TextUnit
+    selectedFont: String
 ) {
     RunicText(
         text = text,
         font = selectedFont,
         script = selectedScript,
+        role = RunicTextRole.QuoteHero,
         modifier = Modifier.fillMaxWidth(),
-        textAlign = TextAlign.Start,
-        style = MaterialTheme.typography.bodyMedium,
-        fontSize = fontSize,
-        overrideLineHeight = lineHeight,
-        overrideLetterSpacing = letterSpacing
+        textAlign = TextAlign.Start
     )
 }
 
@@ -696,9 +669,6 @@ private fun RecentQuoteCard(
     selectedScript: RunicScript,
     selectedFont: String
 ) {
-    val (fontSize, metrics) = runicCardStyle(selectedScript)
-    val (letterSpacing, lineHeight) = metrics
-
     Card(
         shape = RunicExpressiveTheme.shapes.contentCard,
         colors = CardDefaults.cardColors(
@@ -720,10 +690,7 @@ private fun RecentQuoteCard(
                     text = runicText,
                     font = selectedFont,
                     script = selectedScript,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontSize = fontSize,
-                    overrideLineHeight = lineHeight,
-                    overrideLetterSpacing = letterSpacing,
+                    role = RunicTextRole.QuoteCard,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.fillMaxWidth()

@@ -47,6 +47,7 @@ data class RunicShareStyleTokens(
     val dotLargeSize: Dp
 )
 
+/** Maps a share appearance mode to the shared preview and export palette roles. */
 fun runicSharePalette(appearance: ShareAppearance): RunicSharePalette {
     return when (appearance) {
         ShareAppearance.DARK -> RunicSharePalette(
@@ -83,6 +84,7 @@ fun runicSharePalette(appearance: ShareAppearance): RunicSharePalette {
     }
 }
 
+/** Builds share-surface geometry tokens from the app-level shape and elevation foundations. */
 fun runicShareStyleTokens(
     shapeTokens: RunicShapeTokens = runicShapeTokens(),
     elevationTokens: RunicElevationTokens = runicElevationTokens()

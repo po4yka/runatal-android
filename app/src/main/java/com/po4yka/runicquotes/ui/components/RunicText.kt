@@ -10,12 +10,13 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.sp
 import com.po4yka.runicquotes.domain.transliteration.CirthGlyphCompat
 import com.po4yka.runicquotes.ui.theme.BabelStoneRunic
 import com.po4yka.runicquotes.ui.theme.BabelStoneRunicRuled
 import com.po4yka.runicquotes.ui.theme.LocalRunicFontScale
 import com.po4yka.runicquotes.ui.theme.NotoSansRunic
+import com.po4yka.runicquotes.ui.theme.RunicTextRole
+import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
 import com.po4yka.runicquotes.domain.model.RunicScript
 
 /**
@@ -36,6 +37,7 @@ fun RunicText(
     modifier: Modifier = Modifier,
     font: String = "noto",
     script: RunicScript = RunicScript.DEFAULT,
+    role: RunicTextRole = RunicTextRole.Default,
     color: Color = Color.Unspecified,
     fontSize: TextUnit = TextUnit.Unspecified,
     overrideLetterSpacing: TextUnit? = null,
@@ -43,9 +45,13 @@ fun RunicText(
     textAlign: TextAlign? = null,
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Clip,
-    style: TextStyle = LocalTextStyle.current
+    style: TextStyle? = null
 ) {
     val runicFontScale = LocalRunicFontScale.current
+    val roleSpec = RunicTypeRoles.runic(
+        role = role,
+        script = script
+    )
     val normalizedText = remember(text, script) {
         if (script == RunicScript.CIRTH) {
             CirthGlyphCompat.normalizeLegacyPuaGlyphs(text)
@@ -60,28 +66,22 @@ fun RunicText(
         else -> NotoSansRunic // Default to Noto Sans Runic
     }
 
-    val tunedStyle = style.copy(
+    val baseStyle = style ?: if (role == RunicTextRole.Default) {
+        LocalTextStyle.current
+    } else {
+        roleSpec.style
+    }
+
+    val tunedStyle = baseStyle.copy(
         fontFamily = fontFamily,
-        letterSpacing = overrideLetterSpacing ?: when (script) {
-            RunicScript.ELDER_FUTHARK -> 0.35.sp
-            RunicScript.YOUNGER_FUTHARK -> 0.15.sp
-            RunicScript.CIRTH -> 0.25.sp
-        },
-        lineHeight = (overrideLineHeight ?: when (script) {
-            RunicScript.ELDER_FUTHARK -> 44.sp
-            RunicScript.YOUNGER_FUTHARK -> 42.sp
-            RunicScript.CIRTH -> 46.sp
-        }) * runicFontScale
+        letterSpacing = overrideLetterSpacing ?: roleSpec.letterSpacing,
+        lineHeight = (overrideLineHeight ?: roleSpec.lineHeight) * runicFontScale
     )
 
     val baseFontSize = if (fontSize != TextUnit.Unspecified) {
         fontSize
     } else {
-        when (script) {
-            RunicScript.ELDER_FUTHARK -> 33.sp
-            RunicScript.YOUNGER_FUTHARK -> 31.sp
-            RunicScript.CIRTH -> 35.sp
-        }
+        roleSpec.fontSize
     }
     val tunedFontSize = baseFontSize * runicFontScale
 

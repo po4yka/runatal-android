@@ -47,7 +47,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.transliteration.CirthTransliterator
 import com.po4yka.runicquotes.domain.transliteration.ElderFutharkTransliterator
@@ -56,7 +55,7 @@ import com.po4yka.runicquotes.domain.transliteration.YoungerFutharkTransliterato
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
-import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
+import com.po4yka.runicquotes.ui.theme.RunicTextRole
 import com.po4yka.runicquotes.util.rememberHapticFeedback
 
 /**
@@ -384,10 +383,7 @@ private fun ScriptOptionCard(
                             text = story.sampleRunes,
                             script = story.script,
                             color = runicColor,
-                            fontSize = 16.sp,
-                            overrideLetterSpacing = 0.96.sp,
-                            overrideLineHeight = 24.sp,
-                            style = MaterialTheme.typography.bodyMedium
+                            role = RunicTextRole.OnboardingSample
                         )
                         Text(
                             text = "\"${story.sampleLatin}\"",
@@ -477,10 +473,7 @@ private fun FirstRuneCard(selectedStory: ScriptStory) {
                     text = revealRunes,
                     script = selectedStory.script,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 17.sp,
-                    overrideLetterSpacing = 0.68.sp,
-                    overrideLineHeight = 30.sp,
-                    style = RunicTypeRoles.current.runicCollection
+                    role = RunicTextRole.OnboardingReveal
                 )
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)

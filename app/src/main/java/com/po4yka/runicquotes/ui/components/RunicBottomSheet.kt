@@ -29,9 +29,9 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
+import com.po4yka.runicquotes.ui.theme.RunicTextRole
 
 /**
  * Quote actions bottom sheet following Runatal design system (Figma node 14:19678).
@@ -154,10 +154,8 @@ private fun QuotePreviewCard(preview: BottomSheetQuotePreview) {
                     text = preview.runicText,
                     font = preview.font,
                     script = preview.script,
-                    style = MaterialTheme.typography.labelLarge,
+                    role = RunicTextRole.BottomSheetPreview,
                     color = colors.onSurface,
-                    fontSize = 12.sp,
-                    overrideLineHeight = 18.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

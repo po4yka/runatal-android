@@ -48,7 +48,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.Quote
@@ -57,6 +56,7 @@ import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.theme.RunicSharePalette
 import com.po4yka.runicquotes.ui.theme.RunicShareStyleTokens
+import com.po4yka.runicquotes.ui.theme.RunicTextRole
 import com.po4yka.runicquotes.ui.theme.runicSharePalette
 import com.po4yka.runicquotes.ui.theme.runicShareStyleTokens
 import com.po4yka.runicquotes.util.ShareAppearance
@@ -334,11 +334,8 @@ private fun CardPreview(
 
             RunicText(
                 text = quote.previewRunicText,
+                role = RunicTextRole.ShareCard,
                 color = palette.primaryText,
-                style = MaterialTheme.typography.bodyLarge,
-                fontSize = 18.sp,
-                overrideLetterSpacing = 0.6.sp,
-                overrideLineHeight = 26.sp,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
             )
@@ -424,11 +421,8 @@ private fun VersePreview(
 
             RunicText(
                 text = quote.previewRunicText,
+                role = RunicTextRole.ShareVerse,
                 color = palette.tertiaryText,
-                style = MaterialTheme.typography.bodyMedium,
-                fontSize = 11.sp,
-                overrideLetterSpacing = 0.45.sp,
-                overrideLineHeight = 16.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
@@ -501,11 +495,8 @@ private fun LandscapePreview(
 
             RunicText(
                 text = quote.previewRunicText,
+                role = RunicTextRole.ShareLandscape,
                 color = palette.tertiaryText,
-                style = MaterialTheme.typography.bodySmall,
-                fontSize = 9.sp,
-                overrideLetterSpacing = 0.42.sp,
-                overrideLineHeight = 12.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,

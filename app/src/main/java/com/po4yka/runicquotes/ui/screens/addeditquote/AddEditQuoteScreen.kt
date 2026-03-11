@@ -58,13 +58,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.ui.components.ConfirmationDialog
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
+import com.po4yka.runicquotes.ui.theme.RunicTextRole
 import com.po4yka.runicquotes.util.rememberHapticFeedback
 import java.time.Instant
 import java.time.ZoneId
@@ -384,10 +384,7 @@ private fun EditorPreviewCard(
                 text = if (previewText.isNotBlank()) previewText else "\u16BA\u16C1\u16BC\u16C0",
                 script = uiState.selectedScript,
                 font = uiState.selectedFont,
-                style = MaterialTheme.typography.bodyLarge,
-                fontSize = 17.sp,
-                overrideLineHeight = 28.sp,
-                overrideLetterSpacing = 0.425.sp,
+                role = RunicTextRole.EditorPreview,
                 color = if (previewText.isNotBlank()) {
                     MaterialTheme.colorScheme.onSurface
                 } else {
@@ -900,10 +897,7 @@ private fun ConfirmationContent(
                             text = previewText,
                             script = uiState.selectedScript,
                             font = uiState.selectedFont,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontSize = 13.sp,
-                            overrideLineHeight = 21.sp,
-                            overrideLetterSpacing = 0.39.sp,
+                            role = RunicTextRole.EditorConfirmation,
                             modifier = Modifier.fillMaxWidth()
                         )
                         Text(
