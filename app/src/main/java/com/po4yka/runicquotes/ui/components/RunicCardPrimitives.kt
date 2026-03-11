@@ -107,7 +107,8 @@ fun RunicSearchField(
     modifier: Modifier = Modifier,
     placeholderText: String = "Search",
     enabled: Boolean = true,
-    leadingContentDescription: String? = null
+    leadingContentDescription: String? = null,
+    shape: Shape = RunicExpressiveTheme.shapes.contentCard
 ) {
     val colors = MaterialTheme.colorScheme
 
@@ -117,7 +118,7 @@ fun RunicSearchField(
         modifier = modifier.fillMaxWidth(),
         enabled = enabled,
         singleLine = true,
-        shape = RunicExpressiveTheme.shapes.contentCard,
+        shape = shape,
         placeholder = {
             Text(
                 text = placeholderText,

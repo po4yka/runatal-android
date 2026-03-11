@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.TextFields
@@ -36,7 +35,6 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -66,6 +64,7 @@ import com.po4yka.runicquotes.ui.components.BottomSheetQuotePreview
 import com.po4yka.runicquotes.ui.components.ConfirmationDialog
 import com.po4yka.runicquotes.ui.components.EmptyState
 import com.po4yka.runicquotes.ui.components.RunicBottomSheet
+import com.po4yka.runicquotes.ui.components.RunicSearchField
 import com.po4yka.runicquotes.ui.components.SegmentedControl
 import com.po4yka.runicquotes.ui.components.SkeletonCard
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
@@ -143,18 +142,12 @@ fun QuoteListScreen(
                 counts = filterCounts
             )
 
-            OutlinedTextField(
-                value = uiState.searchQuery,
-                onValueChange = viewModel::updateSearchQuery,
+            RunicSearchField(
+                query = uiState.searchQuery,
+                onQueryChange = viewModel::updateSearchQuery,
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search quotes or authors") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search"
-                    )
-                },
-                singleLine = true,
+                placeholderText = "Search quotes or authors",
+                leadingContentDescription = "Search quotes",
                 shape = RunicExpressiveTheme.shapes.segmentedControl
             )
 
