@@ -86,3 +86,6 @@ fabric.properties
 # Ralph orchestration
 .ralph/
 PROMPT.md
+
+# Codex artifacts
+.codex-artifacts/
