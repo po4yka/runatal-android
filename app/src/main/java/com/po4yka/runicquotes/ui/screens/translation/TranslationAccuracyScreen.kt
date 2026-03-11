@@ -19,7 +19,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -29,6 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.po4yka.runicquotes.ui.components.RunicTopBar
+import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 
 @Composable
@@ -82,32 +83,22 @@ private fun AccuracySectionLabel(text: String) {
 
 @Composable
 private fun TranslationAccuracyTopBar(onNavigateBack: () -> Unit) {
-    val controls = RunicExpressiveTheme.controls
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-            .height(54.dp)
-    ) {
-        IconButton(
-            onClick = onNavigateBack,
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .size(controls.minimumTouchTarget)
-        ) {
-            Icon(
+    RunicTopBar(
+        navigationIcon = {
+            RunicTopBarIconAction(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back"
+                contentDescription = "Back",
+                onClick = onNavigateBack
+            )
+        },
+        titleContent = {
+            Text(
+                text = "Accuracy & context",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
-
-        Text(
-            text = "Accuracy & context",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.align(Alignment.Center)
-        )
-    }
+    )
 }
 
 @Composable

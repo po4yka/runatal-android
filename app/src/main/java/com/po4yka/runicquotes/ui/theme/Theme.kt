@@ -270,6 +270,7 @@ fun RunicQuotesTheme(
     val strokeTokens = runicStrokeTokens()
     val controlSizeTokens = runicControlSizeTokens()
     val iconSizeTokens = runicIconSizeTokens()
+    val topBarTokens = runicTopBarTokens()
     val motionTokens = runicMotionTokens()
     val materialShapes = runicMaterialShapes(shapeTokens)
 
@@ -295,6 +296,7 @@ fun RunicQuotesTheme(
         LocalRunicStrokeTokens provides strokeTokens,
         LocalRunicControlSizeTokens provides controlSizeTokens,
         LocalRunicIconSizeTokens provides iconSizeTokens,
+        LocalRunicTopBarTokens provides topBarTokens,
         LocalRunicMotionTokens provides motionTokens,
         LocalRunicExpressiveType provides expressiveTypography
     ) {

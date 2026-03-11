@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -38,6 +37,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RuneReference
 import com.po4yka.runicquotes.ui.components.ErrorState
+import com.po4yka.runicquotes.ui.components.RunicTopBar
+import com.po4yka.runicquotes.ui.components.RunicTopBarActionStyle
+import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
 
 @Composable
 fun RuneDetailScreen(
@@ -78,29 +80,23 @@ fun RuneDetailScreen(
 
 @Composable
 private fun RuneDetailTopBar(onNavigateBack: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-            .height(54.dp)
-    ) {
-        FilledTonalIconButton(
-            onClick = onNavigateBack,
-            modifier = Modifier.align(Alignment.CenterStart)
-        ) {
-            Icon(
+    RunicTopBar(
+        navigationIcon = {
+            RunicTopBarIconAction(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Navigate back"
+                contentDescription = "Navigate back",
+                onClick = onNavigateBack,
+                style = RunicTopBarActionStyle.Tonal
+            )
+        },
+        titleContent = {
+            Text(
+                text = "Rune Detail",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
-
-        Text(
-            text = "Rune Detail",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.align(Alignment.Center)
-        )
-    }
+    )
 }
 
 @Composable

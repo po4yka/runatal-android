@@ -84,6 +84,14 @@ data class RunicIconSizeTokens(
     val selectedAppIcon: Dp
 )
 
+/** Layout defaults for shared top app bars and their centered title treatment. */
+@Immutable
+data class RunicTopBarTokens(
+    val horizontalPadding: Dp,
+    val verticalPadding: Dp,
+    val titleSideClearance: Dp
+)
+
 /** Motion and animation tokens for runic UI components. */
 @Immutable
 data class RunicMotionTokens(
@@ -162,6 +170,12 @@ private val DefaultRunicIconSizeTokens = RunicIconSizeTokens(
     selectedAppIcon = 23.dp
 )
 
+private val DefaultRunicTopBarTokens = RunicTopBarTokens(
+    horizontalPadding = 12.dp,
+    verticalPadding = 6.dp,
+    titleSideClearance = 56.dp
+)
+
 private val DefaultRunicMotionTokens = RunicMotionTokens(
     shortDurationMillis = 220,
     mediumDurationMillis = 420,
@@ -201,6 +215,9 @@ fun runicControlSizeTokens(): RunicControlSizeTokens = DefaultRunicControlSizeTo
 /** Returns default [RunicIconSizeTokens]. */
 fun runicIconSizeTokens(): RunicIconSizeTokens = DefaultRunicIconSizeTokens
 
+/** Returns default [RunicTopBarTokens]. */
+fun runicTopBarTokens(): RunicTopBarTokens = DefaultRunicTopBarTokens
+
 /** Returns default [RunicMotionTokens]. */
 fun runicMotionTokens(): RunicMotionTokens = DefaultRunicMotionTokens
 
@@ -210,6 +227,7 @@ val LocalRunicSpacingTokens = staticCompositionLocalOf { DefaultRunicSpacingToke
 val LocalRunicStrokeTokens = staticCompositionLocalOf { DefaultRunicStrokeTokens }
 val LocalRunicControlSizeTokens = staticCompositionLocalOf { DefaultRunicControlSizeTokens }
 val LocalRunicIconSizeTokens = staticCompositionLocalOf { DefaultRunicIconSizeTokens }
+val LocalRunicTopBarTokens = staticCompositionLocalOf { DefaultRunicTopBarTokens }
 val LocalRunicMotionTokens = staticCompositionLocalOf { DefaultRunicMotionTokens }
 
 /** Provides access to runic expressive design tokens via composition locals. */
@@ -231,6 +249,9 @@ object RunicExpressiveTheme {
 
     val icons: RunicIconSizeTokens
         @Composable get() = LocalRunicIconSizeTokens.current
+
+    val topBars: RunicTopBarTokens
+        @Composable get() = LocalRunicTopBarTokens.current
 
     val motion: RunicMotionTokens
         @Composable get() = LocalRunicMotionTokens.current

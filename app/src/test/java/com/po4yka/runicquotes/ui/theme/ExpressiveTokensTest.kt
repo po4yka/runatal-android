@@ -24,6 +24,7 @@ class ExpressiveTokensTest {
         val strokes = runicStrokeTokens()
         val controls = runicControlSizeTokens()
         val icons = runicIconSizeTokens()
+        val topBars = runicTopBarTokens()
 
         assertThat(spacing.standard).isEqualTo(12.dp)
         assertThat(spacing.roomy).isEqualTo(20.dp)
@@ -36,5 +37,8 @@ class ExpressiveTokensTest {
         assertThat(controls.leadingBadgeLarge).isEqualTo(40.dp)
         assertThat(icons.standard).isEqualTo(18.dp)
         assertThat(icons.selectedAppIcon).isEqualTo(23.dp)
+        assertThat(topBars.horizontalPadding).isEqualTo(12.dp)
+        assertThat(topBars.verticalPadding).isEqualTo(6.dp)
+        assertThat(topBars.titleSideClearance).isEqualTo(56.dp)
     }
 }

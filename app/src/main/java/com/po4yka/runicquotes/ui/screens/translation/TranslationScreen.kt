@@ -31,7 +31,6 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -67,6 +66,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.segmentLabel
 import com.po4yka.runicquotes.ui.components.RunicText
+import com.po4yka.runicquotes.ui.components.RunicTopBar
+import com.po4yka.runicquotes.ui.components.RunicTopBarActionStyle
+import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.theme.RunicTextRole
 import kotlinx.coroutines.launch
@@ -170,49 +172,31 @@ fun TranslationScreen(
 
 @Composable
 private fun TranslationTopBar(onNavigateBack: () -> Unit) {
-    val controls = RunicExpressiveTheme.controls
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-            .height(54.dp)
-    ) {
-        IconButton(
-            onClick = onNavigateBack,
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .size(controls.minimumTouchTarget)
-        ) {
-            Icon(
+    RunicTopBar(
+        navigationIcon = {
+            RunicTopBarIconAction(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back"
+                contentDescription = "Back",
+                onClick = onNavigateBack
+            )
+        },
+        trailingContent = {
+            RunicTopBarIconAction(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Close",
+                onClick = onNavigateBack,
+                style = RunicTopBarActionStyle.Outlined,
+                shape = RoundedCornerShape(12.dp)
+            )
+        },
+        titleContent = {
+            Text(
+                text = "Translate",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
-
-        Text(
-            text = "Translate",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.align(Alignment.Center)
-        )
-
-        Surface(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .size(controls.minimumTouchTarget),
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
-            onClick = onNavigateBack
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Close"
-                )
-            }
-        }
-    }
+    )
 }
 
 @Composable

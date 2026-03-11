@@ -27,7 +27,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -53,6 +52,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RuneReference
 import com.po4yka.runicquotes.ui.components.EmptyState
 import com.po4yka.runicquotes.ui.components.ErrorState
+import com.po4yka.runicquotes.ui.components.RunicTopBar
+import com.po4yka.runicquotes.ui.components.RunicTopBarActionStyle
+import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
 import com.po4yka.runicquotes.ui.components.SkeletonCard
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
 
@@ -101,39 +103,31 @@ private fun ReferencesTopBar(
     onNavigateBack: () -> Unit,
     onToggleSearch: () -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-            .height(54.dp)
-    ) {
-        FilledTonalIconButton(
-            onClick = onNavigateBack,
-            modifier = Modifier.align(Alignment.CenterStart)
-        ) {
-            Icon(
+    RunicTopBar(
+        navigationIcon = {
+            RunicTopBarIconAction(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Navigate back"
+                contentDescription = "Navigate back",
+                onClick = onNavigateBack,
+                style = RunicTopBarActionStyle.Tonal
             )
-        }
-
-        Text(
-            text = "Rune Reference",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.align(Alignment.Center)
-        )
-
-        FilledTonalIconButton(
-            onClick = onToggleSearch,
-            modifier = Modifier.align(Alignment.CenterEnd)
-        ) {
-            Icon(
+        },
+        trailingContent = {
+            RunicTopBarIconAction(
                 imageVector = if (isSearchVisible) Icons.Default.Close else Icons.Default.Search,
-                contentDescription = if (isSearchVisible) "Close search" else "Search runes"
+                contentDescription = if (isSearchVisible) "Close search" else "Search runes",
+                onClick = onToggleSearch,
+                style = RunicTopBarActionStyle.Tonal
+            )
+        },
+        titleContent = {
+            Text(
+                text = "Rune Reference",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
-    }
+    )
 }
 
 @Composable
@@ -161,12 +155,12 @@ private fun ReferencesSearchField(
         },
         trailingIcon = if (query.isNotBlank()) {
             {
-                FilledTonalIconButton(onClick = { onQueryChange("") }) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Clear search"
-                    )
-                }
+                RunicTopBarIconAction(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Clear search",
+                    onClick = { onQueryChange("") },
+                    style = RunicTopBarActionStyle.Tonal
+                )
             }
         } else {
             null
