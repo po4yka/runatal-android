@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -47,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.QuotePack
+import com.po4yka.runicquotes.ui.components.RunicChoiceChip
 import com.po4yka.runicquotes.ui.components.ErrorState
 import com.po4yka.runicquotes.ui.components.RunicInfoCard
 import com.po4yka.runicquotes.ui.components.RunicTopBar
@@ -55,6 +57,7 @@ import com.po4yka.runicquotes.ui.components.SkeletonCard
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.components.SkeletonCircle
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
+import com.po4yka.runicquotes.ui.components.runicChoiceChipColors
 import kotlinx.coroutines.delay
 
 @Composable
@@ -257,40 +260,34 @@ private fun PackHeroCard(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                Surface(
+                RunicChoiceChip(
+                    selected = pack.isInLibrary,
                     onClick = onToggleLibrary,
+                    role = Role.Checkbox,
                     shape = RoundedCornerShape(12.dp),
-                    color = if (pack.isInLibrary) {
-                        MaterialTheme.colorScheme.secondaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.primary
-                    }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = if (pack.isInLibrary) Icons.Default.Check else Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(15.dp),
-                            tint = if (pack.isInLibrary) {
-                                MaterialTheme.colorScheme.onSecondaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onPrimary
-                            }
-                        )
-                        Text(
-                            text = if (pack.isInLibrary) "In Library" else "Add to Library",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
-                            color = if (pack.isInLibrary) {
-                                MaterialTheme.colorScheme.onSecondaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onPrimary
-                            }
-                        )
-                    }
+                    colors = runicChoiceChipColors(
+                        selected = pack.isInLibrary,
+                        selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        unselectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        unselectedContentColor = MaterialTheme.colorScheme.onPrimary,
+                        selectedBorderColor = Color.Transparent,
+                        unselectedBorderColor = Color.Transparent
+                    ),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) { contentColor ->
+                    Icon(
+                        imageVector = if (pack.isInLibrary) Icons.Default.Check else Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp),
+                        tint = contentColor
+                    )
+                    Text(
+                        text = if (pack.isInLibrary) "In Library" else "Add to Library",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                        color = contentColor
+                    )
                 }
             }
         }

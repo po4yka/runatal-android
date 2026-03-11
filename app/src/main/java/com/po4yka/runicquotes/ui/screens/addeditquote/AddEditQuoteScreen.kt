@@ -64,12 +64,15 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.ui.components.ConfirmationDialog
+import com.po4yka.runicquotes.ui.components.RunicChoiceChip
+import com.po4yka.runicquotes.ui.components.RunicChoiceGroup
 import com.po4yka.runicquotes.ui.components.RunicInfoCard
 import com.po4yka.runicquotes.ui.components.RunicInputCard
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarActionStyle
 import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
+import com.po4yka.runicquotes.ui.components.runicChoiceChipColors
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.theme.RunicTextRole
 import com.po4yka.runicquotes.util.rememberHapticFeedback
@@ -434,67 +437,52 @@ private fun CompactScriptSelector(
     onScriptSelected: (RunicScript) -> Unit,
     enabled: Boolean
 ) {
-    val controls = RunicExpressiveTheme.controls
     val scripts = RunicScript.entries
 
-    Surface(
+    RunicChoiceGroup(
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
-        )
+        containerColor = MaterialTheme.colorScheme.surface,
+        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
+        contentPadding = PaddingValues(1.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(1.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            scripts.forEach { script ->
-                val selected = script == selectedScript
-                val label = when (script) {
-                    RunicScript.ELDER_FUTHARK -> "Elder"
-                    RunicScript.YOUNGER_FUTHARK -> "Younger"
-                    RunicScript.CIRTH -> "Cirth"
-                }
+        scripts.forEach { script ->
+            val selected = script == selectedScript
+            val label = when (script) {
+                RunicScript.ELDER_FUTHARK -> "Elder"
+                RunicScript.YOUNGER_FUTHARK -> "Younger"
+                RunicScript.CIRTH -> "Cirth"
+            }
 
-                Surface(
-                    modifier = Modifier.heightIn(min = controls.minimumTouchTarget),
-                    shape = RoundedCornerShape(10.dp),
-                    color = if (selected) {
-                        MaterialTheme.colorScheme.secondaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.surface
-                    },
-                    onClick = {
-                        if (enabled) {
-                            onScriptSelected(script)
-                        }
+            RunicChoiceChip(
+                selected = selected,
+                onClick = {
+                    if (enabled) {
+                        onScriptSelected(script)
                     }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (selected) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(11.dp),
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        }
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (selected) {
-                                MaterialTheme.colorScheme.onSecondaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            }
-                        )
-                    }
+                },
+                enabled = enabled,
+                shape = RoundedCornerShape(10.dp),
+                colors = runicChoiceChipColors(
+                    selected = selected,
+                    unselectedContainerColor = Color.Transparent,
+                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+            ) { contentColor ->
+                if (selected) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(11.dp),
+                        tint = contentColor
+                    )
                 }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = contentColor
+                )
             }
         }
     }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -51,10 +52,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.Quote
+import com.po4yka.runicquotes.ui.components.RunicChoiceChip
+import com.po4yka.runicquotes.ui.components.RunicChoiceGroup
 import com.po4yka.runicquotes.ui.components.ErrorState
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
+import com.po4yka.runicquotes.ui.components.runicChoiceChipColors
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.theme.RunicSharePalette
 import com.po4yka.runicquotes.ui.theme.RunicShareStyleTokens
@@ -222,58 +226,43 @@ private fun AppearanceToggle(
     onSelectAppearance: (ShareAppearance) -> Unit,
     shareStyle: RunicShareStyleTokens
 ) {
-    val controls = RunicExpressiveTheme.controls
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
     ) {
-        Surface(
+        RunicChoiceGroup(
             shape = shareStyle.appearanceToggleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            border = BorderStroke(
-                1.dp,
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-            )
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+            contentPadding = PaddingValues(2.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Row(
-                modifier = Modifier.padding(2.dp),
-                horizontalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                ShareAppearance.entries.forEach { appearance ->
-                    val selected = appearance == selectedAppearance
-                    val appearancePalette = runicSharePalette(appearance)
-                    Surface(
-                        modifier = Modifier.heightIn(min = controls.minimumTouchTarget),
-                        shape = shareStyle.appearanceOptionShape,
-                        color = if (selected) {
-                            MaterialTheme.colorScheme.secondaryContainer
-                        } else {
-                            Color.Transparent
-                        },
-                        onClick = { onSelectAppearance(appearance) }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 9.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(14.dp)
-                                    .clip(RunicExpressiveTheme.shapes.pill)
-                                    .background(appearancePalette.appearanceSwatch)
-                            )
-                            Text(
-                                text = appearance.displayName,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = if (selected) {
-                                    MaterialTheme.colorScheme.onSecondaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                }
-                            )
-                        }
-                    }
+            ShareAppearance.entries.forEach { appearance ->
+                val selected = appearance == selectedAppearance
+                val appearancePalette = runicSharePalette(appearance)
+
+                RunicChoiceChip(
+                    selected = selected,
+                    onClick = { onSelectAppearance(appearance) },
+                    shape = shareStyle.appearanceOptionShape,
+                    colors = runicChoiceChipColors(
+                        selected = selected,
+                        unselectedContainerColor = Color.Transparent
+                    ),
+                    contentPadding = PaddingValues(horizontal = 18.dp, vertical = 9.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) { contentColor ->
+                    Box(
+                        modifier = Modifier
+                            .size(14.dp)
+                            .clip(RunicExpressiveTheme.shapes.pill)
+                            .background(appearancePalette.appearanceSwatch)
+                    )
+                    Text(
+                        text = appearance.displayName,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = contentColor
+                    )
                 }
             }
         }

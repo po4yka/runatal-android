@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -45,12 +46,14 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.QuotePack
 import com.po4yka.runicquotes.ui.components.ErrorState
+import com.po4yka.runicquotes.ui.components.RunicChoiceChip
 import com.po4yka.runicquotes.ui.components.RunicInfoCard
 import com.po4yka.runicquotes.ui.components.RunicSearchField
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
 import com.po4yka.runicquotes.ui.components.SkeletonCard
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
+import com.po4yka.runicquotes.ui.components.runicChoiceChipColors
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 
 @Composable
@@ -272,50 +275,33 @@ private fun PackLibraryPill(
     isInLibrary: Boolean,
     onClick: () -> Unit
 ) {
-    val controls = RunicExpressiveTheme.controls
-    Surface(
-        modifier = Modifier.heightIn(min = controls.minimumTouchTarget),
+    RunicChoiceChip(
+        selected = isInLibrary,
         onClick = onClick,
+        role = Role.Checkbox,
         shape = RoundedCornerShape(12.dp),
-        color = if (isInLibrary) {
-            MaterialTheme.colorScheme.secondaryContainer
-        } else {
-            MaterialTheme.colorScheme.surface
-        },
-        border = BorderStroke(
-            1.dp,
-            if (isInLibrary) {
-                Color.Transparent
-            } else {
-                MaterialTheme.colorScheme.outlineVariant
-            }
+        colors = runicChoiceChipColors(
+            selected = isInLibrary,
+            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+            unselectedContainerColor = MaterialTheme.colorScheme.surface,
+            selectedContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            selectedBorderColor = Color.Transparent,
+            unselectedBorderColor = MaterialTheme.colorScheme.outlineVariant
+        ),
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 7.dp)
+    ) { contentColor ->
+        Icon(
+            imageVector = if (isInLibrary) Icons.Default.Check else Icons.Default.Add,
+            contentDescription = null,
+            modifier = Modifier.size(14.dp),
+            tint = contentColor
         )
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = if (isInLibrary) Icons.Default.Check else Icons.Default.Add,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = if (isInLibrary) {
-                    MaterialTheme.colorScheme.onSecondaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                }
-            )
-            Text(
-                text = if (isInLibrary) "Added" else "Add",
-                style = MaterialTheme.typography.labelSmall,
-                color = if (isInLibrary) {
-                    MaterialTheme.colorScheme.onSecondaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                }
-            )
-        }
+        Text(
+            text = if (isInLibrary) "Added" else "Add",
+            style = MaterialTheme.typography.labelSmall,
+            color = contentColor
+        )
     }
 }
 

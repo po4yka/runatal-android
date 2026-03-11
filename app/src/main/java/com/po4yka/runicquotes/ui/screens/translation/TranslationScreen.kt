@@ -3,8 +3,6 @@ package com.po4yka.runicquotes.ui.screens.translation
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,11 +49,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -66,12 +59,15 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.segmentLabel
+import com.po4yka.runicquotes.ui.components.RunicChoiceChip
+import com.po4yka.runicquotes.ui.components.RunicChoiceGroup
 import com.po4yka.runicquotes.ui.components.RunicInfoCard
 import com.po4yka.runicquotes.ui.components.RunicInputCard
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarActionStyle
 import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
+import com.po4yka.runicquotes.ui.components.runicChoiceChipColors
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.theme.RunicTextRole
 import kotlinx.coroutines.launch
@@ -207,67 +203,47 @@ private fun TranslationScriptSelector(
     selectedScript: RunicScript,
     onSelectScript: (RunicScript) -> Unit
 ) {
-    val controls = RunicExpressiveTheme.controls
-    Surface(
+    RunicChoiceGroup(
+        modifier = Modifier.fillMaxWidth(),
+        expand = true,
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
+        contentPadding = PaddingValues(1.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(1.dp),
-            horizontalArrangement = Arrangement.spacedBy(0.dp)
-        ) {
-            RunicScript.entries.forEachIndexed { index, script ->
-                val isSelected = script == selectedScript
-                val background = if (isSelected) {
-                    MaterialTheme.colorScheme.secondaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainerLow
-                }
-                val textColor = if (isSelected) {
-                    MaterialTheme.colorScheme.onSecondaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                }
+        RunicScript.entries.forEachIndexed { index, script ->
+            val isSelected = script == selectedScript
 
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = controls.minimumTouchTarget)
-                        .clip(
-                            when (index) {
-                                0 -> RoundedCornerShape(topStart = 11.dp, bottomStart = 11.dp)
-                                RunicScript.entries.lastIndex -> RoundedCornerShape(topEnd = 11.dp, bottomEnd = 11.dp)
-                                else -> RoundedCornerShape(0.dp)
-                            }
-                        )
-                        .background(background)
-                        .clickable { onSelectScript(script) }
-                        .semantics {
-                            role = Role.Tab
-                            selected = isSelected
-                        }
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (isSelected) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(12.dp),
-                            tint = textColor
-                        )
-                        Spacer(modifier = Modifier.size(4.dp))
-                    }
-                    Text(
-                        text = script.segmentLabel,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = textColor
+            RunicChoiceChip(
+                selected = isSelected,
+                onClick = { onSelectScript(script) },
+                modifier = Modifier.weight(1f),
+                shape = when (index) {
+                    0 -> RoundedCornerShape(topStart = 11.dp, bottomStart = 11.dp)
+                    RunicScript.entries.lastIndex -> RoundedCornerShape(topEnd = 11.dp, bottomEnd = 11.dp)
+                    else -> RoundedCornerShape(0.dp)
+                },
+                colors = runicChoiceChipColors(
+                    selected = isSelected,
+                    unselectedContainerColor = androidx.compose.ui.graphics.Color.Transparent
+                ),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.Center
+            ) { contentColor ->
+                if (isSelected) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = contentColor
                     )
+                    Spacer(modifier = Modifier.size(4.dp))
                 }
+                Text(
+                    text = script.segmentLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = contentColor
+                )
             }
         }
     }
