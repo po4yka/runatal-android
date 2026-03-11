@@ -48,8 +48,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.QuotePack
+import com.po4yka.runicquotes.ui.components.RunicBadge
 import com.po4yka.runicquotes.ui.components.RunicChoiceChip
 import com.po4yka.runicquotes.ui.components.ErrorState
+import com.po4yka.runicquotes.ui.components.RunicGlyphBadge
 import com.po4yka.runicquotes.ui.components.RunicInfoCard
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
@@ -203,13 +205,11 @@ private fun PackHeroCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.secondaryContainer)
-                        .semantics { contentDescription = "Cover rune: ${pack.coverRune}" },
-                    contentAlignment = Alignment.Center
+                RunicGlyphBadge(
+                    size = 48.dp,
+                    shape = RoundedCornerShape(16.dp),
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.semantics { contentDescription = "Cover rune: ${pack.coverRune}" }
                 ) {
                     Text(
                         text = pack.coverRune,
@@ -246,7 +246,7 @@ private fun PackHeroCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                PackMetaPill(text = "${pack.quoteCount} quotes")
+                RunicBadge(text = "${pack.quoteCount} quotes")
                 Text(
                     text = "·",
                     style = MaterialTheme.typography.bodyMedium,
@@ -291,21 +291,6 @@ private fun PackHeroCard(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun PackMetaPill(text: String) {
-    Surface(
-        shape = RoundedCornerShape(999.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-        )
     }
 }
 

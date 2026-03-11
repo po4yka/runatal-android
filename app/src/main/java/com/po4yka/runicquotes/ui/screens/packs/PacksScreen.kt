@@ -45,8 +45,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.QuotePack
+import com.po4yka.runicquotes.ui.components.RunicBadge
 import com.po4yka.runicquotes.ui.components.ErrorState
 import com.po4yka.runicquotes.ui.components.RunicChoiceChip
+import com.po4yka.runicquotes.ui.components.RunicGlyphBadge
 import com.po4yka.runicquotes.ui.components.RunicInfoCard
 import com.po4yka.runicquotes.ui.components.RunicSearchField
 import com.po4yka.runicquotes.ui.components.RunicTopBar
@@ -215,12 +217,11 @@ private fun PackListCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.Top
         ) {
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(MaterialTheme.colorScheme.secondaryContainer),
-                contentAlignment = Alignment.Center
+            RunicGlyphBadge(
+                size = 42.dp,
+                shape = RoundedCornerShape(14.dp),
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.semantics { contentDescription = "Pack rune: ${pack.coverRune}" }
             ) {
                 Text(
                     text = pack.coverRune,
@@ -253,7 +254,7 @@ private fun PackListCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    MetaPill(text = "${pack.quoteCount} quotes")
+                    RunicBadge(text = "${pack.quoteCount} quotes")
                     Text(
                         text = sourceLabel,
                         style = MaterialTheme.typography.labelSmall,
@@ -301,21 +302,6 @@ private fun PackLibraryPill(
             text = if (isInLibrary) "Added" else "Add",
             style = MaterialTheme.typography.labelSmall,
             color = contentColor
-        )
-    }
-}
-
-@Composable
-private fun MetaPill(text: String) {
-    Surface(
-        shape = RoundedCornerShape(999.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
         )
     }
 }

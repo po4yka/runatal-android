@@ -32,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.theme.RunicTextRole
+import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
+import com.po4yka.runicquotes.ui.theme.SupportingTextRole
 
 /**
  * Quote actions bottom sheet following Runatal design system (Figma node 14:19678).
@@ -116,13 +118,13 @@ data class BottomSheetQuotePreview(
 private fun SheetHandle() {
     val colors = MaterialTheme.colorScheme
 
-    Surface(
+    RunicOrnamentRule(
         modifier = Modifier
-            .padding(top = 12.dp, bottom = 10.dp)
-            .size(width = 36.dp, height = 4.dp),
-        shape = RunicExpressiveTheme.shapes.pill,
+            .padding(top = 12.dp, bottom = 10.dp),
+        width = 36.dp,
+        thickness = 4.dp,
         color = colors.onSurface.copy(alpha = 0.12f)
-    ) {}
+    )
 }
 
 @Composable
@@ -141,13 +143,13 @@ private fun QuotePreviewCard(preview: BottomSheetQuotePreview) {
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 15.dp),
             verticalAlignment = Alignment.Top
         ) {
-            Surface(
+            RunicOrnamentRule(
                 modifier = Modifier
-                    .padding(top = 2.dp)
-                    .size(width = 3.dp, height = 38.dp),
-                shape = RunicExpressiveTheme.shapes.pill,
+                    .padding(top = 2.dp),
+                width = 3.dp,
+                thickness = 38.dp,
                 color = colors.secondary.copy(alpha = 0.48f)
-            ) {}
+            )
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 RunicText(
@@ -161,15 +163,15 @@ private fun QuotePreviewCard(preview: BottomSheetQuotePreview) {
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        modifier = Modifier.size(width = 14.dp, height = 1.5.dp),
-                        shape = RunicExpressiveTheme.shapes.pill,
+                    RunicOrnamentRule(
+                        width = 14.dp,
+                        thickness = 1.5.dp,
                         color = colors.secondary.copy(alpha = 0.28f)
-                    ) {}
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = preview.author,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = RunicTypeRoles.supporting(SupportingTextRole.CompactMeta),
                         color = colors.onSurfaceVariant
                     )
                 }
@@ -211,15 +213,17 @@ private fun BottomSheetActionRow(action: BottomSheetAction) {
             .height(60.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Surface(
-            modifier = Modifier.size(38.dp),
+        RunicGlyphBadge(
+            size = 38.dp,
             shape = RoundedCornerShape(16.dp),
-            color = iconContainerColor
+            containerColor = iconContainerColor
         ) {
             Icon(
                 imageVector = action.icon,
                 contentDescription = action.title,
-                modifier = Modifier.padding(10.dp).size(17.dp),
+                modifier = Modifier
+                    .padding(10.dp)
+                    .size(17.dp),
                 tint = iconTint
             )
         }
