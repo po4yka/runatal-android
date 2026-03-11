@@ -67,12 +67,15 @@ import com.po4yka.runicquotes.ui.components.RunicActionButtonStyle
 import com.po4yka.runicquotes.ui.components.RunicChoiceChip
 import com.po4yka.runicquotes.ui.components.RunicChoiceGroup
 import com.po4yka.runicquotes.ui.components.RunicInfoCard
+import com.po4yka.runicquotes.ui.components.RunicInlineBanner
+import com.po4yka.runicquotes.ui.components.RunicInlineBannerStyle
 import com.po4yka.runicquotes.ui.components.RunicInputCard
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarActionStyle
 import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
 import com.po4yka.runicquotes.ui.components.runicActionButtonColors
+import com.po4yka.runicquotes.ui.components.runicInlineBannerColors
 import com.po4yka.runicquotes.ui.components.runicChoiceChipColors
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.theme.RunicTextRole
@@ -876,31 +879,16 @@ private fun ConfirmationContent(
                 )
             }
 
-            Surface(
+            RunicInlineBanner(
+                message = "Quote saved successfully",
+                trailingText = "Undo",
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(horizontal = 16.dp, vertical = 16.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.inverseSurface
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Quote saved successfully",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.inverseOnSurface
-                    )
-                    Spacer(modifier = Modifier.size(18.dp))
-                    Text(
-                        text = "Undo",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.inverseOnSurface.copy(alpha = 0.82f)
-                    )
-                }
-            }
+                shape = RunicExpressiveTheme.shapes.segment,
+                colors = runicInlineBannerColors(RunicInlineBannerStyle.Inverse),
+                shadowElevation = RunicExpressiveTheme.elevations.flat
+            )
         }
     }
 }
