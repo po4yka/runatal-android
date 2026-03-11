@@ -164,8 +164,8 @@ detekt {
     )
 }
 
-// JaCoCo configuration for code coverage
-val jacocoExclusions = listOf(
+// JaCoCo configuration for code coverage.
+val coverageExclusions = listOf(
     "**/R.class",
     "**/R$*.class",
     "**/BuildConfig.*",
@@ -175,53 +175,94 @@ val jacocoExclusions = listOf(
     "**/*_HiltModules*.*",
     "**/*_MembersInjector.*",
     "**/*_Impl*.*",
+    "**/*ComponentTreeDeps.*",
+    "**/*GeneratedInjector.*",
+    "**/ComposableSingletons*.*",
+    "**/Dagger*.*",
+    "**/Hilt_*.*",
     "**/*\$Companion*.*",
     "**/*\$WhenMappings*.*",
-    "android/**/*.*"
+    "android/**/*.*",
+    "dagger/hilt/internal/**/*.*",
+    "hilt_aggregated_deps/**/*.*"
 )
 
-val jacocoIncludes = listOf(
-    "**/domain/transliteration/**",
-    "**/data/repository/**",
-    "**/ui/screens/**/*ViewModel*"
+val transliterationCoverageIncludes = listOf(
+    "**/domain/transliteration/**"
 )
 
-fun coverageClassTree() = fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
-    include(jacocoIncludes)
-    exclude(jacocoExclusions)
+val coverageSourceDirectories = files(
+    "$projectDir/src/main/java",
+    "$projectDir/src/main/kotlin"
+)
+
+fun coverageExecutionData() = fileTree(layout.buildDirectory) {
+    include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
+    include("outputs/code_coverage/debugAndroidTest/connected/**/*.ec")
 }
 
-tasks.register<JacocoReport>("jacocoTestReport") {
+fun coverageClassTree(includes: List<String>? = null) =
+    fileTree("${layout.buildDirectory.get()}/intermediates/classes/debug/transformDebugClassesWithAsm/dirs") {
+        includes?.let { include(it) }
+        exclude(coverageExclusions)
+    }
+
+tasks.register<JacocoReport>("jacocoProjectCoverageReport") {
     dependsOn("testDebugUnitTest")
+    group = "verification"
+    description = "Generates project coverage from unit tests and any available Android test coverage."
 
     reports {
         xml.required.set(true)
+        xml.outputLocation.set(layout.buildDirectory.file("reports/jacoco/projectCoverage/projectCoverage.xml"))
         html.required.set(true)
+        html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco/projectCoverage/html"))
     }
 
-    val mainSrc = "${project.projectDir}/src/main/java"
-
-    sourceDirectories.setFrom(files(mainSrc))
+    sourceDirectories.setFrom(coverageSourceDirectories)
     classDirectories.setFrom(files(coverageClassTree()))
-    executionData.setFrom(fileTree(layout.buildDirectory) {
-        include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
-    })
+    executionData.setFrom(coverageExecutionData())
 }
 
-// Coverage verification task
-tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
-    dependsOn("jacocoTestReport")
+tasks.register<JacocoReport>("jacocoTransliterationCoverageReport") {
+    dependsOn("testDebugUnitTest")
+    group = "verification"
+    description = "Generates focused coverage for the transliteration domain layer."
+
+    reports {
+        xml.required.set(true)
+        xml.outputLocation.set(
+            layout.buildDirectory.file("reports/jacoco/transliterationCoverage/transliterationCoverage.xml")
+        )
+        html.required.set(true)
+        html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco/transliterationCoverage/html"))
+    }
+
+    sourceDirectories.setFrom(coverageSourceDirectories)
+    classDirectories.setFrom(files(coverageClassTree(transliterationCoverageIncludes)))
+    executionData.setFrom(coverageExecutionData())
+}
+
+tasks.register<JacocoCoverageVerification>("jacocoTransliterationCoverageVerification") {
+    dependsOn("jacocoTransliterationCoverageReport")
+    group = "verification"
+    description = "Enforces the transliteration line-coverage target."
 
     violationRules {
         rule {
             limit {
-                minimum = "0.80".toBigDecimal()
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.90".toBigDecimal()
             }
         }
     }
 
-    classDirectories.setFrom(files(coverageClassTree()))
-    executionData.setFrom(fileTree(layout.buildDirectory) {
-        include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
-    })
+    sourceDirectories.setFrom(coverageSourceDirectories)
+    classDirectories.setFrom(files(coverageClassTree(transliterationCoverageIncludes)))
+    executionData.setFrom(coverageExecutionData())
+}
+
+tasks.named("check") {
+    dependsOn("jacocoTransliterationCoverageVerification")
 }

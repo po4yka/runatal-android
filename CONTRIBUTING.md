@@ -220,8 +220,10 @@ di/         → Dependency Injection
 ## Testing Guidelines
 
 ### Test Coverage Requirements
-- **Business Logic**: 90%+ coverage (transliterators, repositories)
-- **ViewModels**: 80%+ coverage
+- **Project Report**: `jacocoProjectCoverageReport` merges unit and Android test coverage when both exist
+- **Transliterators**: 90%+ line coverage (enforced by `jacocoTransliterationCoverageVerification`)
+- **Repositories**: 90%+ target coverage
+- **ViewModels**: 80%+ target coverage
 - **UI**: Basic smoke tests
 
 ### Writing Tests
@@ -269,8 +271,11 @@ class QuoteViewModelTest {
 # Specific test class
 ./gradlew test --tests "ElderFutharkTransliteratorTest"
 
-# With coverage
-./gradlew testDebugUnitTest jacocoTestReport
+# With project coverage
+./gradlew testDebugUnitTest jacocoProjectCoverageReport
+
+# Enforce the transliteration coverage gate
+./gradlew jacocoTransliterationCoverageVerification
 ```
 
 ## Commit Message Guidelines

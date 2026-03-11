@@ -23,8 +23,11 @@ Single-module Android app (Kotlin + Jetpack Compose) that transliterates quotes 
 ./gradlew lintDebug
 
 # Coverage
-./gradlew testDebugUnitTest jacocoTestReport
-# Report: app/build/reports/jacoco/testDebugUnitTest/html/index.html
+./gradlew testDebugUnitTest jacocoProjectCoverageReport
+# Report: app/build/reports/jacoco/projectCoverage/html/index.html
+
+# Coverage gate
+./gradlew jacocoTransliterationCoverageVerification
 
 # Full check pipeline (mirrors CI)
 ./gradlew check
@@ -75,9 +78,9 @@ app/src/androidTest/   # Instrumented tests (run on device/emulator)
 ```
 
 ### Coverage Requirements
-- 80% minimum overall (JaCoCo verification task enforces this)
-- 90% target for domain/business logic (transliterators, repositories)
-- 80% target for ViewModels
+- Project-wide coverage is reported via `jacocoProjectCoverageReport` and merges Android test coverage when it exists
+- 90% line coverage is enforced for `domain/transliteration` via `jacocoTransliterationCoverageVerification`
+- Repository and ViewModel coverage targets remain 90% and 80% respectively, tracked through the project report
 - Excludes: generated code (Hilt, Room), test files, BuildConfig
 
 ### Writing Tests

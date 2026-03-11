@@ -20,7 +20,8 @@ Android app displaying inspirational quotes transliterated into ancient runic sc
 ```bash
 ./gradlew assembleDebug                    # Build debug APK
 ./gradlew testDebugUnitTest                # Unit tests
-./gradlew testDebugUnitTest jacocoTestReport  # Tests + coverage
+./gradlew testDebugUnitTest jacocoProjectCoverageReport  # Project coverage report
+./gradlew jacocoTransliterationCoverageVerification      # Coverage gate
 ./gradlew detekt                           # Static analysis (must pass with 0 issues)
 ./gradlew lintDebug                        # Android lint
 ./gradlew check                            # All checks

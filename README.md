@@ -123,21 +123,25 @@ The project maintains high test coverage with comprehensive test suites:
 # Run all unit tests
 ./gradlew test
 
-# Run tests with coverage report
-./gradlew testDebugUnitTest jacocoTestReport
+# Run project coverage report
+./gradlew testDebugUnitTest jacocoProjectCoverageReport
+
+# Enforce the transliteration coverage gate
+./gradlew jacocoTransliterationCoverageVerification
 
 # Run specific test class
 ./gradlew test --tests "ElderFutharkTransliteratorTest"
 
-# Run instrumented tests (requires emulator/device)
-./gradlew connectedAndroidTest
+# Run instrumented tests and merge their coverage (requires emulator/device)
+./gradlew testDebugUnitTest connectedDebugAndroidTest jacocoProjectCoverageReport
 ```
 
 **Test Coverage:**
 - Transliterators: 260+ tests covering all three runic scripts
 - Repository Layer: 30+ tests with MockK
 - ViewModels: 65+ tests using Turbine for Flow testing
-- Overall: ~90% coverage for critical business logic
+- Transliteration domain: 90%+ line coverage enforced in CI
+- Project-wide report: merges unit and Android test coverage when both exist
 
 ## 📚 Architecture
 
