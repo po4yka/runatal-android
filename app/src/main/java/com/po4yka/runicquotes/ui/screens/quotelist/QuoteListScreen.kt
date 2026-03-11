@@ -52,6 +52,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -294,7 +296,8 @@ private fun LibraryHeader(
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = "Library",
-                style = MaterialTheme.typography.headlineLarge
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier.semantics { heading() }
             )
             Text(
                 text = "Your collection",
@@ -315,7 +318,7 @@ private fun LibraryHeader(
             FilledTonalIconButton(onClick = onNavigateToArchive) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Archive"
+                    contentDescription = "Open archive"
                 )
             }
         }
@@ -539,6 +542,7 @@ private fun LibraryActionsBottomSheet(
         actions = actions,
         preview = BottomSheetQuotePreview(
             runicText = quote.getRunicText(selectedScript, transliterationFactory),
+            latinText = quote.textLatin,
             author = quote.author,
             font = selectedFont,
             script = selectedScript

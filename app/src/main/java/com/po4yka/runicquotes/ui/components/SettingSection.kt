@@ -11,6 +11,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 
 /**
@@ -33,7 +35,9 @@ fun SettingSection(
             text = title,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = spacing.tight)
+            modifier = Modifier
+                .padding(start = spacing.tight)
+                .semantics { heading() }
         )
         if (subtitle != null) {
             Text(

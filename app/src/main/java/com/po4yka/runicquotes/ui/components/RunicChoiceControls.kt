@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -94,6 +95,7 @@ fun RunicChoiceChip(
     shape: Shape? = null,
     minHeight: Dp = Dp.Unspecified,
     role: Role = Role.Tab,
+    stateDescription: String? = null,
     colors: RunicChoiceChipColors? = null,
     contentPadding: PaddingValues = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
     horizontalArrangement: Arrangement.Horizontal = Arrangement.spacedBy(4.dp),
@@ -130,6 +132,7 @@ fun RunicChoiceChip(
         modifier = modifier.semantics {
             this.role = role
             this.selected = selected
+            stateDescription?.let { this.stateDescription = it }
         },
         onClick = onClick,
         enabled = enabled,

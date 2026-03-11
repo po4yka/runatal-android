@@ -43,6 +43,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -60,6 +62,7 @@ import com.po4yka.runicquotes.ui.components.ErrorState
 import com.po4yka.runicquotes.ui.components.RunicText
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
+import com.po4yka.runicquotes.ui.components.buildRunicAccessibilityText
 import com.po4yka.runicquotes.ui.components.runicActionButtonColors
 import com.po4yka.runicquotes.ui.components.runicChoiceChipColors
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
@@ -154,7 +157,8 @@ private fun ShareTopBar(
         titleContent = {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.semantics { heading() }
             )
         }
     )
@@ -317,6 +321,12 @@ private fun CardPreview(
             RunicText(
                 text = quote.previewRunicText,
                 role = RunicTextRole.ShareCard,
+                accessibilityText = buildRunicAccessibilityText(
+                    latinText = quote.textLatin,
+                    author = quote.author,
+                    scriptLabel = quote.previewScriptLabel,
+                    prefix = "Share card preview"
+                ),
                 color = palette.primaryText,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
@@ -404,6 +414,12 @@ private fun VersePreview(
             RunicText(
                 text = quote.previewRunicText,
                 role = RunicTextRole.ShareVerse,
+                accessibilityText = buildRunicAccessibilityText(
+                    latinText = quote.textLatin,
+                    author = quote.author,
+                    scriptLabel = quote.previewScriptLabel,
+                    prefix = "Share verse preview"
+                ),
                 color = palette.tertiaryText,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -478,6 +494,12 @@ private fun LandscapePreview(
             RunicText(
                 text = quote.previewRunicText,
                 role = RunicTextRole.ShareLandscape,
+                accessibilityText = buildRunicAccessibilityText(
+                    latinText = quote.textLatin,
+                    author = quote.author,
+                    scriptLabel = quote.previewScriptLabel,
+                    prefix = "Share landscape preview"
+                ),
                 color = palette.tertiaryText,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -506,7 +528,9 @@ private fun TemplateSelector(
         ShareTemplate.entries.forEach { template ->
             val selected = template == selectedTemplate
             Surface(
-                modifier = Modifier.size(width = 124.dp, height = 94.dp),
+                modifier = Modifier
+                    .size(width = 124.dp, height = 94.dp)
+                    .semantics(mergeDescendants = true) {},
                 shape = shareStyle.templateTileShape,
                 color = if (selected) {
                     MaterialTheme.colorScheme.secondaryContainer
@@ -622,6 +646,7 @@ private fun ShareActions(
             },
             onClick = onShareAsText,
             modifier = Modifier.fillMaxWidth(),
+            accessibilityLabel = "Share quote as text",
             shape = shareStyle.actionButtonShape,
             colors = primaryButtonColors
         )
@@ -639,6 +664,7 @@ private fun ShareActions(
             },
             onClick = onShareAsImage,
             modifier = Modifier.fillMaxWidth(),
+            accessibilityLabel = "Export quote as image",
             shape = shareStyle.actionButtonShape,
             colors = utilityButtonColors
         )
@@ -659,6 +685,7 @@ private fun ShareActions(
                 },
                 onClick = onShareAsImage,
                 modifier = Modifier.weight(1f),
+                accessibilityLabel = selectedTemplate.primaryActionLabel,
                 shape = shareStyle.actionButtonShape,
                 colors = primaryButtonColors
             )

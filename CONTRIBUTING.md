@@ -217,6 +217,15 @@ di/         → Dependency Injection
    - Use `LaunchedEffect` for coroutines
    - Use `DisposableEffect` for cleanup
 
+### Accessibility Checklist
+- Every meaningful interactive element must expose a label, role, and state description when applicable.
+- Treat icons as decorative unless they are the only visible affordance for an action.
+- Keep touch targets at or above the 48dp tokenized minimum.
+- Mark major screen and section titles as headings.
+- Ensure runic-only visuals expose readable accessibility text for screen readers.
+- Honor `reducedMotionEnabled`, `highContrastEnabled`, large-text/system font scaling, and widget readability before merging UI changes.
+- Add or update Compose accessibility regression tests when changing Quote, Share, Settings, Translation, Create, Add/Edit, Library, Archive, or widget behavior.
+
 ## Testing Guidelines
 
 ### Test Coverage Requirements

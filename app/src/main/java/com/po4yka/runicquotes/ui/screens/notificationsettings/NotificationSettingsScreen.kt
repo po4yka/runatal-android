@@ -19,11 +19,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.ui.components.SettingItem
 import com.po4yka.runicquotes.ui.components.SettingSection
+import com.po4yka.runicquotes.ui.components.toggleStateDescription
 
 @Composable
 fun NotificationSettingsScreen(
@@ -43,7 +47,8 @@ fun NotificationSettingsScreen(
         ) {
             Text(
                 text = "Notifications",
-                style = MaterialTheme.typography.headlineLarge
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier.semantics { heading() }
             )
             Text(
                 text = "Quote delivery & reminders",
@@ -113,11 +118,14 @@ private fun NotificationToggleItem(
         title = title,
         subtitle = subtitle,
         onClick = { onCheckedChange(!checked) },
+        role = Role.Switch,
+        stateDescription = toggleStateDescription(checked),
         leadingIcon = icon,
         trailing = {
             Switch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
+                modifier = Modifier.semantics(mergeDescendants = true) {},
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = MaterialTheme.colorScheme.surface,
                     checkedTrackColor = MaterialTheme.colorScheme.secondary,

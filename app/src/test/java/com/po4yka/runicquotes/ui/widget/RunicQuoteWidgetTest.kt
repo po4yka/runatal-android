@@ -35,4 +35,30 @@ class RunicQuoteWidgetTest {
         assertThat(compactWidth).isEqualTo(404)
         assertThat(minimumWidth).isEqualTo(240)
     }
+
+    @Test
+    fun `widget accessibility description reflects interaction mode and quote summary`() {
+        val description = widgetAccessibilityDescription(
+            WidgetState(
+                latinText = "Seek wisdom",
+                author = "Havamal",
+                scriptLabel = "Elder Futhark",
+                displayMode = WidgetDisplayMode.DAILY_RANDOM_TAP
+            )
+        )
+
+        assertThat(description)
+            .isEqualTo(
+                "Runatal widget. Double tap to refresh quote. Seek wisdom. By Havamal. " +
+                    "Script: Elder Futhark"
+            )
+    }
+
+    @Test
+    fun `widget accessibility description covers loading and error states`() {
+        assertThat(widgetAccessibilityDescription(WidgetState(isLoading = true)))
+            .isEqualTo("Runatal widget loading quote")
+        assertThat(widgetAccessibilityDescription(WidgetState(error = "Unavailable")))
+            .isEqualTo("Runatal widget unavailable. Tap to open app.")
+    }
 }

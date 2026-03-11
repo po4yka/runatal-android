@@ -66,6 +66,7 @@ fun WordByWordModeToggleChip(
             }
         },
         role = Role.Switch,
+        stateDescription = toggleStateDescription(selected),
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
     ) { contentColor ->
         Text(

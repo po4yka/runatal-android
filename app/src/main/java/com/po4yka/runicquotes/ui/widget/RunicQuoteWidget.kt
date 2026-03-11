@@ -32,6 +32,8 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
@@ -41,6 +43,7 @@ import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.domain.transliteration.CirthGlyphCompat
+import com.po4yka.runicquotes.ui.components.buildRunicAccessibilityText
 import com.po4yka.runicquotes.util.BitmapCache
 import com.po4yka.runicquotes.util.RenderConfig
 import com.po4yka.runicquotes.util.RenderTextAlign
@@ -90,6 +93,9 @@ class RunicQuoteWidget() : GlanceAppWidget() {
                 .fillMaxSize()
                 .background(widgetColor(state.palette.background))
                 .padding(12.dp)
+                .semantics {
+                    contentDescription = widgetAccessibilityDescription(state)
+                }
                 .clickable(onClick = primaryAction)
         ) {
             when {
@@ -303,7 +309,7 @@ class RunicQuoteWidget() : GlanceAppWidget() {
         if (state.runicBitmap != null) {
             Image(
                 provider = ImageProvider(state.runicBitmap),
-                contentDescription = "Runic quote",
+                contentDescription = widgetAccessibilityDescription(state),
                 contentScale = ContentScale.FillBounds,
                 modifier = GlanceModifier
                     .fillMaxWidth()
@@ -420,6 +426,23 @@ class RunicQuoteWidget() : GlanceAppWidget() {
     }
 
     private fun widgetColor(color: Int): ColorProvider = ColorProvider(Color(color))
+}
+
+internal fun widgetAccessibilityDescription(state: WidgetState): String {
+    return when {
+        state.isLoading -> "Runatal widget loading quote"
+        state.error != null -> "Runatal widget unavailable. Tap to open app."
+        else -> buildRunicAccessibilityText(
+            latinText = state.latinText.ifBlank { state.runicText },
+            author = state.author,
+            scriptLabel = state.scriptLabel,
+            prefix = if (state.displayMode == WidgetDisplayMode.DAILY_RANDOM_TAP) {
+                "Runatal widget. Double tap to refresh quote"
+            } else {
+                "Runatal widget. Double tap to open quote"
+            }
+        )
+    }
 }
 
 internal interface WidgetStateLoader {

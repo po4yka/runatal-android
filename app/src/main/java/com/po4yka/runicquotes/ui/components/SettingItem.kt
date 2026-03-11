@@ -22,6 +22,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 
@@ -42,7 +48,11 @@ fun SettingItem(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     selected: Boolean = false,
+    enabled: Boolean = true,
     onClick: (() -> Unit)? = null,
+    role: Role? = null,
+    stateDescription: String? = null,
+    onClickLabel: String? = null,
     leadingIcon: @Composable (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null
 ) {
@@ -74,7 +84,21 @@ fun SettingItem(
                 .fillMaxWidth()
                 .heightIn(min = controls.settingItemMinHeight)
                 .clip(itemShape)
-                .clickable(enabled = onClick != null) { onClick?.invoke() }
+                .semantics(mergeDescendants = true) {
+                    role?.let { this.role = it }
+                    if (selected || role == Role.RadioButton || role == Role.Tab) {
+                        this.selected = selected
+                    }
+                    stateDescription?.let { this.stateDescription = it }
+                    if (!enabled) {
+                        disabled()
+                    }
+                }
+                .clickable(
+                    enabled = enabled && onClick != null,
+                    role = role,
+                    onClickLabel = onClickLabel
+                ) { onClick?.invoke() }
                 .padding(horizontal = spacing.comfortable, vertical = spacing.standard),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -114,7 +138,7 @@ fun SettingItem(
             } else if (selected) {
                 Icon(
                     imageVector = Icons.Default.Check,
-                    contentDescription = "Selected",
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
             }

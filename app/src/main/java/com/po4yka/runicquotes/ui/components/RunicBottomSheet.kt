@@ -35,6 +35,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.po4yka.runicquotes.domain.model.RunicScript
@@ -137,6 +139,7 @@ data class BottomSheetAction(
  */
 data class BottomSheetQuotePreview(
     val runicText: String,
+    val latinText: String,
     val author: String,
     val font: String,
     val script: RunicScript
@@ -162,7 +165,14 @@ private fun QuotePreviewCard(preview: BottomSheetQuotePreview) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 20.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = buildRunicAccessibilityText(
+                    latinText = preview.latinText,
+                    author = preview.author,
+                    prefix = "Quote actions preview"
+                )
+            },
         shape = RoundedCornerShape(16.dp),
         color = colors.surfaceContainerHighest.copy(alpha = 0.18f),
         border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.42f))
@@ -185,6 +195,7 @@ private fun QuotePreviewCard(preview: BottomSheetQuotePreview) {
                     font = preview.font,
                     script = preview.script,
                     role = RunicTextRole.BottomSheetPreview,
+                    accessibilityText = preview.latinText,
                     color = colors.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -233,6 +244,9 @@ private fun BottomSheetActionRow(action: BottomSheetAction) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                contentDescription = "${action.title}. ${action.subtitle}"
+            }
             .clickable(role = Role.Button) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 action.onClick()
@@ -248,7 +262,7 @@ private fun BottomSheetActionRow(action: BottomSheetAction) {
         ) {
             Icon(
                 imageVector = action.icon,
-                contentDescription = action.title,
+                contentDescription = null,
                 modifier = Modifier
                     .padding(10.dp)
                     .size(17.dp),

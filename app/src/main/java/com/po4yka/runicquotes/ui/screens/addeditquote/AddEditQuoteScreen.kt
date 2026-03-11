@@ -52,6 +52,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -298,7 +302,8 @@ private fun EditorTopBar(
         titleContent = {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.semantics { heading() }
             )
             if (uiState.isEditing) {
                 Row(
@@ -373,6 +378,7 @@ private fun EditorPreviewCard(
                 script = uiState.selectedScript,
                 font = uiState.selectedFont,
                 role = RunicTextRole.EditorPreview,
+                accessibilityText = uiState.textLatin.trim().ifBlank { "Live runic preview" },
                 color = if (previewText.isNotBlank()) {
                     MaterialTheme.colorScheme.onSurface
                 } else {
@@ -609,7 +615,14 @@ private fun EditorTextField(
             OutlinedTextField(
                 value = value,
                 onValueChange = onValueChange,
-                modifier = modifier.fillMaxWidth(),
+                modifier = modifier
+                    .fillMaxWidth()
+                    .semantics {
+                        contentDescription = label
+                        if (error != null) {
+                            error(error)
+                        }
+                    },
                 enabled = enabled,
                 singleLine = singleLine,
                 minLines = minLines,

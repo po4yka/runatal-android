@@ -52,6 +52,11 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -151,6 +156,7 @@ fun TranslationScreen(
 
             TranslationOutputCard(
                 outputText = uiState.transliteratedText,
+                accessibilityText = uiState.inputText,
                 selectedScript = uiState.selectedScript,
                 selectedFont = uiState.selectedFont,
                 glyphCount = uiState.outputGlyphCount,
@@ -215,7 +221,8 @@ private fun TranslationTopBar(onNavigateBack: () -> Unit) {
             Text(
                 text = "Translate",
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.semantics { heading() }
             )
         }
     )
@@ -278,7 +285,9 @@ private fun TranslationSectionLabel(text: String) {
         text = text,
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 2.dp)
+        modifier = Modifier
+            .padding(top = 2.dp)
+            .semantics { heading() }
     )
 }
 
@@ -305,7 +314,11 @@ private fun TranslationInputCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester)
-                    .testTag("translation_input_text"),
+                    .testTag("translation_input_text")
+                    .semantics {
+                        contentDescription = "English text input"
+                        stateDescription = "$characterCount of 280 characters"
+                    },
                 textStyle = RunicTypeRoles.supporting(
                     SupportingTextRole.FormPlaceholderEmphasis
                 ).copy(color = MaterialTheme.colorScheme.onSurface),
@@ -376,14 +389,14 @@ private fun TranslationOutputHeader(
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
-                        .clickable(onClick = onCopy)
+                        .clickable(role = Role.Button, onClick = onCopy)
                         .padding(horizontal = 2.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.ContentCopy,
-                        contentDescription = "Copy output",
+                        contentDescription = null,
                         modifier = Modifier.size(14.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -401,6 +414,7 @@ private fun TranslationOutputHeader(
 @Composable
 private fun TranslationOutputCard(
     outputText: String,
+    accessibilityText: String,
     selectedScript: RunicScript,
     selectedFont: String,
     glyphCount: Int,
@@ -441,6 +455,7 @@ private fun TranslationOutputCard(
                     text = "\u16A0\u16A2\u16A6\u16A8\u16B1\u16B2",
                     script = RunicScript.ELDER_FUTHARK,
                     role = RunicTextRole.TranslationPlaceholder,
+                    accessibilityText = "Runic translation placeholder",
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(modifier = Modifier.height(10.dp))
@@ -463,6 +478,7 @@ private fun TranslationOutputCard(
                     font = selectedFont,
                     script = selectedScript,
                     role = RunicTextRole.TranslationResult,
+                    accessibilityText = accessibilityText,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Row(

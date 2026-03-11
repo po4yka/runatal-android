@@ -6,6 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,6 +44,7 @@ fun RunicText(
     fontSize: TextUnit = TextUnit.Unspecified,
     overrideLetterSpacing: TextUnit? = null,
     overrideLineHeight: TextUnit? = null,
+    accessibilityText: String? = null,
     textAlign: TextAlign? = null,
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Clip,
@@ -84,10 +87,17 @@ fun RunicText(
         roleSpec.fontSize
     }
     val tunedFontSize = baseFontSize * runicFontScale
+    val accessibilityModifier = if (!accessibilityText.isNullOrBlank()) {
+        Modifier.clearAndSetSemantics {
+            contentDescription = accessibilityText
+        }
+    } else {
+        Modifier
+    }
 
     Text(
         text = normalizedText,
-        modifier = modifier,
+        modifier = modifier.then(accessibilityModifier),
         color = color,
         fontSize = tunedFontSize,
         textAlign = textAlign,

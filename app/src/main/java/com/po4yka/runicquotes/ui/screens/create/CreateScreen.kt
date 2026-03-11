@@ -29,6 +29,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.po4yka.runicquotes.ui.components.RunicActionButton
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
@@ -52,7 +54,8 @@ fun CreateScreen(
         ) {
             Text(
                 text = "Create",
-                style = MaterialTheme.typography.headlineLarge
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier.semantics { heading() }
             )
             Text(
                 text = "Compose a custom quote, browse packs, or open live transliteration tools.",

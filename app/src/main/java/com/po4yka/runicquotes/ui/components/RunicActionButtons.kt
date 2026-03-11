@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
@@ -131,6 +132,8 @@ fun RunicActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    accessibilityLabel: String? = null,
+    stateDescription: String? = null,
     colors: RunicActionButtonColors = runicActionButtonColors(),
     shape: Shape = RunicExpressiveTheme.shapes.collectionCard,
     minHeight: Dp = RunicExpressiveTheme.controls.minimumTouchTarget,
@@ -143,9 +146,19 @@ fun RunicActionButton(
     val iconSize = RunicExpressiveTheme.icons.standard
     val spacing = RunicExpressiveTheme.spacing.small
     val resolvedColors = colors.resolve(enabled = enabled)
+    val accessibilityModifier = if (!accessibilityLabel.isNullOrBlank() || !stateDescription.isNullOrBlank()) {
+        Modifier.semantics(mergeDescendants = true) {
+            accessibilityLabel?.let { contentDescription = it }
+            stateDescription?.let { this.stateDescription = it }
+        }
+    } else {
+        Modifier
+    }
 
     RunicActionButtonSurface(
-        modifier = modifier.heightIn(min = minHeight),
+        modifier = modifier
+            .heightIn(min = minHeight)
+            .then(accessibilityModifier),
         onClick = onClick,
         enabled = enabled,
         shape = shape,
@@ -195,6 +208,7 @@ fun RunicActionIconButton(
     contentDescription: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    stateDescription: String? = null,
     colors: RunicActionButtonColors = runicActionButtonColors(
         style = RunicActionButtonStyle.Outlined
     ),
@@ -216,7 +230,10 @@ fun RunicActionIconButton(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .semantics { this.contentDescription = contentDescription },
+                .semantics {
+                    this.contentDescription = contentDescription
+                    stateDescription?.let { this.stateDescription = it }
+                },
             contentAlignment = Alignment.Center
         ) {
             ActionButtonSlot(

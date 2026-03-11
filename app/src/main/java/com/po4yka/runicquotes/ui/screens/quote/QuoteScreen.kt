@@ -63,6 +63,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -83,6 +86,8 @@ import com.po4yka.runicquotes.ui.components.SkeletonCard
 import com.po4yka.runicquotes.ui.components.SkeletonRect
 import com.po4yka.runicquotes.ui.components.WordByWordBreakdown
 import com.po4yka.runicquotes.ui.components.WordByWordModeToggleChip
+import com.po4yka.runicquotes.ui.components.buildRunicAccessibilityText
+import com.po4yka.runicquotes.ui.components.toggleStateDescription
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
 import com.po4yka.runicquotes.ui.theme.LocalReduceMotion
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
@@ -246,7 +251,8 @@ private fun TodayContent(
                 )
                         Text(
                             text = "Quote of the Day",
-                            style = MaterialTheme.typography.headlineLarge
+                            style = MaterialTheme.typography.headlineLarge,
+                            modifier = Modifier.semantics { heading() }
                         )
                     }
                     Row(
@@ -601,7 +607,16 @@ private fun HeroQuoteCard(
             width = 1.dp,
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
         ),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                contentDescription = buildRunicAccessibilityText(
+                    latinText = latinText,
+                    author = author,
+                    scriptLabel = scriptLabel,
+                    prefix = "Quote of the day"
+                )
+            }
     ) {
         Column(
             modifier = Modifier
@@ -816,6 +831,12 @@ private fun ActionButtonsRow(
             label = "Saved",
             onClick = onToggleFavorite,
             modifier = Modifier.weight(1f),
+            accessibilityLabel = if (isFavorite) {
+                "Remove quote from saved"
+            } else {
+                "Save quote"
+            },
+            stateDescription = toggleStateDescription(isFavorite),
             shape = RunicExpressiveTheme.shapes.segment,
             colors = com.po4yka.runicquotes.ui.components.runicActionButtonColors(
                 style = RunicActionButtonStyle.Secondary
@@ -823,7 +844,7 @@ private fun ActionButtonsRow(
             leadingContent = {
                 Icon(
                     imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (isFavorite) "Remove from saved" else "Save quote",
+                    contentDescription = null,
                     modifier = Modifier.size(RunicExpressiveTheme.icons.standard)
                 )
             }
@@ -833,11 +854,12 @@ private fun ActionButtonsRow(
             label = "Share",
             onClick = onShare,
             modifier = Modifier.weight(1f),
+            accessibilityLabel = "Share quote",
             shape = RunicExpressiveTheme.shapes.segment,
             leadingContent = {
                 Icon(
                     imageVector = Icons.Default.Share,
-                    contentDescription = "Share quote",
+                    contentDescription = null,
                     modifier = Modifier.size(RunicExpressiveTheme.icons.standard)
                 )
             }
@@ -880,7 +902,15 @@ private fun RecentQuoteCard(
             width = 1.dp,
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
         ),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                contentDescription = buildRunicAccessibilityText(
+                    latinText = latinText,
+                    author = author,
+                    prefix = if (isFavorite) "Saved recent quote" else "Recent quote"
+                )
+            }
     ) {
         Box(
             modifier = Modifier
@@ -893,6 +923,7 @@ private fun RecentQuoteCard(
                     font = selectedFont,
                     script = selectedScript,
                     role = RunicTextRole.QuoteCard,
+                    accessibilityText = latinText,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.fillMaxWidth()
@@ -920,7 +951,7 @@ private fun RecentQuoteCard(
             if (isFavorite) {
                 Icon(
                     imageVector = Icons.Filled.Favorite,
-                    contentDescription = "Saved",
+                    contentDescription = null,
                     modifier = Modifier
                         .size(16.dp)
                         .align(Alignment.BottomEnd),
@@ -956,7 +987,7 @@ private fun HistoryLink(onClick: () -> Unit) {
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.MenuBook,
-                    contentDescription = "History",
+                    contentDescription = null,
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -968,7 +999,7 @@ private fun HistoryLink(onClick: () -> Unit) {
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "View full quote history",
+                contentDescription = null,
                 modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )

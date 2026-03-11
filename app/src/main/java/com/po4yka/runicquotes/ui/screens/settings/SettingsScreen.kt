@@ -45,6 +45,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.R
@@ -52,6 +55,8 @@ import com.po4yka.runicquotes.RunicQuotesApplication
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.ui.components.SettingItem
 import com.po4yka.runicquotes.ui.components.SettingSection
+import com.po4yka.runicquotes.ui.components.selectionStateDescription
+import com.po4yka.runicquotes.ui.components.toggleStateDescription
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.util.AppIconManager
 import com.po4yka.runicquotes.util.AppIconVariant
@@ -87,7 +92,8 @@ fun SettingsScreen(
         ) {
             Text(
                 text = stringResource(R.string.settings),
-                style = MaterialTheme.typography.headlineLarge
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier.semantics { heading() }
             )
             Text(
                 text = "Preferences & about",
@@ -355,6 +361,8 @@ private fun ScriptSettingItem(
         subtitle = subtitle,
         selected = selected,
         onClick = onClick,
+        role = Role.RadioButton,
+        stateDescription = selectionStateDescription(selected),
         leadingIcon = { RuneBadge(rune = rune, selected = selected) },
         trailing = { SelectionIndicator(selected = selected) }
     )
@@ -373,6 +381,8 @@ private fun ThemeSettingItem(
         subtitle = subtitle,
         selected = selected,
         onClick = onClick,
+        role = Role.RadioButton,
+        stateDescription = selectionStateDescription(selected),
         leadingIcon = { SettingsIconBadge(icon = icon, emphasized = selected) },
         trailing = { SelectionIndicator(selected = selected) }
     )
@@ -389,6 +399,8 @@ private fun AppIconSettingItem(
         subtitle = variant.subtitle,
         selected = selected,
         onClick = onClick,
+        role = Role.RadioButton,
+        stateDescription = selectionStateDescription(selected),
         leadingIcon = { AppIconBadge(variant = variant, selected = selected) },
         trailing = { SelectionIndicator(selected = selected) }
     )
@@ -406,14 +418,18 @@ private fun ToggleSettingItem(
     SettingItem(
         title = title,
         subtitle = subtitle,
+        enabled = enabled,
         onClick = if (enabled) {
             { onCheckedChange(!checked) }
         } else {
             null
         },
+        role = Role.Switch,
+        stateDescription = toggleStateDescription(checked),
         leadingIcon = { SettingsIconBadge(icon = icon, emphasized = checked) },
         trailing = {
             RunatalSwitch(
+                modifier = Modifier.semantics(mergeDescendants = true) {},
                 checked = checked,
                 enabled = enabled,
                 onCheckedChange = onCheckedChange
@@ -436,7 +452,7 @@ private fun LinkSettingItem(
         trailing = {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = title,
+                contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(iconSizes.standard)
             )
@@ -464,7 +480,7 @@ private fun AppIconBadge(
     ) {
         Icon(
             painter = painterResource(id = variant.foregroundDrawableRes),
-            contentDescription = variant.title,
+            contentDescription = null,
             tint = Color.Unspecified,
             modifier = Modifier.size(if (selected) icons.selectedAppIcon else icons.appIcon)
         )
@@ -570,6 +586,7 @@ private fun SelectionIndicator(selected: Boolean) {
 
 @Composable
 private fun RunatalSwitch(
+    modifier: Modifier = Modifier,
     checked: Boolean,
     enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit
@@ -579,6 +596,7 @@ private fun RunatalSwitch(
         checked = checked,
         onCheckedChange = onCheckedChange,
         enabled = enabled,
+        modifier = modifier,
         thumbContent = if (checked) {
             {
                 Box(
