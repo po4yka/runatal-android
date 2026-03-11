@@ -29,7 +29,7 @@ class ArchiveViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ArchiveUiState())
     val uiState: StateFlow<ArchiveUiState> = _uiState.asStateFlow()
 
-    private val _snackbarEvent = Channel<SnackbarEvent>(Channel.BUFFERED)
+    private val _snackbarEvent = Channel<ArchiveSnackbarEvent>(Channel.BUFFERED)
     val snackbarEvent = _snackbarEvent.receiveAsFlow()
 
     /** @suppress */
@@ -51,6 +51,7 @@ class ArchiveViewModel @Inject constructor(
             ) { archived, deleted ->
                 ArchiveUiState(
                     archivedQuotes = archived,
+                    hiddenQuotes = emptyList(),
                     deletedQuotes = deleted,
                     selectedTab = _uiState.value.selectedTab,
                     isLoading = false
@@ -80,7 +81,7 @@ class ArchiveViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 archiveRepository.restoreQuote(quote.id)
-                _snackbarEvent.send(SnackbarEvent(quote))
+                _snackbarEvent.send(ArchiveSnackbarEvent.RestoredQuote(listOf(quote)))
             } catch (e: IOException) {
                 Log.e(TAG, "IO error restoring quote", e)
             } catch (e: IllegalStateException) {
@@ -92,14 +93,37 @@ class ArchiveViewModel @Inject constructor(
     /**
      * Re-archives a quote (undo restore).
      */
-    fun undoRestore(quote: ArchivedQuote) {
+    fun undoRestore(quotes: List<ArchivedQuote>) {
         viewModelScope.launch {
             try {
-                archiveRepository.archiveQuote(quote)
+                quotes.forEach { quote ->
+                    archiveRepository.archiveQuote(quote)
+                }
             } catch (e: IOException) {
                 Log.e(TAG, "IO error undoing restore", e)
             } catch (e: IllegalStateException) {
                 Log.e(TAG, "Invalid state undoing restore", e)
+            }
+        }
+    }
+
+    /**
+     * Restores all currently archived quotes back to the library.
+     */
+    fun restoreAllArchivedQuotes() {
+        viewModelScope.launch {
+            val quotesToRestore = _uiState.value.archivedQuotes
+            if (quotesToRestore.isEmpty()) return@launch
+
+            try {
+                quotesToRestore.forEach { quote ->
+                    archiveRepository.restoreQuote(quote.id)
+                }
+                _snackbarEvent.send(ArchiveSnackbarEvent.RestoredBatch(quotesToRestore))
+            } catch (e: IOException) {
+                Log.e(TAG, "IO error restoring all quotes", e)
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Invalid state restoring all quotes", e)
             }
         }
     }
@@ -146,20 +170,36 @@ class ArchiveViewModel @Inject constructor(
 /**
  * Archive tab options.
  */
-enum class ArchiveTab { ARCHIVED, DELETED }
+enum class ArchiveTab { ARCHIVED, HIDDEN, DELETED }
 
 /**
  * UI state for the archive screen.
  */
 data class ArchiveUiState(
     val archivedQuotes: List<ArchivedQuote> = emptyList(),
+    val hiddenQuotes: List<ArchivedQuote> = emptyList(),
     val deletedQuotes: List<ArchivedQuote> = emptyList(),
     val selectedTab: ArchiveTab = ArchiveTab.ARCHIVED,
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )
 
+val ArchiveUiState.quotesForSelectedTab: List<ArchivedQuote>
+    get() = when (selectedTab) {
+        ArchiveTab.ARCHIVED -> archivedQuotes
+        ArchiveTab.HIDDEN -> hiddenQuotes
+        ArchiveTab.DELETED -> deletedQuotes
+    }
+
 /**
  * Event for showing a snackbar with undo action after restoring a quote.
  */
-data class SnackbarEvent(val restoredQuote: ArchivedQuote)
+sealed interface ArchiveSnackbarEvent {
+    val quotes: List<ArchivedQuote>
+
+    /** Snackbar event for restoring a single quote. */
+    data class RestoredQuote(override val quotes: List<ArchivedQuote>) : ArchiveSnackbarEvent
+
+    /** Snackbar event for restoring multiple quotes in one action. */
+    data class RestoredBatch(override val quotes: List<ArchivedQuote>) : ArchiveSnackbarEvent
+}

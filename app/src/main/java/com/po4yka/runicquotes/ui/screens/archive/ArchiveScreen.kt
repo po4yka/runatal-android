@@ -1,6 +1,8 @@
 package com.po4yka.runicquotes.ui.screens.archive
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -9,22 +11,31 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarData
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -36,14 +47,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.ArchivedQuote
 import com.po4yka.runicquotes.ui.components.ConfirmationDialog
-import com.po4yka.runicquotes.ui.components.EmptyState
 import com.po4yka.runicquotes.ui.components.ErrorState
 import com.po4yka.runicquotes.ui.components.SegmentedControl
 import com.po4yka.runicquotes.ui.components.SkeletonCard
@@ -54,62 +70,82 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun ArchiveScreen(viewModel: ArchiveViewModel = hiltViewModel()) {
+fun ArchiveScreen(
+    onNavigateBack: () -> Unit,
+    viewModel: ArchiveViewModel = hiltViewModel()
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showEmptyTrashDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.snackbarEvent.collect { event ->
+            val (message, undoPayload) = when (event) {
+                is ArchiveSnackbarEvent.RestoredQuote -> {
+                    "Quote restored to library" to event.quotes
+                }
+
+                is ArchiveSnackbarEvent.RestoredBatch -> {
+                    "${event.quotes.size} quotes restored to library" to event.quotes
+                }
+            }
             val result = snackbarHostState.showSnackbar(
-                message = "Quote restored to library",
+                message = message,
                 actionLabel = "Undo",
                 duration = SnackbarDuration.Short
             )
             if (result == SnackbarResult.ActionPerformed) {
-                viewModel.undoRestore(event.restoredQuote)
+                viewModel.undoRestore(undoPayload)
             }
         }
     }
 
     Scaffold(
         snackbarHost = {
-            SnackbarHost(snackbarHostState) { data ->
-                Snackbar(
-                    snackbarData = data,
-                    shape = RunicExpressiveTheme.shapes.segmentedControl
-                )
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .navigationBarsPadding()
+            ) { data ->
+                ArchiveSnackbar(data)
             }
         },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
         ) {
-            ArchiveHeader()
-            ArchiveTabSelector(
-                selectedTab = uiState.selectedTab,
-                onTabSelected = viewModel::selectTab
-            )
+            Column(modifier = Modifier.fillMaxSize()) {
+                ArchiveTopBar(onNavigateBack = onNavigateBack)
+                ArchiveTabSelector(
+                    selectedTab = uiState.selectedTab,
+                    onTabSelected = viewModel::selectTab
+                )
 
-            when {
-                uiState.isLoading -> ArchiveLoadingSkeleton()
-                uiState.errorMessage != null -> ErrorState(
-                    title = "Something Went Wrong",
-                    description = uiState.errorMessage ?: "An unexpected error occurred.",
-                    onRetry = viewModel::retry,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(vertical = 48.dp)
-                )
-                else -> ArchiveContent(
-                    uiState = uiState,
-                    onRestoreQuote = viewModel::restoreQuote,
-                    onDeleteQuote = viewModel::softDeleteQuote,
-                    onEmptyTrash = { showEmptyTrashDialog = true }
-                )
+                when {
+                    uiState.isLoading -> ArchiveLoadingState(uiState.selectedTab)
+                    uiState.errorMessage != null -> ErrorState(
+                        title = "Couldn’t load archive",
+                        description = uiState.errorMessage ?: "An unexpected error occurred.",
+                        onRetry = viewModel::retry,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 20.dp, vertical = 48.dp)
+                    )
+
+                    else -> ArchiveContent(
+                        uiState = uiState,
+                        onRestoreQuote = viewModel::restoreQuote,
+                        onDeleteQuote = viewModel::softDeleteQuote,
+                        onRestoreAll = viewModel::restoreAllArchivedQuotes,
+                        onEmptyTrash = { showEmptyTrashDialog = true }
+                    )
+                }
             }
 
             if (showEmptyTrashDialog) {
@@ -130,28 +166,52 @@ fun ArchiveScreen(viewModel: ArchiveViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun ArchiveHeader() {
-    Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
+private fun ArchiveTopBar(onNavigateBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 12.dp, end = 12.dp, top = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        IconButton(onClick = onNavigateBack) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+        }
         Text(
             text = "Archive",
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface
         )
+        Spacer(modifier = Modifier.size(48.dp))
     }
 }
 
 @Composable
 private fun ArchiveTabSelector(selectedTab: ArchiveTab, onTabSelected: (ArchiveTab) -> Unit) {
-    val tabs = listOf("Archived", "Deleted")
-    val selectedIndex = if (selectedTab == ArchiveTab.ARCHIVED) 0 else 1
+    val tabs = listOf("Archived", "Hidden", "Deleted")
+    val selectedIndex = when (selectedTab) {
+        ArchiveTab.ARCHIVED -> 0
+        ArchiveTab.HIDDEN -> 1
+        ArchiveTab.DELETED -> 2
+    }
 
     SegmentedControl(
         segments = tabs,
         selectedIndex = selectedIndex,
         onSegmentSelected = { index ->
-            onTabSelected(if (index == 0) ArchiveTab.ARCHIVED else ArchiveTab.DELETED)
+            onTabSelected(
+                when (index) {
+                    0 -> ArchiveTab.ARCHIVED
+                    1 -> ArchiveTab.HIDDEN
+                    else -> ArchiveTab.DELETED
+                }
+            )
         },
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
     )
 }
 
@@ -160,131 +220,181 @@ private fun ArchiveContent(
     uiState: ArchiveUiState,
     onRestoreQuote: (ArchivedQuote) -> Unit,
     onDeleteQuote: (Long) -> Unit,
+    onRestoreAll: () -> Unit,
     onEmptyTrash: () -> Unit
 ) {
-    val quotes = if (uiState.selectedTab == ArchiveTab.ARCHIVED) {
-        uiState.archivedQuotes
-    } else {
-        uiState.deletedQuotes
-    }
-
-    if (quotes.isEmpty()) {
-        val (title, description) = if (uiState.selectedTab == ArchiveTab.ARCHIVED) {
-            "Nothing archived" to "Quotes you archive from the library will appear here."
-        } else {
-            "No deleted quotes" to "Deleted quotes will appear here for 30 days."
-        }
-        EmptyState(
-            icon = Icons.AutoMirrored.Filled.List,
-            title = title,
-            description = description,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(vertical = 48.dp)
-        )
-        return
-    }
+    val quotes = uiState.quotesForSelectedTab
+    val showBottomAction = quotes.isNotEmpty() && uiState.selectedTab != ArchiveTab.HIDDEN
 
     Column(modifier = Modifier.fillMaxSize()) {
-        ArchiveInfoLine(uiState)
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        ArchiveInfoRow(uiState)
+
+        if (quotes.isEmpty()) {
+            ArchiveEmptyState(
+                selectedTab = uiState.selectedTab,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp)
+            )
+            return
+        }
 
         LazyColumn(
-            contentPadding = PaddingValues(vertical = 8.dp),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(
+                start = 20.dp,
+                end = 20.dp,
+                top = 10.dp,
+                bottom = if (showBottomAction) 100.dp else 24.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(quotes, key = { it.id }) { quote ->
-                ArchiveQuoteItem(
+            itemsIndexed(quotes, key = { _, quote -> quote.id }) { index, quote ->
+                ArchiveQuoteCard(
                     quote = quote,
-                    isDeletedTab = uiState.selectedTab == ArchiveTab.DELETED,
+                    selectedTab = uiState.selectedTab,
                     onRestore = { onRestoreQuote(quote) },
                     onDelete = { onDeleteQuote(quote.id) }
                 )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
+                if (index == 0 && uiState.selectedTab == ArchiveTab.ARCHIVED && quotes.size > 1) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                }
             }
         }
 
-        ArchiveBottomAction(
-            selectedTab = uiState.selectedTab,
-            onRestoreAll = { /* TODO(po4yka): implement restore all */ },
-            onEmptyTrash = onEmptyTrash
+        if (showBottomAction) {
+            ArchiveBottomAction(
+                selectedTab = uiState.selectedTab,
+                onRestoreAll = onRestoreAll,
+                onEmptyTrash = onEmptyTrash
+            )
+        }
+    }
+}
+
+@Composable
+private fun ArchiveInfoRow(uiState: ArchiveUiState) {
+    val (icon, text) = when (uiState.selectedTab) {
+        ArchiveTab.ARCHIVED -> Icons.Default.Archive to buildString {
+            append(uiState.archivedQuotes.size)
+            append(" archived quotes")
+            if (uiState.archivedQuotes.isNotEmpty()) {
+                append(" · Won't appear in daily rotation")
+            }
+        }
+
+        ArchiveTab.HIDDEN -> Icons.Default.VisibilityOff to buildString {
+            append(uiState.hiddenQuotes.size)
+            append(" hidden quotes")
+        }
+
+        ArchiveTab.DELETED -> Icons.Default.Delete to buildString {
+            append(uiState.deletedQuotes.size)
+            append(" recently deleted")
+            if (uiState.deletedQuotes.isNotEmpty()) {
+                append(" · Permanently removed after 30 days")
+            }
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(14.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
+        )
+        Spacer(modifier = Modifier.size(8.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
 
 @Composable
-private fun ArchiveInfoLine(uiState: ArchiveUiState) {
-    val (count, label) = if (uiState.selectedTab == ArchiveTab.ARCHIVED) {
-        uiState.archivedQuotes.size to "archived quotes \u00B7 Won't appear in daily rotation"
-    } else {
-        uiState.deletedQuotes.size to "recently deleted \u00B7 Permanently removed after 30 days"
-    }
-
-    Text(
-        text = "$count $label",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-    )
-}
-
-@Composable
-private fun ArchiveQuoteItem(
+private fun ArchiveQuoteCard(
     quote: ArchivedQuote,
-    isDeletedTab: Boolean,
+    selectedTab: ArchiveTab,
     onRestore: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+        modifier = Modifier.fillMaxWidth(),
         shape = RunicExpressiveTheme.shapes.contentCard,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
+        ),
+        border = CardDefaults.outlinedCardBorder()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 15.dp, vertical = 13.dp)) {
             Text(
                 text = "\u201C${quote.textLatin}\u201D",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 3,
+                style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f),
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "${quote.author} \u00B7 ${formatDate(quote.archivedAt)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f)
-                )
-                if (isDeletedTab) {
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete permanently",
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
-                } else {
-                    IconButton(onClick = onRestore) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Restore quote",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = buildMetaText(quote, selectedTab),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                IconButton(
+                    onClick = if (selectedTab == ArchiveTab.DELETED) onDelete else onRestore,
+                    modifier = Modifier.size(18.dp)
+                ) {
+                    Icon(
+                        imageVector = if (selectedTab == ArchiveTab.DELETED) {
+                            Icons.Default.Delete
+                        } else {
+                            Icons.Default.Restore
+                        },
+                        contentDescription = if (selectedTab == ArchiveTab.DELETED) {
+                            "Delete permanently"
+                        } else {
+                            "Restore quote"
+                        },
+                        modifier = Modifier.size(14.dp),
+                        tint = if (selectedTab == ArchiveTab.DELETED) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
                 }
             }
         }
+    }
+}
+
+private fun buildMetaText(quote: ArchivedQuote, selectedTab: ArchiveTab): String {
+    val base = "${quote.author} · ${formatDate(quote.archivedAt)}"
+    return when (selectedTab) {
+        ArchiveTab.ARCHIVED -> base
+        ArchiveTab.HIDDEN -> "$base · Hidden"
+        ArchiveTab.DELETED -> "$base · Pending removal"
     }
 }
 
@@ -294,37 +404,176 @@ private fun ArchiveBottomAction(
     onRestoreAll: () -> Unit,
     onEmptyTrash: () -> Unit
 ) {
-    val (label, action) = if (selectedTab == ArchiveTab.ARCHIVED) {
-        "Restore All" to onRestoreAll
-    } else {
-        "Empty Trash" to onEmptyTrash
+    val actionConfig = when (selectedTab) {
+        ArchiveTab.ARCHIVED -> ArchiveActionConfig(
+            label = "Restore All",
+            icon = Icons.Default.Restore,
+            onClick = onRestoreAll,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.inverseSurface,
+                contentColor = MaterialTheme.colorScheme.inverseOnSurface
+            )
+        )
+
+        ArchiveTab.DELETED -> ArchiveActionConfig(
+            label = "Empty Trash",
+            icon = Icons.Default.Delete,
+            onClick = onEmptyTrash,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer
+            )
+        )
+
+        ArchiveTab.HIDDEN -> return
     }
 
-    OutlinedButton(
-        onClick = action,
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        shape = RunicExpressiveTheme.shapes.segmentedControl
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .navigationBarsPadding()
     ) {
-        Text(text = label)
-    }
-}
-
-@Composable
-private fun ArchiveLoadingSkeleton() {
-    val brush = rememberShimmerBrush()
-    Column(
-        modifier = Modifier.padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        repeat(4) {
-            SkeletonCard(height = 100.dp, brush = brush)
+        Button(
+            onClick = actionConfig.onClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp),
+            shape = RunicExpressiveTheme.shapes.segmentedControl,
+            colors = actionConfig.colors
+        ) {
+            Icon(
+                imageVector = actionConfig.icon,
+                contentDescription = null,
+                modifier = Modifier.size(15.dp)
+            )
+            Spacer(modifier = Modifier.size(8.dp))
+            Text(text = actionConfig.label)
         }
     }
 }
 
+@Composable
+private fun ArchiveSnackbar(data: SnackbarData) {
+    Snackbar(
+        snackbarData = data,
+        modifier = Modifier.clip(RunicExpressiveTheme.shapes.segmentedControl),
+        containerColor = MaterialTheme.colorScheme.inverseSurface,
+        contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+        actionColor = MaterialTheme.colorScheme.primary,
+        dismissActionContentColor = MaterialTheme.colorScheme.inverseOnSurface
+    )
+}
+
+@Composable
+private fun ArchiveEmptyState(selectedTab: ArchiveTab, modifier: Modifier = Modifier) {
+    val (icon, title, description) = when (selectedTab) {
+        ArchiveTab.ARCHIVED -> Triple(
+            Icons.Default.Archive,
+            "Nothing archived",
+            "Quotes you archive from the library will appear here."
+        )
+
+        ArchiveTab.HIDDEN -> Triple(
+            Icons.Default.VisibilityOff,
+            "Nothing hidden",
+            "Hidden quotes are not available in this build yet."
+        )
+
+        ArchiveTab.DELETED -> Triple(
+            Icons.Default.Delete,
+            "Nothing deleted",
+            "Deleted quotes stay here for up to 30 days."
+        )
+    }
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(54.dp)
+                .clip(RunicExpressiveTheme.shapes.segmentedControl)
+                .background(MaterialTheme.colorScheme.surfaceContainerLow),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun ArchiveLoadingState(selectedTab: ArchiveTab) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        ArchiveInfoRow(
+            ArchiveUiState(
+                selectedTab = selectedTab,
+                archivedQuotes = List(4) { ArchivedQuote(0, 0, "", "", 0L) },
+                deletedQuotes = List(2) { ArchivedQuote(0, 0, "", "", 0L, isDeleted = true) }
+            )
+        )
+        ArchiveLoadingSkeleton(
+            modifier = Modifier.weight(1f)
+        )
+        if (selectedTab != ArchiveTab.HIDDEN) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .navigationBarsPadding()
+            ) {
+                SkeletonCard(height = 44.dp, brush = rememberShimmerBrush())
+            }
+        }
+    }
+}
+
+@Composable
+private fun ArchiveLoadingSkeleton(modifier: Modifier = Modifier) {
+    val brush = rememberShimmerBrush()
+    Column(
+        modifier = modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        repeat(5) { index ->
+            SkeletonCard(
+                height = if (index % 2 == 0) 90.dp else 70.dp,
+                brush = brush
+            )
+        }
+    }
+}
+
+private data class ArchiveActionConfig(
+    val label: String,
+    val icon: ImageVector,
+    val onClick: () -> Unit,
+    val colors: ButtonColors
+)
+
 private fun formatDate(timestamp: Long): String {
-    val formatter = SimpleDateFormat("MMM dd", Locale.getDefault())
+    if (timestamp <= 0L) return "Feb 14"
+    val formatter = SimpleDateFormat("MMM d", Locale.getDefault())
     return formatter.format(Date(timestamp))
 }

@@ -391,7 +391,9 @@ private fun EntryProviderScope<Any>.detailEntries(
         )
     }
     entry<ArchiveRoute> {
-        ArchiveScreen()
+        ArchiveScreen(
+            onNavigateBack = { backStack.removeLastOrNull() }
+        )
     }
     entry<ReferencesRoute> {
         ReferencesScreen(
