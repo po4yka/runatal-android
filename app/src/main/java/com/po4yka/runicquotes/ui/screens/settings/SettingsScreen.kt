@@ -40,8 +40,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -51,6 +54,8 @@ import com.po4yka.runicquotes.RunicQuotesApplication
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.ui.components.SettingItem
 import com.po4yka.runicquotes.ui.components.SettingSection
+import com.po4yka.runicquotes.util.AppIconManager
+import com.po4yka.runicquotes.util.AppIconVariant
 import com.po4yka.runicquotes.util.rememberHapticFeedback
 
 @Composable
@@ -186,6 +191,23 @@ fun SettingsScreen(
                         viewModel.updateShowTransliteration(it)
                     }
                 )
+            }
+
+            SettingSection(
+                title = "App Icon",
+                subtitle = "Switch the launcher icon and Android themed icon layer."
+            ) {
+                AppIconVariant.entries.forEach { variant ->
+                    AppIconSettingItem(
+                        variant = variant,
+                        selected = preferences.appIconVariant == variant.persistedValue,
+                        onClick = {
+                            haptics.lightToggle()
+                            viewModel.updateAppIconVariant(variant.persistedValue)
+                            AppIconManager.apply(context, variant)
+                        }
+                    )
+                }
             }
 
             SettingSection(title = "Notifications") {
@@ -347,6 +369,22 @@ private fun ThemeSettingItem(
 }
 
 @Composable
+private fun AppIconSettingItem(
+    variant: AppIconVariant,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    SettingItem(
+        title = variant.title,
+        subtitle = variant.subtitle,
+        selected = selected,
+        onClick = onClick,
+        leadingIcon = { AppIconBadge(variant = variant, selected = selected) },
+        trailing = { SelectionIndicator(selected = selected) }
+    )
+}
+
+@Composable
 private fun ToggleSettingItem(
     title: String,
     subtitle: String,
@@ -392,6 +430,30 @@ private fun LinkSettingItem(
             )
         }
     )
+}
+
+@Composable
+private fun AppIconBadge(
+    variant: AppIconVariant,
+    selected: Boolean
+) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .background(
+                color = colorResource(id = variant.backgroundColorRes),
+                shape = RoundedCornerShape(14.dp)
+            )
+            .padding(9.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(id = variant.foregroundDrawableRes),
+            contentDescription = variant.title,
+            tint = Color.Unspecified,
+            modifier = Modifier.size(if (selected) 23.dp else 21.dp)
+        )
+    }
 }
 
 @Composable

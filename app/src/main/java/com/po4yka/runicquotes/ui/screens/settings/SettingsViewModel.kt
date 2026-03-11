@@ -80,6 +80,15 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
+     * Updates the launcher icon variant.
+     */
+    fun updateAppIconVariant(variant: String) {
+        viewModelScope.launch {
+            userPreferencesManager.updateAppIconVariant(variant)
+        }
+    }
+
+    /**
      * Updates whether to show transliteration.
      */
     fun updateShowTransliteration(show: Boolean) {

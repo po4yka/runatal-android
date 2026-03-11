@@ -21,6 +21,17 @@
     <color name="on_surface">@color/gray_900</color>
     <color name="on_surface_variant">@color/gray_600</color>
 
-    <!-- App icon -->
+    <!-- App icon variants -->
     <color name="ic_launcher_background">#2C3038</color>
+    <color name="ic_launcher_bg_storm">#2C3038</color>
+    <color name="ic_launcher_fg_storm">#C8CED6</color>
+    <color name="ic_launcher_bg_dark">#14171A</color>
+    <color name="ic_launcher_fg_dark">#E0E2E5</color>
+    <color name="ic_launcher_bg_fjord">#425A6D</color>
+    <color name="ic_launcher_fg_fjord">#E0E8EE</color>
+    <color name="ic_launcher_bg_pine">#495D54</color>
+    <color name="ic_launcher_fg_pine">#E0E9E2</color>
+    <color name="ic_launcher_bg_warm">#6E6257</color>
+    <color name="ic_launcher_fg_warm">#F0E6DC</color>
+    <color name="ic_launcher_fg_mono">#FFFFFF</color>
 </resources>

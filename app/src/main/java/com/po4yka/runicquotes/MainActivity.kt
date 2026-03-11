@@ -5,16 +5,20 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.ui.navigation.NavGraph
 import com.po4yka.runicquotes.ui.navigation.QuoteRoute
 import com.po4yka.runicquotes.ui.screens.settings.SettingsViewModel
 import com.po4yka.runicquotes.ui.theme.RunicQuotesTheme
+import com.po4yka.runicquotes.util.AppIconManager
+import com.po4yka.runicquotes.util.AppIconVariant
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -41,12 +45,20 @@ fun RunicQuotesApp() {
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     val preferences by settingsViewModel.userPreferences.collectAsStateWithLifecycle()
     val systemInDarkTheme = isSystemInDarkTheme()
+    val context = LocalContext.current
 
     // Determine dark theme based on preferences
     val darkTheme = when (preferences.themeMode) {
         "light" -> false
         "dark" -> true
         else -> systemInDarkTheme // "system" or default
+    }
+
+    LaunchedEffect(preferences.appIconVariant) {
+        AppIconManager.apply(
+            context = context,
+            variant = AppIconVariant.fromPersistedValue(preferences.appIconVariant)
+        )
     }
 
     RunicQuotesTheme(

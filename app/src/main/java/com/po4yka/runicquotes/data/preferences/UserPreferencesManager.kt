@@ -43,6 +43,7 @@ class UserPreferencesManager @Inject constructor(
             themeMode = preferences[THEME_MODE] ?: "system",
             dynamicColorEnabled = preferences[DYNAMIC_COLOR_ENABLED] ?: false,
             themePack = preferences[THEME_PACK] ?: "stone",
+            appIconVariant = preferences[APP_ICON_VARIANT] ?: "storm_slate",
             showTransliteration = preferences[SHOW_TRANSLITERATION] ?: true,
             fontSize = preferences[FONT_SIZE] ?: 1.0f,
             largeRunesEnabled = preferences[LARGE_RUNES_ENABLED] ?: false,
@@ -182,6 +183,15 @@ class UserPreferencesManager @Inject constructor(
     }
 
     /**
+     * Updates the selected app icon variant.
+     */
+    suspend fun updateAppIconVariant(variant: String) {
+        dataStore.edit { preferences ->
+            preferences[APP_ICON_VARIANT] = variant
+        }
+    }
+
+    /**
      * Updates whether to show transliteration.
      */
     suspend fun updateShowTransliteration(show: Boolean) {
@@ -281,6 +291,7 @@ class UserPreferencesManager @Inject constructor(
         private val THEME_MODE = stringPreferencesKey("theme_mode")
         private val DYNAMIC_COLOR_ENABLED = booleanPreferencesKey("dynamic_color_enabled")
         private val THEME_PACK = stringPreferencesKey("theme_pack")
+        private val APP_ICON_VARIANT = stringPreferencesKey("app_icon_variant")
         private val SHOW_TRANSLITERATION = booleanPreferencesKey("show_transliteration")
         private val FONT_SIZE = floatPreferencesKey("font_size")
         private val LARGE_RUNES_ENABLED = booleanPreferencesKey("large_runes_enabled")

@@ -1,6 +1,7 @@
 package com.po4yka.runicquotes.data.preferences
 
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.util.AppIconVariant
 
 /**
  * Data class representing user preferences.
@@ -75,6 +76,11 @@ data class UserPreferences(
      * Visual theme pack (stone, parchment, night_ink).
      */
     val themePack: String = "stone",
+
+    /**
+     * Selected launcher icon appearance.
+     */
+    val appIconVariant: String = AppIconVariant.STORM_SLATE.persistedValue,
 
     /**
      * Whether to show transliteration alongside runic text.

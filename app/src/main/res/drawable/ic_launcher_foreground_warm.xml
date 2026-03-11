@@ -11,18 +11,18 @@
         android:scaleY="0.74">
         <path
             android:pathData="M3.465,3.465V66.819"
-            android:strokeColor="@color/ic_launcher_fg_storm"
+            android:strokeColor="@color/ic_launcher_fg_warm"
             android:strokeWidth="6.929"
             android:strokeLineCap="round" />
         <path
             android:pathData="M3.465,3.465L31.182,19.304L3.465,35.142"
-            android:strokeColor="@color/ic_launcher_fg_storm"
+            android:strokeColor="@color/ic_launcher_fg_warm"
             android:strokeWidth="6.929"
             android:strokeLineCap="round"
             android:strokeLineJoin="round" />
         <path
             android:pathData="M3.465,35.142L35.142,66.819"
-            android:strokeColor="@color/ic_launcher_fg_storm"
+            android:strokeColor="@color/ic_launcher_fg_warm"
             android:strokeWidth="6.929"
             android:strokeLineCap="round" />
     </group>
