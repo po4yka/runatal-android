@@ -167,7 +167,15 @@ private val HighContrastDarkColorScheme = darkColorScheme(
 val LocalRunicFontScale = staticCompositionLocalOf { 1.0f }
 val LocalReduceMotion = staticCompositionLocalOf { false }
 
-private fun resolveColorScheme(
+internal fun foundationRunicColorScheme(darkTheme: Boolean): ColorScheme {
+    return if (darkTheme) FoundationDarkColorScheme else FoundationLightColorScheme
+}
+
+internal fun highContrastRunicColorScheme(darkTheme: Boolean): ColorScheme {
+    return if (darkTheme) HighContrastDarkColorScheme else HighContrastLightColorScheme
+}
+
+internal fun runicColorScheme(
     darkTheme: Boolean,
     @Suppress("UNUSED_PARAMETER")
     themePack: String,
@@ -176,10 +184,10 @@ private fun resolveColorScheme(
     context: android.content.Context
 ): ColorScheme {
     if (highContrast) {
-        return if (darkTheme) HighContrastDarkColorScheme else HighContrastLightColorScheme
+        return highContrastRunicColorScheme(darkTheme)
     }
 
-    val foundationColorScheme = if (darkTheme) FoundationDarkColorScheme else FoundationLightColorScheme
+    val foundationColorScheme = foundationRunicColorScheme(darkTheme)
 
     if (dynamicColorEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         val dynamicColorScheme = dynamicColorSchemeForContext(
@@ -247,7 +255,7 @@ fun RunicQuotesTheme(
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
-    val colorScheme = resolveColorScheme(
+    val colorScheme = runicColorScheme(
         darkTheme = darkTheme,
         themePack = themePack,
         highContrast = highContrast,

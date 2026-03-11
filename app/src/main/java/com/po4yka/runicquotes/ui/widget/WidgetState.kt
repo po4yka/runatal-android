@@ -1,7 +1,7 @@
 package com.po4yka.runicquotes.ui.widget
 
 import android.graphics.Bitmap
-import android.graphics.Color
+import com.po4yka.runicquotes.ui.theme.foundationRunicColorScheme
 
 /**
  * Data class representing the state of the widget.
@@ -46,19 +46,6 @@ data class WidgetPalette(
     /** Factory methods for [WidgetPalette]. */
     companion object {
         /** Returns the default dark-theme palette. */
-        fun default() = WidgetPalette(
-            background = Color.parseColor("#101419"),
-            surface = Color.parseColor("#171C21"),
-            surfaceMuted = Color.parseColor("#1E2329"),
-            onBackground = Color.parseColor("#E3E8EE"),
-            onSurface = Color.parseColor("#E3E8EE"),
-            onSurfaceVariant = Color.parseColor("#98A0AA"),
-            outline = Color.parseColor("#2B3138"),
-            primary = Color.parseColor("#B8C8D9"),
-            primaryContainer = Color.parseColor("#364757"),
-            onPrimaryContainer = Color.parseColor("#D6E4F2"),
-            error = Color.parseColor("#FFB4AB"),
-            runicText = Color.parseColor("#F5F7FA")
-        )
+        fun default() = widgetPaletteFromColorScheme(foundationRunicColorScheme(darkTheme = true))
     }
 }
