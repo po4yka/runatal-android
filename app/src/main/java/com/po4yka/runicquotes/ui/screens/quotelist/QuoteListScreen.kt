@@ -97,6 +97,17 @@ fun QuoteListScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is QuoteListEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
+                is QuoteListEvent.QuoteDeleted -> {
+                    val result = snackbarHostState.showSnackbar(
+                        message = "Quote deleted",
+                        actionLabel = "Undo",
+                        duration = SnackbarDuration.Short
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        haptics.lightToggle()
+                        viewModel.restoreDeletedQuote(event.quote)
+                    }
+                }
             }
         }
     }
@@ -265,23 +276,12 @@ fun QuoteListScreen(
     deleteCandidate?.let { quote ->
         ConfirmationDialog(
             title = "Delete quote?",
-            message = "This quote will be removed from your library. You can't undo this action.",
+            message = "This quote will be removed from your library. You can undo it from the snackbar.",
             confirmLabel = "Delete",
             onConfirm = {
                 deleteCandidate = null
                 haptics.mediumAction()
-                viewModel.deleteQuote(quote.id)
-                coroutineScope.launch {
-                    val result = snackbarHostState.showSnackbar(
-                        message = "Quote deleted",
-                        actionLabel = "Undo",
-                        duration = SnackbarDuration.Short
-                    )
-                    if (result == SnackbarResult.ActionPerformed) {
-                        haptics.lightToggle()
-                        viewModel.restoreDeletedQuote(quote)
-                    }
-                }
+                viewModel.deleteQuote(quote)
             },
             onDismiss = { deleteCandidate = null },
             isDestructive = true,

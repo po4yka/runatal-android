@@ -698,6 +698,41 @@ class QuoteRepositoryImplTest {
     }
 
     @Test
+    fun `restoreUserQuote reinserts deleted quote with original id`() = runTest {
+        val quote = Quote(
+            id = 12L,
+            textLatin = "Restored quote",
+            author = "Builder",
+            runicElder = "ᚱᛖᛋᛏᛟᚱᛖᛞ",
+            runicYounger = null,
+            runicCirth = null,
+            isUserCreated = false,
+            isFavorite = true,
+            createdAt = 99L
+        )
+        coEvery { quoteDao.insert(any()) } returns 12L
+
+        val result = repository.restoreUserQuote(quote)
+
+        assertThat(result).isEqualTo(12L)
+        coVerify {
+            quoteDao.insert(
+                QuoteEntity(
+                    id = 12L,
+                    textLatin = "Restored quote",
+                    author = "Builder",
+                    runicElder = "ᚱᛖᛋᛏᛟᚱᛖᛞ",
+                    runicYounger = null,
+                    runicCirth = null,
+                    isUserCreated = true,
+                    isFavorite = true,
+                    createdAt = 99L
+                )
+            )
+        }
+    }
+
+    @Test
     fun `deleteUserQuote and getQuoteById delegate and map results`() = runTest {
         coEvery { quoteDao.deleteUserQuote(4L) } returns Unit
         coEvery { quoteDao.getById(2L) } returns testQuotes[1].copy(isFavorite = true, createdAt = 500L)

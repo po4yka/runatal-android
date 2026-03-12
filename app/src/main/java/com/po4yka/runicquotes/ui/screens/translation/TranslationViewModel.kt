@@ -7,6 +7,7 @@ import com.po4yka.runicquotes.BuildConfig
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.data.repository.TranslationRepository
+import com.po4yka.runicquotes.di.DefaultDispatcher
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
@@ -26,26 +27,33 @@ import com.po4yka.runicquotes.domain.translation.TranslationTokenBreakdown
 import com.po4yka.runicquotes.domain.translation.YoungerFutharkVariant
 import com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import javax.inject.Inject
 
 /**
  * ViewModel for the translation screen, including saving transliterations to the library.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 internal class TranslationViewModel @Inject constructor(
     private val userPreferencesManager: UserPreferencesManager,
     private val buildTranslationPresentationUseCase: BuildTranslationPresentationUseCase,
-    private val saveTranslationToLibraryUseCase: SaveTranslationToLibraryUseCase
+    private val saveTranslationToLibraryUseCase: SaveTranslationToLibraryUseCase,
+    @param:DefaultDispatcher private val translationDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
     internal constructor(
@@ -53,7 +61,8 @@ internal class TranslationViewModel @Inject constructor(
         historicalTranslationService: com.po4yka.runicquotes.domain.translation.HistoricalTranslationService,
         quoteRepository: QuoteRepository,
         translationRepository: TranslationRepository,
-        userPreferencesManager: UserPreferencesManager
+        userPreferencesManager: UserPreferencesManager,
+        translationDispatcher: CoroutineDispatcher = Dispatchers.Default
     ) : this(
         userPreferencesManager = userPreferencesManager,
         buildTranslationPresentationUseCase = BuildTranslationPresentationUseCase(
@@ -69,7 +78,8 @@ internal class TranslationViewModel @Inject constructor(
             buildHistoricalTranslationBundleUseCase = BuildHistoricalTranslationBundleUseCase(
                 historicalTranslationService
             )
-        )
+        ),
+        translationDispatcher = translationDispatcher
     )
 
     private val _inputText = MutableStateFlow("")
@@ -102,57 +112,68 @@ internal class TranslationViewModel @Inject constructor(
 
     val events = _events.receiveAsFlow()
 
-    val uiState: StateFlow<TranslationUiState> = combine(
+    private val preferencesSnapshot = combine(
         combine(
-            combine(
-                _selectedScript,
-                _selectedFont,
-                _persistedWordByWordEnabled
-            ) { selectedScript, selectedFont, persistedWordByWordEnabled ->
-                TranslationPreferenceBasics(
-                    selectedScript = selectedScript,
-                    selectedFont = selectedFont,
-                    persistedWordByWordEnabled = persistedWordByWordEnabled
-                )
-            },
-            combine(
-                _translationMode,
-                _selectedFidelity,
-                _selectedYoungerVariant
-            ) { mode, fidelity, youngerVariant ->
-                TranslationModePreferences(
-                    translationMode = mode,
-                    fidelity = fidelity,
-                    youngerVariant = youngerVariant
-                )
-            }
-        ) { basics, modePreferences ->
-            TranslationPreferencesSnapshot(
-                selectedScript = basics.selectedScript,
-                selectedFont = basics.selectedFont,
-                persistedWordByWordEnabled = basics.persistedWordByWordEnabled,
-                translationMode = modePreferences.translationMode,
-                fidelity = modePreferences.fidelity,
-                youngerVariant = modePreferences.youngerVariant
+            _selectedScript,
+            _selectedFont,
+            _persistedWordByWordEnabled
+        ) { selectedScript, selectedFont, persistedWordByWordEnabled ->
+            TranslationPreferenceBasics(
+                selectedScript = selectedScript,
+                selectedFont = selectedFont,
+                persistedWordByWordEnabled = persistedWordByWordEnabled
             )
         },
         combine(
-            _inputText,
-            _isSaving,
-            _localWordByWordOverride
-        ) { inputText, isSaving, localWordByWordOverride ->
-            TranslationInputSnapshot(
-                inputText = inputText,
-                isSaving = isSaving,
-                localWordByWordOverride = localWordByWordOverride
+            _translationMode,
+            _selectedFidelity,
+            _selectedYoungerVariant
+        ) { mode, fidelity, youngerVariant ->
+            TranslationModePreferences(
+                translationMode = mode,
+                fidelity = fidelity,
+                youngerVariant = youngerVariant
             )
         }
+    ) { basics, modePreferences ->
+        TranslationPreferencesSnapshot(
+            selectedScript = basics.selectedScript,
+            selectedFont = basics.selectedFont,
+            persistedWordByWordEnabled = basics.persistedWordByWordEnabled,
+            translationMode = modePreferences.translationMode,
+            fidelity = modePreferences.fidelity,
+            youngerVariant = modePreferences.youngerVariant
+        )
+    }
+
+    private val inputSnapshot = combine(
+        _inputText,
+        _isSaving,
+        _localWordByWordOverride
+    ) { inputText, isSaving, localWordByWordOverride ->
+        TranslationInputSnapshot(
+            inputText = inputText,
+            isSaving = isSaving,
+            localWordByWordOverride = localWordByWordOverride
+        )
+    }
+
+    val uiState: StateFlow<TranslationUiState> = combine(
+        preferencesSnapshot,
+        inputSnapshot
     ) { preferences, inputState ->
-        buildTranslationPresentationUseCase(
+        TranslationRenderRequest(
             preferences = preferences,
-            input = inputState,
-            translateFeatureEnabled = translateFeatureEnabled
-        ).toUiState()
+            input = inputState
+        )
+    }.mapLatest { request ->
+        withContext(translationDispatcher) {
+            buildTranslationPresentationUseCase(
+                preferences = request.preferences,
+                input = request.input,
+                translateFeatureEnabled = translateFeatureEnabled
+            ).toUiState()
+        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000L),
@@ -237,14 +258,16 @@ internal class TranslationViewModel @Inject constructor(
         viewModelScope.launch {
             _isSaving.value = true
             try {
-                val result = saveTranslationToLibraryUseCase(
-                    SaveTranslationRequest(
-                        inputText = state.inputText,
-                        translationMode = state.translationMode,
-                        fidelity = state.selectedFidelity,
-                        youngerVariant = state.selectedYoungerVariant
+                val result = withContext(translationDispatcher) {
+                    saveTranslationToLibraryUseCase(
+                        SaveTranslationRequest(
+                            inputText = state.inputText,
+                            translationMode = state.translationMode,
+                            fidelity = state.selectedFidelity,
+                            youngerVariant = state.selectedYoungerVariant
+                        )
                     )
-                )
+                }
                 _events.send(TranslationEvent.ShowMessage(result.message))
             } catch (exception: IOException) {
                 Log.e(TAG, "IO error saving translation", exception)
@@ -275,6 +298,11 @@ private data class TranslationModePreferences(
     val translationMode: TranslationMode,
     val fidelity: TranslationFidelity,
     val youngerVariant: YoungerFutharkVariant
+)
+
+private data class TranslationRenderRequest(
+    val preferences: TranslationPreferencesSnapshot,
+    val input: TranslationInputSnapshot
 )
 
 /**

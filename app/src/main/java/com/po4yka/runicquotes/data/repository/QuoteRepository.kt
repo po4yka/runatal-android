@@ -68,6 +68,12 @@ interface QuoteRepository {
     suspend fun saveUserQuote(quote: Quote): Long
 
     /**
+     * Re-inserts a deleted user-created quote with its existing identity.
+     * @return The restored quote ID.
+     */
+    suspend fun restoreUserQuote(quote: Quote): Long
+
+    /**
      * Deletes a user-created quote.
      */
     suspend fun deleteUserQuote(quoteId: Long)

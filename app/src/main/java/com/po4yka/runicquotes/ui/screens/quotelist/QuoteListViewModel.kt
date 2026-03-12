@@ -153,10 +153,11 @@ class QuoteListViewModel @Inject constructor(
     }
 
     /** Deletes a user-created quote. */
-    fun deleteQuote(quoteId: Long) {
+    fun deleteQuote(quote: Quote) {
         viewModelScope.launch {
             try {
-                quoteRepository.deleteUserQuote(quoteId)
+                quoteRepository.deleteUserQuote(quote.id)
+                _events.send(QuoteListEvent.QuoteDeleted(quote))
             } catch (e: IOException) {
                 Log.e(TAG, "IO error deleting quote", e)
                 _events.send(QuoteListEvent.ShowMessage("Failed to delete quote: ${e.message}"))
@@ -171,7 +172,7 @@ class QuoteListViewModel @Inject constructor(
     fun restoreDeletedQuote(quote: Quote) {
         viewModelScope.launch {
             try {
-                quoteRepository.saveUserQuote(quote.copy(isUserCreated = true))
+                quoteRepository.restoreUserQuote(quote.copy(isUserCreated = true))
             } catch (e: IOException) {
                 Log.e(TAG, "IO error restoring quote", e)
                 _events.send(QuoteListEvent.ShowMessage("Failed to restore quote: ${e.message}"))
@@ -220,6 +221,9 @@ data class QuoteListUiState(
 sealed interface QuoteListEvent {
     /** Shows transient feedback to the user. */
     data class ShowMessage(val message: String) : QuoteListEvent
+
+    /** Indicates that a quote was deleted successfully and can be restored. */
+    data class QuoteDeleted(val quote: Quote) : QuoteListEvent
 }
 
 /** Tab filters for the Library screen: All, Favorites, Custom. */

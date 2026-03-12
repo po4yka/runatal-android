@@ -103,6 +103,7 @@ class QuoteListViewModelTest {
         coEvery { quoteRepository.toggleFavorite(any(), any()) } returns Unit
         coEvery { quoteRepository.deleteUserQuote(any()) } returns Unit
         coEvery { quoteRepository.saveUserQuote(any()) } returns 99L
+        coEvery { quoteRepository.restoreUserQuote(any()) } returns 99L
     }
 
     @After
@@ -191,18 +192,22 @@ class QuoteListViewModelTest {
     }
 
     @Test
-    fun `deleteQuote delegates to repository`() = runTest {
+    fun `deleteQuote deletes then emits undo event`() = runTest {
         viewModel = createViewModel()
         advanceUntilIdle()
 
-        viewModel.deleteQuote(2L)
-        advanceUntilIdle()
+        viewModel.events.test {
+            viewModel.deleteQuote(testQuotes[1])
+            advanceUntilIdle()
 
-        coVerify { quoteRepository.deleteUserQuote(2L) }
+            coVerify { quoteRepository.deleteUserQuote(2L) }
+            assertThat(awaitItem()).isEqualTo(QuoteListEvent.QuoteDeleted(testQuotes[1]))
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
-    fun `restoreDeletedQuote saves a user-created copy`() = runTest {
+    fun `restoreDeletedQuote re-inserts a user-created copy`() = runTest {
         viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -210,7 +215,7 @@ class QuoteListViewModelTest {
         advanceUntilIdle()
 
         coVerify {
-            quoteRepository.saveUserQuote(
+            quoteRepository.restoreUserQuote(
                 match { restored -> restored.id == 1L && restored.isUserCreated }
             )
         }

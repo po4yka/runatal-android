@@ -9,6 +9,9 @@ import com.po4yka.runicquotes.domain.translation.TranslationFidelity
 import com.po4yka.runicquotes.domain.translation.TranslationResult
 import com.po4yka.runicquotes.domain.translation.TranslationTokenBreakdown
 import com.po4yka.runicquotes.domain.translation.YoungerFutharkVariant
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import javax.inject.Inject
 
 internal data class TransliterationBundle(
@@ -55,29 +58,34 @@ internal class BuildTransliterationBundleUseCase @Inject constructor(
 ) {
 
     @Suppress("TooGenericExceptionCaught")
-    operator fun invoke(inputText: String): TransliterationBundle {
+    suspend operator fun invoke(
+        inputText: String,
+        scripts: Set<RunicScript> = RunicScript.entries.toSet()
+    ): TransliterationBundle {
         if (inputText.isBlank()) {
             return TransliterationBundle()
         }
 
         return try {
+            val outputs = mutableMapOf<RunicScript, String>()
+            val breakdowns = mutableMapOf<RunicScript, TransliterationBreakdown>()
+
+            for (script in scripts) {
+                currentCoroutineContext().ensureActive()
+                outputs[script] = transliterationFactory.transliterate(inputText, script)
+                breakdowns[script] = transliterationFactory.transliterateWordByWord(inputText, script)
+            }
+
             TransliterationBundle(
-                elder = transliterationFactory.transliterate(inputText, RunicScript.ELDER_FUTHARK),
-                younger = transliterationFactory.transliterate(inputText, RunicScript.YOUNGER_FUTHARK),
-                cirth = transliterationFactory.transliterate(inputText, RunicScript.CIRTH),
-                elderBreakdown = transliterationFactory.transliterateWordByWord(
-                    inputText,
-                    RunicScript.ELDER_FUTHARK
-                ),
-                youngerBreakdown = transliterationFactory.transliterateWordByWord(
-                    inputText,
-                    RunicScript.YOUNGER_FUTHARK
-                ),
-                cirthBreakdown = transliterationFactory.transliterateWordByWord(
-                    inputText,
-                    RunicScript.CIRTH
-                )
+                elder = outputs[RunicScript.ELDER_FUTHARK].orEmpty(),
+                younger = outputs[RunicScript.YOUNGER_FUTHARK].orEmpty(),
+                cirth = outputs[RunicScript.CIRTH].orEmpty(),
+                elderBreakdown = breakdowns[RunicScript.ELDER_FUTHARK] ?: TransliterationBreakdown(),
+                youngerBreakdown = breakdowns[RunicScript.YOUNGER_FUTHARK] ?: TransliterationBreakdown(),
+                cirthBreakdown = breakdowns[RunicScript.CIRTH] ?: TransliterationBreakdown()
             )
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: Exception) {
             TransliterationBundle(errorMessage = exception.message ?: "Transliteration failed")
         }
@@ -89,36 +97,36 @@ internal class BuildHistoricalTranslationBundleUseCase @Inject constructor(
 ) {
 
     @Suppress("TooGenericExceptionCaught")
-    operator fun invoke(
+    suspend operator fun invoke(
         inputText: String,
         fidelity: TranslationFidelity,
-        youngerVariant: YoungerFutharkVariant
+        youngerVariant: YoungerFutharkVariant,
+        scripts: Set<RunicScript> = RunicScript.entries.toSet()
     ): HistoricalTranslationBundle {
         if (inputText.isBlank()) {
             return HistoricalTranslationBundle()
         }
 
         return try {
-            HistoricalTranslationBundle(
-                elder = historicalTranslationService.translate(
+            val results = mutableMapOf<RunicScript, TranslationResult>()
+
+            for (script in scripts) {
+                currentCoroutineContext().ensureActive()
+                results[script] = historicalTranslationService.translate(
                     text = inputText,
-                    script = RunicScript.ELDER_FUTHARK,
-                    fidelity = fidelity,
-                    youngerVariant = youngerVariant
-                ),
-                younger = historicalTranslationService.translate(
-                    text = inputText,
-                    script = RunicScript.YOUNGER_FUTHARK,
-                    fidelity = fidelity,
-                    youngerVariant = youngerVariant
-                ),
-                cirth = historicalTranslationService.translate(
-                    text = inputText,
-                    script = RunicScript.CIRTH,
+                    script = script,
                     fidelity = fidelity,
                     youngerVariant = youngerVariant
                 )
+            }
+
+            HistoricalTranslationBundle(
+                elder = results[RunicScript.ELDER_FUTHARK],
+                younger = results[RunicScript.YOUNGER_FUTHARK],
+                cirth = results[RunicScript.CIRTH]
             )
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: Exception) {
             HistoricalTranslationBundle(errorMessage = exception.message ?: "Historical translation failed")
         }

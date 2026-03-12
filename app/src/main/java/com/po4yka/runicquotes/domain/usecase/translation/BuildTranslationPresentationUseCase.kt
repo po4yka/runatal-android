@@ -63,12 +63,16 @@ internal class BuildTranslationPresentationUseCase @Inject constructor(
     private val buildHistoricalTranslationBundleUseCase: BuildHistoricalTranslationBundleUseCase
 ) {
 
-    operator fun invoke(
+    suspend operator fun invoke(
         preferences: TranslationPreferencesSnapshot,
         input: TranslationInputSnapshot,
         translateFeatureEnabled: Boolean
     ): TranslationPresentation {
-        val transliterationBundle = buildTransliterationBundleUseCase(input.inputText)
+        val selectedScript = setOf(preferences.selectedScript)
+        val transliterationBundle = buildTransliterationBundleUseCase(
+            inputText = input.inputText,
+            scripts = selectedScript
+        )
         val effectiveMode = if (translateFeatureEnabled) {
             preferences.translationMode
         } else {
@@ -79,7 +83,8 @@ internal class BuildTranslationPresentationUseCase @Inject constructor(
             buildHistoricalTranslationBundleUseCase(
                 inputText = input.inputText,
                 fidelity = preferences.fidelity,
-                youngerVariant = preferences.youngerVariant
+                youngerVariant = preferences.youngerVariant,
+                scripts = selectedScript
             )
         } else {
             HistoricalTranslationBundle()

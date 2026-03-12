@@ -96,6 +96,14 @@ class QuoteRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun restoreUserQuote(quote: Quote): Long {
+        val entity = quote.toEntity().copy(
+            id = quote.id,
+            isUserCreated = true
+        )
+        return quoteDao.insert(entity)
+    }
+
     override suspend fun deleteUserQuote(quoteId: Long) {
         quoteDao.deleteUserQuote(quoteId)
     }

@@ -85,7 +85,8 @@ class TranslationViewModelTest {
             historicalTranslationService = historicalTranslationService,
             quoteRepository = quoteRepository,
             translationRepository = translationRepository,
-            userPreferencesManager = userPreferencesManager
+            userPreferencesManager = userPreferencesManager,
+            translationDispatcher = testDispatcher
         )
     }
 
@@ -240,6 +241,40 @@ class TranslationViewModelTest {
 
         assertThat(viewModel.uiState.value.translationTrackLabel).isEqualTo("Erebor transcription")
         assertThat(viewModel.uiState.value.derivationKindLabel).isEqualTo("Sequence transcription")
+        collector.cancel()
+    }
+
+    @Test
+    fun `translate mode only computes the selected script`() = runTest {
+        every {
+            historicalTranslationService.translate(any(), any(), any(), any())
+        } answers {
+            placeholderTranslation(
+                text = firstArg(),
+                script = secondArg()
+            )
+        }
+
+        val collector = launch { viewModel.uiState.collect { } }
+        viewModel.selectMode(TranslationMode.TRANSLATE)
+        viewModel.selectScript(RunicScript.CIRTH)
+        viewModel.updateInputText("night")
+        advanceUntilIdle()
+
+        verify(exactly = 1) {
+            historicalTranslationService.translate(
+                "night",
+                RunicScript.CIRTH,
+                TranslationFidelity.DEFAULT,
+                YoungerFutharkVariant.DEFAULT
+            )
+        }
+        verify(exactly = 0) {
+            historicalTranslationService.translate("night", RunicScript.ELDER_FUTHARK, any(), any())
+        }
+        verify(exactly = 0) {
+            historicalTranslationService.translate("night", RunicScript.YOUNGER_FUTHARK, any(), any())
+        }
         collector.cancel()
     }
 
