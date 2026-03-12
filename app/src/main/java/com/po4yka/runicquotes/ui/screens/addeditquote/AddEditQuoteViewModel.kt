@@ -10,8 +10,14 @@ import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.data.repository.TranslationRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
-import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
+import com.po4yka.runicquotes.domain.usecase.addeditquote.AddEditQuoteEditorInteractors
+import com.po4yka.runicquotes.domain.usecase.addeditquote.BuildQuotePreviewsUseCase
+import com.po4yka.runicquotes.domain.usecase.addeditquote.EvaluateQuoteDraftUseCase
+import com.po4yka.runicquotes.domain.usecase.addeditquote.LoadEditableQuoteUseCase
+import com.po4yka.runicquotes.domain.usecase.addeditquote.QuotePreviewSet
+import com.po4yka.runicquotes.domain.usecase.addeditquote.SaveEditableQuoteRequest
+import com.po4yka.runicquotes.domain.usecase.addeditquote.SaveEditableQuoteUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,10 +38,33 @@ import javax.inject.Inject
 internal class AddEditQuoteViewModel @Inject constructor(
     private val quoteRepository: QuoteRepository,
     private val userPreferencesManager: UserPreferencesManager,
-    private val transliterationFactory: TransliterationFactory,
     savedStateHandle: SavedStateHandle,
-    private val translationRepository: TranslationRepository = NoOpTranslationRepository
+    private val editorInteractors: AddEditQuoteEditorInteractors
 ) : ViewModel() {
+
+    internal constructor(
+        quoteRepository: QuoteRepository,
+        userPreferencesManager: UserPreferencesManager,
+        transliterationFactory: TransliterationFactory,
+        savedStateHandle: SavedStateHandle,
+        translationRepository: TranslationRepository = NoOpTranslationRepository
+    ) : this(
+        quoteRepository = quoteRepository,
+        userPreferencesManager = userPreferencesManager,
+        savedStateHandle = savedStateHandle,
+        editorInteractors = AddEditQuoteEditorInteractors(
+            loadEditableQuoteUseCase = LoadEditableQuoteUseCase(
+                quoteRepository = quoteRepository,
+                buildQuotePreviewsUseCase = BuildQuotePreviewsUseCase(transliterationFactory)
+            ),
+            buildQuotePreviewsUseCase = BuildQuotePreviewsUseCase(transliterationFactory),
+            evaluateQuoteDraftUseCase = EvaluateQuoteDraftUseCase(),
+            saveEditableQuoteUseCase = SaveEditableQuoteUseCase(
+                quoteRepository = quoteRepository,
+                translationRepository = translationRepository
+            )
+        )
+    )
 
     private var quoteId: Long = savedStateHandle.get<Long>("quoteId") ?: 0L
     private var loadedQuoteId: Long? = null
@@ -52,9 +81,6 @@ internal class AddEditQuoteViewModel @Inject constructor(
     /** Constants for validation limits. */
     companion object {
         private const val TAG = "AddEditQuoteViewModel"
-        private const val MAX_QUOTE_LENGTH = 280
-        private const val MAX_AUTHOR_LENGTH = 60
-        private const val MIN_QUOTE_LENGTH = 3
     }
 
     init {
@@ -87,19 +113,19 @@ internal class AddEditQuoteViewModel @Inject constructor(
         loadedQuoteId = quoteId
 
         viewModelScope.launch {
-            val quote = quoteRepository.getQuoteById(quoteId)
-            if (quote != null && quote.isUserCreated) {
-                loadedQuote = quote
-                initialTextLatin = quote.textLatin
-                initialAuthor = quote.author
+            val loadedEditableQuote = editorInteractors.loadEditableQuoteUseCase(quoteId)
+            if (loadedEditableQuote != null) {
+                loadedQuote = loadedEditableQuote.quote
+                initialTextLatin = loadedEditableQuote.quote.textLatin
+                initialAuthor = loadedEditableQuote.quote.author
                 _uiState.update {
                     it.copy(
-                        textLatin = quote.textLatin,
-                        author = quote.author,
-                        runicElderPreview = quote.getRunicText(RunicScript.ELDER_FUTHARK, transliterationFactory),
-                        runicYoungerPreview = quote.getRunicText(RunicScript.YOUNGER_FUTHARK, transliterationFactory),
-                        runicCirthPreview = quote.getRunicText(RunicScript.CIRTH, transliterationFactory),
-                        createdAtMillis = quote.createdAt,
+                        textLatin = loadedEditableQuote.quote.textLatin,
+                        author = loadedEditableQuote.quote.author,
+                        runicElderPreview = loadedEditableQuote.previews.elder,
+                        runicYoungerPreview = loadedEditableQuote.previews.younger,
+                        runicCirthPreview = loadedEditableQuote.previews.cirth,
+                        createdAtMillis = loadedEditableQuote.quote.createdAt,
                         isEditing = true
                     )
                 }
@@ -148,49 +174,40 @@ internal class AddEditQuoteViewModel @Inject constructor(
             _uiState.update { it.copy(isSaving = true) }
 
             try {
-                val trimmedText = state.textLatin.trim()
-                val trimmedAuthor = state.author.trim()
-                val didTextChange = state.isEditing && trimmedText != initialTextLatin.trim()
-                val createdAt = if (state.isEditing && state.createdAtMillis != 0L) {
-                    state.createdAtMillis
-                } else {
-                    System.currentTimeMillis()
-                }
-                val quote = Quote(
-                    id = quoteId,
-                    textLatin = trimmedText,
-                    author = trimmedAuthor,
-                    runicElder = state.runicElderPreview,
-                    runicYounger = state.runicYoungerPreview,
-                    runicCirth = state.runicCirthPreview,
-                    isUserCreated = true,
-                    isFavorite = loadedQuote?.isFavorite ?: false,
-                    createdAt = createdAt
+                val result = editorInteractors.saveEditableQuoteUseCase(
+                    SaveEditableQuoteRequest(
+                        quoteId = quoteId,
+                        textLatin = state.textLatin,
+                        author = state.author,
+                        previews = QuotePreviewSet(
+                            elder = state.runicElderPreview,
+                            younger = state.runicYoungerPreview,
+                            cirth = state.runicCirthPreview
+                        ),
+                        existingQuote = loadedQuote,
+                        createdAtMillis = state.createdAtMillis,
+                        isEditing = state.isEditing,
+                        initialTextLatin = initialTextLatin
+                    )
                 )
-
-                val savedQuoteId = quoteRepository.saveUserQuote(quote)
-                if (didTextChange) {
-                    runCatching {
-                        translationRepository.deleteTranslationsForQuote(savedQuoteId)
-                    }.onFailure { throwable ->
-                        Log.w(
-                            TAG,
-                            "Saved edited quote but failed to invalidate translation cache for id=$savedQuoteId",
-                            throwable
-                        )
-                    }
+                if (result.translationInvalidationError != null) {
+                    Log.w(
+                        TAG,
+                        "Saved edited quote but failed to invalidate translation cache for id=${result.savedQuote.id}",
+                        result.translationInvalidationError
+                    )
                 }
-                quoteId = savedQuoteId
-                loadedQuoteId = savedQuoteId
-                loadedQuote = quote.copy(id = savedQuoteId)
-                initialTextLatin = trimmedText
-                initialAuthor = trimmedAuthor
+                quoteId = result.savedQuote.id
+                loadedQuoteId = result.savedQuote.id
+                loadedQuote = result.savedQuote
+                initialTextLatin = result.savedQuote.textLatin
+                initialAuthor = result.savedQuote.author
                 if (state.isEditing) {
                     _uiState.update {
                         it.copy(
                             isSaving = false,
                             hasUnsavedChanges = false,
-                            createdAtMillis = createdAt
+                            createdAtMillis = result.savedQuote.createdAt
                         )
                     }
                     _events.send(AddEditQuoteEvent.NavigateBackAfterEdit)
@@ -199,7 +216,7 @@ internal class AddEditQuoteViewModel @Inject constructor(
                         it.copy(
                             isSaving = false,
                             hasUnsavedChanges = false,
-                            createdAtMillis = createdAt,
+                            createdAtMillis = result.savedQuote.createdAt,
                             showConfirmation = true
                         )
                     }
@@ -260,56 +277,38 @@ internal class AddEditQuoteViewModel @Inject constructor(
      * Regenerates runic previews for all scripts based on current text.
      */
     private fun updateRunicPreviews(text: String = _uiState.value.textLatin) {
-        val preservedQuote = loadedQuote?.takeIf { it.textLatin == text }
+        val previews = editorInteractors.buildQuotePreviewsUseCase(
+            text = text,
+            preservedQuote = loadedQuote
+        )
         _uiState.update {
             it.copy(
-                runicElderPreview = preservedQuote?.getRunicText(RunicScript.ELDER_FUTHARK, transliterationFactory)
-                    ?: transliterationFactory.transliterate(text, RunicScript.ELDER_FUTHARK),
-                runicYoungerPreview = preservedQuote?.getRunicText(RunicScript.YOUNGER_FUTHARK, transliterationFactory)
-                    ?: transliterationFactory.transliterate(text, RunicScript.YOUNGER_FUTHARK),
-                runicCirthPreview = preservedQuote?.getRunicText(RunicScript.CIRTH, transliterationFactory)
-                    ?: transliterationFactory.transliterate(text, RunicScript.CIRTH)
+                runicElderPreview = previews.elder,
+                runicYoungerPreview = previews.younger,
+                runicCirthPreview = previews.cirth
             )
         }
     }
 
     private fun recomputeDerivedState() {
         val state = _uiState.value
-        val rawQuoteTextError = when {
-            state.textLatin.trim().length < MIN_QUOTE_LENGTH -> {
-                "Quote must be at least $MIN_QUOTE_LENGTH characters"
-            }
-            state.textLatin.length > MAX_QUOTE_LENGTH -> "Keep quote under $MAX_QUOTE_LENGTH characters"
-            else -> null
-        }
-
-        val rawAuthorError = when {
-            state.author.isBlank() -> "Author is required"
-            state.author.length > MAX_AUTHOR_LENGTH -> "Keep author under $MAX_AUTHOR_LENGTH characters"
-            else -> null
-        }
-        val showQuoteTextError = hasAttemptedSave || state.textLatin.isNotBlank()
-        val showAuthorError = hasAttemptedSave || state.author.isNotBlank()
-        val quoteTextError = rawQuoteTextError?.takeIf { showQuoteTextError }
-        val authorError = rawAuthorError?.takeIf { showAuthorError }
-
-        val hasUnsavedChanges = if (state.isEditing) {
-            state.textLatin.trim() != initialTextLatin.trim() ||
-                state.author.trim() != initialAuthor.trim()
-        } else {
-            state.textLatin.isNotBlank() || state.author.isNotBlank()
-        }
+        val evaluation = editorInteractors.evaluateQuoteDraftUseCase(
+            textLatin = state.textLatin,
+            author = state.author,
+            isEditing = state.isEditing,
+            initialTextLatin = initialTextLatin,
+            initialAuthor = initialAuthor,
+            hasAttemptedSave = hasAttemptedSave
+        )
 
         _uiState.update {
             it.copy(
-                quoteTextError = quoteTextError,
-                authorError = authorError,
-                quoteCharCount = state.textLatin.length,
-                authorCharCount = state.author.length,
-                hasUnsavedChanges = hasUnsavedChanges,
-                canSave = rawQuoteTextError == null &&
-                    rawAuthorError == null &&
-                    hasUnsavedChanges
+                quoteTextError = evaluation.quoteTextError,
+                authorError = evaluation.authorError,
+                quoteCharCount = evaluation.quoteCharCount,
+                authorCharCount = evaluation.authorCharCount,
+                hasUnsavedChanges = evaluation.hasUnsavedChanges,
+                canSave = evaluation.canSave
             )
         }
     }

@@ -1,18 +1,20 @@
 package com.po4yka.runicquotes.ui.screens.quote
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import android.util.Log
 import com.po4yka.runicquotes.data.preferences.UserPreferences
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
-import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.data.repository.NoOpTranslationRepository
+import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.data.repository.TranslationRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
-import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
-import com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair
+import com.po4yka.runicquotes.domain.usecase.quote.BuildQuotePresentationUseCase
+import com.po4yka.runicquotes.domain.usecase.quote.LoadQuoteSurfaceUseCase
+import com.po4yka.runicquotes.domain.usecase.quote.QuotePresentation
+import com.po4yka.runicquotes.domain.usecase.quote.QuoteSurfaceSource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,15 +37,36 @@ import javax.inject.Inject
 internal class QuoteViewModel @Inject constructor(
     private val quoteRepository: QuoteRepository,
     private val userPreferencesManager: UserPreferencesManager,
-    private val transliterationFactory: TransliterationFactory,
-    private val translationRepository: TranslationRepository = NoOpTranslationRepository
+    private val loadQuoteSurfaceUseCase: LoadQuoteSurfaceUseCase,
+    private val buildQuotePresentationUseCase: BuildQuotePresentationUseCase
 ) : ViewModel() {
+
+    internal constructor(
+        quoteRepository: QuoteRepository,
+        userPreferencesManager: UserPreferencesManager,
+        transliterationFactory: TransliterationFactory,
+        translationRepository: TranslationRepository = NoOpTranslationRepository
+    ) : this(
+        quoteRepository = quoteRepository,
+        userPreferencesManager = userPreferencesManager,
+        loadQuoteSurfaceUseCase = LoadQuoteSurfaceUseCase(
+            quoteRepository = quoteRepository,
+            buildQuotePresentationUseCase = BuildQuotePresentationUseCase(
+                transliterationFactory = transliterationFactory,
+                translationRepository = translationRepository
+            )
+        ),
+        buildQuotePresentationUseCase = BuildQuotePresentationUseCase(
+            transliterationFactory = transliterationFactory,
+            translationRepository = translationRepository
+        )
+    )
 
     private val _uiState = MutableStateFlow<QuoteUiState>(QuoteUiState.Loading)
     val uiState: StateFlow<QuoteUiState> = _uiState.asStateFlow()
     private val localWordByWordOverride = MutableStateFlow<Boolean?>(null)
     private var currentQuote: Quote? = null
-    private var recentQuotes: List<RecentQuoteItem> = emptyList()
+    private var recentQuoteCandidates: List<Quote> = emptyList()
     private var latestPreferences: UserPreferences = UserPreferences()
 
     init {
@@ -81,15 +104,18 @@ internal class QuoteViewModel @Inject constructor(
 
         try {
             val resolvedPreferences = preferences ?: userPreferencesManager.userPreferencesFlow.first()
+            val loadedQuoteSurface = loadQuoteSurfaceUseCase(
+                source = QuoteSurfaceSource.DAILY,
+                selectedScript = resolvedPreferences.selectedScript
+            )
 
-            val quote = quoteRepository.quoteOfTheDay()
-
-            if (quote != null) {
-                currentQuote = quote
-                loadRecentQuotes(resolvedPreferences, excludeId = quote.id)
-                emitSuccessState(quote, resolvedPreferences)
+            if (loadedQuoteSurface != null) {
+                currentQuote = loadedQuoteSurface.quote
+                recentQuoteCandidates = loadedQuoteSurface.recentQuoteCandidates
+                emitSuccessState(loadedQuoteSurface.presentation, resolvedPreferences)
             } else {
                 currentQuote = null
+                recentQuoteCandidates = emptyList()
                 _uiState.update { QuoteUiState.Empty }
             }
         } catch (e: IOException) {
@@ -108,15 +134,18 @@ internal class QuoteViewModel @Inject constructor(
 
             try {
                 val preferences = userPreferencesManager.userPreferencesFlow.first()
+                val loadedQuoteSurface = loadQuoteSurfaceUseCase(
+                    source = QuoteSurfaceSource.RANDOM,
+                    selectedScript = preferences.selectedScript
+                )
 
-                val quote = quoteRepository.randomQuote()
-
-                if (quote != null) {
-                    currentQuote = quote
-                    loadRecentQuotes(preferences, excludeId = quote.id)
-                    emitSuccessState(quote, preferences)
+                if (loadedQuoteSurface != null) {
+                    currentQuote = loadedQuoteSurface.quote
+                    recentQuoteCandidates = loadedQuoteSurface.recentQuoteCandidates
+                    emitSuccessState(loadedQuoteSurface.presentation, preferences)
                 } else {
                     currentQuote = null
+                    recentQuoteCandidates = emptyList()
                     _uiState.update { QuoteUiState.Empty }
                 }
             } catch (e: IOException) {
@@ -212,88 +241,41 @@ internal class QuoteViewModel @Inject constructor(
         wordByWordOverride: Boolean? = localWordByWordOverride.value
     ) {
         val quote = currentQuote ?: return
-        emitSuccessState(quote, preferences, wordByWordOverride)
-    }
-
-    private suspend fun loadRecentQuotes(preferences: UserPreferences, excludeId: Long) {
-        val allQuotes = quoteRepository.getAllQuotes()
-        recentQuotes = allQuotes
-            .filter { it.id != excludeId }
-            .take(RECENT_QUOTES_LIMIT)
-            .map { quote ->
-                val resolvedRunic = resolveRunicContent(quote, preferences.selectedScript)
-                RecentQuoteItem(
-                    quote = quote,
-                    runicText = resolvedRunic.runicText
-                )
-            }
+        val presentation = buildQuotePresentationUseCase(
+            quote = quote,
+            selectedScript = preferences.selectedScript,
+            recentQuoteCandidates = recentQuoteCandidates
+        )
+        emitSuccessState(presentation, preferences, wordByWordOverride)
     }
 
     private suspend fun emitSuccessState(
-        quote: Quote,
+        presentation: QuotePresentation,
         preferences: UserPreferences,
         wordByWordOverride: Boolean? = localWordByWordOverride.value
     ) {
-        val resolvedRunic = resolveRunicContent(quote, preferences.selectedScript)
         val wordByWordEnabled = wordByWordOverride ?: preferences.wordByWordTransliterationEnabled
-        // Re-render recent quotes runic text when script changes
-        val updatedRecent = recentQuotes.map { item ->
-            val resolvedRecent = resolveRunicContent(item.quote, preferences.selectedScript)
-            item.copy(
-                runicText = resolvedRecent.runicText
+        val updatedRecent = presentation.recentQuotes.map { item ->
+            RecentQuoteItem(
+                quote = item.quote,
+                runicText = item.runicText
             )
         }
-        recentQuotes = updatedRecent
         _uiState.update {
             QuoteUiState.Success(
-                quote = quote,
-                runicText = resolvedRunic.runicText,
+                quote = presentation.quote,
+                runicText = presentation.runicText,
                 selectedScript = preferences.selectedScript,
                 selectedFont = preferences.selectedFont,
                 showTransliteration = preferences.showTransliteration,
                 wordByWordEnabled = wordByWordEnabled,
-                wordBreakdown = resolvedRunic.wordBreakdown,
+                wordBreakdown = presentation.wordBreakdown,
                 recentQuotes = updatedRecent
             )
         }
     }
 
-    private suspend fun resolveRunicContent(
-        quote: Quote,
-        script: RunicScript
-    ): ResolvedRunicContent {
-        val latestTranslation = translationRepository.getLatestAvailableTranslation(
-            quoteId = quote.id,
-            script = script
-        )
-        if (latestTranslation != null) {
-            return ResolvedRunicContent(
-                runicText = latestTranslation.glyphOutput,
-                wordBreakdown = latestTranslation.tokenBreakdown.map { token ->
-                    WordTransliterationPair(
-                        sourceToken = token.sourceToken,
-                        runicToken = token.glyphToken
-                    )
-                }
-            )
-        }
-
-        return ResolvedRunicContent(
-            runicText = quote.getRunicText(script, transliterationFactory),
-            wordBreakdown = transliterationFactory.transliterateWordByWord(
-                text = quote.textLatin,
-                script = script
-            ).wordPairs
-        )
-    }
-
     private companion object {
         const val TAG = "QuoteViewModel"
-        const val RECENT_QUOTES_LIMIT = 3
     }
 }
-
-private data class ResolvedRunicContent(
-    val runicText: String,
-    val wordBreakdown: List<WordTransliterationPair>
-)
