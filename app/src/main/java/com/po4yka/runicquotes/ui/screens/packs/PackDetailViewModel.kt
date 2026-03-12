@@ -1,15 +1,16 @@
 package com.po4yka.runicquotes.ui.screens.packs
 
 import android.util.Log
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runicquotes.data.repository.QuotePackRepository
 import com.po4yka.runicquotes.domain.model.QuotePack
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -20,26 +21,21 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class PackDetailViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
     private val quotePackRepository: QuotePackRepository
 ) : ViewModel() {
 
-    private var packId: Long = savedStateHandle.get<Long>("packId") ?: 0L
+    private var packId: Long = 0L
     private var loadedPackId: Long? = null
 
     private val _uiState = MutableStateFlow<PackDetailUiState>(PackDetailUiState.Loading)
     val uiState: StateFlow<PackDetailUiState> = _uiState.asStateFlow()
 
-    private val _feedbackMessage = MutableStateFlow<String?>(null)
-    val feedbackMessage: StateFlow<String?> = _feedbackMessage.asStateFlow()
+    private val _events = Channel<PackDetailEvent>(Channel.BUFFERED)
+    val events = _events.receiveAsFlow()
 
     /** @suppress */
     companion object {
         private const val TAG = "PackDetailViewModel"
-    }
-
-    init {
-        initializePackIfNeeded(packId)
     }
 
     /**
@@ -84,11 +80,15 @@ class PackDetailViewModel @Inject constructor(
                 val updated = current.copy(isInLibrary = !current.isInLibrary)
                 quotePackRepository.updatePack(updated)
                 _uiState.update { PackDetailUiState.Success(updated) }
-                _feedbackMessage.value = if (updated.isInLibrary) {
-                    "${updated.quoteCount} quotes added to library"
-                } else {
-                    "${updated.name} removed from library"
-                }
+                _events.send(
+                    PackDetailEvent.ShowFeedback(
+                        message = if (updated.isInLibrary) {
+                            "${updated.quoteCount} quotes added to library"
+                        } else {
+                            "${updated.name} removed from library"
+                        }
+                    )
+                )
             } catch (e: IOException) {
                 Log.e(TAG, "IO error toggling library status", e)
             } catch (e: IllegalStateException) {
@@ -98,17 +98,12 @@ class PackDetailViewModel @Inject constructor(
     }
 
     /**
-     * Clears transient feedback after it has been displayed.
-     */
-    fun clearFeedback() {
-        _feedbackMessage.value = null
-    }
-
-    /**
      * Retries loading the pack after an error.
      */
     fun retry() {
-        loadPack()
+        if (packId != 0L) {
+            loadPack()
+        }
     }
 }
 
@@ -124,4 +119,10 @@ sealed interface PackDetailUiState {
 
     /** An error occurred while loading the pack. */
     data class Error(val message: String) : PackDetailUiState
+}
+
+/** One-off UI events emitted by the pack detail screen. */
+sealed interface PackDetailEvent {
+    /** Displays transient pack-related feedback. */
+    data class ShowFeedback(val message: String) : PackDetailEvent
 }

@@ -71,6 +71,7 @@ import com.po4yka.runicquotes.ui.components.SegmentedControl
 import com.po4yka.runicquotes.ui.components.SkeletonCard
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
 import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
+import com.po4yka.runicquotes.ui.util.rememberQuoteShareManager
 import com.po4yka.runicquotes.util.rememberHapticFeedback
 import kotlinx.coroutines.launch
 
@@ -88,6 +89,7 @@ fun QuoteListScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val haptics = rememberHapticFeedback()
     val coroutineScope = rememberCoroutineScope()
+    val quoteShareManager = rememberQuoteShareManager()
     var deleteCandidate by remember { mutableStateOf<Quote?>(null) }
     var bottomSheetQuote by remember { mutableStateOf<Quote?>(null) }
 
@@ -224,7 +226,10 @@ fun QuoteListScreen(
             },
             onCopyText = {
                 haptics.lightToggle()
-                viewModel.copyQuoteText(quote)
+                quoteShareManager.copyQuoteToClipboard(
+                    latinText = quote.textLatin,
+                    author = quote.author
+                )
                 bottomSheetQuote = null
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar("Quote text copied")
@@ -232,7 +237,13 @@ fun QuoteListScreen(
             },
             onCopyRunes = {
                 haptics.lightToggle()
-                viewModel.copyRunicText(quote)
+                quoteShareManager.copyPlainTextToClipboard(
+                    label = "Runic transliteration",
+                    text = quote.getRunicText(
+                        script = uiState.selectedScript,
+                        transliterationFactory = viewModel.transliterationFactory
+                    )
+                )
                 bottomSheetQuote = null
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar("Runes copied")

@@ -1,7 +1,6 @@
 package com.po4yka.runicquotes.ui.screens.references
 
 import android.util.Log
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runicquotes.data.repository.RuneReferenceRepository
@@ -19,11 +18,10 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class RuneDetailViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
     private val runeReferenceRepository: RuneReferenceRepository
 ) : ViewModel() {
 
-    private var runeId: Long = savedStateHandle.get<Long>("runeId") ?: 0L
+    private var runeId: Long = 0L
     private var loadedRuneId: Long? = null
 
     private val _uiState = MutableStateFlow<RuneDetailUiState>(RuneDetailUiState.Loading)
@@ -32,10 +30,6 @@ class RuneDetailViewModel @Inject constructor(
     /** @suppress */
     companion object {
         private const val TAG = "RuneDetailViewModel"
-    }
-
-    init {
-        initializeRuneIfNeeded(runeId)
     }
 
     /**
@@ -73,7 +67,9 @@ class RuneDetailViewModel @Inject constructor(
      * Retries loading the rune after an error.
      */
     fun retry() {
-        loadRune()
+        if (runeId != 0L) {
+            loadRune()
+        }
     }
 }
 

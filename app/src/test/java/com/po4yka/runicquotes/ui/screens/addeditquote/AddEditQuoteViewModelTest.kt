@@ -658,7 +658,6 @@ class AddEditQuoteViewModelTest {
         val favoriteQuote = testQuote.copy(isFavorite = true)
         savedStateHandle = SavedStateHandle(mapOf("quoteId" to 1L))
         coEvery { quoteRepository.getQuoteById(1L) } returns favoriteQuote
-        var editSavedCallbackCalled = false
         var savedQuote: Quote? = null
         coEvery { quoteRepository.saveUserQuote(any()) } coAnswers {
             savedQuote = firstArg()
@@ -677,15 +676,19 @@ class AddEditQuoteViewModelTest {
         advanceUntilIdle()
 
         // When: Saving quote
-        viewModel.saveQuote(onEditSaved = { editSavedCallbackCalled = true })
-        advanceUntilIdle()
+        viewModel.events.test {
+            viewModel.saveQuote()
+            advanceUntilIdle()
+
+            assertThat(awaitItem()).isEqualTo(AddEditQuoteEvent.NavigateBackAfterEdit)
+            cancelAndIgnoreRemainingEvents()
+        }
 
         // Then: Quote is saved with original ID, original timestamp, and no create confirmation
         coVerify { quoteRepository.saveUserQuote(match { it.id == 1L }) }
         assertThat(savedQuote).isNotNull()
         assertThat(savedQuote!!.createdAt).isEqualTo(favoriteQuote.createdAt)
         assertThat(savedQuote!!.isFavorite).isTrue()
-        assertThat(editSavedCallbackCalled).isTrue()
         viewModel.uiState.test {
             val state = awaitItem()
             assertThat(state.showConfirmation).isFalse()

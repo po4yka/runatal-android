@@ -13,10 +13,12 @@ import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -44,6 +46,8 @@ internal class AddEditQuoteViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(AddEditQuoteUiState())
     val uiState: StateFlow<AddEditQuoteUiState> = _uiState.asStateFlow()
+    private val _events = Channel<AddEditQuoteEvent>(Channel.BUFFERED)
+    val events = _events.receiveAsFlow()
 
     /** Constants for validation limits. */
     companion object {
@@ -131,7 +135,7 @@ internal class AddEditQuoteViewModel @Inject constructor(
     /**
      * Saves the quote to the database and shows confirmation.
      */
-    fun saveQuote(onEditSaved: () -> Unit = {}) {
+    fun saveQuote() {
         viewModelScope.launch {
             val state = _uiState.value
             hasAttemptedSave = true
@@ -189,7 +193,7 @@ internal class AddEditQuoteViewModel @Inject constructor(
                             createdAtMillis = createdAt
                         )
                     }
-                    onEditSaved()
+                    _events.send(AddEditQuoteEvent.NavigateBackAfterEdit)
                 } else {
                     _uiState.update {
                         it.copy(
@@ -223,13 +227,13 @@ internal class AddEditQuoteViewModel @Inject constructor(
     /**
      * Deletes the current quote being edited.
      */
-    fun deleteQuote(onSuccess: () -> Unit) {
+    fun deleteQuote() {
         if (quoteId == 0L) return
         viewModelScope.launch {
             _uiState.update { it.copy(isDeleting = true) }
             try {
                 quoteRepository.deleteUserQuote(quoteId)
-                onSuccess()
+                _events.send(AddEditQuoteEvent.NavigateBackAfterDelete)
             } catch (e: IOException) {
                 Log.e(TAG, "IO error deleting quote", e)
                 _uiState.update {
@@ -351,3 +355,12 @@ data class AddEditQuoteUiState(
     val showConfirmation: Boolean = false,
     val errorMessage: String? = null
 )
+
+/** One-off navigation events emitted by the add/edit quote screen. */
+sealed interface AddEditQuoteEvent {
+    /** Navigates back after an existing quote has been saved. */
+    data object NavigateBackAfterEdit : AddEditQuoteEvent
+
+    /** Navigates back after the current quote has been deleted. */
+    data object NavigateBackAfterDelete : AddEditQuoteEvent
+}

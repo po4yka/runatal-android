@@ -79,18 +79,28 @@ fun PackDetailScreen(
     viewModel: PackDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val feedbackMessage by viewModel.feedbackMessage.collectAsStateWithLifecycle()
     val reducedMotion = LocalReduceMotion.current
     val motion = RunicExpressiveTheme.motion
+    var feedbackMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(packId) {
         viewModel.initializePackIfNeeded(packId)
     }
 
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is PackDetailEvent.ShowFeedback -> {
+                    feedbackMessage = event.message
+                }
+            }
+        }
+    }
+
     LaunchedEffect(feedbackMessage) {
         if (feedbackMessage != null) {
             delay(2800)
-            viewModel.clearFeedback()
+            feedbackMessage = null
         }
     }
 

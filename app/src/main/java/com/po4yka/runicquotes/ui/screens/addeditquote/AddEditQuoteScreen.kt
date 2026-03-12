@@ -47,6 +47,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -101,9 +102,19 @@ internal fun AddEditQuoteScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showDiscardDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val currentNavigateBack by rememberUpdatedState(onNavigateBack)
 
     LaunchedEffect(quoteId) {
         viewModel.initializeQuoteIfNeeded(quoteId)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                AddEditQuoteEvent.NavigateBackAfterDelete,
+                AddEditQuoteEvent.NavigateBackAfterEdit -> currentNavigateBack()
+            }
+        }
     }
 
     LaunchedEffect(uiState.errorMessage) {
@@ -138,7 +149,7 @@ internal fun AddEditQuoteScreen(
         uiState = uiState,
         snackbarHostState = snackbarHostState,
         onNavigateBack = requestExit,
-        onSave = { viewModel.saveQuote(onNavigateBack) },
+        onSave = viewModel::saveQuote,
         onUpdateText = viewModel::updateTextLatin,
         onUpdateAuthor = viewModel::updateAuthor,
         onUpdateScript = viewModel::updateSelectedScript,
@@ -163,7 +174,7 @@ internal fun AddEditQuoteScreen(
             author = uiState.author,
             onDelete = {
                 showDeleteDialog = false
-                viewModel.deleteQuote(onNavigateBack)
+                viewModel.deleteQuote()
             },
             onDismiss = { showDeleteDialog = false }
         )

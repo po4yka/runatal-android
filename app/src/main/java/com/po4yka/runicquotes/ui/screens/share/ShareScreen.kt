@@ -39,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -73,8 +74,10 @@ import com.po4yka.runicquotes.ui.theme.RunicTypeRoles
 import com.po4yka.runicquotes.ui.theme.SupportingTextRole
 import com.po4yka.runicquotes.ui.theme.runicSharePalette
 import com.po4yka.runicquotes.ui.theme.runicShareStyleTokens
+import com.po4yka.runicquotes.ui.util.rememberQuoteShareManager
 import com.po4yka.runicquotes.util.ShareAppearance
 import com.po4yka.runicquotes.util.ShareTemplate
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun ShareScreen(
@@ -85,18 +88,12 @@ internal fun ShareScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedTemplate by viewModel.selectedTemplate.collectAsStateWithLifecycle()
     val selectedAppearance by viewModel.selectedAppearance.collectAsStateWithLifecycle()
-    val feedbackMessage by viewModel.feedbackMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val quoteShareManager = rememberQuoteShareManager()
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(quoteId) {
         viewModel.initializeQuoteIfNeeded(quoteId)
-    }
-
-    LaunchedEffect(feedbackMessage) {
-        feedbackMessage?.let { message ->
-            snackbarHostState.showSnackbar(message)
-            viewModel.clearFeedback()
-        }
     }
 
     Scaffold(
@@ -132,13 +129,48 @@ internal fun ShareScreen(
                 selectedAppearance = selectedAppearance,
                 onSelectTemplate = viewModel::selectTemplate,
                 onSelectAppearance = viewModel::selectAppearance,
-                onShareAsText = viewModel::shareAsText,
-                onShareAsImage = viewModel::shareAsImage,
-                onCopyQuote = viewModel::copyQuote,
+                onShareAsText = {
+                    quoteShareManager.shareQuoteText(
+                        latinText = state.quote.textLatin,
+                        author = state.quote.author
+                    )
+                },
+                onShareAsImage = {
+                    coroutineScope.launch {
+                        val didShare = quoteShareManager.shareQuoteAsImage(
+                            runicText = state.quote.sharePreviewRunes(),
+                            latinText = state.quote.textLatin,
+                            author = state.quote.author,
+                            template = selectedTemplate,
+                            appearance = selectedAppearance
+                        )
+                        if (!didShare) {
+                            snackbarHostState.showSnackbar("Couldn't share image")
+                        }
+                    }
+                },
+                onCopyQuote = {
+                    quoteShareManager.copyQuoteToClipboard(
+                        latinText = state.quote.textLatin,
+                        author = state.quote.author
+                    )
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Quote copied")
+                    }
+                },
                 modifier = Modifier.padding(padding)
             )
         }
     }
+}
+
+private fun Quote.sharePreviewRunes(): String {
+    val cachedHistoricalGlyph = listOfNotNull(
+        runicElder,
+        runicYounger,
+        runicCirth
+    ).singleOrNull()
+    return cachedHistoricalGlyph ?: runicElder ?: textLatin
 }
 
 @Composable

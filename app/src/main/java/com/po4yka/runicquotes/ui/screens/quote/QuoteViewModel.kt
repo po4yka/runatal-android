@@ -13,9 +13,6 @@ import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair
-import com.po4yka.runicquotes.util.QuoteShareManager
-import com.po4yka.runicquotes.util.ShareAppearance
-import com.po4yka.runicquotes.util.ShareTemplate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,7 +35,6 @@ import javax.inject.Inject
 internal class QuoteViewModel @Inject constructor(
     private val quoteRepository: QuoteRepository,
     private val userPreferencesManager: UserPreferencesManager,
-    private val quoteShareManager: QuoteShareManager,
     private val transliterationFactory: TransliterationFactory,
     private val translationRepository: TranslationRepository = NoOpTranslationRepository
 ) : ViewModel() {
@@ -162,53 +158,6 @@ internal class QuoteViewModel @Inject constructor(
                     // Invalid state, silently fail - non-critical operation
                 }
             }
-        }
-    }
-
-    /**
-     * Shares the current quote as an image.
-     */
-    fun shareQuoteAsImage(
-        template: ShareTemplate = ShareTemplate.CARD,
-        appearance: ShareAppearance = ShareAppearance.DARK
-    ) {
-        viewModelScope.launch {
-            val currentState = _uiState.value
-            if (currentState is QuoteUiState.Success) {
-                quoteShareManager.shareQuoteAsImage(
-                    runicText = currentState.runicText,
-                    latinText = currentState.quote.textLatin,
-                    author = currentState.quote.author,
-                    template = template,
-                    appearance = appearance
-                )
-            }
-        }
-    }
-
-    /**
-     * Shares the current quote as text.
-     */
-    fun shareQuoteText() {
-        val currentState = _uiState.value
-        if (currentState is QuoteUiState.Success) {
-            quoteShareManager.shareQuoteText(
-                latinText = currentState.quote.textLatin,
-                author = currentState.quote.author
-            )
-        }
-    }
-
-    /**
-     * Copies current quote text to the system clipboard.
-     */
-    fun copyQuoteText() {
-        val currentState = _uiState.value
-        if (currentState is QuoteUiState.Success) {
-            quoteShareManager.copyQuoteToClipboard(
-                latinText = currentState.quote.textLatin,
-                author = currentState.quote.author
-            )
         }
     }
 
