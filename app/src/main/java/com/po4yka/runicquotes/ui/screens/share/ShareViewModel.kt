@@ -9,6 +9,8 @@ import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.data.repository.TranslationRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.domain.translation.TranslationFidelity
+import com.po4yka.runicquotes.domain.translation.YoungerFutharkVariant
 import com.po4yka.runicquotes.util.QuoteShareManager
 import com.po4yka.runicquotes.util.ShareAppearance
 import com.po4yka.runicquotes.util.ShareTemplate
@@ -141,7 +143,12 @@ internal class ShareViewModel @Inject constructor(
     }
 
     private suspend fun resolveShareQuote(quote: Quote): Quote {
-        val cachedTranslation = translationRepository.getPreferredTranslation(quote.id) ?: return quote
+        val cachedTranslation = translationRepository.getCachedTranslation(
+            quoteId = quote.id,
+            script = RunicScript.ELDER_FUTHARK,
+            fidelity = TranslationFidelity.STRICT,
+            youngerVariant = YoungerFutharkVariant.DEFAULT
+        ) ?: return quote
         return quote.copy(
             runicElder = if (cachedTranslation.script == RunicScript.ELDER_FUTHARK) {
                 cachedTranslation.glyphOutput

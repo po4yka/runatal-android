@@ -27,6 +27,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            buildConfigField("boolean", "ENABLE_EXPERIMENTAL_TRANSLATE", "false")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -37,6 +38,7 @@ android {
             versionNameSuffix = "-debug"
             enableUnitTestCoverage = true
             enableAndroidTestCoverage = true
+            buildConfigField("boolean", "ENABLE_EXPERIMENTAL_TRANSLATE", "true")
         }
     }
 
@@ -53,6 +55,12 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+
+    sourceSets {
+        getByName("main") {
+            assets.srcDirs("$buildDir/generated/translationAssets")
         }
     }
 
@@ -153,6 +161,15 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.compose.ui.test.junit4)
+    androidTestImplementation(libs.room.testing)
+}
+
+val translationSeedDir = layout.projectDirectory.dir("src/main/translationSeed")
+val generatedTranslationAssetsDir = layout.buildDirectory.dir("generated/translationAssets")
+
+val generateTranslationAssets by tasks.registering(Sync::class) {
+    from(translationSeedDir)
+    into(generatedTranslationAssetsDir)
 }
 
 detekt {
@@ -265,4 +282,8 @@ tasks.register<JacocoCoverageVerification>("jacocoTransliterationCoverageVerific
 
 tasks.named("check") {
     dependsOn("jacocoTransliterationCoverageVerification")
+}
+
+tasks.named("preBuild") {
+    dependsOn(generateTranslationAssets)
 }

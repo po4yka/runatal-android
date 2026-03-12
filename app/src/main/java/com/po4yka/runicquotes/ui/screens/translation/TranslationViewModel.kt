@@ -3,6 +3,7 @@ package com.po4yka.runicquotes.ui.screens.translation
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.po4yka.runicquotes.BuildConfig
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.data.repository.TranslationRepository
@@ -14,6 +15,8 @@ import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import com.po4yka.runicquotes.domain.translation.HistoricalTranslationService
 import com.po4yka.runicquotes.domain.translation.TranslationFidelity
 import com.po4yka.runicquotes.domain.translation.TranslationMode
+import com.po4yka.runicquotes.domain.translation.TranslationProvenanceEntry
+import com.po4yka.runicquotes.domain.translation.TranslationResolutionStatus
 import com.po4yka.runicquotes.domain.translation.TranslationResult
 import com.po4yka.runicquotes.domain.translation.TranslationTokenBreakdown
 import com.po4yka.runicquotes.domain.translation.YoungerFutharkVariant
@@ -52,6 +55,7 @@ internal class TranslationViewModel @Inject constructor(
     private val _feedbackMessage = MutableStateFlow<String?>(null)
     private val _persistedWordByWordEnabled = MutableStateFlow(false)
     private val _localWordByWordOverride = MutableStateFlow<Boolean?>(null)
+    private val translateFeatureEnabled = BuildConfig.ENABLE_EXPERIMENTAL_TRANSLATE
 
     /** @suppress */
     companion object {
@@ -119,12 +123,21 @@ internal class TranslationViewModel @Inject constructor(
         }
     ) { preferences, inputState ->
         val transliterationBundle = transliterateBundle(inputState.inputText)
-        val translationBundle = translateBundle(
-            inputText = inputState.inputText,
-            fidelity = preferences.fidelity,
-            youngerVariant = preferences.youngerVariant
-        )
-        val isHistoricalTranslation = preferences.translationMode == TranslationMode.TRANSLATE
+        val effectiveMode = if (translateFeatureEnabled) {
+            preferences.translationMode
+        } else {
+            TranslationMode.TRANSLITERATE
+        }
+        val isHistoricalTranslation = effectiveMode == TranslationMode.TRANSLATE
+        val translationBundle = if (translateFeatureEnabled && isHistoricalTranslation) {
+            translateBundle(
+                inputText = inputState.inputText,
+                fidelity = preferences.fidelity,
+                youngerVariant = preferences.youngerVariant
+            )
+        } else {
+            HistoricalTranslationBundle()
+        }
         val selectedOutput = if (isHistoricalTranslation) {
             translationBundle.outputFor(preferences.selectedScript)
         } else {
@@ -138,17 +151,21 @@ internal class TranslationViewModel @Inject constructor(
         val wordByWordEnabled =
             inputState.localWordByWordOverride ?: preferences.persistedWordByWordEnabled
         val selectedTranslationResult = translationBundle.resultFor(preferences.selectedScript)
+        val isTranslationAvailable =
+            selectedTranslationResult?.resolutionStatus != TranslationResolutionStatus.UNAVAILABLE
         val errorMessage = if (isHistoricalTranslation) {
             translationBundle.errorMessage
         } else {
             transliterationBundle.errorMessage
         }
+        val canSaveTranslation = !isHistoricalTranslation ||
+            (selectedTranslationResult != null && isTranslationAvailable && selectedOutput.isNotBlank())
 
         TranslationUiState(
             inputText = inputState.inputText,
             transliteratedText = selectedOutput,
             selectedScript = preferences.selectedScript,
-            translationMode = preferences.translationMode,
+            translationMode = effectiveMode,
             selectedFidelity = preferences.fidelity,
             selectedYoungerVariant = preferences.youngerVariant,
             selectedFont = preferences.selectedFont,
@@ -156,21 +173,28 @@ internal class TranslationViewModel @Inject constructor(
             inputCharacterCount = inputState.inputText.length,
             canSave = inputState.inputText.trim().isNotEmpty() &&
                 !inputState.isSaving &&
-                errorMessage == null,
+                errorMessage == null &&
+                canSaveTranslation,
             isSaving = inputState.isSaving,
             errorMessage = errorMessage,
             wordByWordEnabled = wordByWordEnabled,
             wordBreakdown = selectedBreakdown.toWordPairs(),
             normalizedForm = selectedTranslationResult?.normalizedForm.orEmpty(),
             diplomaticForm = selectedTranslationResult?.diplomaticForm.orEmpty(),
+            translateFeatureEnabled = translateFeatureEnabled,
             confidence = selectedTranslationResult?.confidence,
             notes = selectedTranslationResult?.notes.orEmpty(),
-            tokenBreakdown = selectedBreakdown
+            tokenBreakdown = selectedBreakdown,
+            resolutionStatus = selectedTranslationResult?.resolutionStatus,
+            unresolvedTokens = selectedTranslationResult?.unresolvedTokens.orEmpty(),
+            provenance = selectedTranslationResult?.provenance.orEmpty(),
+            fallbackSuggestion = selectedTranslationResult?.fallbackSuggestion(preferences.fidelity),
+            translationTrackLabel = selectedTranslationResult.translationTrackLabel(preferences.selectedScript)
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000L),
-        initialValue = TranslationUiState()
+        initialValue = TranslationUiState(translateFeatureEnabled = translateFeatureEnabled)
     )
 
     /**
@@ -184,7 +208,11 @@ internal class TranslationViewModel @Inject constructor(
      * Switches between legacy transliteration and structured translation.
      */
     fun selectMode(mode: TranslationMode) {
-        _translationMode.value = mode
+        _translationMode.value = if (translateFeatureEnabled) {
+            mode
+        } else {
+            TranslationMode.TRANSLITERATE
+        }
     }
 
     /**
@@ -434,6 +462,7 @@ internal data class TranslationUiState(
     val selectedFidelity: TranslationFidelity = TranslationFidelity.DEFAULT,
     val selectedYoungerVariant: YoungerFutharkVariant = YoungerFutharkVariant.DEFAULT,
     val selectedFont: String = "noto",
+    val translateFeatureEnabled: Boolean = true,
     val outputGlyphCount: Int = 0,
     val inputCharacterCount: Int = 0,
     val canSave: Boolean = false,
@@ -445,7 +474,12 @@ internal data class TranslationUiState(
     val diplomaticForm: String = "",
     val confidence: Float? = null,
     val notes: List<String> = emptyList(),
-    val tokenBreakdown: List<TranslationTokenBreakdown> = emptyList()
+    val tokenBreakdown: List<TranslationTokenBreakdown> = emptyList(),
+    val resolutionStatus: TranslationResolutionStatus? = null,
+    val unresolvedTokens: List<String> = emptyList(),
+    val provenance: List<TranslationProvenanceEntry> = emptyList(),
+    val fallbackSuggestion: String? = null,
+    val translationTrackLabel: String = ""
 ) {
     /** Display name for the currently selected script. */
     val scriptDisplayName: String get() = selectedScript.displayName
@@ -468,6 +502,24 @@ private data class HistoricalTranslationBundle(
     }
 
     fun results(): List<TranslationResult> = listOfNotNull(elder, younger, cirth)
+}
+
+private fun TranslationResult?.fallbackSuggestion(fidelity: TranslationFidelity): String? {
+    if (this == null || resolutionStatus != TranslationResolutionStatus.UNAVAILABLE) {
+        return null
+    }
+    return when (fidelity) {
+        TranslationFidelity.STRICT -> "Try Readable or Decorative for a best-effort result."
+        TranslationFidelity.READABLE -> "Try Decorative for a looser approximation."
+        TranslationFidelity.DECORATIVE -> null
+    }
+}
+
+private fun TranslationResult?.translationTrackLabel(script: RunicScript): String {
+    if (script == RunicScript.CIRTH) {
+        return "Erebor transcription"
+    }
+    return script.displayName
 }
 
 private fun List<WordTransliterationPair>.toTranslationBreakdown(): List<TranslationTokenBreakdown> {

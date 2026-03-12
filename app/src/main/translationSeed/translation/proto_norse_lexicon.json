@@ -1,0 +1,66 @@
+[
+  {
+    "english": "wolf",
+    "form": "wulfaz",
+    "partOfSpeech": "noun",
+    "strictEligible": true,
+    "sourceId": "srd",
+    "citations": ["Curated runic-era reconstruction"]
+  },
+  {
+    "english": "king",
+    "form": "kuningaz",
+    "partOfSpeech": "noun",
+    "strictEligible": true,
+    "sourceId": "srd",
+    "citations": ["Curated runic-era reconstruction"]
+  },
+  {
+    "english": "hunt",
+    "form": "waiþiþi",
+    "partOfSpeech": "verb",
+    "strictEligible": false,
+    "sourceId": "internal_heuristics",
+    "citations": ["Approximation"]
+  },
+  {
+    "english": "night",
+    "form": "nahts",
+    "partOfSpeech": "noun",
+    "strictEligible": false,
+    "sourceId": "internal_heuristics",
+    "citations": ["Approximation"]
+  },
+  {
+    "english": "mountain",
+    "form": "bergą",
+    "partOfSpeech": "noun",
+    "strictEligible": false,
+    "sourceId": "internal_heuristics",
+    "citations": ["Approximation"]
+  },
+  {
+    "english": "journey",
+    "form": "ferdi",
+    "partOfSpeech": "noun",
+    "strictEligible": false,
+    "sourceId": "internal_heuristics",
+    "citations": ["Approximation"]
+  },
+  {
+    "english": "work",
+    "form": "werką",
+    "partOfSpeech": "noun",
+    "strictEligible": false,
+    "sourceId": "internal_heuristics",
+    "citations": ["Approximation"]
+  },
+  {
+    "english": "be",
+    "form": "isti",
+    "partOfSpeech": "verb",
+    "strictEligible": false,
+    "sourceId": "internal_heuristics",
+    "citations": ["Approximation"]
+  }
+]

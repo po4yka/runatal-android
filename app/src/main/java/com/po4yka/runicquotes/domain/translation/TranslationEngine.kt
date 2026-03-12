@@ -8,6 +8,7 @@ import com.po4yka.runicquotes.domain.model.RunicScript
 internal interface TranslationEngine {
     val script: RunicScript
     val engineVersion: String
+    val datasetVersion: String
 
     fun translate(request: TranslationRequest): TranslationResult
 }

@@ -20,7 +20,7 @@ import androidx.room.PrimaryKey
     ],
     indices = [
         Index(
-            value = ["quoteId", "script", "fidelity", "engineVersion"],
+            value = ["quoteId", "script", "fidelity", "variant", "engineVersion", "datasetVersion"],
             unique = true
         ),
         Index(value = ["quoteId"]),
@@ -30,6 +30,7 @@ import androidx.room.PrimaryKey
 internal data class TranslationRecordEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
     val quoteId: Long,
+    val sourceText: String,
     val script: String,
     val fidelity: String,
     val normalizedForm: String,
@@ -37,10 +38,14 @@ internal data class TranslationRecordEntity(
     val glyphOutput: String,
     val historicalStage: String,
     val variant: String? = null,
+    val resolutionStatus: String,
     val confidence: Float,
     val notesJson: String,
+    val unresolvedTokensJson: String,
+    val provenanceJson: String,
     val tokenBreakdownJson: String,
     val engineVersion: String,
+    val datasetVersion: String,
     val isBackfilled: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long

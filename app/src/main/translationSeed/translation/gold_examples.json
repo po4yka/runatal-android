@@ -9,9 +9,28 @@
         "normalizedForm": "úlfr veiðir um nótt",
         "diplomaticForm": "ulfr uiþir um nutt",
         "glyphOutput": "ᚢᛚᚠᚱ ᚢᛁᚦᛁᚱ ᚢᛘ ᚾᚢᛏᛏ",
-        "variant": "LONG_BRANCH",
+        "requestedVariant": "LONG_BRANCH",
+        "resolutionStatus": "RECONSTRUCTED",
         "confidence": 0.97,
-        "notes": ["Matched a curated Old Norse example from the translation specification."],
+        "notes": ["Matched a curated Old Norse example aligned with the translation specification."],
+        "provenance": [
+          {
+            "sourceId": "onp",
+            "label": "ONP normalized lemma set",
+            "role": "Lexical normalization",
+            "license": "Reference only",
+            "detail": "Curated from ONP-style normalized headwords.",
+            "url": "https://onp.ku.dk/onp/"
+          },
+          {
+            "sourceId": "menota",
+            "label": "Menota normalized/diplomatic guidance",
+            "role": "Layer distinction",
+            "license": "Open access reference",
+            "detail": "Used to separate normalized and diplomatic forms.",
+            "url": "https://www.menota.org/HB3_ch10.xml"
+          }
+        ],
         "tokenBreakdown": [
           { "sourceToken": "wolf", "normalizedToken": "úlfr", "diplomaticToken": "ulfr", "glyphToken": "ᚢᛚᚠᚱ" },
           { "sourceToken": "hunts", "normalizedToken": "veiðir", "diplomaticToken": "uiþir", "glyphToken": "ᚢᛁᚦᛁᚱ" },
@@ -26,8 +45,19 @@
         "normalizedForm": "wulfaz waiþiþi nahts",
         "diplomaticForm": "wulfaz waiþiþi nahts",
         "glyphOutput": "ᚹᚢᛚᚠᚨᛉ ᚹᚨᛁᚦᛁᚦᛁ ᚾᚨᚻᛏᛊ",
+        "resolutionStatus": "RECONSTRUCTED",
         "confidence": 0.9,
-        "notes": ["Matched a curated Proto-Norse example for documentation parity."],
+        "notes": ["Matched a curated Proto-Norse reconstruction kept for regression coverage."],
+        "provenance": [
+          {
+            "sourceId": "srd",
+            "label": "Scandinavian Runic-text Database",
+            "role": "Runic comparison corpus",
+            "license": "Reference only",
+            "detail": "Curated reconstruction cross-checked against SRD-style forms.",
+            "url": "https://www.uu.se/en/department/scandinavian-languages/research/research-projects/scandinavian-runic-text-database"
+          }
+        ],
         "tokenBreakdown": [
           { "sourceToken": "wolf", "normalizedToken": "wulfaz", "diplomaticToken": "wulfaz", "glyphToken": "ᚹᚢᛚᚠᚨᛉ" },
           { "sourceToken": "hunts", "normalizedToken": "waiþiþi", "diplomaticToken": "waiþiþi", "glyphToken": "ᚹᚨᛁᚦᛁᚦᛁ" },
@@ -40,15 +70,26 @@
         "historicalStage": "EREBOR_ENGLISH",
         "normalizedForm": "the wolf hunts at night",
         "diplomaticForm": "th·e w·o·l·f h·u·n·t·s a·t n·i·gh·t",
-        "glyphOutput": "    gh",
-        "confidence": 0.82,
-        "notes": ["Cluster-aware Erebor transcription applied to a canonical example."],
+        "glyphOutput": "    ",
+        "resolutionStatus": "APPROXIMATED",
+        "confidence": 0.78,
+        "notes": ["Curated Erebor transcription example using Appendix E-style orthography tables."],
+        "provenance": [
+          {
+            "sourceId": "tolkien_appendix_e",
+            "label": "Angerthas Erebor reference",
+            "role": "Orthography guidance",
+            "license": "Reference only",
+            "detail": "Used for cluster and diphthong mapping guidance.",
+            "url": "https://tolkiengateway.net/wiki/Angerthas_Erebor"
+          }
+        ],
         "tokenBreakdown": [
           { "sourceToken": "the", "normalizedToken": "the", "diplomaticToken": "th·e", "glyphToken": "" },
           { "sourceToken": "wolf", "normalizedToken": "wolf", "diplomaticToken": "w·o·l·f", "glyphToken": "" },
           { "sourceToken": "hunts", "normalizedToken": "hunts", "diplomaticToken": "h·u·n·t·s", "glyphToken": "" },
           { "sourceToken": "at", "normalizedToken": "at", "diplomaticToken": "a·t", "glyphToken": "" },
-          { "sourceToken": "night", "normalizedToken": "night", "diplomaticToken": "n·i·gh·t", "glyphToken": "gh" }
+          { "sourceToken": "night", "normalizedToken": "night", "diplomaticToken": "n·i·gh·t", "glyphToken": "" }
         ]
       }
     ]

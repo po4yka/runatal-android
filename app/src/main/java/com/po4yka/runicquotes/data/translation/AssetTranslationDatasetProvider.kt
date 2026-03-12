@@ -1,7 +1,7 @@
 package com.po4yka.runicquotes.data.translation
 
 import android.content.Context
-import com.po4yka.runicquotes.domain.translation.CirthClustersData
+import com.po4yka.runicquotes.domain.translation.CirthOrthographyData
 import com.po4yka.runicquotes.domain.translation.FallbackRulesData
 import com.po4yka.runicquotes.domain.translation.GrammarRulesData
 import com.po4yka.runicquotes.domain.translation.InflectionTablesData
@@ -9,7 +9,8 @@ import com.po4yka.runicquotes.domain.translation.NameAdaptationsData
 import com.po4yka.runicquotes.domain.translation.OldNorseLexiconEntry
 import com.po4yka.runicquotes.domain.translation.ProtoNorseLexiconEntry
 import com.po4yka.runicquotes.domain.translation.TranslationDatasetProvider
-import com.po4yka.runicquotes.domain.translation.TranslationOverrideEntry
+import com.po4yka.runicquotes.domain.translation.TranslationDatasetManifest
+import com.po4yka.runicquotes.domain.translation.TranslationGoldExampleEntry
 import com.po4yka.runicquotes.domain.translation.TranslationSourceManifest
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -22,13 +23,19 @@ import kotlinx.serialization.builtins.ListSerializer
  */
 @Singleton
 internal class AssetTranslationDatasetProvider @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) : TranslationDatasetProvider {
 
     private val json = Json {
         ignoreUnknownKeys = true
     }
 
+    private val datasetManifestCache by lazy {
+        readObject(
+            path = "translation/dataset_manifest.json",
+            parser = { content -> json.decodeFromString(TranslationDatasetManifest.serializer(), content) }
+        )
+    }
     private val oldNorseLexiconCache by lazy {
         readList(
             path = "translation/old_norse_lexicon.json",
@@ -47,10 +54,10 @@ internal class AssetTranslationDatasetProvider @Inject constructor(
             parser = { content -> json.decodeFromString(InflectionTablesData.serializer(), content) }
         )
     }
-    private val cirthClustersCache by lazy {
+    private val cirthOrthographyCache by lazy {
         readObject(
-            path = "translation/cirth_clusters.json",
-            parser = { content -> json.decodeFromString(CirthClustersData.serializer(), content) }
+            path = "translation/cirth_orthography.json",
+            parser = { content -> json.decodeFromString(CirthOrthographyData.serializer(), content) }
         )
     }
     private val grammarRulesCache by lazy {
@@ -73,16 +80,18 @@ internal class AssetTranslationDatasetProvider @Inject constructor(
     }
     private val sourceManifestCache by lazy {
         readObject(
-            path = "translation/sources_manifest.json",
+            path = "translation/source_manifest.json",
             parser = { content -> json.decodeFromString(TranslationSourceManifest.serializer(), content) }
         )
     }
-    private val overridesCache by lazy {
+    private val goldExamplesCache by lazy {
         readList(
-            path = "translation/seed_backfill_overrides.json",
-            serializer = ListSerializer(TranslationOverrideEntry.serializer())
+            path = "translation/gold_examples.json",
+            serializer = ListSerializer(TranslationGoldExampleEntry.serializer())
         )
     }
+
+    override fun datasetManifest(): TranslationDatasetManifest = datasetManifestCache
 
     override fun oldNorseLexicon(): List<OldNorseLexiconEntry> = oldNorseLexiconCache
 
@@ -90,7 +99,7 @@ internal class AssetTranslationDatasetProvider @Inject constructor(
 
     override fun inflectionTables(): InflectionTablesData = inflectionTablesCache
 
-    override fun cirthClusters(): CirthClustersData = cirthClustersCache
+    override fun cirthOrthography(): CirthOrthographyData = cirthOrthographyCache
 
     override fun grammarRules(): GrammarRulesData = grammarRulesCache
 
@@ -100,7 +109,7 @@ internal class AssetTranslationDatasetProvider @Inject constructor(
 
     override fun sourceManifest(): TranslationSourceManifest = sourceManifestCache
 
-    override fun backfillOverrides(): List<TranslationOverrideEntry> = overridesCache
+    override fun goldExamples(): List<TranslationGoldExampleEntry> = goldExamplesCache
 
     private fun <T> readList(path: String, serializer: kotlinx.serialization.KSerializer<List<T>>): List<T> {
         return readObject(path) { content ->

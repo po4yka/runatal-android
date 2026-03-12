@@ -12,6 +12,8 @@ import com.po4yka.runicquotes.domain.translation.HistoricalStage
 import com.po4yka.runicquotes.domain.translation.HistoricalTranslationService
 import com.po4yka.runicquotes.domain.translation.TranslationEngineFactory
 import com.po4yka.runicquotes.domain.translation.TranslationFidelity
+import com.po4yka.runicquotes.domain.translation.TranslationProvenanceEntry
+import com.po4yka.runicquotes.domain.translation.TranslationResolutionStatus
 import com.po4yka.runicquotes.domain.translation.TranslationResult
 import com.po4yka.runicquotes.domain.translation.TranslationTokenBreakdown
 import com.po4yka.runicquotes.domain.translation.YoungerFutharkVariant
@@ -40,19 +42,18 @@ internal class TranslationRepositoryImpl @Inject constructor(
     override suspend fun getCachedTranslation(
         quoteId: Long,
         script: RunicScript,
-        fidelity: TranslationFidelity
+        fidelity: TranslationFidelity,
+        youngerVariant: YoungerFutharkVariant
     ): TranslationResult? {
-        val engineVersion = translationEngineFactory.create(script).engineVersion
-        return translationRecordDao.getByQuoteAndScript(
+        val engine = translationEngineFactory.create(script)
+        return translationRecordDao.getBySelection(
             quoteId = quoteId,
             script = script.name,
             fidelity = fidelity.name,
-            engineVersion = engineVersion
+            variant = requestedVariant(script, youngerVariant),
+            engineVersion = engine.engineVersion,
+            datasetVersion = engine.datasetVersion
         )?.toDomain()
-    }
-
-    override suspend fun getPreferredTranslation(quoteId: Long): TranslationResult? {
-        return translationRecordDao.getByQuoteId(quoteId).firstOrNull()?.toDomain()
     }
 
     override suspend fun cacheTranslation(
@@ -60,6 +61,9 @@ internal class TranslationRepositoryImpl @Inject constructor(
         result: TranslationResult,
         isBackfilled: Boolean
     ) {
+        if (result.resolutionStatus == TranslationResolutionStatus.UNAVAILABLE) {
+            return
+        }
         translationRecordDao.insert(result.toEntity(quoteId = quoteId, isBackfilled = isBackfilled))
     }
 
@@ -69,7 +73,7 @@ internal class TranslationRepositoryImpl @Inject constructor(
         isBackfilled: Boolean
     ) {
         results.forEach { result ->
-            cacheTranslation(quoteId, result, isBackfilled)
+            cacheTranslation(quoteId = quoteId, result = result, isBackfilled = isBackfilled)
         }
     }
 
@@ -153,33 +157,44 @@ internal class TranslationRepositoryImpl @Inject constructor(
     }
 
     private fun buildStrictResults(sourceText: String): List<TranslationResult> {
-        return RunicScript.entries.map { script ->
+        return RunicScript.entries.mapNotNull { script ->
             historicalTranslationService.translate(
                 text = sourceText,
                 script = script,
                 fidelity = TranslationFidelity.STRICT,
                 youngerVariant = YoungerFutharkVariant.DEFAULT
             )
+        }.filter { result ->
+            result.resolutionStatus != TranslationResolutionStatus.UNAVAILABLE &&
+                result.provenance.isNotEmpty() &&
+                result.script != RunicScript.CIRTH
         }
     }
 
     private fun TranslationRecordEntity.toDomain(): TranslationResult {
         return TranslationResult(
-            sourceText = "",
+            sourceText = sourceText,
             script = RunicScript.valueOf(script),
             fidelity = TranslationFidelity.valueOf(fidelity),
             historicalStage = HistoricalStage.valueOf(historicalStage),
             normalizedForm = normalizedForm,
             diplomaticForm = diplomaticForm,
             glyphOutput = glyphOutput,
-            variant = variant,
+            requestedVariant = variant,
+            resolutionStatus = TranslationResolutionStatus.valueOf(resolutionStatus),
             confidence = confidence,
             notes = json.decodeFromString(ListSerializer(String.serializer()), notesJson),
+            unresolvedTokens = json.decodeFromString(ListSerializer(String.serializer()), unresolvedTokensJson),
+            provenance = json.decodeFromString(
+                ListSerializer(TranslationProvenanceEntry.serializer()),
+                provenanceJson
+            ),
             tokenBreakdown = json.decodeFromString(
                 ListSerializer(TranslationTokenBreakdown.serializer()),
                 tokenBreakdownJson
             ),
             engineVersion = engineVersion,
+            datasetVersion = datasetVersion,
             createdAt = createdAt,
             updatedAt = updatedAt
         )
@@ -191,20 +206,28 @@ internal class TranslationRepositoryImpl @Inject constructor(
     ): TranslationRecordEntity {
         return TranslationRecordEntity(
             quoteId = quoteId,
+            sourceText = sourceText,
             script = script.name,
             fidelity = fidelity.name,
             normalizedForm = normalizedForm,
             diplomaticForm = diplomaticForm,
             glyphOutput = glyphOutput,
             historicalStage = historicalStage.name,
-            variant = variant,
+            variant = requestedVariant,
+            resolutionStatus = resolutionStatus.name,
             confidence = confidence,
             notesJson = json.encodeToString(ListSerializer(String.serializer()), notes),
+            unresolvedTokensJson = json.encodeToString(ListSerializer(String.serializer()), unresolvedTokens),
+            provenanceJson = json.encodeToString(
+                ListSerializer(TranslationProvenanceEntry.serializer()),
+                provenance
+            ),
             tokenBreakdownJson = json.encodeToString(
                 ListSerializer(TranslationTokenBreakdown.serializer()),
                 tokenBreakdown
             ),
             engineVersion = engineVersion,
+            datasetVersion = datasetVersion,
             isBackfilled = isBackfilled,
             createdAt = createdAt,
             updatedAt = updatedAt
@@ -223,7 +246,12 @@ internal class TranslationRepositoryImpl @Inject constructor(
         createdAt = createdAt
     )
 
+    private fun requestedVariant(
+        script: RunicScript,
+        youngerVariant: YoungerFutharkVariant
+    ): String? = if (script == RunicScript.YOUNGER_FUTHARK) youngerVariant.name else null
+
     private companion object {
-        const val BACKFILL_ENGINE_VERSION = "historical-backfill-v1"
+        const val BACKFILL_ENGINE_VERSION = "historical-backfill-v2"
     }
 }

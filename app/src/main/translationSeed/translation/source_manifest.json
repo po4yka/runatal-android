@@ -1,0 +1,74 @@
+{
+  "sources": [
+    {
+      "id": "onp",
+      "name": "Dictionary of Old Norse Prose (ONP)",
+      "role": "Old Norse headword and normalization reference",
+      "license": "Reference only",
+      "url": "https://onp.ku.dk/onp/"
+    },
+    {
+      "id": "menota",
+      "name": "Menota Handbook",
+      "role": "Normalized versus diplomatic editorial guidance",
+      "license": "Open access reference",
+      "url": "https://www.menota.org/HB3_ch10.xml"
+    },
+    {
+      "id": "zoega",
+      "name": "Zoega Old Icelandic Dictionary",
+      "role": "Lexicon support for curated lemma forms",
+      "license": "Public domain",
+      "url": "https://archive.org/details/concisedictionar00zoeg"
+    },
+    {
+      "id": "cleasby_vigfusson",
+      "name": "Cleasby-Vigfusson Dictionary",
+      "role": "Supplementary lexical reference",
+      "license": "Public domain",
+      "url": "https://archive.org/details/icelandicenglish00cleauoft"
+    },
+    {
+      "id": "srd",
+      "name": "Scandinavian Runic-text Database",
+      "role": "Gold examples and runic comparison corpus",
+      "license": "Reference only",
+      "url": "https://www.uu.se/en/department/scandinavian-languages/research/research-projects/scandinavian-runic-text-database"
+    },
+    {
+      "id": "runor",
+      "name": "Runor",
+      "role": "Runic inscription discovery and verification reference",
+      "license": "Reference only",
+      "url": "https://www.raa.se/in-english/digital-services/about-runor/"
+    },
+    {
+      "id": "doii",
+      "name": "DOII paradigm guidance",
+      "role": "Inflection paradigm modeling",
+      "license": "Open access reference",
+      "url": "https://doi.org/10.5617/dhnbpub.11297"
+    },
+    {
+      "id": "old_icelandic_morphosyntax",
+      "name": "Old Icelandic morphosyntax research",
+      "role": "Morphology and syntactic heuristics",
+      "license": "Open access reference",
+      "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0102366"
+    },
+    {
+      "id": "tolkien_appendix_e",
+      "name": "Appendix E / Erebor notes",
+      "role": "Cirth transcription reference",
+      "license": "Reference only",
+      "url": "https://tolkiengateway.net/wiki/Angerthas_Erebor"
+    },
+    {
+      "id": "internal_heuristics",
+      "name": "Runatal heuristics",
+      "role": "Offline fallback logic and generated educational notes",
+      "license": "Project-owned",
+      "url": "https://github.com/po4yka/runatal-android"
+    }
+  ]
+}

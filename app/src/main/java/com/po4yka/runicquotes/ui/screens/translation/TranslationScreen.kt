@@ -72,8 +72,11 @@ import com.po4yka.runicquotes.domain.model.segmentLabel
 import com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair
 import com.po4yka.runicquotes.domain.translation.TranslationFidelity
 import com.po4yka.runicquotes.domain.translation.TranslationMode
+import com.po4yka.runicquotes.domain.translation.TranslationProvenanceEntry
+import com.po4yka.runicquotes.domain.translation.TranslationResolutionStatus
 import com.po4yka.runicquotes.domain.translation.TranslationTokenBreakdown
 import com.po4yka.runicquotes.domain.translation.YoungerFutharkVariant
+import com.po4yka.runicquotes.domain.translation.label
 import com.po4yka.runicquotes.ui.components.RunicActionButton
 import com.po4yka.runicquotes.ui.components.RunicActionButtonStyle
 import com.po4yka.runicquotes.ui.components.RunicArticleLinkCard
@@ -135,13 +138,16 @@ internal fun TranslationScreen(
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            TranslationModeSelector(
-                selectedMode = uiState.translationMode,
-                onSelectMode = viewModel::selectMode
-            )
+            if (uiState.translateFeatureEnabled) {
+                TranslationModeSelector(
+                    selectedMode = uiState.translationMode,
+                    onSelectMode = viewModel::selectMode
+                )
+            }
 
             TranslationScriptSelector(
                 selectedScript = uiState.selectedScript,
+                translationMode = uiState.translationMode,
                 onSelectScript = viewModel::selectScript
             )
 
@@ -174,7 +180,7 @@ internal fun TranslationScreen(
                 title = when {
                     uiState.inputText.isBlank() -> "Runic output"
                     uiState.translationMode == TranslationMode.TRANSLATE ->
-                        "${uiState.scriptDisplayName} translation"
+                        uiState.translationTrackLabel.ifBlank { "${uiState.scriptDisplayName} translation" }
                     else -> uiState.scriptDisplayName
                 },
                 hasOutput = uiState.transliteratedText.isNotBlank(),
@@ -195,15 +201,21 @@ internal fun TranslationScreen(
                 selectedScript = uiState.selectedScript,
                 selectedFont = uiState.selectedFont,
                 glyphCount = uiState.outputGlyphCount,
-                errorMessage = uiState.errorMessage
+                errorMessage = uiState.errorMessage,
+                resolutionStatus = uiState.resolutionStatus,
+                translationTrackLabel = uiState.translationTrackLabel
             )
 
-            if (uiState.translationMode == TranslationMode.TRANSLATE && uiState.transliteratedText.isNotBlank()) {
+            if (uiState.translationMode == TranslationMode.TRANSLATE) {
                 HistoricalTranslationMetaSection(
                     normalizedForm = uiState.normalizedForm,
                     diplomaticForm = uiState.diplomaticForm,
                     confidence = uiState.confidence,
-                    notes = uiState.notes
+                    notes = uiState.notes,
+                    resolutionStatus = uiState.resolutionStatus,
+                    unresolvedTokens = uiState.unresolvedTokens,
+                    provenance = uiState.provenance,
+                    fallbackSuggestion = uiState.fallbackSuggestion
                 )
             }
 
@@ -322,6 +334,7 @@ private fun TranslationModeSelector(
 @Composable
 private fun TranslationScriptSelector(
     selectedScript: RunicScript,
+    translationMode: TranslationMode,
     onSelectScript: (RunicScript) -> Unit
 ) {
     RunicChoiceGroup(
@@ -361,7 +374,11 @@ private fun TranslationScriptSelector(
                     Spacer(modifier = Modifier.size(4.dp))
                 }
                 Text(
-                    text = script.segmentLabel,
+                    text = if (translationMode == TranslationMode.TRANSLATE && script == RunicScript.CIRTH) {
+                        "Erebor"
+                    } else {
+                        script.segmentLabel
+                    },
                     style = MaterialTheme.typography.labelMedium,
                     color = contentColor
                 )
@@ -581,7 +598,9 @@ private fun TranslationOutputCard(
     selectedScript: RunicScript,
     selectedFont: String,
     glyphCount: Int,
-    errorMessage: String?
+    errorMessage: String?,
+    resolutionStatus: TranslationResolutionStatus?,
+    translationTrackLabel: String
 ) {
     RunicInfoCard(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -605,6 +624,24 @@ private fun TranslationOutputCard(
                 )
                 Text(
                     text = errorMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            outputText.isBlank() && resolutionStatus == TranslationResolutionStatus.UNAVAILABLE -> Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "${translationTrackLabel.ifBlank { "Historical translation" }} unavailable",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "This strict request does not have a defensible historical result yet.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -676,12 +713,20 @@ private fun HistoricalTranslationMetaSection(
     normalizedForm: String,
     diplomaticForm: String,
     confidence: Float?,
-    notes: List<String>
+    notes: List<String>,
+    resolutionStatus: TranslationResolutionStatus?,
+    unresolvedTokens: List<String>,
+    provenance: List<TranslationProvenanceEntry>,
+    fallbackSuggestion: String?
 ) {
     val hasNoMetadata = normalizedForm.isBlank() &&
         diplomaticForm.isBlank() &&
         confidence == null &&
-        notes.isEmpty()
+        notes.isEmpty() &&
+        resolutionStatus == null &&
+        unresolvedTokens.isEmpty() &&
+        provenance.isEmpty() &&
+        fallbackSuggestion == null
     if (hasNoMetadata) {
         return
     }
@@ -696,6 +741,38 @@ private fun HistoricalTranslationMetaSection(
                 .padding(horizontal = 16.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            TranslationStatusRow(
+                resolutionStatus = resolutionStatus,
+                confidence = confidence
+            )
+            TranslationLayersSection(
+                normalizedForm = normalizedForm,
+                diplomaticForm = diplomaticForm,
+                unresolvedTokens = unresolvedTokens,
+                fallbackSuggestion = fallbackSuggestion
+            )
+            NotesSection(notes = notes)
+            ProvenanceSection(provenance = provenance)
+        }
+    }
+}
+
+@Composable
+private fun TranslationStatusRow(
+    resolutionStatus: TranslationResolutionStatus?,
+    confidence: Float?
+) {
+    resolutionStatus?.let { status ->
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = status.label,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             confidence?.let { value ->
                 Text(
                     text = "Confidence ${(value * 100).toInt()}%",
@@ -703,37 +780,98 @@ private fun HistoricalTranslationMetaSection(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    }
+}
 
-            if (normalizedForm.isNotBlank()) {
-                TranslationLayerRow(
-                    title = "Normalized form",
-                    body = normalizedForm
-                )
-            }
+@Composable
+private fun TranslationLayersSection(
+    normalizedForm: String,
+    diplomaticForm: String,
+    unresolvedTokens: List<String>,
+    fallbackSuggestion: String?
+) {
+    if (normalizedForm.isNotBlank()) {
+        TranslationLayerRow(
+            title = "Normalized form",
+            body = normalizedForm
+        )
+    }
 
-            if (diplomaticForm.isNotBlank()) {
-                TranslationLayerRow(
-                    title = "Diplomatic form",
-                    body = diplomaticForm
-                )
-            }
+    if (diplomaticForm.isNotBlank()) {
+        TranslationLayerRow(
+            title = "Diplomatic form",
+            body = diplomaticForm
+        )
+    }
 
-            if (notes.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "Notes",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    notes.forEach { note ->
-                        Text(
-                            text = "\u2022 $note",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
+    if (unresolvedTokens.isNotEmpty()) {
+        TranslationLayerRow(
+            title = "Unavailable tokens",
+            body = unresolvedTokens.joinToString(", ")
+        )
+    }
+
+    fallbackSuggestion?.let { suggestion ->
+        TranslationLayerRow(
+            title = "Suggested fallback",
+            body = suggestion
+        )
+    }
+}
+
+@Composable
+private fun NotesSection(notes: List<String>) {
+    if (notes.isEmpty()) {
+        return
+    }
+
+    TranslationBulletSection(
+        title = "Notes",
+        items = notes
+    )
+}
+
+@Composable
+private fun ProvenanceSection(provenance: List<TranslationProvenanceEntry>) {
+    if (provenance.isEmpty()) {
+        return
+    }
+
+    TranslationBulletSection(
+        title = "Why this output?",
+        items = provenance.map { entry ->
+            buildString {
+                append(entry.label)
+                append(" — ")
+                append(entry.role)
+                entry.detail?.let {
+                    append(" (")
+                    append(it)
+                    append(')')
                 }
             }
+        }
+    )
+}
+
+@Composable
+private fun TranslationBulletSection(
+    title: String,
+    items: List<String>
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        items.forEach { item ->
+            Text(
+                text = "\u2022 $item",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

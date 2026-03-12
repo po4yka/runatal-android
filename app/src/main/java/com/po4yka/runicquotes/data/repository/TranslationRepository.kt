@@ -5,7 +5,9 @@ import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.translation.HistoricalTranslationService
 import com.po4yka.runicquotes.domain.translation.HistoricalStage
 import com.po4yka.runicquotes.domain.translation.TranslationFidelity
+import com.po4yka.runicquotes.domain.translation.TranslationResolutionStatus
 import com.po4yka.runicquotes.domain.translation.TranslationResult
+import com.po4yka.runicquotes.domain.translation.TranslationProvenanceEntry
 import com.po4yka.runicquotes.domain.translation.YoungerFutharkVariant
 
 /**
@@ -15,10 +17,9 @@ internal interface TranslationRepository {
     suspend fun getCachedTranslation(
         quoteId: Long,
         script: RunicScript,
-        fidelity: TranslationFidelity = TranslationFidelity.DEFAULT
+        fidelity: TranslationFidelity = TranslationFidelity.DEFAULT,
+        youngerVariant: YoungerFutharkVariant = YoungerFutharkVariant.DEFAULT
     ): TranslationResult?
-
-    suspend fun getPreferredTranslation(quoteId: Long): TranslationResult?
 
     suspend fun cacheTranslation(
         quoteId: Long,
@@ -53,10 +54,9 @@ internal object NoOpTranslationRepository : TranslationRepository {
     override suspend fun getCachedTranslation(
         quoteId: Long,
         script: RunicScript,
-        fidelity: TranslationFidelity
+        fidelity: TranslationFidelity,
+        youngerVariant: YoungerFutharkVariant
     ): TranslationResult? = null
-
-    override suspend fun getPreferredTranslation(quoteId: Long): TranslationResult? = null
 
     override suspend fun cacheTranslation(
         quoteId: Long,
@@ -86,9 +86,14 @@ internal object NoOpTranslationRepository : TranslationRepository {
             normalizedForm = sourceText,
             diplomaticForm = sourceText,
             glyphOutput = sourceText,
+            requestedVariant = if (script == RunicScript.YOUNGER_FUTHARK) youngerVariant.name else null,
+            resolutionStatus = TranslationResolutionStatus.UNAVAILABLE,
             confidence = 0f,
             notes = emptyList(),
-            engineVersion = "noop"
+            unresolvedTokens = emptyList(),
+            provenance = emptyList<TranslationProvenanceEntry>(),
+            engineVersion = "noop",
+            datasetVersion = "noop"
         )
     }
 

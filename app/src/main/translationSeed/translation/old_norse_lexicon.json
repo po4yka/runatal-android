@@ -1,0 +1,226 @@
+[
+  {
+    "english": "wolf",
+    "partOfSpeech": "noun",
+    "lemma": "úlfr",
+    "paradigmId": "strong_masc_a",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["úlfr"]
+  },
+  {
+    "english": "hunt",
+    "partOfSpeech": "verb",
+    "lemma": "veiða",
+    "paradigmId": "verb_regular_a",
+    "present3sg": "veiðir",
+    "past3sg": "veiddi",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["veiða"]
+  },
+  {
+    "english": "night",
+    "partOfSpeech": "noun",
+    "lemma": "nótt",
+    "paradigmId": "strong_fem_t",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["nótt"]
+  },
+  {
+    "english": "king",
+    "partOfSpeech": "noun",
+    "lemma": "konungr",
+    "paradigmId": "strong_masc_r",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["konungr"]
+  },
+  {
+    "english": "mountain",
+    "partOfSpeech": "noun",
+    "lemma": "fjall",
+    "paradigmId": "neuter_regular",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["fjall"]
+  },
+  {
+    "english": "journey",
+    "partOfSpeech": "noun",
+    "lemma": "ferð",
+    "paradigmId": "strong_fem_eth",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["ferð"]
+  },
+  {
+    "english": "step",
+    "partOfSpeech": "noun",
+    "lemma": "spor",
+    "paradigmId": "neuter_regular",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["spor"]
+  },
+  {
+    "english": "great",
+    "partOfSpeech": "adjective",
+    "lemma": "mikill",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["mikill"]
+  },
+  {
+    "english": "work",
+    "partOfSpeech": "noun",
+    "lemma": "verk",
+    "paradigmId": "neuter_regular",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["verk"]
+  },
+  {
+    "english": "love",
+    "partOfSpeech": "verb",
+    "lemma": "elska",
+    "paradigmId": "verb_regular_a",
+    "present3sg": "elskar",
+    "past3sg": "elskaði",
+    "strictEligible": false,
+    "sourceId": "internal_heuristics",
+    "citations": ["Modernized approximation"]
+  },
+  {
+    "english": "do",
+    "partOfSpeech": "verb",
+    "lemma": "gera",
+    "paradigmId": "verb_regular_a",
+    "present3sg": "gerir",
+    "past3sg": "gerði",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["gera"]
+  },
+  {
+    "english": "wander",
+    "partOfSpeech": "verb",
+    "lemma": "reika",
+    "paradigmId": "verb_regular_a",
+    "present3sg": "reikar",
+    "past3sg": "reikaði",
+    "strictEligible": false,
+    "sourceId": "internal_heuristics",
+    "citations": ["Curated approximation"]
+  },
+  {
+    "english": "lost",
+    "partOfSpeech": "adjective",
+    "lemma": "villr",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["villr"]
+  },
+  {
+    "english": "difficulty",
+    "partOfSpeech": "noun",
+    "lemma": "nauð",
+    "paradigmId": "strong_fem_eth",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["nauð"]
+  },
+  {
+    "english": "be",
+    "partOfSpeech": "verb",
+    "lemma": "vera",
+    "paradigmId": "verb_irregular_vera",
+    "present3sg": "er",
+    "past3sg": "var",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["vera"]
+  },
+  {
+    "english": "already",
+    "partOfSpeech": "adverb",
+    "lemma": "þegar",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["þegar"]
+  },
+  {
+    "english": "take",
+    "partOfSpeech": "verb",
+    "lemma": "taka",
+    "paradigmId": "verb_regular_a",
+    "present3sg": "tekr",
+    "past3sg": "tók",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["taka"]
+  },
+  {
+    "english": "one",
+    "partOfSpeech": "pronoun",
+    "lemma": "einn",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["einn"]
+  },
+  {
+    "english": "under",
+    "partOfSpeech": "preposition",
+    "lemma": "undir",
+    "dativePhrase": "undir",
+    "strictEligible": true,
+    "sourceId": "cleasby_vigfusson",
+    "citations": ["undir"]
+  },
+  {
+    "english": "with",
+    "partOfSpeech": "preposition",
+    "lemma": "með",
+    "dativePhrase": "með",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["með"]
+  },
+  {
+    "english": "of",
+    "partOfSpeech": "preposition",
+    "lemma": "af",
+    "dativePhrase": "af",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["af"]
+  },
+  {
+    "english": "to",
+    "partOfSpeech": "preposition",
+    "lemma": "til",
+    "dativePhrase": "til",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["til"]
+  },
+  {
+    "english": "in",
+    "partOfSpeech": "preposition",
+    "lemma": "í",
+    "dativePhrase": "í",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["í"]
+  },
+  {
+    "english": "at",
+    "partOfSpeech": "preposition",
+    "lemma": "um",
+    "dativePhrase": "um",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["um"]
+  }
+]

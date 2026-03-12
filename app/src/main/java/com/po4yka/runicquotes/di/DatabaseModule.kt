@@ -38,7 +38,8 @@ internal object DatabaseModule {
                 RunicQuotesDatabase.MIGRATION_1_2,
                 RunicQuotesDatabase.MIGRATION_2_3,
                 RunicQuotesDatabase.MIGRATION_3_4,
-                RunicQuotesDatabase.MIGRATION_4_5
+                RunicQuotesDatabase.MIGRATION_4_5,
+                RunicQuotesDatabase.MIGRATION_5_6
             )
             .build()
     }

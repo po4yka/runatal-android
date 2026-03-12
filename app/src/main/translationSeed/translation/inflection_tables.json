@@ -1,0 +1,34 @@
+{
+  "nounParadigms": {
+    "strong_masc_a": {
+      "nominativeSingularSuffix": "",
+      "pluralSuffix": "ar"
+    },
+    "strong_masc_r": {
+      "nominativeSingularSuffix": "",
+      "pluralSuffix": "ar"
+    },
+    "strong_fem_t": {
+      "nominativeSingularSuffix": "",
+      "pluralSuffix": "ir"
+    },
+    "strong_fem_eth": {
+      "nominativeSingularSuffix": "",
+      "pluralSuffix": "ir"
+    },
+    "neuter_regular": {
+      "nominativeSingularSuffix": "",
+      "pluralSuffix": ""
+    }
+  },
+  "verbParadigms": {
+    "verb_regular_a": {
+      "thirdPersonPresentSuffix": "r",
+      "thirdPersonPastSuffix": "ði"
+    },
+    "verb_irregular_vera": {
+      "thirdPersonPresentSuffix": "",
+      "thirdPersonPastSuffix": ""
+    }
+  }
+}
