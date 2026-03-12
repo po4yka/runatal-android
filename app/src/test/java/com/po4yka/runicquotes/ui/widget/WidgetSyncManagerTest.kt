@@ -2,6 +2,7 @@ package com.po4yka.runicquotes.ui.widget
 
 import android.content.Context
 import com.google.common.truth.Truth.assertThat
+import com.po4yka.runicquotes.data.preferences.WidgetUpdateMode
 import io.mockk.every
 import io.mockk.mockk
 import java.time.Clock

@@ -4,9 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runicquotes.data.preferences.UserPreferences
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
+import com.po4yka.runicquotes.data.preferences.WidgetDisplayMode
+import com.po4yka.runicquotes.data.preferences.WidgetUpdateMode
 import com.po4yka.runicquotes.domain.model.RunicScript
-import com.po4yka.runicquotes.ui.widget.WidgetDisplayMode
-import com.po4yka.runicquotes.ui.widget.WidgetUpdateMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

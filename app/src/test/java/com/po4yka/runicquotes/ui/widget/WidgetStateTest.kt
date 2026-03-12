@@ -1,6 +1,7 @@
 package com.po4yka.runicquotes.ui.widget
 
 import com.google.common.truth.Truth.assertThat
+import com.po4yka.runicquotes.data.preferences.WidgetDisplayMode
 import com.po4yka.runicquotes.ui.theme.foundationRunicColorScheme
 import org.junit.Test
 

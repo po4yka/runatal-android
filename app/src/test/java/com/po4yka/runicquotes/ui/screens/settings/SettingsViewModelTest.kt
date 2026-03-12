@@ -4,9 +4,9 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runicquotes.data.preferences.UserPreferences
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
+import com.po4yka.runicquotes.data.preferences.WidgetDisplayMode
+import com.po4yka.runicquotes.data.preferences.WidgetUpdateMode
 import com.po4yka.runicquotes.domain.model.RunicScript
-import com.po4yka.runicquotes.ui.widget.WidgetDisplayMode
-import com.po4yka.runicquotes.ui.widget.WidgetUpdateMode
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every

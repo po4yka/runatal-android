@@ -39,6 +39,8 @@ import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.po4yka.runicquotes.MainActivity
+import com.po4yka.runicquotes.data.preferences.WidgetDisplayMode
+import com.po4yka.runicquotes.data.preferences.WidgetUpdateMode
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.domain.model.getRunicText

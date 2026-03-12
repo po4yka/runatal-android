@@ -6,6 +6,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.po4yka.runicquotes.data.preferences.WidgetUpdateMode
 import com.po4yka.runicquotes.worker.WidgetUpdateWorker
 import dagger.hilt.android.EntryPointAccessors
 import java.time.Clock

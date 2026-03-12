@@ -158,6 +158,7 @@ dependencies {
     testImplementation(libs.truth)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.robolectric)
+    testImplementation(libs.konsist)
     testImplementation(libs.work.testing)
 
     androidTestImplementation(platform(libs.compose.bom))

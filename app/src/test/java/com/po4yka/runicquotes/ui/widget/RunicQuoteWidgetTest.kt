@@ -3,6 +3,7 @@ package com.po4yka.runicquotes.ui.widget
 import android.content.res.Resources
 import android.util.DisplayMetrics
 import com.google.common.truth.Truth.assertThat
+import com.po4yka.runicquotes.data.preferences.WidgetDisplayMode
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.Test

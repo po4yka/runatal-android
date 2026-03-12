@@ -1,4 +1,4 @@
-package com.po4yka.runicquotes.ui.widget
+package com.po4yka.runicquotes.data.preferences
 
 /**
  * Widget content variants.

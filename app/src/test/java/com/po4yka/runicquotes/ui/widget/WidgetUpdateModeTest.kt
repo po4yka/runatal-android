@@ -1,6 +1,7 @@
 package com.po4yka.runicquotes.ui.widget
 
 import com.google.common.truth.Truth.assertThat
+import com.po4yka.runicquotes.data.preferences.WidgetUpdateMode
 import org.junit.Test
 
 class WidgetUpdateModeTest {
