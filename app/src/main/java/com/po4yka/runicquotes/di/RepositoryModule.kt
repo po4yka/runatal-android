@@ -5,12 +5,12 @@ import com.po4yka.runicquotes.data.repository.ArchiveRepository
 import com.po4yka.runicquotes.data.repository.ArchiveRepositoryImpl
 import com.po4yka.runicquotes.data.repository.QuotePackRepository
 import com.po4yka.runicquotes.data.repository.QuotePackRepositoryImpl
-import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.data.repository.QuoteRepositoryImpl
+import com.po4yka.runicquotes.domain.repository.QuoteRepository
 import com.po4yka.runicquotes.data.repository.RuneReferenceRepository
 import com.po4yka.runicquotes.data.repository.RuneReferenceRepositoryImpl
-import com.po4yka.runicquotes.data.repository.TranslationRepository
 import com.po4yka.runicquotes.data.repository.TranslationRepositoryImpl
+import com.po4yka.runicquotes.domain.repository.TranslationRepository
 import com.po4yka.runicquotes.domain.translation.EreborOrthographyStore
 import com.po4yka.runicquotes.domain.translation.HistoricalLexiconStore
 import com.po4yka.runicquotes.domain.translation.RunicCorpusStore

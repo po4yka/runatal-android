@@ -5,9 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.preferences.UserPreferences
-import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.domain.model.getRunicText
+import com.po4yka.runicquotes.domain.repository.QuoteRepository
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -28,7 +29,7 @@ import javax.inject.Inject
 class QuoteListViewModel @Inject constructor(
     private val quoteRepository: QuoteRepository,
     private val userPreferencesManager: UserPreferencesManager,
-    val transliterationFactory: TransliterationFactory
+    private val transliterationFactory: TransliterationFactory
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(QuoteListUiState(isLoading = true))
@@ -55,20 +56,13 @@ class QuoteListViewModel @Inject constructor(
             try {
                 combine(
                     combine(
-                        combine(
-                            quoteRepository.getAllQuotesFlow(),
-                            quoteRepository.getUserQuotesFlow(),
-                            quoteRepository.getFavoritesFlow()
-                        ) { allQuotes, userQuotes, favorites ->
-                            QuoteCollectionsState(
-                                allQuotes = allQuotes,
-                                userQuotes = userQuotes,
-                                favorites = favorites
-                            )
-                        },
+                        quoteRepository.getAllQuotesFlow(),
                         userPreferencesManager.userPreferencesFlow
-                    ) { collections, prefs ->
-                        QuoteListSourceState(collections = collections, preferences = prefs)
+                    ) { allQuotes, prefs ->
+                        QuoteListSourceState(
+                            allQuotes = allQuotes,
+                            preferences = prefs
+                        )
                     },
                     combine(currentFilter, searchQuery) { selectedFilter, query ->
                         QuoteListFilterState(
@@ -77,10 +71,12 @@ class QuoteListViewModel @Inject constructor(
                         )
                     }
                 ) { sourceState, filterState ->
+                    val favoriteQuotes = sourceState.allQuotes.filter { it.isFavorite }
+                    val userQuotes = sourceState.allQuotes.filter { it.isUserCreated }
                     val baseQuotes = when (filterState.currentFilter) {
-                        QuoteFilter.ALL -> sourceState.collections.allQuotes
-                        QuoteFilter.USER_CREATED -> sourceState.collections.userQuotes
-                        QuoteFilter.FAVORITES -> sourceState.collections.favorites
+                        QuoteFilter.ALL -> sourceState.allQuotes
+                        QuoteFilter.USER_CREATED -> userQuotes
+                        QuoteFilter.FAVORITES -> favoriteQuotes
                     }
 
                     val quoteSearch = filterState.searchQuery.trim().lowercase(Locale.getDefault())
@@ -92,18 +88,28 @@ class QuoteListViewModel @Inject constructor(
                                 quote.author.lowercase(Locale.getDefault()).contains(quoteSearch)
                         }
                     }
+                    val quoteItems = filteredQuotes.map { quote ->
+                        QuoteListItemUiModel(
+                            quote = quote,
+                            runicPreviewText = quote.getRunicText(
+                                script = sourceState.preferences.selectedScript,
+                                transliterationFactory = transliterationFactory
+                            )
+                        )
+                    }
 
                     QuoteListUiState(
                         quotes = filteredQuotes,
+                        quoteItems = quoteItems,
                         currentFilter = filterState.currentFilter,
                         searchQuery = filterState.searchQuery,
                         selectedScript = sourceState.preferences.selectedScript,
                         selectedFont = sourceState.preferences.selectedFont,
                         isLoading = false,
                         filterCounts = mapOf(
-                            QuoteFilter.ALL to sourceState.collections.allQuotes.size,
-                            QuoteFilter.FAVORITES to sourceState.collections.favorites.size,
-                            QuoteFilter.USER_CREATED to sourceState.collections.userQuotes.size
+                            QuoteFilter.ALL to sourceState.allQuotes.size,
+                            QuoteFilter.FAVORITES to favoriteQuotes.size,
+                            QuoteFilter.USER_CREATED to userQuotes.size
                         )
                     )
                 }.collect { newState ->
@@ -190,14 +196,8 @@ class QuoteListViewModel @Inject constructor(
     }
 }
 
-private data class QuoteCollectionsState(
-    val allQuotes: List<Quote>,
-    val userQuotes: List<Quote>,
-    val favorites: List<Quote>
-)
-
 private data class QuoteListSourceState(
-    val collections: QuoteCollectionsState,
+    val allQuotes: List<Quote>,
     val preferences: UserPreferences
 )
 
@@ -209,12 +209,19 @@ private data class QuoteListFilterState(
 /** UI state for the Library screen. */
 data class QuoteListUiState(
     val quotes: List<Quote> = emptyList(),
+    val quoteItems: List<QuoteListItemUiModel> = emptyList(),
     val currentFilter: QuoteFilter = QuoteFilter.ALL,
     val searchQuery: String = "",
     val selectedScript: RunicScript = RunicScript.ELDER_FUTHARK,
     val selectedFont: String = "noto",
     val isLoading: Boolean = false,
     val filterCounts: Map<QuoteFilter, Int> = emptyMap()
+)
+
+/** Presentation model for quotes rendered in the library list and actions sheet. */
+data class QuoteListItemUiModel(
+    val quote: Quote,
+    val runicPreviewText: String
 )
 
 /** One-off UI events emitted by the library screen. */

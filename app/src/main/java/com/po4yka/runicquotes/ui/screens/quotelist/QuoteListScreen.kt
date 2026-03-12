@@ -60,7 +60,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.displayName
-import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.ui.components.BottomSheetAction
 import com.po4yka.runicquotes.ui.components.BottomSheetQuotePreview
 import com.po4yka.runicquotes.ui.components.ConfirmationDialog
@@ -91,7 +90,7 @@ fun QuoteListScreen(
     val coroutineScope = rememberCoroutineScope()
     val quoteShareManager = rememberQuoteShareManager()
     var deleteCandidate by remember { mutableStateOf<Quote?>(null) }
-    var bottomSheetQuote by remember { mutableStateOf<Quote?>(null) }
+    var bottomSheetQuote by remember { mutableStateOf<QuoteListItemUiModel?>(null) }
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -168,7 +167,7 @@ fun QuoteListScreen(
             )
 
             Text(
-                text = "${uiState.quotes.size} quotes",
+                text = "${uiState.quoteItems.size} quotes",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -181,7 +180,7 @@ fun QuoteListScreen(
                 when {
                     uiState.isLoading -> LibraryLoadingSkeleton()
 
-                    uiState.quotes.isEmpty() -> LibraryEmptyState(
+                    uiState.quoteItems.isEmpty() -> LibraryEmptyState(
                         currentFilter = uiState.currentFilter,
                         onNavigateToAddQuote = {
                             haptics.mediumAction()
@@ -198,18 +197,18 @@ fun QuoteListScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(
-                            items = uiState.quotes,
-                            key = { it.id }
-                        ) { quote ->
+                            items = uiState.quoteItems,
+                            key = { it.quote.id }
+                        ) { quoteItem ->
                             QuoteListItem(
-                                quote = quote,
+                                quote = quoteItem.quote,
                                 onToggleFavorite = {
                                     haptics.lightToggle()
-                                    viewModel.toggleFavorite(quote)
+                                    viewModel.toggleFavorite(quoteItem.quote)
                                 },
                                 onShowActions = {
                                     haptics.lightToggle()
-                                    bottomSheetQuote = quote
+                                    bottomSheetQuote = quoteItem
                                 }
                             )
                         }
@@ -219,28 +218,28 @@ fun QuoteListScreen(
         }
     }
 
-    bottomSheetQuote?.let { quote ->
+    bottomSheetQuote?.let { quoteItem ->
         LibraryActionsBottomSheet(
-            quote = quote,
+            quote = quoteItem.quote,
+            runicPreviewText = quoteItem.runicPreviewText,
             selectedScript = uiState.selectedScript,
             selectedFont = uiState.selectedFont,
-            transliterationFactory = viewModel.transliterationFactory,
             onDismiss = { bottomSheetQuote = null },
             onToggleFavorite = {
                 haptics.lightToggle()
-                viewModel.toggleFavorite(quote)
+                viewModel.toggleFavorite(quoteItem.quote)
                 bottomSheetQuote = null
             },
             onShare = {
                 haptics.mediumAction()
-                onNavigateToShare(quote.id)
+                onNavigateToShare(quoteItem.quote.id)
                 bottomSheetQuote = null
             },
             onCopyText = {
                 haptics.lightToggle()
                 quoteShareManager.copyQuoteToClipboard(
-                    latinText = quote.textLatin,
-                    author = quote.author
+                    latinText = quoteItem.quote.textLatin,
+                    author = quoteItem.quote.author
                 )
                 bottomSheetQuote = null
                 coroutineScope.launch {
@@ -251,10 +250,7 @@ fun QuoteListScreen(
                 haptics.lightToggle()
                 quoteShareManager.copyPlainTextToClipboard(
                     label = "Runic transliteration",
-                    text = quote.getRunicText(
-                        script = uiState.selectedScript,
-                        transliterationFactory = viewModel.transliterationFactory
-                    )
+                    text = quoteItem.runicPreviewText
                 )
                 bottomSheetQuote = null
                 coroutineScope.launch {
@@ -263,12 +259,12 @@ fun QuoteListScreen(
             },
             onEdit = {
                 haptics.mediumAction()
-                onNavigateToEditQuote(quote.id)
+                onNavigateToEditQuote(quoteItem.quote.id)
                 bottomSheetQuote = null
             },
             onDelete = {
                 bottomSheetQuote = null
-                deleteCandidate = quote
+                deleteCandidate = quoteItem.quote
             }
         )
     }
@@ -481,9 +477,9 @@ private fun QuoteListItem(
 @Composable
 private fun LibraryActionsBottomSheet(
     quote: Quote,
+    runicPreviewText: String,
     selectedScript: com.po4yka.runicquotes.domain.model.RunicScript,
     selectedFont: String,
-    transliterationFactory: com.po4yka.runicquotes.domain.transliteration.TransliterationFactory,
     onDismiss: () -> Unit,
     onToggleFavorite: () -> Unit,
     onShare: () -> Unit,
@@ -553,7 +549,7 @@ private fun LibraryActionsBottomSheet(
     RunicBottomSheet(
         actions = actions,
         preview = BottomSheetQuotePreview(
-            runicText = quote.getRunicText(selectedScript, transliterationFactory),
+            runicText = runicPreviewText,
             latinText = quote.textLatin,
             author = quote.author,
             font = selectedFont,

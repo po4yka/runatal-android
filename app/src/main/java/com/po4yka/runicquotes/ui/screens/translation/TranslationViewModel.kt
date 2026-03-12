@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runicquotes.BuildConfig
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
-import com.po4yka.runicquotes.data.repository.QuoteRepository
-import com.po4yka.runicquotes.data.repository.TranslationRepository
+import com.po4yka.runicquotes.domain.repository.QuoteRepository
+import com.po4yka.runicquotes.domain.repository.TranslationRepository
 import com.po4yka.runicquotes.di.DefaultDispatcher
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName

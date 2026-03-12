@@ -95,7 +95,6 @@ import java.util.Locale
 @Composable
 internal fun AddEditQuoteScreen(
     onNavigateBack: () -> Unit,
-    quoteId: Long = 0L,
     viewModel: AddEditQuoteViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -103,10 +102,6 @@ internal fun AddEditQuoteScreen(
     var showDiscardDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     val currentNavigateBack by rememberUpdatedState(onNavigateBack)
-
-    LaunchedEffect(quoteId) {
-        viewModel.initializeQuoteIfNeeded(quoteId)
-    }
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->

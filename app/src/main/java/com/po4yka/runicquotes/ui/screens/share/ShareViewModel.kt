@@ -1,13 +1,14 @@
 package com.po4yka.runicquotes.ui.screens.share
 
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.po4yka.runicquotes.data.repository.NoOpTranslationRepository
-import com.po4yka.runicquotes.data.repository.QuoteRepository
-import com.po4yka.runicquotes.data.repository.TranslationRepository
+import com.po4yka.runicquotes.domain.repository.NoOpTranslationRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.domain.repository.QuoteRepository
+import com.po4yka.runicquotes.domain.repository.TranslationRepository
 import com.po4yka.runicquotes.util.ShareAppearance
 import com.po4yka.runicquotes.util.ShareTemplate
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,11 +26,11 @@ import javax.inject.Inject
 @HiltViewModel
 internal class ShareViewModel @Inject constructor(
     private val quoteRepository: QuoteRepository,
+    savedStateHandle: SavedStateHandle,
     private val translationRepository: TranslationRepository = NoOpTranslationRepository
 ) : ViewModel() {
 
-    private var quoteId: Long = 0L
-    private var loadedQuoteId: Long? = null
+    private val quoteId: Long = savedStateHandle.get<Long>(QUOTE_ID_KEY) ?: 0L
 
     private val _uiState = MutableStateFlow<ShareUiState>(ShareUiState.Loading)
     val uiState: StateFlow<ShareUiState> = _uiState.asStateFlow()
@@ -43,15 +44,11 @@ internal class ShareViewModel @Inject constructor(
     /** @suppress */
     companion object {
         private const val TAG = "ShareViewModel"
+        private const val QUOTE_ID_KEY = "quoteId"
     }
 
-    /** Initializes the ViewModel with a quote ID if not already loaded. */
-    fun initializeQuoteIfNeeded(id: Long) {
-        if (id == 0L) return
-
-        quoteId = id
-        if (loadedQuoteId != id || _uiState.value is ShareUiState.Error) {
-            loadedQuoteId = id
+    init {
+        if (quoteId != 0L) {
             loadQuote()
         }
     }

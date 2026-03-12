@@ -374,20 +374,18 @@ private fun EntryProviderScope<Any>.topLevelEntries(
 private fun EntryProviderScope<Any>.detailEntries(
     backStack: SnapshotStateList<Any>
 ) {
-    entry<AddEditQuoteRoute> { route ->
+    entry<AddEditQuoteRoute> {
         AddEditQuoteScreen(
-            onNavigateBack = { backStack.removeLastOrNull() },
-            quoteId = route.quoteId
+            onNavigateBack = { backStack.removeLastOrNull() }
         )
     }
-    entry<PackDetailRoute> { route ->
+    entry<PackDetailRoute> {
         PackDetailScreen(
             onNavigateBack = { backStack.removeLastOrNull() },
             onViewLibrary = {
                 backStack.clear()
                 backStack.add(QuoteListRoute)
-            },
-            packId = route.packId
+            }
         )
     }
     entry<ArchiveRoute> {
@@ -403,16 +401,14 @@ private fun EntryProviderScope<Any>.detailEntries(
             }
         )
     }
-    entry<RuneDetailRoute> { route ->
+    entry<RuneDetailRoute> {
         RuneDetailScreen(
-            onNavigateBack = { backStack.removeLastOrNull() },
-            runeId = route.runeId
+            onNavigateBack = { backStack.removeLastOrNull() }
         )
     }
-    entry<ShareRoute> { route ->
+    entry<ShareRoute> {
         ShareScreen(
-            onNavigateBack = { backStack.removeLastOrNull() },
-            quoteId = route.quoteId
+            onNavigateBack = { backStack.removeLastOrNull() }
         )
     }
     entry<TranslationRoute> {

@@ -82,7 +82,6 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun ShareScreen(
     onNavigateBack: () -> Unit = {},
-    quoteId: Long = 0L,
     viewModel: ShareViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -91,10 +90,6 @@ internal fun ShareScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val quoteShareManager = rememberQuoteShareManager()
     val coroutineScope = rememberCoroutineScope()
-
-    LaunchedEffect(quoteId) {
-        viewModel.initializeQuoteIfNeeded(quoteId)
-    }
 
     Scaffold(
         topBar = {

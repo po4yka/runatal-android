@@ -8,6 +8,7 @@ import com.po4yka.runicquotes.data.local.entity.TranslationBackfillStateEntity
 import com.po4yka.runicquotes.data.local.entity.TranslationRecordEntity
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.domain.repository.TranslationRepository
 import com.po4yka.runicquotes.domain.translation.HistoricalStage
 import com.po4yka.runicquotes.domain.translation.HistoricalTranslationService
 import com.po4yka.runicquotes.domain.translation.TranslationDerivationKind

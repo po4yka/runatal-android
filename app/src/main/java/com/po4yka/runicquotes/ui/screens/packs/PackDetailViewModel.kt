@@ -1,6 +1,7 @@
 package com.po4yka.runicquotes.ui.screens.packs
 
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runicquotes.data.repository.QuotePackRepository
@@ -21,11 +22,11 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class PackDetailViewModel @Inject constructor(
-    private val quotePackRepository: QuotePackRepository
+    private val quotePackRepository: QuotePackRepository,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private var packId: Long = 0L
-    private var loadedPackId: Long? = null
+    private val packId: Long = savedStateHandle.get<Long>(PACK_ID_KEY) ?: 0L
 
     private val _uiState = MutableStateFlow<PackDetailUiState>(PackDetailUiState.Loading)
     val uiState: StateFlow<PackDetailUiState> = _uiState.asStateFlow()
@@ -36,17 +37,13 @@ class PackDetailViewModel @Inject constructor(
     /** @suppress */
     companion object {
         private const val TAG = "PackDetailViewModel"
+        private const val PACK_ID_KEY = "packId"
     }
 
-    /**
-     * Initializes the pack data if the given [packId] has not been loaded yet.
-     * Called from the screen composable to pass the route parameter.
-     */
-    fun initializePackIfNeeded(packId: Long) {
-        if (packId == 0L || loadedPackId == packId) return
-        this.packId = packId
-        loadedPackId = packId
-        loadPack()
+    init {
+        if (packId != 0L) {
+            loadPack()
+        }
     }
 
     private fun loadPack() {

@@ -2,11 +2,11 @@ package com.po4yka.runicquotes.ui.screens.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.po4yka.runicquotes.data.repository.QuoteRepository
+import com.po4yka.runicquotes.domain.repository.QuoteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
@@ -18,15 +18,11 @@ class ProfileViewModel @Inject constructor(
     quoteRepository: QuoteRepository
 ) : ViewModel() {
 
-    val uiState: StateFlow<ProfileUiState> = combine(
-        quoteRepository.getAllQuotesFlow(),
-        quoteRepository.getFavoritesFlow(),
-        quoteRepository.getUserQuotesFlow()
-    ) { allQuotes, favorites, userQuotes ->
+    val uiState: StateFlow<ProfileUiState> = quoteRepository.getAllQuotesFlow().map { allQuotes ->
         ProfileUiState(
             totalQuotes = allQuotes.size,
-            favoriteCount = favorites.size,
-            createdCount = userQuotes.size
+            favoriteCount = allQuotes.count { it.isFavorite },
+            createdCount = allQuotes.count { it.isUserCreated }
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), ProfileUiState())
 }

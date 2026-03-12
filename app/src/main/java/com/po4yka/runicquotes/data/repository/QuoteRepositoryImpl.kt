@@ -3,6 +3,7 @@ package com.po4yka.runicquotes.data.repository
 import com.po4yka.runicquotes.data.local.dao.QuoteDao
 import com.po4yka.runicquotes.data.local.entity.QuoteEntity
 import com.po4yka.runicquotes.domain.model.Quote
+import com.po4yka.runicquotes.domain.repository.QuoteRepository
 import com.po4yka.runicquotes.util.TimeProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

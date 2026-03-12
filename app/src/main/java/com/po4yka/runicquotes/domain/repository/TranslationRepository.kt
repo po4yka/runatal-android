@@ -1,8 +1,7 @@
-package com.po4yka.runicquotes.data.repository
+package com.po4yka.runicquotes.domain.repository
 
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
-import com.po4yka.runicquotes.domain.translation.HistoricalTranslationService
 import com.po4yka.runicquotes.domain.translation.HistoricalStage
 import com.po4yka.runicquotes.domain.translation.TranslationDerivationKind
 import com.po4yka.runicquotes.domain.translation.TranslationFidelity

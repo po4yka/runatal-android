@@ -71,15 +71,10 @@ import com.po4yka.runicquotes.ui.components.runicChoiceChipColors
 fun PackDetailScreen(
     onNavigateBack: () -> Unit = {},
     onViewLibrary: () -> Unit = {},
-    packId: Long = 0L,
     viewModel: PackDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(packId) {
-        viewModel.initializePackIfNeeded(packId)
-    }
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->

@@ -52,9 +52,8 @@ class PacksViewModel @Inject constructor(
 
             combine(
                 quotePackRepository.getAllPacksFlow(),
-                quotePackRepository.getLibraryPacksFlow(),
                 _searchQuery
-            ) { allPacks, libraryPacks, query ->
+            ) { allPacks, query ->
                 val filtered = if (query.isBlank()) {
                     allPacks
                 } else {
@@ -70,7 +69,7 @@ class PacksViewModel @Inject constructor(
                 PacksUiState(
                     packs = filtered,
                     totalCount = allPacks.size,
-                    libraryCount = libraryPacks.size,
+                    libraryCount = allPacks.count { it.isInLibrary },
                     searchQuery = query,
                     isLoading = false
                 )

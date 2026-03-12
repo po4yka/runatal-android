@@ -1,5 +1,6 @@
 package com.po4yka.runicquotes.ui.screens.packs
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runicquotes.data.repository.QuotePackRepository
@@ -49,8 +50,10 @@ class PackDetailViewModelTest {
 
     @Test
     fun `toggleLibrary emits snackbar event with library action when pack is added`() = runTest {
-        val viewModel = PackDetailViewModel(quotePackRepository)
-        viewModel.initializePackIfNeeded(7L)
+        val viewModel = PackDetailViewModel(
+            quotePackRepository = quotePackRepository,
+            savedStateHandle = SavedStateHandle(mapOf("packId" to 7L))
+        )
         advanceUntilIdle()
 
         viewModel.events.test {
@@ -74,8 +77,10 @@ class PackDetailViewModelTest {
     @Test
     fun `toggleLibrary emits message event when update fails`() = runTest {
         coEvery { quotePackRepository.updatePack(any()) } throws IOException("disk")
-        val viewModel = PackDetailViewModel(quotePackRepository)
-        viewModel.initializePackIfNeeded(7L)
+        val viewModel = PackDetailViewModel(
+            quotePackRepository = quotePackRepository,
+            savedStateHandle = SavedStateHandle(mapOf("packId" to 7L))
+        )
         advanceUntilIdle()
 
         viewModel.events.test {

@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.work.ListenableWorker.Result
 import androidx.work.testing.TestListenableWorkerBuilder
 import com.google.common.truth.Truth.assertThat
-import com.po4yka.runicquotes.data.repository.TranslationRepository
+import com.po4yka.runicquotes.domain.repository.TranslationRepository
 import dagger.hilt.android.EntryPointAccessors
 import io.mockk.coEvery
 import io.mockk.coVerify

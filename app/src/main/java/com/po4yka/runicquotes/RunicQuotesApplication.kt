@@ -10,7 +10,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import com.po4yka.runicquotes.data.repository.QuoteRepository
+import com.po4yka.runicquotes.domain.repository.QuoteRepository
 import com.po4yka.runicquotes.ui.widget.WidgetSyncManager
 import com.po4yka.runicquotes.worker.TranslationBackfillWorker
 import dagger.hilt.android.HiltAndroidApp

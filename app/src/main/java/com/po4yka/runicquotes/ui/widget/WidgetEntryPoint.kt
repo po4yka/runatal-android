@@ -1,7 +1,7 @@
 package com.po4yka.runicquotes.ui.widget
 
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
-import com.po4yka.runicquotes.data.repository.QuoteRepository
+import com.po4yka.runicquotes.domain.repository.QuoteRepository
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn

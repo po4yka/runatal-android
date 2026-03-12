@@ -1,7 +1,7 @@
 package com.po4yka.runicquotes.domain.usecase.addeditquote
 
-import com.po4yka.runicquotes.data.repository.QuoteRepository
-import com.po4yka.runicquotes.data.repository.TranslationRepository
+import com.po4yka.runicquotes.domain.repository.QuoteRepository
+import com.po4yka.runicquotes.domain.repository.TranslationRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.getRunicText

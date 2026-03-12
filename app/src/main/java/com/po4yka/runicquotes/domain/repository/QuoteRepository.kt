@@ -1,4 +1,4 @@
-package com.po4yka.runicquotes.data.repository
+package com.po4yka.runicquotes.domain.repository
 
 import com.po4yka.runicquotes.domain.model.Quote
 import kotlinx.coroutines.flow.Flow

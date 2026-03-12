@@ -1,6 +1,7 @@
 package com.po4yka.runicquotes.ui.screens.references
 
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runicquotes.data.repository.RuneReferenceRepository
@@ -18,11 +19,11 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class RuneDetailViewModel @Inject constructor(
-    private val runeReferenceRepository: RuneReferenceRepository
+    private val runeReferenceRepository: RuneReferenceRepository,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private var runeId: Long = 0L
-    private var loadedRuneId: Long? = null
+    private val runeId: Long = savedStateHandle.get<Long>(RUNE_ID_KEY) ?: 0L
 
     private val _uiState = MutableStateFlow<RuneDetailUiState>(RuneDetailUiState.Loading)
     val uiState: StateFlow<RuneDetailUiState> = _uiState.asStateFlow()
@@ -30,17 +31,13 @@ class RuneDetailViewModel @Inject constructor(
     /** @suppress */
     companion object {
         private const val TAG = "RuneDetailViewModel"
+        private const val RUNE_ID_KEY = "runeId"
     }
 
-    /**
-     * Initializes the rune data if the given [runeId] has not been loaded yet.
-     * Called from the screen composable to pass the route parameter.
-     */
-    fun initializeRuneIfNeeded(runeId: Long) {
-        if (runeId == 0L || loadedRuneId == runeId) return
-        this.runeId = runeId
-        loadedRuneId = runeId
-        loadRune()
+    init {
+        if (runeId != 0L) {
+            loadRune()
+        }
     }
 
     private fun loadRune() {

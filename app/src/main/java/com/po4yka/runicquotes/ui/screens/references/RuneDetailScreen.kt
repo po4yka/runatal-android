@@ -54,12 +54,9 @@ import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 @Composable
 fun RuneDetailScreen(
     onNavigateBack: () -> Unit = {},
-    runeId: Long = 0L,
     viewModel: RuneDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-    LaunchedEffect(runeId) { viewModel.initializeRuneIfNeeded(runeId) }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
