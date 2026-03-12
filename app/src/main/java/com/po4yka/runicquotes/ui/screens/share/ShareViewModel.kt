@@ -1,7 +1,6 @@
 package com.po4yka.runicquotes.ui.screens.share
 
 import android.util.Log
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runicquotes.data.repository.NoOpTranslationRepository
@@ -9,9 +8,6 @@ import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.data.repository.TranslationRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
-import com.po4yka.runicquotes.domain.translation.TranslationFidelity
-import com.po4yka.runicquotes.domain.translation.YoungerFutharkVariant
-import com.po4yka.runicquotes.util.QuoteShareManager
 import com.po4yka.runicquotes.util.ShareAppearance
 import com.po4yka.runicquotes.util.ShareTemplate
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,13 +24,12 @@ import javax.inject.Inject
  */
 @HiltViewModel
 internal class ShareViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
     private val quoteRepository: QuoteRepository,
-    private val quoteShareManager: QuoteShareManager,
     private val translationRepository: TranslationRepository = NoOpTranslationRepository
 ) : ViewModel() {
 
-    private var quoteId: Long = savedStateHandle.get<Long>("quoteId") ?: 0L
+    private var quoteId: Long = 0L
+    private var loadedQuoteId: Long? = null
 
     private val _uiState = MutableStateFlow<ShareUiState>(ShareUiState.Loading)
     val uiState: StateFlow<ShareUiState> = _uiState.asStateFlow()
@@ -45,26 +40,18 @@ internal class ShareViewModel @Inject constructor(
     private val _selectedAppearance = MutableStateFlow(ShareAppearance.DARK)
     val selectedAppearance: StateFlow<ShareAppearance> = _selectedAppearance.asStateFlow()
 
-    private val _feedbackMessage = MutableStateFlow<String?>(null)
-    val feedbackMessage: StateFlow<String?> = _feedbackMessage.asStateFlow()
-
     /** @suppress */
     companion object {
         private const val TAG = "ShareViewModel"
     }
 
-    init {
-        if (quoteId != 0L) {
-            loadQuote()
-        }
-    }
-
     /** Initializes the ViewModel with a quote ID if not already loaded. */
     fun initializeQuoteIfNeeded(id: Long) {
-        if (id != 0L && id != quoteId) {
-            quoteId = id
-            loadQuote()
-        } else if (id != 0L && _uiState.value is ShareUiState.Loading) {
+        if (id == 0L) return
+
+        quoteId = id
+        if (loadedQuoteId != id || _uiState.value is ShareUiState.Error) {
+            loadedQuoteId = id
             loadQuote()
         }
     }
@@ -99,72 +86,35 @@ internal class ShareViewModel @Inject constructor(
         _selectedAppearance.update { appearance }
     }
 
-    /** Shares the quote as plain text. */
-    fun shareAsText() {
-        val quote = (uiState.value as? ShareUiState.Success)?.quote ?: return
-        quoteShareManager.shareQuoteText(quote.textLatin, quote.author)
-    }
-
-    /** Shares the quote as a styled image. */
-    fun shareAsImage() {
-        val quote = (uiState.value as? ShareUiState.Success)?.quote ?: return
-        val cachedHistoricalGlyph = listOfNotNull(
-            quote.runicElder,
-            quote.runicYounger,
-            quote.runicCirth
-        ).singleOrNull()
-        val runicText = cachedHistoricalGlyph ?: quote.runicElder ?: quote.textLatin
-        viewModelScope.launch {
-            quoteShareManager.shareQuoteAsImage(
-                runicText = runicText,
-                latinText = quote.textLatin,
-                author = quote.author,
-                template = _selectedTemplate.value,
-                appearance = _selectedAppearance.value
-            )
+    /** Retries loading the quote after an error. */
+    fun retry() {
+        if (quoteId != 0L) {
+            loadQuote()
         }
     }
 
-    /** Copies quote text and author to the clipboard. */
-    fun copyQuote() {
-        val quote = (uiState.value as? ShareUiState.Success)?.quote ?: return
-        quoteShareManager.copyQuoteToClipboard(quote.textLatin, quote.author)
-        _feedbackMessage.value = "Quote copied"
-    }
-
-    /** Clears transient feedback after it has been shown. */
-    fun clearFeedback() {
-        _feedbackMessage.value = null
-    }
-
-    /** Retries loading the quote after an error. */
-    fun retry() {
-        loadQuote()
-    }
-
     private suspend fun resolveShareQuote(quote: Quote): Quote {
-        val cachedTranslation = translationRepository.getCachedTranslation(
+        val elderTranslation = translationRepository.getLatestAvailableTranslation(
             quoteId = quote.id,
-            script = RunicScript.ELDER_FUTHARK,
-            fidelity = TranslationFidelity.STRICT,
-            youngerVariant = YoungerFutharkVariant.DEFAULT
-        ) ?: return quote
+            script = RunicScript.ELDER_FUTHARK
+        )
+        val youngerTranslation = translationRepository.getLatestAvailableTranslation(
+            quoteId = quote.id,
+            script = RunicScript.YOUNGER_FUTHARK
+        )
+        val cirthTranslation = translationRepository.getLatestAvailableTranslation(
+            quoteId = quote.id,
+            script = RunicScript.CIRTH
+        )
+
+        if (elderTranslation == null && youngerTranslation == null && cirthTranslation == null) {
+            return quote
+        }
+
         return quote.copy(
-            runicElder = if (cachedTranslation.script == RunicScript.ELDER_FUTHARK) {
-                cachedTranslation.glyphOutput
-            } else {
-                null
-            },
-            runicYounger = if (cachedTranslation.script == RunicScript.YOUNGER_FUTHARK) {
-                cachedTranslation.glyphOutput
-            } else {
-                null
-            },
-            runicCirth = if (cachedTranslation.script == RunicScript.CIRTH) {
-                cachedTranslation.glyphOutput
-            } else {
-                null
-            }
+            runicElder = elderTranslation?.glyphOutput ?: quote.runicElder,
+            runicYounger = youngerTranslation?.glyphOutput ?: quote.runicYounger,
+            runicCirth = cirthTranslation?.glyphOutput ?: quote.runicCirth
         )
     }
 }
