@@ -1,30 +1,35 @@
 package com.po4yka.runicquotes.data.translation
 
 import android.content.Context
-import com.po4yka.runicquotes.domain.translation.CirthOrthographyData
-import com.po4yka.runicquotes.domain.translation.FallbackRulesData
+import com.po4yka.runicquotes.domain.translation.EreborOrthographyStore
+import com.po4yka.runicquotes.domain.translation.EreborTablesData
+import com.po4yka.runicquotes.domain.translation.FallbackTemplatesData
 import com.po4yka.runicquotes.domain.translation.GrammarRulesData
-import com.po4yka.runicquotes.domain.translation.InflectionTablesData
+import com.po4yka.runicquotes.domain.translation.HistoricalLexiconStore
+import com.po4yka.runicquotes.domain.translation.HistoricalPhraseTemplateEntry
 import com.po4yka.runicquotes.domain.translation.NameAdaptationsData
 import com.po4yka.runicquotes.domain.translation.OldNorseLexiconEntry
+import com.po4yka.runicquotes.domain.translation.ParadigmTablesData
 import com.po4yka.runicquotes.domain.translation.ProtoNorseLexiconEntry
-import com.po4yka.runicquotes.domain.translation.TranslationDatasetProvider
 import com.po4yka.runicquotes.domain.translation.TranslationDatasetManifest
 import com.po4yka.runicquotes.domain.translation.TranslationGoldExampleEntry
+import com.po4yka.runicquotes.domain.translation.RunicCorpusReferenceEntry
+import com.po4yka.runicquotes.domain.translation.RunicCorpusStore
 import com.po4yka.runicquotes.domain.translation.TranslationSourceManifest
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 
 /**
  * Loads the offline translation datasets shipped with the app.
  */
 @Singleton
+@Suppress("TooManyFunctions")
 internal class AssetTranslationDatasetProvider @Inject constructor(
     @param:ApplicationContext private val context: Context
-) : TranslationDatasetProvider {
+) : HistoricalLexiconStore, RunicCorpusStore, EreborOrthographyStore {
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -48,16 +53,16 @@ internal class AssetTranslationDatasetProvider @Inject constructor(
             serializer = ListSerializer(ProtoNorseLexiconEntry.serializer())
         )
     }
-    private val inflectionTablesCache by lazy {
+    private val paradigmTablesCache by lazy {
         readObject(
-            path = "translation/inflection_tables.json",
-            parser = { content -> json.decodeFromString(InflectionTablesData.serializer(), content) }
+            path = "translation/paradigm_tables.json",
+            parser = { content -> json.decodeFromString(ParadigmTablesData.serializer(), content) }
         )
     }
-    private val cirthOrthographyCache by lazy {
+    private val ereborTablesCache by lazy {
         readObject(
-            path = "translation/cirth_orthography.json",
-            parser = { content -> json.decodeFromString(CirthOrthographyData.serializer(), content) }
+            path = "translation/erebor_tables.json",
+            parser = { content -> json.decodeFromString(EreborTablesData.serializer(), content) }
         )
     }
     private val grammarRulesCache by lazy {
@@ -72,16 +77,34 @@ internal class AssetTranslationDatasetProvider @Inject constructor(
             parser = { content -> json.decodeFromString(NameAdaptationsData.serializer(), content) }
         )
     }
-    private val fallbackRulesCache by lazy {
+    private val fallbackTemplatesCache by lazy {
         readObject(
-            path = "translation/fallback_rules.json",
-            parser = { content -> json.decodeFromString(FallbackRulesData.serializer(), content) }
+            path = "translation/fallback_templates.json",
+            parser = { content -> json.decodeFromString(FallbackTemplatesData.serializer(), content) }
         )
     }
     private val sourceManifestCache by lazy {
         readObject(
             path = "translation/source_manifest.json",
             parser = { content -> json.decodeFromString(TranslationSourceManifest.serializer(), content) }
+        )
+    }
+    private val youngerPhraseTemplatesCache by lazy {
+        readList(
+            path = "translation/younger_phrase_templates.json",
+            serializer = ListSerializer(HistoricalPhraseTemplateEntry.serializer())
+        )
+    }
+    private val elderAttestedFormsCache by lazy {
+        readList(
+            path = "translation/elder_attested_forms.json",
+            serializer = ListSerializer(HistoricalPhraseTemplateEntry.serializer())
+        )
+    }
+    private val runicCorpusRefsCache by lazy {
+        readList(
+            path = "translation/runic_corpus_refs.json",
+            serializer = ListSerializer(RunicCorpusReferenceEntry.serializer())
         )
     }
     private val goldExamplesCache by lazy {
@@ -97,17 +120,23 @@ internal class AssetTranslationDatasetProvider @Inject constructor(
 
     override fun protoNorseLexicon(): List<ProtoNorseLexiconEntry> = protoNorseLexiconCache
 
-    override fun inflectionTables(): InflectionTablesData = inflectionTablesCache
+    override fun paradigmTables(): ParadigmTablesData = paradigmTablesCache
 
-    override fun cirthOrthography(): CirthOrthographyData = cirthOrthographyCache
+    override fun ereborTables(): EreborTablesData = ereborTablesCache
 
     override fun grammarRules(): GrammarRulesData = grammarRulesCache
 
     override fun nameAdaptations(): NameAdaptationsData = nameAdaptationsCache
 
-    override fun fallbackRules(): FallbackRulesData = fallbackRulesCache
+    override fun fallbackTemplates(): FallbackTemplatesData = fallbackTemplatesCache
 
     override fun sourceManifest(): TranslationSourceManifest = sourceManifestCache
+
+    override fun youngerPhraseTemplates(): List<HistoricalPhraseTemplateEntry> = youngerPhraseTemplatesCache
+
+    override fun elderAttestedForms(): List<HistoricalPhraseTemplateEntry> = elderAttestedFormsCache
+
+    override fun runicCorpusReferences(): List<RunicCorpusReferenceEntry> = runicCorpusRefsCache
 
     override fun goldExamples(): List<TranslationGoldExampleEntry> = goldExamplesCache
 

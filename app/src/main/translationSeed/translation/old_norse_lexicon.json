@@ -1,5 +1,6 @@
 [
   {
+    "id": "on_ulfR",
     "english": "wolf",
     "partOfSpeech": "noun",
     "lemma": "úlfr",
@@ -9,6 +10,7 @@
     "citations": ["úlfr"]
   },
   {
+    "id": "on_veida",
     "english": "hunt",
     "partOfSpeech": "verb",
     "lemma": "veiða",
@@ -20,6 +22,7 @@
     "citations": ["veiða"]
   },
   {
+    "id": "on_nott",
     "english": "night",
     "partOfSpeech": "noun",
     "lemma": "nótt",
@@ -29,6 +32,7 @@
     "citations": ["nótt"]
   },
   {
+    "id": "on_konungr",
     "english": "king",
     "partOfSpeech": "noun",
     "lemma": "konungr",
@@ -38,6 +42,7 @@
     "citations": ["konungr"]
   },
   {
+    "id": "on_fjall",
     "english": "mountain",
     "partOfSpeech": "noun",
     "lemma": "fjall",
@@ -47,6 +52,7 @@
     "citations": ["fjall"]
   },
   {
+    "id": "on_ferd",
     "english": "journey",
     "partOfSpeech": "noun",
     "lemma": "ferð",
@@ -56,6 +62,7 @@
     "citations": ["ferð"]
   },
   {
+    "id": "on_spor",
     "english": "step",
     "partOfSpeech": "noun",
     "lemma": "spor",
@@ -65,6 +72,7 @@
     "citations": ["spor"]
   },
   {
+    "id": "on_mikill",
     "english": "great",
     "partOfSpeech": "adjective",
     "lemma": "mikill",
@@ -73,6 +81,7 @@
     "citations": ["mikill"]
   },
   {
+    "id": "on_verk",
     "english": "work",
     "partOfSpeech": "noun",
     "lemma": "verk",
@@ -82,6 +91,7 @@
     "citations": ["verk"]
   },
   {
+    "id": "on_elska",
     "english": "love",
     "partOfSpeech": "verb",
     "lemma": "elska",
@@ -93,6 +103,7 @@
     "citations": ["Modernized approximation"]
   },
   {
+    "id": "on_gera",
     "english": "do",
     "partOfSpeech": "verb",
     "lemma": "gera",
@@ -104,6 +115,7 @@
     "citations": ["gera"]
   },
   {
+    "id": "on_reika",
     "english": "wander",
     "partOfSpeech": "verb",
     "lemma": "reika",
@@ -115,6 +127,7 @@
     "citations": ["Curated approximation"]
   },
   {
+    "id": "on_villr",
     "english": "lost",
     "partOfSpeech": "adjective",
     "lemma": "villr",
@@ -123,6 +136,7 @@
     "citations": ["villr"]
   },
   {
+    "id": "on_naud",
     "english": "difficulty",
     "partOfSpeech": "noun",
     "lemma": "nauð",
@@ -132,6 +146,7 @@
     "citations": ["nauð"]
   },
   {
+    "id": "on_vera",
     "english": "be",
     "partOfSpeech": "verb",
     "lemma": "vera",
@@ -143,6 +158,7 @@
     "citations": ["vera"]
   },
   {
+    "id": "on_thegar",
     "english": "already",
     "partOfSpeech": "adverb",
     "lemma": "þegar",
@@ -151,6 +167,7 @@
     "citations": ["þegar"]
   },
   {
+    "id": "on_taka",
     "english": "take",
     "partOfSpeech": "verb",
     "lemma": "taka",
@@ -162,6 +179,7 @@
     "citations": ["taka"]
   },
   {
+    "id": "on_einn",
     "english": "one",
     "partOfSpeech": "pronoun",
     "lemma": "einn",
@@ -170,6 +188,7 @@
     "citations": ["einn"]
   },
   {
+    "id": "on_undir",
     "english": "under",
     "partOfSpeech": "preposition",
     "lemma": "undir",
@@ -179,6 +198,7 @@
     "citations": ["undir"]
   },
   {
+    "id": "on_med",
     "english": "with",
     "partOfSpeech": "preposition",
     "lemma": "með",
@@ -188,6 +208,7 @@
     "citations": ["með"]
   },
   {
+    "id": "on_af",
     "english": "of",
     "partOfSpeech": "preposition",
     "lemma": "af",
@@ -197,6 +218,7 @@
     "citations": ["af"]
   },
   {
+    "id": "on_til",
     "english": "to",
     "partOfSpeech": "preposition",
     "lemma": "til",
@@ -206,6 +228,7 @@
     "citations": ["til"]
   },
   {
+    "id": "on_i",
     "english": "in",
     "partOfSpeech": "preposition",
     "lemma": "í",
@@ -215,6 +238,7 @@
     "citations": ["í"]
   },
   {
+    "id": "on_um",
     "english": "at",
     "partOfSpeech": "preposition",
     "lemma": "um",
@@ -222,5 +246,17 @@
     "strictEligible": true,
     "sourceId": "zoega",
     "citations": ["um"]
+  },
+  {
+    "id": "on_ganga",
+    "english": "walk",
+    "partOfSpeech": "verb",
+    "lemma": "ganga",
+    "paradigmId": "verb_regular_a",
+    "present3sg": "gengr",
+    "past3sg": "gekk",
+    "strictEligible": true,
+    "sourceId": "zoega",
+    "citations": ["ganga"]
   }
 ]

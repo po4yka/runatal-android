@@ -1,6 +1,20 @@
 {
+  "phraseMappings": [
+    {
+      "id": "cirth_tpl_under_mountain",
+      "sourceText": "Under the mountain",
+      "diplomaticForm": "u·n·d·e·r th·e m·ou·n·t·ai·n",
+      "glyphOutput": "  ",
+      "resolutionStatus": "RECONSTRUCTED",
+      "notes": [
+        "Matched a curated Erebor phrase mapping preserved for Tolkien-mode coverage."
+      ],
+      "referenceIds": [
+        "cirth_ref_under_mountain"
+      ]
+    }
+  ],
   "sequences": {
-    "ll": "",
     "th": "",
     "sh": "",
     "ch": "",
@@ -13,11 +27,9 @@
     "au": "",
     "aw": "",
     "ea": "",
-    "ee": "",
     "ei": "",
     "ie": "",
     "oa": "",
-    "oo": "",
     "ou": "",
     "ow": ""
   },
@@ -58,5 +70,20 @@
     "-": "-",
     ":": ":",
     ";": ";"
-  }
+  },
+  "longVowels": {
+    "aa": "",
+    "ee": "",
+    "ii": "",
+    "oo": "",
+    "uu": ""
+  },
+  "longConsonants": {
+    "ll": "",
+    "mm": "",
+    "nn": "",
+    "rr": "",
+    "tt": ""
+  },
+  "wordSeparator": "·"
 }

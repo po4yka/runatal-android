@@ -1,0 +1,58 @@
+[
+  {
+    "id": "ef_tpl_wolf",
+    "script": "ELDER_FUTHARK",
+    "fidelity": "STRICT",
+    "derivationKind": "PHRASE_TEMPLATE",
+    "historicalStage": "PROTO_NORSE",
+    "sourceText": "Wolf",
+    "normalizedForm": "wulfaz",
+    "diplomaticForm": "wulfaz",
+    "resolutionStatus": "ATTESTED",
+    "notes": [
+      "Matched a curated short Elder Futhark formula for 'wolf'."
+    ],
+    "referenceIds": [
+      "ef_ref_wulfaz"
+    ],
+    "tokenBreakdown": [
+      {
+        "sourceToken": "wolf",
+        "normalizedToken": "wulfaz",
+        "diplomaticToken": "wulfaz",
+        "resolutionStatus": "ATTESTED",
+        "referenceIds": [
+          "ef_ref_wulfaz"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ef_tpl_the_king",
+    "script": "ELDER_FUTHARK",
+    "fidelity": "STRICT",
+    "derivationKind": "PHRASE_TEMPLATE",
+    "historicalStage": "PROTO_NORSE",
+    "sourceText": "The king",
+    "normalizedForm": "kuningaz",
+    "diplomaticForm": "kuningaz",
+    "resolutionStatus": "ATTESTED",
+    "notes": [
+      "Matched a curated short Elder Futhark formula for 'the king'."
+    ],
+    "referenceIds": [
+      "ef_ref_kuningaz"
+    ],
+    "tokenBreakdown": [
+      {
+        "sourceToken": "king",
+        "normalizedToken": "kuningaz",
+        "diplomaticToken": "kuningaz",
+        "resolutionStatus": "ATTESTED",
+        "referenceIds": [
+          "ef_ref_kuningaz"
+        ]
+      }
+    ]
+  }
+]

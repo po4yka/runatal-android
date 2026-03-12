@@ -7,7 +7,12 @@
     "works": "work",
     "does": "do",
     "loves": "love",
-    "steps": "step"
+    "steps": "step",
+    "walks": "walk",
+    "walked": "walk",
+    "wolves": "wolf",
+    "mountains": "mountain",
+    "kings": "king"
   },
   "paraphrases": {
     "computer": "reiknandi vél",

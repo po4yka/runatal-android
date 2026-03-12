@@ -10,23 +10,30 @@ import javax.inject.Singleton
  * Translation engine for English to Old Norse to Younger Futhark.
  */
 internal class YoungerFutharkTranslationEngine @Inject constructor(
-    datasetProvider: TranslationDatasetProvider
+    lexiconStore: HistoricalLexiconStore,
+    runicCorpusStore: RunicCorpusStore
 ) : TranslationEngine {
 
     override val script: RunicScript = RunicScript.YOUNGER_FUTHARK
-    override val engineVersion: String = "yf-translation-v2"
+    override val engineVersion: String = "yf-translation-v3"
 
     private val parser = EnglishSyntaxParser()
-    private val goldExampleResolver = TranslationGoldExampleResolver(datasetProvider)
-    private val lexiconLookup = HistoricalLexiconLookup(datasetProvider)
-    private val morphologyStage = OldNorseMorphologyStage(datasetProvider)
+    private val sourceCatalog = HistoricalSourceCatalog(
+        sourceManifest = lexiconStore.sourceManifest(),
+        corpusReferences = runicCorpusStore.runicCorpusReferences()
+    )
+    private val goldExampleResolver = TranslationGoldExampleResolver(runicCorpusStore)
+    private val phraseTemplateResolver = RunicPhraseTemplateResolver(runicCorpusStore, sourceCatalog)
+    private val lexiconLookup = HistoricalLexiconLookup(lexiconStore, sourceCatalog)
+    private val morphologyStage = OldNorseMorphologyStage(lexiconLookup)
     private val phonologyStage = YoungerFutharkPhonologyStage()
     private val renderer = YoungerFutharkRenderer()
     private val evidenceSynthesizer = TranslationEvidenceSynthesizer(lexiconLookup.datasetVersion())
     override val datasetVersion: String = lexiconLookup.datasetVersion()
 
     override fun translate(request: TranslationRequest): TranslationResult {
-        goldExampleResolver.resolve(request)?.let { return it.copy(engineVersion = engineVersion) }
+        goldExampleResolver.resolve(request, engineVersion)?.let { return it }
+        phraseTemplateResolver.resolveYounger(request, renderer)?.let { return it.copy(engineVersion = engineVersion) }
 
         val parsed = parser.parse(request.sourceText)
         val grammarRules = lexiconLookup.grammarRules()
@@ -43,6 +50,7 @@ internal class YoungerFutharkTranslationEngine @Inject constructor(
             resolutions = resolutions,
             evidenceRequest = TranslationEvidenceRequest(
                 script = script,
+                derivationKind = TranslationDerivationKind.TOKEN_COMPOSED,
                 historicalStage = HistoricalStage.OLD_NORSE,
                 engineVersion = engineVersion,
                 requestedVariant = request.youngerVariant.name,
@@ -63,7 +71,7 @@ internal class YoungerFutharkTranslationEngine @Inject constructor(
     ): TranslationTokenResolution {
         val provenance = mutableListOf<TranslationProvenanceEntry>()
         val notes = mutableListOf<String>()
-        var approximated = false
+        var resolutionStatus = TranslationResolutionStatus.RECONSTRUCTED
 
         val normalized = when {
             token.normalized in lexiconLookup.grammarRules().pronounMap -> {
@@ -72,6 +80,14 @@ internal class YoungerFutharkTranslationEngine @Inject constructor(
                     detail = "Pronoun mapping"
                 )
                 lexiconLookup.grammarRules().pronounMap.getValue(token.normalized)
+            }
+
+            token.normalized in lexiconLookup.grammarRules().prepositionMap -> {
+                provenance += lexiconLookup.provenanceFor(
+                    sourceId = "internal_heuristics",
+                    detail = "Preposition mapping"
+                )
+                lexiconLookup.grammarRules().prepositionMap.getValue(token.normalized)
             }
 
             lexiconLookup.resolveName(token.normalized) != null -> {
@@ -84,10 +100,7 @@ internal class YoungerFutharkTranslationEngine @Inject constructor(
 
             lexiconLookup.oldNorseFor(token.normalized, request.fidelity) != null -> {
                 val entry = lexiconLookup.oldNorseFor(token.normalized, request.fidelity)!!
-                provenance += lexiconLookup.provenanceFor(
-                    sourceId = entry.sourceId,
-                    detail = entry.citations.joinToString().takeIf { it.isNotBlank() }
-                )
+                provenance += lexiconLookup.provenanceFor(entry)
                 val morphology = morphologyStage.inflect(entry, token)
                 notes += morphology.notes
                 morphology.form
@@ -95,7 +108,7 @@ internal class YoungerFutharkTranslationEngine @Inject constructor(
 
             request.fidelity != TranslationFidelity.STRICT &&
                 lexiconLookup.fallbackParaphrase(token.normalized) != null -> {
-                approximated = true
+                resolutionStatus = TranslationResolutionStatus.APPROXIMATED
                 notes += "Used descriptive paraphrase for '${token.raw}'."
                 provenance += lexiconLookup.provenanceFor(
                     sourceId = "internal_heuristics",
@@ -105,7 +118,7 @@ internal class YoungerFutharkTranslationEngine @Inject constructor(
             }
 
             request.fidelity != TranslationFidelity.STRICT -> {
-                approximated = true
+                resolutionStatus = TranslationResolutionStatus.APPROXIMATED
                 notes += if (request.fidelity == TranslationFidelity.DECORATIVE) {
                     "Decorative mode preserved '${token.raw}' phonetically."
                 } else {
@@ -124,7 +137,8 @@ internal class YoungerFutharkTranslationEngine @Inject constructor(
                     normalizedToken = "",
                     diplomaticToken = "",
                     glyphToken = "",
-                    notes = listOf("No strict Old Norse support for '${token.raw}'."),
+                    resolutionStatus = TranslationResolutionStatus.UNAVAILABLE,
+                    notes = listOf("Missing Old Norse lemma for '${token.raw}'."),
                     unresolvedToken = token.raw
                 )
             }
@@ -140,9 +154,9 @@ internal class YoungerFutharkTranslationEngine @Inject constructor(
             normalizedToken = normalized,
             diplomaticToken = diplomatic,
             glyphToken = glyph,
+            resolutionStatus = resolutionStatus,
             notes = notes.distinct(),
-            approximated = approximated,
-            provenance = provenance.distinctBy { listOf(it.sourceId, it.detail) }
+            provenance = provenance.distinctBy { listOf(it.sourceId, it.referenceId, it.detail) }
         )
     }
 }
@@ -151,24 +165,39 @@ internal class YoungerFutharkTranslationEngine @Inject constructor(
  * Translation engine for English to Proto-Norse to Elder Futhark.
  */
 internal class ElderFutharkTranslationEngine @Inject constructor(
-    datasetProvider: TranslationDatasetProvider,
+    lexiconStore: HistoricalLexiconStore,
+    runicCorpusStore: RunicCorpusStore,
     elderTransliterator: ElderFutharkTransliterator
 ) : TranslationEngine {
 
     override val script: RunicScript = RunicScript.ELDER_FUTHARK
-    override val engineVersion: String = "ef-translation-v2"
+    override val engineVersion: String = "ef-translation-v3"
 
     private val parser = EnglishSyntaxParser()
-    private val goldExampleResolver = TranslationGoldExampleResolver(datasetProvider)
-    private val lexiconLookup = HistoricalLexiconLookup(datasetProvider)
+    private val sourceCatalog = HistoricalSourceCatalog(
+        sourceManifest = lexiconStore.sourceManifest(),
+        corpusReferences = runicCorpusStore.runicCorpusReferences()
+    )
+    private val goldExampleResolver = TranslationGoldExampleResolver(runicCorpusStore)
+    private val phraseTemplateResolver = RunicPhraseTemplateResolver(runicCorpusStore, sourceCatalog)
+    private val lexiconLookup = HistoricalLexiconLookup(lexiconStore, sourceCatalog)
     private val lexicalStage = ProtoNorseLexicalStage(lexiconLookup)
     private val renderer = ElderRuneRenderer(elderTransliterator)
     private val evidenceSynthesizer = TranslationEvidenceSynthesizer(lexiconLookup.datasetVersion())
     override val datasetVersion: String = lexiconLookup.datasetVersion()
 
     override fun translate(request: TranslationRequest): TranslationResult {
-        goldExampleResolver.resolve(request)?.let { return it.copy(engineVersion = engineVersion) }
+        goldExampleResolver.resolve(request, engineVersion)?.let { return it }
+        phraseTemplateResolver.resolveElder(request, renderer)?.let { return it.copy(engineVersion = engineVersion) }
 
+        return if (request.fidelity == TranslationFidelity.STRICT) {
+            strictUnavailableResult(request)
+        } else {
+            composeReadableResult(request)
+        }
+    }
+
+    private fun composeReadableResult(request: TranslationRequest): TranslationResult {
         val parsed = parser.parse(request.sourceText)
         val resolutions = parsed.tokens.map { token ->
             when {
@@ -181,6 +210,7 @@ internal class ElderFutharkTranslationEngine @Inject constructor(
                             normalizedToken = "",
                             diplomaticToken = "",
                             glyphToken = "",
+                            resolutionStatus = TranslationResolutionStatus.UNAVAILABLE,
                             notes = output.notes,
                             unresolvedToken = output.unresolvedToken
                         )
@@ -191,8 +221,8 @@ internal class ElderFutharkTranslationEngine @Inject constructor(
                             normalizedToken = normalized,
                             diplomaticToken = normalized,
                             glyphToken = renderer.render(normalized),
+                            resolutionStatus = output.resolutionStatus,
                             notes = output.notes,
-                            approximated = output.approximated,
                             provenance = output.provenance
                         )
                     }
@@ -205,16 +235,38 @@ internal class ElderFutharkTranslationEngine @Inject constructor(
             resolutions = resolutions,
             evidenceRequest = TranslationEvidenceRequest(
                 script = script,
+                derivationKind = TranslationDerivationKind.TOKEN_COMPOSED,
                 historicalStage = HistoricalStage.PROTO_NORSE,
                 engineVersion = engineVersion,
                 baseConfidence = when (request.fidelity) {
+                    TranslationFidelity.READABLE -> 0.74f
+                    TranslationFidelity.DECORATIVE -> 0.6f
                     TranslationFidelity.STRICT -> 0.84f
-                    TranslationFidelity.READABLE -> 0.7f
-                    TranslationFidelity.DECORATIVE -> 0.58f
                 },
                 fallbackStatus = TranslationResolutionStatus.RECONSTRUCTED,
                 defaultNote = "Generated using the offline Proto-Norse translation pipeline."
             )
+        )
+    }
+
+    private fun strictUnavailableResult(request: TranslationRequest): TranslationResult {
+        return TranslationResult(
+            sourceText = request.sourceText,
+            script = script,
+            fidelity = request.fidelity,
+            derivationKind = TranslationDerivationKind.PHRASE_TEMPLATE,
+            historicalStage = HistoricalStage.PROTO_NORSE,
+            normalizedForm = "",
+            diplomaticForm = "",
+            glyphOutput = "",
+            resolutionStatus = TranslationResolutionStatus.UNAVAILABLE,
+            confidence = 0f,
+            notes = listOf("Missing attested or reconstructed Elder Futhark pattern for this phrase."),
+            unresolvedTokens = listOf(request.sourceText.trim()).filter { it.isNotBlank() },
+            provenance = emptyList(),
+            tokenBreakdown = emptyList(),
+            engineVersion = engineVersion,
+            datasetVersion = datasetVersion
         )
     }
 }
@@ -223,25 +275,36 @@ internal class ElderFutharkTranslationEngine @Inject constructor(
  * Translation engine for English to Erebor Cirth transcription.
  */
 internal class EreborCirthTranslationEngine @Inject constructor(
-    datasetProvider: TranslationDatasetProvider,
+    runicCorpusStore: RunicCorpusStore,
+    ereborStore: EreborOrthographyStore,
     cirthTransliterator: CirthTransliterator
 ) : TranslationEngine {
 
     override val script: RunicScript = RunicScript.CIRTH
-    override val engineVersion: String = "cirth-translation-v2"
+    override val engineVersion: String = "cirth-translation-v3"
 
     private val parser = EnglishSyntaxParser()
-    private val goldExampleResolver = TranslationGoldExampleResolver(datasetProvider)
-    private val lexiconLookup = HistoricalLexiconLookup(datasetProvider)
+    private val sourceCatalog = HistoricalSourceCatalog(
+        sourceManifest = ereborStore.sourceManifest(),
+        corpusReferences = runicCorpusStore.runicCorpusReferences()
+    )
+    private val goldExampleResolver = TranslationGoldExampleResolver(runicCorpusStore)
     private val tokenizer = CirthOrthographyStage(
-        lexiconLookup = lexiconLookup,
+        ereborStore = ereborStore,
+        sourceCatalog = sourceCatalog,
         transliterator = cirthTransliterator
     )
-    private val evidenceSynthesizer = TranslationEvidenceSynthesizer(lexiconLookup.datasetVersion())
-    override val datasetVersion: String = lexiconLookup.datasetVersion()
+    private val evidenceSynthesizer = TranslationEvidenceSynthesizer(ereborStore.datasetManifest().version)
+    override val datasetVersion: String = ereborStore.datasetManifest().version
 
     override fun translate(request: TranslationRequest): TranslationResult {
-        goldExampleResolver.resolve(request)?.let { return it.copy(engineVersion = engineVersion) }
+        goldExampleResolver.resolve(request, engineVersion)?.let { return it }
+        tokenizer.resolvePhrase(request)?.let { result ->
+            return result.copy(
+                engineVersion = engineVersion,
+                datasetVersion = datasetVersion
+            )
+        }
 
         val parsed = parser.parse(request.sourceText)
         val resolutions = parsed.tokens.map { token ->
@@ -255,6 +318,7 @@ internal class EreborCirthTranslationEngine @Inject constructor(
                             normalizedToken = "",
                             diplomaticToken = "",
                             glyphToken = "",
+                            resolutionStatus = TranslationResolutionStatus.UNAVAILABLE,
                             notes = output.notes,
                             unresolvedToken = output.unresolvedToken
                         )
@@ -264,8 +328,8 @@ internal class EreborCirthTranslationEngine @Inject constructor(
                             normalizedToken = token.normalized,
                             diplomaticToken = output.diplomatic.orEmpty(),
                             glyphToken = output.glyphs.orEmpty(),
+                            resolutionStatus = output.resolutionStatus,
                             notes = output.notes,
-                            approximated = output.approximated || request.fidelity != TranslationFidelity.STRICT,
                             provenance = output.provenance
                         )
                     }
@@ -278,14 +342,15 @@ internal class EreborCirthTranslationEngine @Inject constructor(
             resolutions = resolutions,
             evidenceRequest = TranslationEvidenceRequest(
                 script = script,
+                derivationKind = TranslationDerivationKind.SEQUENCE_TRANSCRIPTION,
                 historicalStage = HistoricalStage.EREBOR_ENGLISH,
                 engineVersion = engineVersion,
                 baseConfidence = when (request.fidelity) {
-                    TranslationFidelity.STRICT -> 0.66f
-                    TranslationFidelity.READABLE -> 0.58f
-                    TranslationFidelity.DECORATIVE -> 0.52f
+                    TranslationFidelity.STRICT -> 0.72f
+                    TranslationFidelity.READABLE -> 0.6f
+                    TranslationFidelity.DECORATIVE -> 0.54f
                 },
-                fallbackStatus = TranslationResolutionStatus.APPROXIMATED,
+                fallbackStatus = TranslationResolutionStatus.RECONSTRUCTED,
                 defaultNote = "Generated using the offline Erebor transcription pipeline."
             )
         )
@@ -330,6 +395,7 @@ private fun ParsedEnglishToken.asPunctuationResolution(): TranslationTokenResolu
         sourceToken = raw,
         normalizedToken = raw,
         diplomaticToken = raw,
-        glyphToken = raw
+        glyphToken = raw,
+        resolutionStatus = TranslationResolutionStatus.RECONSTRUCTED
     )
 }

@@ -31,7 +31,7 @@ import com.po4yka.runicquotes.data.local.entity.TranslationRecordEntity
         TranslationRecordEntity::class,
         TranslationBackfillStateEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 internal abstract class RunicQuotesDatabase : RoomDatabase() {
@@ -281,6 +281,95 @@ internal abstract class RunicQuotesDatabase : RoomDatabase() {
                 )
                 db.execSQL("DROP TABLE `translation_records`")
                 db.execSQL("ALTER TABLE `translation_records_new` RENAME TO `translation_records`")
+                db.execSQL(
+                    """CREATE UNIQUE INDEX IF NOT EXISTS `index_translation_records_quoteId_script_fidelity_variant_engineVersion_datasetVersion`
+                        ON `translation_records` (`quoteId`, `script`, `fidelity`, `variant`, `engineVersion`, `datasetVersion`)""".trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_translation_records_quoteId` ON `translation_records` (`quoteId`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_translation_records_script` ON `translation_records` (`script`)"
+                )
+            }
+        }
+
+        /**
+         * Migration from version 6 to version 7.
+         * Persists derivation metadata for structured translation results.
+         */
+        @Suppress("MaxLineLength")
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `translation_records_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `quoteId` INTEGER NOT NULL,
+                        `sourceText` TEXT NOT NULL,
+                        `script` TEXT NOT NULL,
+                        `fidelity` TEXT NOT NULL,
+                        `derivationKind` TEXT NOT NULL,
+                        `normalizedForm` TEXT NOT NULL,
+                        `diplomaticForm` TEXT NOT NULL,
+                        `glyphOutput` TEXT NOT NULL,
+                        `historicalStage` TEXT NOT NULL,
+                        `variant` TEXT,
+                        `resolutionStatus` TEXT NOT NULL,
+                        `confidence` REAL NOT NULL,
+                        `notesJson` TEXT NOT NULL,
+                        `unresolvedTokensJson` TEXT NOT NULL,
+                        `provenanceJson` TEXT NOT NULL,
+                        `tokenBreakdownJson` TEXT NOT NULL,
+                        `engineVersion` TEXT NOT NULL,
+                        `datasetVersion` TEXT NOT NULL,
+                        `isBackfilled` INTEGER NOT NULL DEFAULT 0,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        FOREIGN KEY(`quoteId`) REFERENCES `quotes`(`id`) ON DELETE CASCADE
+                    )""".trimIndent()
+                )
+                db.execSQL(
+                    """INSERT INTO `translation_records_new` (
+                        `id`, `quoteId`, `sourceText`, `script`, `fidelity`, `derivationKind`,
+                        `normalizedForm`, `diplomaticForm`, `glyphOutput`, `historicalStage`, `variant`,
+                        `resolutionStatus`, `confidence`, `notesJson`, `unresolvedTokensJson`, `provenanceJson`,
+                        `tokenBreakdownJson`, `engineVersion`, `datasetVersion`, `isBackfilled`, `createdAt`, `updatedAt`
+                    )
+                    SELECT
+                        `id`,
+                        `quoteId`,
+                        `sourceText`,
+                        `script`,
+                        `fidelity`,
+                        CASE
+                            WHEN `engineVersion` LIKE 'gold-example%' THEN 'GOLD_EXAMPLE'
+                            WHEN `script` = 'CIRTH' THEN 'SEQUENCE_TRANSCRIPTION'
+                            ELSE 'TOKEN_COMPOSED'
+                        END,
+                        `normalizedForm`,
+                        `diplomaticForm`,
+                        `glyphOutput`,
+                        `historicalStage`,
+                        `variant`,
+                        `resolutionStatus`,
+                        `confidence`,
+                        `notesJson`,
+                        `unresolvedTokensJson`,
+                        `provenanceJson`,
+                        `tokenBreakdownJson`,
+                        `engineVersion`,
+                        `datasetVersion`,
+                        `isBackfilled`,
+                        `createdAt`,
+                        `updatedAt`
+                    FROM `translation_records`""".trimIndent()
+                )
+                db.execSQL(
+                    "DROP TABLE `translation_records`"
+                )
+                db.execSQL(
+                    "ALTER TABLE `translation_records_new` RENAME TO `translation_records`"
+                )
                 db.execSQL(
                     """CREATE UNIQUE INDEX IF NOT EXISTS `index_translation_records_quoteId_script_fidelity_variant_engineVersion_datasetVersion`
                         ON `translation_records` (`quoteId`, `script`, `fidelity`, `variant`, `engineVersion`, `datasetVersion`)""".trimIndent()

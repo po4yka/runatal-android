@@ -33,6 +33,7 @@ internal data class TranslationRecordEntity(
     val sourceText: String,
     val script: String,
     val fidelity: String,
+    val derivationKind: String,
     val normalizedForm: String,
     val diplomaticForm: String,
     val glyphOutput: String,

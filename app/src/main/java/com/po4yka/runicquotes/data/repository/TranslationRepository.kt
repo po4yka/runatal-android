@@ -4,6 +4,7 @@ import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.translation.HistoricalTranslationService
 import com.po4yka.runicquotes.domain.translation.HistoricalStage
+import com.po4yka.runicquotes.domain.translation.TranslationDerivationKind
 import com.po4yka.runicquotes.domain.translation.TranslationFidelity
 import com.po4yka.runicquotes.domain.translation.TranslationProvenanceEntry
 import com.po4yka.runicquotes.domain.translation.TranslationResolutionStatus
@@ -89,6 +90,7 @@ internal object NoOpTranslationRepository : TranslationRepository {
             sourceText = sourceText,
             script = script,
             fidelity = fidelity,
+            derivationKind = TranslationDerivationKind.TOKEN_COMPOSED,
             historicalStage = HistoricalStage.MODERN_ENGLISH,
             normalizedForm = sourceText,
             diplomaticForm = sourceText,

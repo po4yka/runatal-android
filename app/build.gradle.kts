@@ -1,3 +1,5 @@
+import groovy.json.JsonSlurper
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -165,9 +167,164 @@ dependencies {
 }
 
 val translationSeedDir = layout.projectDirectory.dir("src/main/translationSeed")
+val translationDataDir = layout.projectDirectory.dir("src/main/translationSeed/translation")
 val generatedTranslationAssetsDir = layout.buildDirectory.dir("generated/translationAssets")
 
+val validateTranslationCuration by tasks.registering {
+    inputs.dir(translationDataDir)
+    notCompatibleWithConfigurationCache("Uses JSON parsing from a build-script closure.")
+
+    doLast {
+        val slurper = JsonSlurper()
+        val baseDir = translationDataDir.asFile
+        val requiredFiles = listOf(
+            "dataset_manifest.json",
+            "source_manifest.json",
+            "old_norse_lexicon.json",
+            "proto_norse_lexicon.json",
+            "paradigm_tables.json",
+            "fallback_templates.json",
+            "grammar_rules.json",
+            "name_adaptations.json",
+            "younger_phrase_templates.json",
+            "elder_attested_forms.json",
+            "runic_corpus_refs.json",
+            "erebor_tables.json",
+            "gold_examples.json"
+        )
+        requiredFiles.forEach { fileName ->
+            check(baseDir.resolve(fileName).isFile) {
+                "Missing curated translation file: $fileName"
+            }
+        }
+
+        fun parseArray(fileName: String): List<Map<String, Any?>> {
+            @Suppress("UNCHECKED_CAST")
+            return slurper.parse(baseDir.resolve(fileName)) as List<Map<String, Any?>>
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        val sourceManifest = slurper.parse(baseDir.resolve("source_manifest.json")) as Map<String, Any?>
+        @Suppress("UNCHECKED_CAST")
+        val sources = sourceManifest["sources"] as List<Map<String, Any?>>
+        check(sources.isNotEmpty()) { "source_manifest.json must contain at least one source." }
+        val sourceIds = sources.map { (it["id"] as String).trim() }.toSet()
+        val missingLicenses = sources.filter { (it["license"] as? String).isNullOrBlank() }
+        check(missingLicenses.isEmpty()) { "Every source entry must include a non-empty license." }
+
+        fun validateUniqueIds(fileName: String, rows: List<Map<String, Any?>>) {
+            val ids = rows.map { (it["id"] as? String).orEmpty() }
+            check(ids.none { it.isBlank() }) { "$fileName contains rows without an id." }
+            check(ids.size == ids.toSet().size) { "$fileName contains duplicate ids." }
+        }
+
+        fun validateSourceIds(fileName: String, rows: List<Map<String, Any?>>) {
+            val invalidRows = rows.filter {
+                val sourceId = (it["sourceId"] as? String).orEmpty()
+                sourceId.isNotBlank() && sourceId !in sourceIds
+            }
+            check(invalidRows.isEmpty()) { "$fileName contains unknown sourceId values." }
+        }
+
+        fun validateStrictCitations(fileName: String, rows: List<Map<String, Any?>>) {
+            val invalidRows = rows.filter { row ->
+                val strictEligible = row["strictEligible"] as? Boolean ?: false
+                @Suppress("UNCHECKED_CAST")
+                val citations = row["citations"] as? List<Any?> ?: emptyList()
+                strictEligible && citations.none { !it.toString().isNullOrBlank() }
+            }
+            check(invalidRows.isEmpty()) { "$fileName contains strict rows without citations." }
+        }
+
+        val oldNorseLexicon = parseArray("old_norse_lexicon.json")
+        val protoNorseLexicon = parseArray("proto_norse_lexicon.json")
+        val youngerTemplates = parseArray("younger_phrase_templates.json")
+        val elderTemplates = parseArray("elder_attested_forms.json")
+        val corpusRefs = parseArray("runic_corpus_refs.json")
+        val goldExamples = parseArray("gold_examples.json")
+        @Suppress("UNCHECKED_CAST")
+        val ereborTables = slurper.parse(baseDir.resolve("erebor_tables.json")) as Map<String, Any?>
+        @Suppress("UNCHECKED_CAST")
+        val ereborPhraseMappings = ereborTables["phraseMappings"] as? List<Map<String, Any?>> ?: emptyList()
+
+        validateUniqueIds("old_norse_lexicon.json", oldNorseLexicon)
+        validateUniqueIds("proto_norse_lexicon.json", protoNorseLexicon)
+        validateUniqueIds("younger_phrase_templates.json", youngerTemplates)
+        validateUniqueIds("elder_attested_forms.json", elderTemplates)
+        validateUniqueIds("runic_corpus_refs.json", corpusRefs)
+        validateUniqueIds("gold_examples.json", goldExamples)
+        validateUniqueIds("erebor_tables.json#phraseMappings", ereborPhraseMappings)
+        validateSourceIds("old_norse_lexicon.json", oldNorseLexicon)
+        validateSourceIds("proto_norse_lexicon.json", protoNorseLexicon)
+        validateSourceIds("runic_corpus_refs.json", corpusRefs)
+        validateStrictCitations("old_norse_lexicon.json", oldNorseLexicon)
+        validateStrictCitations("proto_norse_lexicon.json", protoNorseLexicon)
+
+        val corpusRefIds = corpusRefs.map { it["id"] as String }.toSet()
+
+        fun validateTemplateRows(fileName: String, rows: List<Map<String, Any?>>) {
+            val invalidRows = rows.filter { row ->
+                (row["script"] as? String).isNullOrBlank() ||
+                    (row["fidelity"] as? String).isNullOrBlank() ||
+                    (row["derivationKind"] as? String).isNullOrBlank()
+            }
+            check(invalidRows.isEmpty()) {
+                "$fileName contains rows without script, fidelity, or derivationKind metadata."
+            }
+            val brokenRefs = rows.flatMap { row ->
+                @Suppress("UNCHECKED_CAST")
+                val refs = row["referenceIds"] as? List<String> ?: emptyList()
+                refs.filterNot(corpusRefIds::contains)
+            }
+            check(brokenRefs.isEmpty()) { "$fileName contains unknown runic corpus references." }
+        }
+
+        validateTemplateRows("younger_phrase_templates.json", youngerTemplates)
+        validateTemplateRows("elder_attested_forms.json", elderTemplates)
+
+        val invalidGoldResults = goldExamples.flatMap { example ->
+            @Suppress("UNCHECKED_CAST")
+            val results = example["results"] as List<Map<String, Any?>>
+            results.filter {
+                (it["script"] as? String).isNullOrBlank() ||
+                    (it["fidelity"] as? String).isNullOrBlank() ||
+                    (it["derivationKind"] as? String).isNullOrBlank()
+            }
+        }
+        check(invalidGoldResults.isEmpty()) {
+            "gold_examples.json contains results without script, fidelity, or derivationKind metadata."
+        }
+
+        val invalidGoldProvenance = goldExamples.flatMap { example ->
+            @Suppress("UNCHECKED_CAST")
+            val results = example["results"] as List<Map<String, Any?>>
+            results.filter { (it["fidelity"] as? String) == "STRICT" }.flatMap { result ->
+                @Suppress("UNCHECKED_CAST")
+                val provenance = result["provenance"] as? List<Map<String, Any?>> ?: emptyList()
+                provenance.filter { provenanceEntry ->
+                    val sourceId = (provenanceEntry["sourceId"] as? String).orEmpty()
+                    val referenceId = provenanceEntry["referenceId"] as? String
+                    sourceId !in sourceIds || (referenceId != null && referenceId !in corpusRefIds)
+                }
+            }
+        }
+        check(invalidGoldProvenance.isEmpty()) {
+            "gold_examples.json contains strict provenance entries with broken source or reference ids."
+        }
+
+        val invalidEreborRefs = ereborPhraseMappings.flatMap { row ->
+            @Suppress("UNCHECKED_CAST")
+            val refs = row["referenceIds"] as? List<String> ?: emptyList()
+            refs.filterNot(corpusRefIds::contains)
+        }
+        check(invalidEreborRefs.isEmpty()) {
+            "erebor_tables.json contains phrase mappings with unknown runic corpus references."
+        }
+    }
+}
+
 val generateTranslationAssets by tasks.registering(Sync::class) {
+    dependsOn(validateTranslationCuration)
     from(translationSeedDir)
     into(generatedTranslationAssetsDir)
 }

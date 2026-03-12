@@ -1,9 +1,9 @@
 {
-  "version": "2026.03-source-backed-v1",
+  "version": "2026.03-curated-v2",
   "generatedAt": "2026-03-12",
   "generatedBy": "Runatal curated translation pipeline",
   "notes": [
-    "Derived from curated lemma and example sets checked into the repository.",
-    "STRICT mode only uses defensible entries and gold examples."
+    "Generated from checked-in curated source extracts with stable ids and validation.",
+    "STRICT mode only uses gold examples, phrase templates, attested forms, or cited lexical entries."
   ]
 }

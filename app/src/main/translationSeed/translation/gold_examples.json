@@ -1,10 +1,12 @@
 [
   {
+    "id": "gold_wolf_hunts_night",
     "sourceText": "The wolf hunts at night",
     "results": [
       {
         "script": "YOUNGER_FUTHARK",
         "fidelity": "STRICT",
+        "derivationKind": "GOLD_EXAMPLE",
         "historicalStage": "OLD_NORSE",
         "normalizedForm": "úlfr veiðir um nótt",
         "diplomaticForm": "ulfr uiþir um nutt",
@@ -16,31 +18,97 @@
         "provenance": [
           {
             "sourceId": "onp",
-            "label": "ONP normalized lemma set",
-            "role": "Lexical normalization",
+            "label": "ONP normalized exemplar",
+            "role": "Old Norse headword and normalization reference",
             "license": "Reference only",
-            "detail": "Curated from ONP-style normalized headwords.",
-            "url": "https://onp.ku.dk/onp/"
+            "detail": "Curated lemma set for the wolf/night example."
           },
           {
             "sourceId": "menota",
-            "label": "Menota normalized/diplomatic guidance",
-            "role": "Layer distinction",
+            "label": "Menota layer guidance",
+            "role": "Normalized versus diplomatic editorial guidance",
             "license": "Open access reference",
-            "detail": "Used to separate normalized and diplomatic forms.",
-            "url": "https://www.menota.org/HB3_ch10.xml"
+            "detail": "Used to separate normalized and diplomatic forms."
+          },
+          {
+            "sourceId": "runor",
+            "referenceId": "yf_ref_wolf_night",
+            "label": "Runor-aligned Younger exemplar",
+            "role": "Runic inscription discovery and verification reference",
+            "license": "Reference only"
           }
         ],
         "tokenBreakdown": [
-          { "sourceToken": "wolf", "normalizedToken": "úlfr", "diplomaticToken": "ulfr", "glyphToken": "ᚢᛚᚠᚱ" },
-          { "sourceToken": "hunts", "normalizedToken": "veiðir", "diplomaticToken": "uiþir", "glyphToken": "ᚢᛁᚦᛁᚱ" },
-          { "sourceToken": "at", "normalizedToken": "um", "diplomaticToken": "um", "glyphToken": "ᚢᛘ" },
-          { "sourceToken": "night", "normalizedToken": "nótt", "diplomaticToken": "nutt", "glyphToken": "ᚾᚢᛏᛏ" }
+          {
+            "sourceToken": "wolf",
+            "normalizedToken": "úlfr",
+            "diplomaticToken": "ulfr",
+            "glyphToken": "ᚢᛚᚠᚱ",
+            "resolutionStatus": "RECONSTRUCTED",
+            "provenance": [
+              {
+                "sourceId": "onp",
+                "label": "ONP normalized exemplar",
+                "role": "Old Norse headword and normalization reference",
+                "license": "Reference only",
+                "detail": "Curated lemma set for the wolf/night example."
+              }
+            ]
+          },
+          {
+            "sourceToken": "hunts",
+            "normalizedToken": "veiðir",
+            "diplomaticToken": "uiþir",
+            "glyphToken": "ᚢᛁᚦᛁᚱ",
+            "resolutionStatus": "RECONSTRUCTED",
+            "provenance": [
+              {
+                "sourceId": "onp",
+                "label": "ONP normalized exemplar",
+                "role": "Old Norse headword and normalization reference",
+                "license": "Reference only",
+                "detail": "Curated lemma set for the wolf/night example."
+              }
+            ]
+          },
+          {
+            "sourceToken": "at",
+            "normalizedToken": "um",
+            "diplomaticToken": "um",
+            "glyphToken": "ᚢᛘ",
+            "resolutionStatus": "RECONSTRUCTED",
+            "provenance": [
+              {
+                "sourceId": "menota",
+                "label": "Menota layer guidance",
+                "role": "Normalized versus diplomatic editorial guidance",
+                "license": "Open access reference",
+                "detail": "Used to separate normalized and diplomatic forms."
+              }
+            ]
+          },
+          {
+            "sourceToken": "night",
+            "normalizedToken": "nótt",
+            "diplomaticToken": "nutt",
+            "glyphToken": "ᚾᚢᛏᛏ",
+            "resolutionStatus": "RECONSTRUCTED",
+            "provenance": [
+              {
+                "sourceId": "runor",
+                "referenceId": "yf_ref_wolf_night",
+                "label": "Runor-aligned Younger exemplar",
+                "role": "Runic inscription discovery and verification reference",
+                "license": "Reference only"
+              }
+            ]
+          }
         ]
       },
       {
         "script": "ELDER_FUTHARK",
         "fidelity": "STRICT",
+        "derivationKind": "GOLD_EXAMPLE",
         "historicalStage": "PROTO_NORSE",
         "normalizedForm": "wulfaz waiþiþi nahts",
         "diplomaticForm": "wulfaz waiþiþi nahts",
@@ -51,22 +119,67 @@
         "provenance": [
           {
             "sourceId": "srd",
-            "label": "Scandinavian Runic-text Database",
-            "role": "Runic comparison corpus",
-            "license": "Reference only",
-            "detail": "Curated reconstruction cross-checked against SRD-style forms.",
-            "url": "https://www.uu.se/en/department/scandinavian-languages/research/research-projects/scandinavian-runic-text-database"
+            "referenceId": "ef_ref_wolf_night",
+            "label": "SRD-style Elder exemplar",
+            "role": "Gold examples and runic comparison corpus",
+            "license": "Reference only"
           }
         ],
         "tokenBreakdown": [
-          { "sourceToken": "wolf", "normalizedToken": "wulfaz", "diplomaticToken": "wulfaz", "glyphToken": "ᚹᚢᛚᚠᚨᛉ" },
-          { "sourceToken": "hunts", "normalizedToken": "waiþiþi", "diplomaticToken": "waiþiþi", "glyphToken": "ᚹᚨᛁᚦᛁᚦᛁ" },
-          { "sourceToken": "night", "normalizedToken": "nahts", "diplomaticToken": "nahts", "glyphToken": "ᚾᚨᚻᛏᛊ" }
+          {
+            "sourceToken": "wolf",
+            "normalizedToken": "wulfaz",
+            "diplomaticToken": "wulfaz",
+            "glyphToken": "ᚹᚢᛚᚠᚨᛉ",
+            "resolutionStatus": "RECONSTRUCTED",
+            "provenance": [
+              {
+                "sourceId": "srd",
+                "referenceId": "ef_ref_wolf_night",
+                "label": "SRD-style Elder exemplar",
+                "role": "Gold examples and runic comparison corpus",
+                "license": "Reference only"
+              }
+            ]
+          },
+          {
+            "sourceToken": "hunts",
+            "normalizedToken": "waiþiþi",
+            "diplomaticToken": "waiþiþi",
+            "glyphToken": "ᚹᚨᛁᚦᛁᚦᛁ",
+            "resolutionStatus": "RECONSTRUCTED",
+            "provenance": [
+              {
+                "sourceId": "srd",
+                "referenceId": "ef_ref_wolf_night",
+                "label": "SRD-style Elder exemplar",
+                "role": "Gold examples and runic comparison corpus",
+                "license": "Reference only"
+              }
+            ]
+          },
+          {
+            "sourceToken": "night",
+            "normalizedToken": "nahts",
+            "diplomaticToken": "nahts",
+            "glyphToken": "ᚾᚨᚻᛏᛊ",
+            "resolutionStatus": "RECONSTRUCTED",
+            "provenance": [
+              {
+                "sourceId": "srd",
+                "referenceId": "ef_ref_wolf_night",
+                "label": "SRD-style Elder exemplar",
+                "role": "Gold examples and runic comparison corpus",
+                "license": "Reference only"
+              }
+            ]
+          }
         ]
       },
       {
         "script": "CIRTH",
         "fidelity": "STRICT",
+        "derivationKind": "GOLD_EXAMPLE",
         "historicalStage": "EREBOR_ENGLISH",
         "normalizedForm": "the wolf hunts at night",
         "diplomaticForm": "th·e w·o·l·f h·u·n·t·s a·t n·i·gh·t",
@@ -77,19 +190,93 @@
         "provenance": [
           {
             "sourceId": "tolkien_appendix_e",
-            "label": "Angerthas Erebor reference",
-            "role": "Orthography guidance",
-            "license": "Reference only",
-            "detail": "Used for cluster and diphthong mapping guidance.",
-            "url": "https://tolkiengateway.net/wiki/Angerthas_Erebor"
+            "referenceId": "cirth_ref_wolf_night",
+            "label": "Appendix E wolf-night example",
+            "role": "Cirth transcription reference",
+            "license": "Reference only"
           }
         ],
         "tokenBreakdown": [
-          { "sourceToken": "the", "normalizedToken": "the", "diplomaticToken": "th·e", "glyphToken": "" },
-          { "sourceToken": "wolf", "normalizedToken": "wolf", "diplomaticToken": "w·o·l·f", "glyphToken": "" },
-          { "sourceToken": "hunts", "normalizedToken": "hunts", "diplomaticToken": "h·u·n·t·s", "glyphToken": "" },
-          { "sourceToken": "at", "normalizedToken": "at", "diplomaticToken": "a·t", "glyphToken": "" },
-          { "sourceToken": "night", "normalizedToken": "night", "diplomaticToken": "n·i·gh·t", "glyphToken": "" }
+          {
+            "sourceToken": "the",
+            "normalizedToken": "the",
+            "diplomaticToken": "th·e",
+            "glyphToken": "",
+            "resolutionStatus": "APPROXIMATED",
+            "provenance": [
+              {
+                "sourceId": "tolkien_appendix_e",
+                "referenceId": "cirth_ref_wolf_night",
+                "label": "Appendix E wolf-night example",
+                "role": "Cirth transcription reference",
+                "license": "Reference only"
+              }
+            ]
+          },
+          {
+            "sourceToken": "wolf",
+            "normalizedToken": "wolf",
+            "diplomaticToken": "w·o·l·f",
+            "glyphToken": "",
+            "resolutionStatus": "APPROXIMATED",
+            "provenance": [
+              {
+                "sourceId": "tolkien_appendix_e",
+                "referenceId": "cirth_ref_wolf_night",
+                "label": "Appendix E wolf-night example",
+                "role": "Cirth transcription reference",
+                "license": "Reference only"
+              }
+            ]
+          },
+          {
+            "sourceToken": "hunts",
+            "normalizedToken": "hunts",
+            "diplomaticToken": "h·u·n·t·s",
+            "glyphToken": "",
+            "resolutionStatus": "APPROXIMATED",
+            "provenance": [
+              {
+                "sourceId": "tolkien_appendix_e",
+                "referenceId": "cirth_ref_wolf_night",
+                "label": "Appendix E wolf-night example",
+                "role": "Cirth transcription reference",
+                "license": "Reference only"
+              }
+            ]
+          },
+          {
+            "sourceToken": "at",
+            "normalizedToken": "at",
+            "diplomaticToken": "a·t",
+            "glyphToken": "",
+            "resolutionStatus": "APPROXIMATED",
+            "provenance": [
+              {
+                "sourceId": "tolkien_appendix_e",
+                "referenceId": "cirth_ref_wolf_night",
+                "label": "Appendix E wolf-night example",
+                "role": "Cirth transcription reference",
+                "license": "Reference only"
+              }
+            ]
+          },
+          {
+            "sourceToken": "night",
+            "normalizedToken": "night",
+            "diplomaticToken": "n·i·gh·t",
+            "glyphToken": "",
+            "resolutionStatus": "APPROXIMATED",
+            "provenance": [
+              {
+                "sourceId": "tolkien_appendix_e",
+                "referenceId": "cirth_ref_wolf_night",
+                "label": "Appendix E wolf-night example",
+                "role": "Cirth transcription reference",
+                "license": "Reference only"
+              }
+            ]
+          }
         ]
       }
     ]

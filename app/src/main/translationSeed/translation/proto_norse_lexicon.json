@@ -1,5 +1,6 @@
 [
   {
+    "id": "pn_wulfaz",
     "english": "wolf",
     "form": "wulfaz",
     "partOfSpeech": "noun",
@@ -8,6 +9,7 @@
     "citations": ["Curated runic-era reconstruction"]
   },
   {
+    "id": "pn_kuningaz",
     "english": "king",
     "form": "kuningaz",
     "partOfSpeech": "noun",
@@ -16,6 +18,7 @@
     "citations": ["Curated runic-era reconstruction"]
   },
   {
+    "id": "pn_waithi",
     "english": "hunt",
     "form": "waiþiþi",
     "partOfSpeech": "verb",
@@ -24,6 +27,7 @@
     "citations": ["Approximation"]
   },
   {
+    "id": "pn_nahts",
     "english": "night",
     "form": "nahts",
     "partOfSpeech": "noun",
@@ -32,6 +36,7 @@
     "citations": ["Approximation"]
   },
   {
+    "id": "pn_berga",
     "english": "mountain",
     "form": "bergą",
     "partOfSpeech": "noun",
@@ -40,6 +45,7 @@
     "citations": ["Approximation"]
   },
   {
+    "id": "pn_ferdi",
     "english": "journey",
     "form": "ferdi",
     "partOfSpeech": "noun",
@@ -48,6 +54,7 @@
     "citations": ["Approximation"]
   },
   {
+    "id": "pn_werka",
     "english": "work",
     "form": "werką",
     "partOfSpeech": "noun",
@@ -56,6 +63,7 @@
     "citations": ["Approximation"]
   },
   {
+    "id": "pn_isti",
     "english": "be",
     "form": "isti",
     "partOfSpeech": "verb",

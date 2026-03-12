@@ -11,7 +11,9 @@ import com.po4yka.runicquotes.data.repository.RuneReferenceRepository
 import com.po4yka.runicquotes.data.repository.RuneReferenceRepositoryImpl
 import com.po4yka.runicquotes.data.repository.TranslationRepository
 import com.po4yka.runicquotes.data.repository.TranslationRepositoryImpl
-import com.po4yka.runicquotes.domain.translation.TranslationDatasetProvider
+import com.po4yka.runicquotes.domain.translation.EreborOrthographyStore
+import com.po4yka.runicquotes.domain.translation.HistoricalLexiconStore
+import com.po4yka.runicquotes.domain.translation.RunicCorpusStore
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -60,10 +62,24 @@ internal abstract class RepositoryModule {
         impl: TranslationRepositoryImpl
     ): TranslationRepository
 
-    /** Binds the asset-backed dataset provider for historical translation. */
+    /** Binds the asset-backed lexical dataset store for historical translation. */
     @Binds
     @Singleton
-    abstract fun bindTranslationDatasetProvider(
+    abstract fun bindHistoricalLexiconStore(
         impl: AssetTranslationDatasetProvider
-    ): TranslationDatasetProvider
+    ): HistoricalLexiconStore
+
+    /** Binds the asset-backed phrase and corpus store for runic translation. */
+    @Binds
+    @Singleton
+    abstract fun bindRunicCorpusStore(
+        impl: AssetTranslationDatasetProvider
+    ): RunicCorpusStore
+
+    /** Binds the asset-backed Erebor orthography store. */
+    @Binds
+    @Singleton
+    abstract fun bindEreborOrthographyStore(
+        impl: AssetTranslationDatasetProvider
+    ): EreborOrthographyStore
 }

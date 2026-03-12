@@ -3,20 +3,38 @@ package com.po4yka.runicquotes.domain.translation
 import kotlinx.serialization.Serializable
 
 /**
- * Offline dataset contract used by the historical translation engines.
+ * Old Norse and Proto-Norse lexical sources used by the historical translation engines.
  */
-@Suppress("ComplexInterface")
-internal interface TranslationDatasetProvider {
+internal interface HistoricalLexiconStore {
     fun datasetManifest(): TranslationDatasetManifest
+    fun sourceManifest(): TranslationSourceManifest
     fun oldNorseLexicon(): List<OldNorseLexiconEntry>
     fun protoNorseLexicon(): List<ProtoNorseLexiconEntry>
-    fun inflectionTables(): InflectionTablesData
-    fun cirthOrthography(): CirthOrthographyData
+    fun paradigmTables(): ParadigmTablesData
     fun grammarRules(): GrammarRulesData
     fun nameAdaptations(): NameAdaptationsData
-    fun fallbackRules(): FallbackRulesData
+    fun fallbackTemplates(): FallbackTemplatesData
+}
+
+/**
+ * Attested or curated phrase-level records used for Futhark selection precedence.
+ */
+internal interface RunicCorpusStore {
+    fun datasetManifest(): TranslationDatasetManifest
     fun sourceManifest(): TranslationSourceManifest
+    fun youngerPhraseTemplates(): List<HistoricalPhraseTemplateEntry>
+    fun elderAttestedForms(): List<HistoricalPhraseTemplateEntry>
+    fun runicCorpusReferences(): List<RunicCorpusReferenceEntry>
     fun goldExamples(): List<TranslationGoldExampleEntry>
+}
+
+/**
+ * Tolkien-specific orthography tables and curated examples.
+ */
+internal interface EreborOrthographyStore {
+    fun datasetManifest(): TranslationDatasetManifest
+    fun sourceManifest(): TranslationSourceManifest
+    fun ereborTables(): EreborTablesData
 }
 
 @Serializable
@@ -29,6 +47,7 @@ internal data class TranslationDatasetManifest(
 
 @Serializable
 internal data class OldNorseLexiconEntry(
+    val id: String,
     val english: String,
     val partOfSpeech: String,
     val lemma: String,
@@ -44,6 +63,7 @@ internal data class OldNorseLexiconEntry(
 
 @Serializable
 internal data class ProtoNorseLexiconEntry(
+    val id: String,
     val english: String,
     val form: String,
     val partOfSpeech: String,
@@ -53,7 +73,7 @@ internal data class ProtoNorseLexiconEntry(
 )
 
 @Serializable
-internal data class InflectionTablesData(
+internal data class ParadigmTablesData(
     val nounParadigms: Map<String, NounParadigm> = emptyMap(),
     val verbParadigms: Map<String, VerbParadigm> = emptyMap()
 )
@@ -71,9 +91,24 @@ internal data class VerbParadigm(
 )
 
 @Serializable
-internal data class CirthOrthographyData(
+internal data class EreborTablesData(
+    val phraseMappings: List<EreborPhraseMappingEntry> = emptyList(),
     val sequences: Map<String, String> = emptyMap(),
-    val singleCharacters: Map<String, String> = emptyMap()
+    val singleCharacters: Map<String, String> = emptyMap(),
+    val longVowels: Map<String, String> = emptyMap(),
+    val longConsonants: Map<String, String> = emptyMap(),
+    val wordSeparator: String = "·"
+)
+
+@Serializable
+internal data class EreborPhraseMappingEntry(
+    val id: String,
+    val sourceText: String,
+    val diplomaticForm: String,
+    val glyphOutput: String,
+    val resolutionStatus: String = TranslationResolutionStatus.ATTESTED.name,
+    val notes: List<String> = emptyList(),
+    val referenceIds: List<String> = emptyList()
 )
 
 @Serializable
@@ -90,7 +125,7 @@ internal data class NameAdaptationsData(
 )
 
 @Serializable
-internal data class FallbackRulesData(
+internal data class FallbackTemplatesData(
     val synonyms: Map<String, String> = emptyMap(),
     val paraphrases: Map<String, String> = emptyMap()
 )
@@ -110,7 +145,42 @@ internal data class TranslationSourceEntry(
 )
 
 @Serializable
+internal data class RunicCorpusReferenceEntry(
+    val id: String,
+    val sourceId: String,
+    val label: String,
+    val detail: String,
+    val url: String? = null
+)
+
+@Serializable
+internal data class HistoricalPhraseTemplateEntry(
+    val id: String,
+    val script: String,
+    val fidelity: String,
+    val derivationKind: String,
+    val historicalStage: String,
+    val sourceText: String,
+    val normalizedForm: String,
+    val diplomaticForm: String,
+    val resolutionStatus: String = TranslationResolutionStatus.RECONSTRUCTED.name,
+    val notes: List<String> = emptyList(),
+    val referenceIds: List<String> = emptyList(),
+    val tokenBreakdown: List<HistoricalTemplateTokenEntry> = emptyList()
+)
+
+@Serializable
+internal data class HistoricalTemplateTokenEntry(
+    val sourceToken: String,
+    val normalizedToken: String,
+    val diplomaticToken: String,
+    val resolutionStatus: String = TranslationResolutionStatus.RECONSTRUCTED.name,
+    val referenceIds: List<String> = emptyList()
+)
+
+@Serializable
 internal data class TranslationGoldExampleEntry(
+    val id: String,
     val sourceText: String,
     val results: List<TranslationGoldExampleResult>
 )
@@ -119,6 +189,7 @@ internal data class TranslationGoldExampleEntry(
 internal data class TranslationGoldExampleResult(
     val script: String,
     val fidelity: String,
+    val derivationKind: String = TranslationDerivationKind.GOLD_EXAMPLE.name,
     val historicalStage: String,
     val normalizedForm: String,
     val diplomaticForm: String,

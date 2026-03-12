@@ -105,7 +105,6 @@ internal fun TranslationScreen(
     viewModel: TranslationViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val feedbackMessage by viewModel.feedbackMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -116,10 +115,11 @@ internal fun TranslationScreen(
         uiState.tokenBreakdown.isNotEmpty()
     val showTransliterationBreakdown = uiState.wordByWordEnabled && uiState.wordBreakdown.isNotEmpty()
 
-    LaunchedEffect(feedbackMessage) {
-        feedbackMessage?.let { message ->
-            snackbarHostState.showSnackbar(message)
-            viewModel.clearFeedback()
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is TranslationEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
+            }
         }
     }
 
@@ -203,7 +203,8 @@ internal fun TranslationScreen(
                 glyphCount = uiState.outputGlyphCount,
                 errorMessage = uiState.errorMessage,
                 resolutionStatus = uiState.resolutionStatus,
-                translationTrackLabel = uiState.translationTrackLabel
+                translationTrackLabel = uiState.translationTrackLabel,
+                unavailableExplanation = uiState.unavailableExplanation
             )
 
             if (uiState.translationMode == TranslationMode.TRANSLATE) {
@@ -215,7 +216,9 @@ internal fun TranslationScreen(
                     resolutionStatus = uiState.resolutionStatus,
                     unresolvedTokens = uiState.unresolvedTokens,
                     provenance = uiState.provenance,
-                    fallbackSuggestion = uiState.fallbackSuggestion
+                    fallbackSuggestion = uiState.fallbackSuggestion,
+                    derivationKindLabel = uiState.derivationKindLabel,
+                    unavailableExplanation = uiState.unavailableExplanation
                 )
             }
 
@@ -600,7 +603,8 @@ private fun TranslationOutputCard(
     glyphCount: Int,
     errorMessage: String?,
     resolutionStatus: TranslationResolutionStatus?,
-    translationTrackLabel: String
+    translationTrackLabel: String,
+    unavailableExplanation: String?
 ) {
     RunicInfoCard(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -641,7 +645,9 @@ private fun TranslationOutputCard(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "This strict request does not have a defensible historical result yet.",
+                    text = unavailableExplanation
+                        ?: "This strict request does not have a defensible historical " +
+                        "result yet.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -717,7 +723,9 @@ private fun HistoricalTranslationMetaSection(
     resolutionStatus: TranslationResolutionStatus?,
     unresolvedTokens: List<String>,
     provenance: List<TranslationProvenanceEntry>,
-    fallbackSuggestion: String?
+    fallbackSuggestion: String?,
+    derivationKindLabel: String,
+    unavailableExplanation: String?
 ) {
     val hasNoMetadata = normalizedForm.isBlank() &&
         diplomaticForm.isBlank() &&
@@ -726,7 +734,9 @@ private fun HistoricalTranslationMetaSection(
         resolutionStatus == null &&
         unresolvedTokens.isEmpty() &&
         provenance.isEmpty() &&
-        fallbackSuggestion == null
+        fallbackSuggestion == null &&
+        derivationKindLabel.isBlank() &&
+        unavailableExplanation == null
     if (hasNoMetadata) {
         return
     }
@@ -743,13 +753,16 @@ private fun HistoricalTranslationMetaSection(
         ) {
             TranslationStatusRow(
                 resolutionStatus = resolutionStatus,
-                confidence = confidence
+                confidence = confidence,
+                derivationKindLabel = derivationKindLabel
             )
             TranslationLayersSection(
                 normalizedForm = normalizedForm,
                 diplomaticForm = diplomaticForm,
                 unresolvedTokens = unresolvedTokens,
-                fallbackSuggestion = fallbackSuggestion
+                fallbackSuggestion = fallbackSuggestion,
+                derivationKindLabel = derivationKindLabel,
+                unavailableExplanation = unavailableExplanation
             )
             NotesSection(notes = notes)
             ProvenanceSection(provenance = provenance)
@@ -760,19 +773,31 @@ private fun HistoricalTranslationMetaSection(
 @Composable
 private fun TranslationStatusRow(
     resolutionStatus: TranslationResolutionStatus?,
-    confidence: Float?
+    confidence: Float?,
+    derivationKindLabel: String
 ) {
-    resolutionStatus?.let { status ->
+    if (resolutionStatus != null || derivationKindLabel.isNotBlank()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = status.label,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                resolutionStatus?.let { status ->
+                    Text(
+                        text = status.label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                if (derivationKindLabel.isNotBlank()) {
+                    Text(
+                        text = derivationKindLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
             confidence?.let { value ->
                 Text(
                     text = "Confidence ${(value * 100).toInt()}%",
@@ -789,8 +814,17 @@ private fun TranslationLayersSection(
     normalizedForm: String,
     diplomaticForm: String,
     unresolvedTokens: List<String>,
-    fallbackSuggestion: String?
+    fallbackSuggestion: String?,
+    derivationKindLabel: String,
+    unavailableExplanation: String?
 ) {
+    if (derivationKindLabel.isNotBlank()) {
+        TranslationLayerRow(
+            title = "Derivation",
+            body = derivationKindLabel
+        )
+    }
+
     if (normalizedForm.isNotBlank()) {
         TranslationLayerRow(
             title = "Normalized form",
@@ -809,6 +843,13 @@ private fun TranslationLayersSection(
         TranslationLayerRow(
             title = "Unavailable tokens",
             body = unresolvedTokens.joinToString(", ")
+        )
+    }
+
+    unavailableExplanation?.let { explanation ->
+        TranslationLayerRow(
+            title = "Why unavailable",
+            body = explanation
         )
     }
 
@@ -845,6 +886,11 @@ private fun ProvenanceSection(provenance: List<TranslationProvenanceEntry>) {
                 append(entry.label)
                 append(" — ")
                 append(entry.role)
+                entry.referenceId?.let {
+                    append(" [")
+                    append(it)
+                    append(']')
+                }
                 entry.detail?.let {
                     append(" (")
                     append(it)
@@ -957,6 +1003,11 @@ private fun TranslationTokenBreakdownSection(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
+                        text = "Status: ${token.resolutionStatus.label}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
                         text = "Normalized: ${token.normalizedToken}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -974,6 +1025,13 @@ private fun TranslationTokenBreakdownSection(
                         accessibilityText = token.sourceToken,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    if (token.provenance.isNotEmpty()) {
+                        Text(
+                            text = "Sources: ${token.provenance.joinToString { provenance -> provenance.label }}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }

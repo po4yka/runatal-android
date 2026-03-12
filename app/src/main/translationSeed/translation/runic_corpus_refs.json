@@ -1,0 +1,51 @@
+[
+  {
+    "id": "yf_ref_wolf_night",
+    "sourceId": "runor",
+    "label": "Runor-aligned Younger exemplar",
+    "detail": "Curated Younger Futhark exemplar for 'The wolf hunts at night'.",
+    "url": "https://www.raa.se/in-english/digital-services/about-runor/"
+  },
+  {
+    "id": "yf_ref_king_mountain",
+    "sourceId": "runor",
+    "label": "Runor-style king-under-mountain template",
+    "detail": "Curated Younger Futhark phrase template for a king-under-mountain formula.",
+    "url": "https://www.raa.se/in-english/digital-services/about-runor/"
+  },
+  {
+    "id": "ef_ref_wulfaz",
+    "sourceId": "srd",
+    "label": "Wulfaz attested-form reference",
+    "detail": "Curated short Elder Futhark formula for 'wolf'.",
+    "url": "https://www.runesdb.eu/en/"
+  },
+  {
+    "id": "ef_ref_wolf_night",
+    "sourceId": "srd",
+    "label": "SRD-style Elder exemplar",
+    "detail": "Curated Proto-Norse reconstruction for 'The wolf hunts at night'.",
+    "url": "https://www.uu.se/en/department/scandinavian-languages/research/research-projects/scandinavian-runic-text-database"
+  },
+  {
+    "id": "ef_ref_kuningaz",
+    "sourceId": "srd",
+    "label": "Kuningaz attested-form reference",
+    "detail": "Curated short Elder Futhark formula for 'the king'.",
+    "url": "https://www.runesdb.eu/en/"
+  },
+  {
+    "id": "cirth_ref_wolf_night",
+    "sourceId": "tolkien_appendix_e",
+    "label": "Appendix E wolf-night example",
+    "detail": "Curated Erebor transcription example for the wolf-night phrase.",
+    "url": "https://tolkiengateway.net/wiki/Angerthas_Erebor"
+  },
+  {
+    "id": "cirth_ref_under_mountain",
+    "sourceId": "tolkien_appendix_e",
+    "label": "Appendix E under-mountain example",
+    "detail": "Curated Erebor transcription example for 'Under the mountain'.",
+    "url": "https://tolkiengateway.net/wiki/Angerthas_Erebor"
+  }
+]

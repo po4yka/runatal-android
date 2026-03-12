@@ -8,6 +8,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 internal data class TranslationProvenanceEntry(
     val sourceId: String,
+    val referenceId: String? = null,
     val label: String,
     val role: String,
     val license: String,

@@ -10,6 +10,7 @@ import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.translation.HistoricalStage
 import com.po4yka.runicquotes.domain.translation.HistoricalTranslationService
+import com.po4yka.runicquotes.domain.translation.TranslationDerivationKind
 import com.po4yka.runicquotes.domain.translation.TranslationEngineFactory
 import com.po4yka.runicquotes.domain.translation.TranslationFidelity
 import com.po4yka.runicquotes.domain.translation.TranslationProvenanceEntry
@@ -191,6 +192,7 @@ internal class TranslationRepositoryImpl @Inject constructor(
             sourceText = sourceText,
             script = RunicScript.valueOf(script),
             fidelity = TranslationFidelity.valueOf(fidelity),
+            derivationKind = TranslationDerivationKind.valueOf(derivationKind),
             historicalStage = HistoricalStage.valueOf(historicalStage),
             normalizedForm = normalizedForm,
             diplomaticForm = diplomaticForm,
@@ -224,6 +226,7 @@ internal class TranslationRepositoryImpl @Inject constructor(
             sourceText = sourceText,
             script = script.name,
             fidelity = fidelity.name,
+            derivationKind = derivationKind.name,
             normalizedForm = normalizedForm,
             diplomaticForm = diplomaticForm,
             glyphOutput = glyphOutput,

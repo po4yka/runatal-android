@@ -9,6 +9,7 @@ internal data class TranslationResult(
     val sourceText: String,
     val script: RunicScript,
     val fidelity: TranslationFidelity,
+    val derivationKind: TranslationDerivationKind = TranslationDerivationKind.TOKEN_COMPOSED,
     val historicalStage: HistoricalStage,
     val normalizedForm: String,
     val diplomaticForm: String,

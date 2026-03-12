@@ -13,6 +13,7 @@ import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.domain.transliteration.TransliterationBreakdown
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import com.po4yka.runicquotes.domain.translation.HistoricalTranslationService
+import com.po4yka.runicquotes.domain.translation.TranslationDerivationKind
 import com.po4yka.runicquotes.domain.translation.TranslationFidelity
 import com.po4yka.runicquotes.domain.translation.TranslationMode
 import com.po4yka.runicquotes.domain.translation.TranslationProvenanceEntry
@@ -22,12 +23,13 @@ import com.po4yka.runicquotes.domain.translation.TranslationTokenBreakdown
 import com.po4yka.runicquotes.domain.translation.YoungerFutharkVariant
 import com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -52,10 +54,10 @@ internal class TranslationViewModel @Inject constructor(
     private val _selectedFidelity = MutableStateFlow(TranslationFidelity.DEFAULT)
     private val _selectedYoungerVariant = MutableStateFlow(YoungerFutharkVariant.DEFAULT)
     private val _isSaving = MutableStateFlow(false)
-    private val _feedbackMessage = MutableStateFlow<String?>(null)
     private val _persistedWordByWordEnabled = MutableStateFlow(false)
     private val _localWordByWordOverride = MutableStateFlow<Boolean?>(null)
     private val translateFeatureEnabled = BuildConfig.ENABLE_EXPERIMENTAL_TRANSLATE
+    private val _events = Channel<TranslationEvent>(Channel.BUFFERED)
 
     /** @suppress */
     companion object {
@@ -74,7 +76,7 @@ internal class TranslationViewModel @Inject constructor(
         }
     }
 
-    val feedbackMessage: StateFlow<String?> = _feedbackMessage.asStateFlow()
+    val events = _events.receiveAsFlow()
 
     val uiState: StateFlow<TranslationUiState> = combine(
         combine(
@@ -189,7 +191,9 @@ internal class TranslationViewModel @Inject constructor(
             unresolvedTokens = selectedTranslationResult?.unresolvedTokens.orEmpty(),
             provenance = selectedTranslationResult?.provenance.orEmpty(),
             fallbackSuggestion = selectedTranslationResult?.fallbackSuggestion(preferences.fidelity),
-            translationTrackLabel = selectedTranslationResult.translationTrackLabel(preferences.selectedScript)
+            translationTrackLabel = selectedTranslationResult.translationTrackLabel(preferences.selectedScript),
+            derivationKindLabel = selectedTranslationResult.derivationKindLabel(),
+            unavailableExplanation = selectedTranslationResult.unavailableExplanation(preferences.selectedScript)
         )
     }.stateIn(
         scope = viewModelScope,
@@ -313,27 +317,20 @@ internal class TranslationViewModel @Inject constructor(
                         results = historicalBundle.results(),
                         isBackfilled = false
                     )
-                    _feedbackMessage.value = "Saved translation to library"
+                    _events.send(TranslationEvent.ShowMessage("Saved translation to library"))
                 } else {
-                    _feedbackMessage.value = "Saved to library"
+                    _events.send(TranslationEvent.ShowMessage("Saved to library"))
                 }
             } catch (exception: IOException) {
                 Log.e(TAG, "IO error saving translation", exception)
-                _feedbackMessage.value = "Failed to save translation"
+                _events.send(TranslationEvent.ShowMessage("Failed to save translation"))
             } catch (exception: IllegalStateException) {
                 Log.e(TAG, "Invalid state saving translation", exception)
-                _feedbackMessage.value = "Invalid translation state"
+                _events.send(TranslationEvent.ShowMessage("Invalid translation state"))
             } finally {
                 _isSaving.value = false
             }
         }
-    }
-
-    /**
-     * Clears the transient snackbar feedback message after it is shown.
-     */
-    fun clearFeedback() {
-        _feedbackMessage.value = null
     }
 
     @Suppress("TooGenericExceptionCaught")
@@ -400,6 +397,12 @@ internal class TranslationViewModel @Inject constructor(
             HistoricalTranslationBundle(errorMessage = exception.message ?: "Historical translation failed")
         }
     }
+}
+
+/** One-off UI events emitted by the translation screen. */
+sealed interface TranslationEvent {
+    /** Shows transient feedback to the user. */
+    data class ShowMessage(val message: String) : TranslationEvent
 }
 
 private data class TransliterationBundle(
@@ -479,7 +482,9 @@ internal data class TranslationUiState(
     val unresolvedTokens: List<String> = emptyList(),
     val provenance: List<TranslationProvenanceEntry> = emptyList(),
     val fallbackSuggestion: String? = null,
-    val translationTrackLabel: String = ""
+    val translationTrackLabel: String = "",
+    val derivationKindLabel: String = "",
+    val unavailableExplanation: String? = null
 ) {
     /** Display name for the currently selected script. */
     val scriptDisplayName: String get() = selectedScript.displayName
@@ -520,6 +525,30 @@ private fun TranslationResult?.translationTrackLabel(script: RunicScript): Strin
         return "Erebor transcription"
     }
     return script.displayName
+}
+
+private fun TranslationResult?.derivationKindLabel(): String {
+    return when (this?.derivationKind) {
+        TranslationDerivationKind.GOLD_EXAMPLE -> "Gold example"
+        TranslationDerivationKind.PHRASE_TEMPLATE -> "Phrase template"
+        TranslationDerivationKind.TOKEN_COMPOSED -> "Token composed"
+        TranslationDerivationKind.SEQUENCE_TRANSCRIPTION -> "Sequence transcription"
+        null -> ""
+    }
+}
+
+private fun TranslationResult?.unavailableExplanation(script: RunicScript): String? {
+    if (this == null || resolutionStatus != TranslationResolutionStatus.UNAVAILABLE) {
+        return null
+    }
+
+    return when {
+        script == RunicScript.CIRTH -> "Unsupported Erebor sequence or phrase mapping for strict mode."
+        notes.any { it.contains("attested or reconstructed Elder Futhark pattern", ignoreCase = true) } ->
+            "Missing attested or reconstructed Elder Futhark pattern."
+        unresolvedTokens.isNotEmpty() -> "Missing lemma coverage for: ${unresolvedTokens.joinToString(", ")}."
+        else -> notes.firstOrNull() ?: "No defensible strict result is available."
+    }
 }
 
 private fun List<WordTransliterationPair>.toTranslationBreakdown(): List<TranslationTokenBreakdown> {

@@ -1,0 +1,58 @@
+[
+  {
+    "id": "yf_tpl_king_walks_under_mountain",
+    "script": "YOUNGER_FUTHARK",
+    "fidelity": "STRICT",
+    "derivationKind": "PHRASE_TEMPLATE",
+    "historicalStage": "OLD_NORSE",
+    "sourceText": "The king walks under the mountain",
+    "normalizedForm": "konungr gengr undir fjall",
+    "diplomaticForm": "kununkr kinkr untir fial",
+    "resolutionStatus": "RECONSTRUCTED",
+    "notes": [
+      "Matched a curated Younger Futhark phrase template with ONP-style normalized Old Norse.",
+      "Applied a template diplomatic layer curated for long-branch and short-twig rendering."
+    ],
+    "referenceIds": [
+      "yf_ref_king_mountain"
+    ],
+    "tokenBreakdown": [
+      {
+        "sourceToken": "king",
+        "normalizedToken": "konungr",
+        "diplomaticToken": "kununkr",
+        "resolutionStatus": "RECONSTRUCTED",
+        "referenceIds": [
+          "yf_ref_king_mountain"
+        ]
+      },
+      {
+        "sourceToken": "walks",
+        "normalizedToken": "gengr",
+        "diplomaticToken": "kinkr",
+        "resolutionStatus": "RECONSTRUCTED",
+        "referenceIds": [
+          "yf_ref_king_mountain"
+        ]
+      },
+      {
+        "sourceToken": "under",
+        "normalizedToken": "undir",
+        "diplomaticToken": "untir",
+        "resolutionStatus": "RECONSTRUCTED",
+        "referenceIds": [
+          "yf_ref_king_mountain"
+        ]
+      },
+      {
+        "sourceToken": "mountain",
+        "normalizedToken": "fjall",
+        "diplomaticToken": "fial",
+        "resolutionStatus": "RECONSTRUCTED",
+        "referenceIds": [
+          "yf_ref_king_mountain"
+        ]
+      }
+    ]
+  }
+]
