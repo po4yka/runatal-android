@@ -4,8 +4,11 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.po4yka.runicquotes.data.repository.NoOpTranslationRepository
 import com.po4yka.runicquotes.data.repository.QuoteRepository
+import com.po4yka.runicquotes.data.repository.TranslationRepository
 import com.po4yka.runicquotes.domain.model.Quote
+import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.util.QuoteShareManager
 import com.po4yka.runicquotes.util.ShareAppearance
 import com.po4yka.runicquotes.util.ShareTemplate
@@ -22,10 +25,11 @@ import javax.inject.Inject
  * ViewModel for the share quote screen.
  */
 @HiltViewModel
-class ShareViewModel @Inject constructor(
+internal class ShareViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val quoteRepository: QuoteRepository,
-    private val quoteShareManager: QuoteShareManager
+    private val quoteShareManager: QuoteShareManager,
+    private val translationRepository: TranslationRepository = NoOpTranslationRepository
 ) : ViewModel() {
 
     private var quoteId: Long = savedStateHandle.get<Long>("quoteId") ?: 0L
@@ -69,7 +73,7 @@ class ShareViewModel @Inject constructor(
             try {
                 val quote = quoteRepository.getQuoteById(quoteId)
                 if (quote != null) {
-                    _uiState.value = ShareUiState.Success(quote)
+                    _uiState.value = ShareUiState.Success(resolveShareQuote(quote))
                 } else {
                     _uiState.value = ShareUiState.Error("Quote not found")
                 }
@@ -102,7 +106,12 @@ class ShareViewModel @Inject constructor(
     /** Shares the quote as a styled image. */
     fun shareAsImage() {
         val quote = (uiState.value as? ShareUiState.Success)?.quote ?: return
-        val runicText = quote.runicElder ?: quote.textLatin
+        val cachedHistoricalGlyph = listOfNotNull(
+            quote.runicElder,
+            quote.runicYounger,
+            quote.runicCirth
+        ).singleOrNull()
+        val runicText = cachedHistoricalGlyph ?: quote.runicElder ?: quote.textLatin
         viewModelScope.launch {
             quoteShareManager.shareQuoteAsImage(
                 runicText = runicText,
@@ -129,6 +138,27 @@ class ShareViewModel @Inject constructor(
     /** Retries loading the quote after an error. */
     fun retry() {
         loadQuote()
+    }
+
+    private suspend fun resolveShareQuote(quote: Quote): Quote {
+        val cachedTranslation = translationRepository.getPreferredTranslation(quote.id) ?: return quote
+        return quote.copy(
+            runicElder = if (cachedTranslation.script == RunicScript.ELDER_FUTHARK) {
+                cachedTranslation.glyphOutput
+            } else {
+                null
+            },
+            runicYounger = if (cachedTranslation.script == RunicScript.YOUNGER_FUTHARK) {
+                cachedTranslation.glyphOutput
+            } else {
+                null
+            },
+            runicCirth = if (cachedTranslation.script == RunicScript.CIRTH) {
+                cachedTranslation.glyphOutput
+            } else {
+                null
+            }
+        )
     }
 }
 

@@ -7,6 +7,8 @@ import com.po4yka.runicquotes.data.local.dao.ArchivedQuoteDao
 import com.po4yka.runicquotes.data.local.dao.QuoteDao
 import com.po4yka.runicquotes.data.local.dao.QuotePackDao
 import com.po4yka.runicquotes.data.local.dao.RuneReferenceDao
+import com.po4yka.runicquotes.data.local.dao.TranslationBackfillStateDao
+import com.po4yka.runicquotes.data.local.dao.TranslationRecordDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,7 +21,7 @@ import javax.inject.Singleton
  */
 @Module
 @InstallIn(SingletonComponent::class)
-object DatabaseModule {
+internal object DatabaseModule {
 
     /** Provides the Room database instance. */
     @Provides
@@ -35,7 +37,8 @@ object DatabaseModule {
             .addMigrations(
                 RunicQuotesDatabase.MIGRATION_1_2,
                 RunicQuotesDatabase.MIGRATION_2_3,
-                RunicQuotesDatabase.MIGRATION_3_4
+                RunicQuotesDatabase.MIGRATION_3_4,
+                RunicQuotesDatabase.MIGRATION_4_5
             )
             .build()
     }
@@ -66,5 +69,19 @@ object DatabaseModule {
     @Singleton
     fun provideRuneReferenceDao(database: RunicQuotesDatabase): RuneReferenceDao {
         return database.runeReferenceDao()
+    }
+
+    /** Provides the [TranslationRecordDao] from the database. */
+    @Provides
+    @Singleton
+    fun provideTranslationRecordDao(database: RunicQuotesDatabase): TranslationRecordDao {
+        return database.translationRecordDao()
+    }
+
+    /** Provides the [TranslationBackfillStateDao] from the database. */
+    @Provides
+    @Singleton
+    fun provideTranslationBackfillStateDao(database: RunicQuotesDatabase): TranslationBackfillStateDao {
+        return database.translationBackfillStateDao()
     }
 }

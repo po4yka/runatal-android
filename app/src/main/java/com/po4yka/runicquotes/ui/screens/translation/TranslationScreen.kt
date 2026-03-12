@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package com.po4yka.runicquotes.ui.screens.translation
 
 import android.content.ClipData
@@ -68,6 +70,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.segmentLabel
 import com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair
+import com.po4yka.runicquotes.domain.translation.TranslationFidelity
+import com.po4yka.runicquotes.domain.translation.TranslationMode
+import com.po4yka.runicquotes.domain.translation.TranslationTokenBreakdown
+import com.po4yka.runicquotes.domain.translation.YoungerFutharkVariant
 import com.po4yka.runicquotes.ui.components.RunicActionButton
 import com.po4yka.runicquotes.ui.components.RunicActionButtonStyle
 import com.po4yka.runicquotes.ui.components.RunicArticleLinkCard
@@ -90,7 +96,7 @@ import com.po4yka.runicquotes.ui.theme.SupportingTextRole
 import kotlinx.coroutines.launch
 
 @Composable
-fun TranslationScreen(
+internal fun TranslationScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToAccuracyContext: () -> Unit = {},
     viewModel: TranslationViewModel = hiltViewModel()
@@ -102,6 +108,10 @@ fun TranslationScreen(
     val scope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val showHistoricalBreakdown = uiState.wordByWordEnabled &&
+        uiState.translationMode == TranslationMode.TRANSLATE &&
+        uiState.tokenBreakdown.isNotEmpty()
+    val showTransliterationBreakdown = uiState.wordByWordEnabled && uiState.wordBreakdown.isNotEmpty()
 
     LaunchedEffect(feedbackMessage) {
         feedbackMessage?.let { message ->
@@ -125,10 +135,29 @@ fun TranslationScreen(
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            TranslationModeSelector(
+                selectedMode = uiState.translationMode,
+                onSelectMode = viewModel::selectMode
+            )
+
             TranslationScriptSelector(
                 selectedScript = uiState.selectedScript,
                 onSelectScript = viewModel::selectScript
             )
+
+            if (uiState.translationMode == TranslationMode.TRANSLATE) {
+                TranslationFidelitySelector(
+                    selectedFidelity = uiState.selectedFidelity,
+                    onSelectFidelity = viewModel::selectFidelity
+                )
+
+                if (uiState.selectedScript == RunicScript.YOUNGER_FUTHARK) {
+                    YoungerVariantSelector(
+                        selectedVariant = uiState.selectedYoungerVariant,
+                        onSelectVariant = viewModel::selectYoungerVariant
+                    )
+                }
+            }
 
             TranslationSectionLabel("English text")
 
@@ -142,7 +171,12 @@ fun TranslationScreen(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
 
             TranslationOutputHeader(
-                title = if (uiState.inputText.isBlank()) "Runic output" else uiState.scriptDisplayName,
+                title = when {
+                    uiState.inputText.isBlank() -> "Runic output"
+                    uiState.translationMode == TranslationMode.TRANSLATE ->
+                        "${uiState.scriptDisplayName} translation"
+                    else -> uiState.scriptDisplayName
+                },
                 hasOutput = uiState.transliteratedText.isNotBlank(),
                 wordByWordEnabled = uiState.wordByWordEnabled,
                 onToggleWordByWord = viewModel::toggleWordByWordMode,
@@ -157,13 +191,29 @@ fun TranslationScreen(
             TranslationOutputCard(
                 outputText = uiState.transliteratedText,
                 accessibilityText = uiState.inputText,
+                translationMode = uiState.translationMode,
                 selectedScript = uiState.selectedScript,
                 selectedFont = uiState.selectedFont,
                 glyphCount = uiState.outputGlyphCount,
                 errorMessage = uiState.errorMessage
             )
 
-            if (uiState.wordByWordEnabled && uiState.wordBreakdown.isNotEmpty()) {
+            if (uiState.translationMode == TranslationMode.TRANSLATE && uiState.transliteratedText.isNotBlank()) {
+                HistoricalTranslationMetaSection(
+                    normalizedForm = uiState.normalizedForm,
+                    diplomaticForm = uiState.diplomaticForm,
+                    confidence = uiState.confidence,
+                    notes = uiState.notes
+                )
+            }
+
+            if (showHistoricalBreakdown) {
+                TranslationTokenBreakdownSection(
+                    tokenBreakdown = uiState.tokenBreakdown,
+                    selectedScript = uiState.selectedScript,
+                    selectedFont = uiState.selectedFont
+                )
+            } else if (showTransliterationBreakdown) {
                 TranslationWordByWordSection(
                     wordPairs = uiState.wordBreakdown,
                     selectedScript = uiState.selectedScript,
@@ -229,6 +279,47 @@ private fun TranslationTopBar(onNavigateBack: () -> Unit) {
 }
 
 @Composable
+private fun TranslationModeSelector(
+    selectedMode: TranslationMode,
+    onSelectMode: (TranslationMode) -> Unit
+) {
+    RunicChoiceGroup(
+        modifier = Modifier.fillMaxWidth(),
+        expand = true,
+        shape = RoundedCornerShape(12.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
+        contentPadding = PaddingValues(1.dp)
+    ) {
+        TranslationMode.entries.forEachIndexed { index, mode ->
+            val isSelected = selectedMode == mode
+            RunicChoiceChip(
+                selected = isSelected,
+                onClick = { onSelectMode(mode) },
+                modifier = Modifier.weight(1f),
+                shape = when (index) {
+                    0 -> RoundedCornerShape(topStart = 11.dp, bottomStart = 11.dp)
+                    TranslationMode.entries.lastIndex -> RoundedCornerShape(topEnd = 11.dp, bottomEnd = 11.dp)
+                    else -> RoundedCornerShape(0.dp)
+                },
+                colors = runicChoiceChipColors(
+                    selected = isSelected,
+                    unselectedContainerColor = androidx.compose.ui.graphics.Color.Transparent
+                ),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.Center
+            ) { contentColor ->
+                Text(
+                    text = if (mode == TranslationMode.TRANSLITERATE) "Transliterate" else "Translate",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = contentColor
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun TranslationScriptSelector(
     selectedScript: RunicScript,
     onSelectScript: (RunicScript) -> Unit
@@ -271,6 +362,77 @@ private fun TranslationScriptSelector(
                 }
                 Text(
                     text = script.segmentLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = contentColor
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TranslationFidelitySelector(
+    selectedFidelity: TranslationFidelity,
+    onSelectFidelity: (TranslationFidelity) -> Unit
+) {
+    TranslationSectionLabel("Historical fidelity")
+    RunicChoiceGroup(
+        modifier = Modifier.fillMaxWidth(),
+        expand = true,
+        shape = RoundedCornerShape(12.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
+        contentPadding = PaddingValues(1.dp)
+    ) {
+        TranslationFidelity.entries.forEachIndexed { index, fidelity ->
+            val isSelected = selectedFidelity == fidelity
+            RunicChoiceChip(
+                selected = isSelected,
+                onClick = { onSelectFidelity(fidelity) },
+                modifier = Modifier.weight(1f),
+                shape = when (index) {
+                    0 -> RoundedCornerShape(topStart = 11.dp, bottomStart = 11.dp)
+                    TranslationFidelity.entries.lastIndex -> RoundedCornerShape(topEnd = 11.dp, bottomEnd = 11.dp)
+                    else -> RoundedCornerShape(0.dp)
+                },
+                colors = runicChoiceChipColors(
+                    selected = isSelected,
+                    unselectedContainerColor = androidx.compose.ui.graphics.Color.Transparent
+                ),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.Center
+            ) { contentColor ->
+                Text(
+                    text = fidelity.name.lowercase().replaceFirstChar(Char::titlecase),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = contentColor
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun YoungerVariantSelector(
+    selectedVariant: YoungerFutharkVariant,
+    onSelectVariant: (YoungerFutharkVariant) -> Unit
+) {
+    TranslationSectionLabel("Younger Futhark variant")
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        YoungerFutharkVariant.entries.forEach { variant ->
+            val isSelected = selectedVariant == variant
+            RunicChoiceChip(
+                selected = isSelected,
+                onClick = { onSelectVariant(variant) },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp),
+                colors = runicChoiceChipColors(selected = isSelected)
+            ) { contentColor ->
+                Text(
+                    text = if (variant == YoungerFutharkVariant.LONG_BRANCH) "Long-branch" else "Short-twig",
                     style = MaterialTheme.typography.labelMedium,
                     color = contentColor
                 )
@@ -415,6 +577,7 @@ private fun TranslationOutputHeader(
 private fun TranslationOutputCard(
     outputText: String,
     accessibilityText: String,
+    translationMode: TranslationMode,
     selectedScript: RunicScript,
     selectedFont: String,
     glyphCount: Int,
@@ -432,7 +595,11 @@ private fun TranslationOutputCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Transliteration failed",
+                    text = if (translationMode == TranslationMode.TRANSLATE) {
+                        "Historical translation failed"
+                    } else {
+                        "Transliteration failed"
+                    },
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -460,7 +627,11 @@ private fun TranslationOutputCard(
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = "Translation will appear here",
+                    text = if (translationMode == TranslationMode.TRANSLATE) {
+                        "Historical layers and runes will appear here"
+                    } else {
+                        "Transliteration will appear here"
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -501,6 +672,92 @@ private fun TranslationOutputCard(
 }
 
 @Composable
+private fun HistoricalTranslationMetaSection(
+    normalizedForm: String,
+    diplomaticForm: String,
+    confidence: Float?,
+    notes: List<String>
+) {
+    val hasNoMetadata = normalizedForm.isBlank() &&
+        diplomaticForm.isBlank() &&
+        confidence == null &&
+        notes.isEmpty()
+    if (hasNoMetadata) {
+        return
+    }
+
+    RunicInfoCard(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            confidence?.let { value ->
+                Text(
+                    text = "Confidence ${(value * 100).toInt()}%",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (normalizedForm.isNotBlank()) {
+                TranslationLayerRow(
+                    title = "Normalized form",
+                    body = normalizedForm
+                )
+            }
+
+            if (diplomaticForm.isNotBlank()) {
+                TranslationLayerRow(
+                    title = "Diplomatic form",
+                    body = diplomaticForm
+                )
+            }
+
+            if (notes.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "Notes",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    notes.forEach { note ->
+                        Text(
+                            text = "\u2022 $note",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TranslationLayerRow(
+    title: String,
+    body: String
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = body,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
 private fun TranslationWordByWordSection(
     wordPairs: List<WordTransliterationPair>,
     selectedScript: RunicScript,
@@ -528,6 +785,59 @@ private fun TranslationWordByWordSection(
                 selectedFont = selectedFont,
                 modifier = Modifier.fillMaxWidth()
             )
+        }
+    }
+}
+
+@Composable
+private fun TranslationTokenBreakdownSection(
+    tokenBreakdown: List<TranslationTokenBreakdown>,
+    selectedScript: RunicScript,
+    selectedFont: String
+) {
+    RunicInfoCard(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f),
+        modifier = Modifier.testTag("translation_token_breakdown")
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                text = "Token breakdown",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            tokenBreakdown.forEach { token ->
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = token.sourceToken,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Normalized: ${token.normalizedToken}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Diplomatic: ${token.diplomaticToken}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    RunicText(
+                        text = token.glyphToken,
+                        font = selectedFont,
+                        script = selectedScript,
+                        role = RunicTextRole.TranslationResult,
+                        accessibilityText = token.sourceToken,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
         }
     }
 }

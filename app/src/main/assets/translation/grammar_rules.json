@@ -1,0 +1,21 @@
+{
+  "removableWords": ["the", "a", "an"],
+  "prepositionMap": {
+    "at": "um",
+    "in": "í",
+    "on": "á",
+    "under": "undir",
+    "with": "með",
+    "of": "af",
+    "to": "til"
+  },
+  "interrogatives": ["who", "what", "why", "when", "where", "how"],
+  "pronounMap": {
+    "i": "ek",
+    "you": "þú",
+    "we": "vér",
+    "they": "þeir",
+    "he": "hann",
+    "she": "hon"
+  }
+}

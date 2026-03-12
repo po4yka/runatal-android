@@ -9,6 +9,15 @@ This file contains the canonical mapping tables to use in the app for:
 
 These tables are intended for the internal translation / transliteration pipeline and should be treated as the source of truth for rune inventory, transliteration symbols, and approximate phonemic values.
 
+## Implementation status
+
+The app now separates:
+
+- `domain/transliteration/` for legacy direct transliteration
+- `domain/translation/` for structured historical translation followed by rune rendering
+
+Where the live code cannot yet express every historical edge case, the engine must emit notes and confidence rather than pretending the mapping is exact.
+
 ---
 
 # General Rules

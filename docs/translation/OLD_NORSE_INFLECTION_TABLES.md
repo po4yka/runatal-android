@@ -14,6 +14,10 @@ They provide **deterministic morphology generation** for nouns, verbs, and adjec
 
 The goal is to generate **grammatically correct normalized Old West Norse forms** suitable for later runic conversion.
 
+## Implementation status
+
+The current app uses these tables as **guidance** for a heuristic engine, not as a one-to-one API contract. The implemented types live in `domain/translation/`, and persisted output lives in `translation_records`.
+
 ---
 
 # Supported Morphology Scope
@@ -208,34 +212,30 @@ number: singular
 
 # Kotlin Data Model
 
-Example structure for storing inflection rules:
+Current implementation structures:
 
 ```kotlin
-data class InflectionPattern(
-    val className: String,
-    val forms: Map<String, String>
+data class OldNorseLexiconEntry(
+    val english: String,
+    val partOfSpeech: String,
+    val lemma: String,
+    val declensionClass: String?,
+    val present3sg: String?,
+    val past3sg: String?
+)
+
+data class InflectionTablesData(
+    val strongMasculineSuffixes: Map<String, String>,
+    val weakVerbSuffixes: Map<String, String>
 )
 ```
 
-Example noun request:
+Current implementation entry points:
 
 ```kotlin
-fun declineNoun(
-    lemma: NorseLexeme,
-    case: Case,
-    number: Number
-): String
-```
-
-Example verb request:
-
-```kotlin
-fun conjugateVerb(
-    lemma: NorseLexeme,
-    tense: Tense,
-    person: Person,
-    number: Number
-): String
+class OldNorseInflector {
+    fun inflect(entry: OldNorseLexiconEntry, token: ParsedEnglishToken): String
+}
 ```
 
 ---

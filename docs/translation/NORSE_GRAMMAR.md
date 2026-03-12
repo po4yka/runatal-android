@@ -8,6 +8,16 @@ This module feeds the **Younger Futhark translation engine** described in `TRANS
 
 The goal is not a naive word replacement system but a **structured historical language layer**.
 
+## Implementation status
+
+The current app implementation lives under:
+
+- `domain/translation/` for parsing, engine orchestration, and structured `TranslationResult`
+- `data/translation/` for offline asset-backed lexicon and grammar datasets
+- `data/repository/TranslationRepository*` for persistence and backfill
+
+The shipped engine is **offline and heuristic**, not a full philological parser. Unsupported syntax must emit notes and lower confidence rather than failing.
+
 ---
 
 # Core Principle
@@ -308,36 +318,31 @@ computer
 
 # Kotlin Data Models
 
-Dictionary entry:
+Current implementation models:
 
 ```kotlin
-data class NorseLexeme(
-    val lemma: String,
-    val partOfSpeech: PartOfSpeech,
-    val gender: Gender?,
-    val declensionClass: String?,
-    val conjugationClass: String?,
-    val meaning: String
-)
-```
-
-Parsed sentence:
-
-```kotlin
-data class ParsedSentence(
-    val subject: Token,
-    val verb: Token,
-    val objects: List<Token>,
-    val modifiers: List<Token>
-)
-```
-
-Generated Norse phrase:
-
-```kotlin
-data class OldNorsePhrase(
+data class ParsedEnglishText(
+    val originalText: String,
     val normalizedText: String,
-    val tokens: List<String>
+    val tokens: List<ParsedEnglishToken>,
+    val subjectTokens: List<ParsedEnglishToken>,
+    val verbTokens: List<ParsedEnglishToken>,
+    val modifierTokens: List<ParsedEnglishToken>
+)
+
+data class TranslationRequest(
+    val sourceText: String,
+    val script: RunicScript,
+    val fidelity: TranslationFidelity,
+    val youngerVariant: YoungerFutharkVariant
+)
+
+data class TranslationResult(
+    val normalizedForm: String,
+    val diplomaticForm: String,
+    val glyphOutput: String,
+    val confidence: Float,
+    val notes: List<String>
 )
 ```
 
@@ -345,47 +350,47 @@ data class OldNorsePhrase(
 
 # Grammar Engine Architecture
 
-Suggested modules:
+Current implementation modules:
 
 ```
-norse-dictionary
-norse-grammar
-norse-inflection
-norse-translation
+domain/translation/
+data/translation/
+data/repository/TranslationRepository*
 ```
 
 Responsibilities:
 
-Dictionary
+`EnglishSyntaxParser`
 
 ```
-lookup
-lemma search
-semantic similarity
+tokenization
+clause splitting
+best-effort role hints
 ```
 
-Grammar engine
+`HistoricalLexiconLookup` + dataset assets
 
 ```
-case assignment
-agreement rules
-word order
+lemma lookup
+name adaptation
+fallback synonym/paraphrase rules
 ```
 
-Inflection engine
+`OldNorseInflector` / reconstruction helpers
 
 ```
-verb conjugation
-noun declension
-adjective agreement
+verb form selection
+noun handling
+phonology and reconstruction rewrites
 ```
 
-Translation engine
+`*TranslationEngine`
 
 ```
-sentence generation
-fallback logic
+layer generation
+glyph rendering
 confidence scoring
+notes
 ```
 
 ---

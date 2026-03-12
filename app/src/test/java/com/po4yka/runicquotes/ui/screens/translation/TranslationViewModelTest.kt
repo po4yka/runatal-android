@@ -5,12 +5,14 @@ import com.google.common.truth.Truth.assertThat
 import com.po4yka.runicquotes.data.preferences.UserPreferences
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
+import com.po4yka.runicquotes.data.repository.TranslationRepository
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.transliteration.CirthTransliterator
 import com.po4yka.runicquotes.domain.transliteration.ElderFutharkTransliterator
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair
 import com.po4yka.runicquotes.domain.transliteration.YoungerFutharkTransliterator
+import com.po4yka.runicquotes.domain.translation.HistoricalTranslationService
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -32,6 +34,8 @@ class TranslationViewModelTest {
     private lateinit var quoteRepository: QuoteRepository
     private lateinit var userPreferencesManager: UserPreferencesManager
     private lateinit var transliterationFactory: TransliterationFactory
+    private lateinit var historicalTranslationService: HistoricalTranslationService
+    private lateinit var translationRepository: TranslationRepository
     private lateinit var viewModel: TranslationViewModel
 
     private val testDispatcher = StandardTestDispatcher()
@@ -43,6 +47,8 @@ class TranslationViewModelTest {
 
         quoteRepository = mockk(relaxed = true)
         userPreferencesManager = mockk(relaxed = true)
+        historicalTranslationService = mockk(relaxed = true)
+        translationRepository = mockk(relaxed = true)
         transliterationFactory = TransliterationFactory(
             elderFutharkTransliterator = ElderFutharkTransliterator(),
             youngerFutharkTransliterator = YoungerFutharkTransliterator(),
@@ -63,7 +69,9 @@ class TranslationViewModelTest {
 
         viewModel = TranslationViewModel(
             transliterationFactory = transliterationFactory,
+            historicalTranslationService = historicalTranslationService,
             quoteRepository = quoteRepository,
+            translationRepository = translationRepository,
             userPreferencesManager = userPreferencesManager
         )
     }

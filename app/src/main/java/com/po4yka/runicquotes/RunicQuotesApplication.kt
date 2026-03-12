@@ -2,8 +2,15 @@ package com.po4yka.runicquotes
 
 import android.app.Application
 import android.content.Context
+import android.util.Log
+import androidx.work.Constraints
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
 import com.po4yka.runicquotes.ui.widget.WidgetSyncManager
+import com.po4yka.runicquotes.worker.TranslationBackfillWorker
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,11 +41,33 @@ class RunicQuotesApplication : Application() {
         // Seed database on app startup (infrastructure concern, not ViewModel concern)
         applicationScope.launch {
             quoteRepository.seedIfNeeded()
+            scheduleHistoricalTranslationBackfill()
+        }
+    }
+
+    private fun scheduleHistoricalTranslationBackfill() {
+        try {
+            val request = OneTimeWorkRequestBuilder<TranslationBackfillWorker>()
+                .setConstraints(
+                    Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
+                        .build()
+                )
+                .build()
+            WorkManager.getInstance(applicationContext).enqueueUniqueWork(
+                TranslationBackfillWorker.WORK_NAME,
+                ExistingWorkPolicy.KEEP,
+                request
+            )
+        } catch (exception: IllegalStateException) {
+            Log.w(TAG, "WorkManager unavailable; skipping translation backfill scheduling", exception)
         }
     }
 
     /** Static accessors for components needed outside of DI scope. */
     companion object {
+        private const val TAG = "RunicQuotesApp"
+
         /**
          * Provides access to WidgetSyncManager from components that cannot use DI
          * (e.g., BroadcastReceivers, Glance widgets).

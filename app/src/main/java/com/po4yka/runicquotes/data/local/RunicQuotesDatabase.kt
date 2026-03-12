@@ -8,11 +8,15 @@ import com.po4yka.runicquotes.data.local.dao.ArchivedQuoteDao
 import com.po4yka.runicquotes.data.local.dao.QuoteDao
 import com.po4yka.runicquotes.data.local.dao.QuotePackDao
 import com.po4yka.runicquotes.data.local.dao.RuneReferenceDao
+import com.po4yka.runicquotes.data.local.dao.TranslationBackfillStateDao
+import com.po4yka.runicquotes.data.local.dao.TranslationRecordDao
 import com.po4yka.runicquotes.data.local.entity.ArchivedQuoteEntity
 import com.po4yka.runicquotes.data.local.entity.PackQuoteEntity
 import com.po4yka.runicquotes.data.local.entity.QuoteEntity
 import com.po4yka.runicquotes.data.local.entity.QuotePackEntity
 import com.po4yka.runicquotes.data.local.entity.RuneReferenceEntity
+import com.po4yka.runicquotes.data.local.entity.TranslationBackfillStateEntity
+import com.po4yka.runicquotes.data.local.entity.TranslationRecordEntity
 
 /**
  * Room database for Runic Quotes.
@@ -23,12 +27,14 @@ import com.po4yka.runicquotes.data.local.entity.RuneReferenceEntity
         QuotePackEntity::class,
         PackQuoteEntity::class,
         ArchivedQuoteEntity::class,
-        RuneReferenceEntity::class
+        RuneReferenceEntity::class,
+        TranslationRecordEntity::class,
+        TranslationBackfillStateEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
-abstract class RunicQuotesDatabase : RoomDatabase() {
+internal abstract class RunicQuotesDatabase : RoomDatabase() {
 
     /**
      * Provides access to the QuoteDao.
@@ -43,6 +49,12 @@ abstract class RunicQuotesDatabase : RoomDatabase() {
 
     /** Provides access to the RuneReferenceDao. */
     abstract fun runeReferenceDao(): RuneReferenceDao
+
+    /** Provides access to the TranslationRecordDao. */
+    abstract fun translationRecordDao(): TranslationRecordDao
+
+    /** Provides access to the TranslationBackfillStateDao. */
+    abstract fun translationBackfillStateDao(): TranslationBackfillStateDao
 
     /** Database migrations and constants. */
     companion object {
@@ -143,6 +155,58 @@ abstract class RunicQuotesDatabase : RoomDatabase() {
                 )
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_rune_references_script` ON `rune_references` (`script`)"
+                )
+            }
+        }
+
+        /**
+         * Migration from version 4 to version 5.
+         * Adds structured historical translation cache tables.
+         */
+        @Suppress("MaxLineLength")
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `translation_records` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `quoteId` INTEGER NOT NULL,
+                        `script` TEXT NOT NULL,
+                        `fidelity` TEXT NOT NULL,
+                        `normalizedForm` TEXT NOT NULL,
+                        `diplomaticForm` TEXT NOT NULL,
+                        `glyphOutput` TEXT NOT NULL,
+                        `historicalStage` TEXT NOT NULL,
+                        `variant` TEXT,
+                        `confidence` REAL NOT NULL,
+                        `notesJson` TEXT NOT NULL,
+                        `tokenBreakdownJson` TEXT NOT NULL,
+                        `engineVersion` TEXT NOT NULL,
+                        `isBackfilled` INTEGER NOT NULL DEFAULT 0,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        FOREIGN KEY(`quoteId`) REFERENCES `quotes`(`id`) ON DELETE CASCADE
+                    )""".trimIndent()
+                )
+                db.execSQL(
+                    """CREATE UNIQUE INDEX IF NOT EXISTS `index_translation_records_quoteId_script_fidelity_engineVersion`
+                        ON `translation_records` (`quoteId`, `script`, `fidelity`, `engineVersion`)""".trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_translation_records_quoteId` ON `translation_records` (`quoteId`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_translation_records_script` ON `translation_records` (`script`)"
+                )
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `translation_backfill_state` (
+                        `id` INTEGER PRIMARY KEY NOT NULL,
+                        `engineVersion` TEXT NOT NULL,
+                        `lastProcessedQuoteId` INTEGER NOT NULL,
+                        `processedCount` INTEGER NOT NULL,
+                        `startedAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        `completedAt` INTEGER
+                    )""".trimIndent()
                 )
             }
         }

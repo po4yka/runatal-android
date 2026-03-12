@@ -1,0 +1,9 @@
+{
+  "strongMasculineSuffixes": {
+    "strong_masc_a": ""
+  },
+  "weakVerbSuffixes": {
+    "present3sg": "r",
+    "past3sg": "ði"
+  }
+}

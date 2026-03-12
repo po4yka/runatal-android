@@ -1,0 +1,8 @@
+{
+  "sources": [
+    { "name": "Zoega", "role": "Old Norse lexicon seed", "license": "Public domain" },
+    { "name": "Cleasby-Vigfusson", "role": "Old Norse lexical reference", "license": "Public domain" },
+    { "name": "Internal heuristic rules", "role": "Offline reconstruction and fallback", "license": "Project-owned" },
+    { "name": "Tolkien Angerthas notes", "role": "Cirth cluster mapping guidance", "license": "Reference only" }
+  ]
+}

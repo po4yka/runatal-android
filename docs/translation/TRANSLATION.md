@@ -8,6 +8,10 @@ This document defines the architecture, linguistic pipeline, and correctness rul
 
 The system must treat these as **three different writing systems with different historical languages**, not as simple alphabet substitutions.
 
+## Implementation status
+
+The app now contains a separate `domain/translation/` stack for structured historical output and keeps the legacy `domain/transliteration/` stack for direct letter-to-rune transliteration. The historical engines are offline and best-effort; when the pipeline cannot fully resolve a phrase, it must return notes and reduced confidence instead of failing silently.
+
 ---
 
 # Core Design Principle

@@ -5,11 +5,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
+import com.po4yka.runicquotes.data.repository.TranslationRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.displayName
 import com.po4yka.runicquotes.domain.transliteration.TransliterationBreakdown
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
+import com.po4yka.runicquotes.domain.translation.HistoricalTranslationService
+import com.po4yka.runicquotes.domain.translation.TranslationFidelity
+import com.po4yka.runicquotes.domain.translation.TranslationMode
+import com.po4yka.runicquotes.domain.translation.TranslationResult
+import com.po4yka.runicquotes.domain.translation.TranslationTokenBreakdown
+import com.po4yka.runicquotes.domain.translation.YoungerFutharkVariant
 import com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,15 +34,20 @@ import javax.inject.Inject
  * ViewModel for the translation screen, including saving transliterations to the library.
  */
 @HiltViewModel
-class TranslationViewModel @Inject constructor(
+internal class TranslationViewModel @Inject constructor(
     private val transliterationFactory: TransliterationFactory,
+    private val historicalTranslationService: HistoricalTranslationService,
     private val quoteRepository: QuoteRepository,
+    private val translationRepository: TranslationRepository,
     private val userPreferencesManager: UserPreferencesManager
 ) : ViewModel() {
 
     private val _inputText = MutableStateFlow("")
     private val _selectedScript = MutableStateFlow(RunicScript.DEFAULT)
     private val _selectedFont = MutableStateFlow("noto")
+    private val _translationMode = MutableStateFlow(TranslationMode.DEFAULT)
+    private val _selectedFidelity = MutableStateFlow(TranslationFidelity.DEFAULT)
+    private val _selectedYoungerVariant = MutableStateFlow(YoungerFutharkVariant.DEFAULT)
     private val _isSaving = MutableStateFlow(false)
     private val _feedbackMessage = MutableStateFlow<String?>(null)
     private val _persistedWordByWordEnabled = MutableStateFlow(false)
@@ -62,14 +74,36 @@ class TranslationViewModel @Inject constructor(
 
     val uiState: StateFlow<TranslationUiState> = combine(
         combine(
-            _selectedScript,
-            _selectedFont,
-            _persistedWordByWordEnabled
-        ) { selectedScript, selectedFont, persistedWordByWordEnabled ->
+            combine(
+                _selectedScript,
+                _selectedFont,
+                _persistedWordByWordEnabled
+            ) { selectedScript, selectedFont, persistedWordByWordEnabled ->
+                TranslationPreferenceBasics(
+                    selectedScript = selectedScript,
+                    selectedFont = selectedFont,
+                    persistedWordByWordEnabled = persistedWordByWordEnabled
+                )
+            },
+            combine(
+                _translationMode,
+                _selectedFidelity,
+                _selectedYoungerVariant
+            ) { mode, fidelity, youngerVariant ->
+                TranslationModePreferences(
+                    translationMode = mode,
+                    fidelity = fidelity,
+                    youngerVariant = youngerVariant
+                )
+            }
+        ) { basics, modePreferences ->
             TranslationPreferencesState(
-                selectedScript = selectedScript,
-                selectedFont = selectedFont,
-                persistedWordByWordEnabled = persistedWordByWordEnabled
+                selectedScript = basics.selectedScript,
+                selectedFont = basics.selectedFont,
+                persistedWordByWordEnabled = basics.persistedWordByWordEnabled,
+                translationMode = modePreferences.translationMode,
+                fidelity = modePreferences.fidelity,
+                youngerVariant = modePreferences.youngerVariant
             )
         },
         combine(
@@ -84,26 +118,54 @@ class TranslationViewModel @Inject constructor(
             )
         }
     ) { preferences, inputState ->
-        val bundle = transliterateBundle(inputState.inputText)
-        val selectedOutput = bundle.outputFor(preferences.selectedScript)
-        val selectedBreakdown = bundle.breakdownFor(preferences.selectedScript)
+        val transliterationBundle = transliterateBundle(inputState.inputText)
+        val translationBundle = translateBundle(
+            inputText = inputState.inputText,
+            fidelity = preferences.fidelity,
+            youngerVariant = preferences.youngerVariant
+        )
+        val isHistoricalTranslation = preferences.translationMode == TranslationMode.TRANSLATE
+        val selectedOutput = if (isHistoricalTranslation) {
+            translationBundle.outputFor(preferences.selectedScript)
+        } else {
+            transliterationBundle.outputFor(preferences.selectedScript)
+        }
+        val selectedBreakdown = if (isHistoricalTranslation) {
+            translationBundle.resultFor(preferences.selectedScript)?.tokenBreakdown.orEmpty()
+        } else {
+            transliterationBundle.breakdownFor(preferences.selectedScript).wordPairs.toTranslationBreakdown()
+        }
         val wordByWordEnabled =
             inputState.localWordByWordOverride ?: preferences.persistedWordByWordEnabled
+        val selectedTranslationResult = translationBundle.resultFor(preferences.selectedScript)
+        val errorMessage = if (isHistoricalTranslation) {
+            translationBundle.errorMessage
+        } else {
+            transliterationBundle.errorMessage
+        }
 
         TranslationUiState(
             inputText = inputState.inputText,
             transliteratedText = selectedOutput,
             selectedScript = preferences.selectedScript,
+            translationMode = preferences.translationMode,
+            selectedFidelity = preferences.fidelity,
+            selectedYoungerVariant = preferences.youngerVariant,
             selectedFont = preferences.selectedFont,
             outputGlyphCount = selectedOutput.glyphCount(),
             inputCharacterCount = inputState.inputText.length,
             canSave = inputState.inputText.trim().isNotEmpty() &&
                 !inputState.isSaving &&
-                bundle.errorMessage == null,
+                errorMessage == null,
             isSaving = inputState.isSaving,
-            errorMessage = bundle.errorMessage,
+            errorMessage = errorMessage,
             wordByWordEnabled = wordByWordEnabled,
-            wordBreakdown = selectedBreakdown.wordPairs
+            wordBreakdown = selectedBreakdown.toWordPairs(),
+            normalizedForm = selectedTranslationResult?.normalizedForm.orEmpty(),
+            diplomaticForm = selectedTranslationResult?.diplomaticForm.orEmpty(),
+            confidence = selectedTranslationResult?.confidence,
+            notes = selectedTranslationResult?.notes.orEmpty(),
+            tokenBreakdown = selectedBreakdown
         )
     }.stateIn(
         scope = viewModelScope,
@@ -116,6 +178,27 @@ class TranslationViewModel @Inject constructor(
      */
     fun updateInputText(text: String) {
         _inputText.value = text.take(MAX_INPUT_LENGTH)
+    }
+
+    /**
+     * Switches between legacy transliteration and structured translation.
+     */
+    fun selectMode(mode: TranslationMode) {
+        _translationMode.value = mode
+    }
+
+    /**
+     * Selects the translation fidelity level.
+     */
+    fun selectFidelity(fidelity: TranslationFidelity) {
+        _selectedFidelity.value = fidelity
+    }
+
+    /**
+     * Selects the Younger Futhark rendering variant for historical translation mode.
+     */
+    fun selectYoungerVariant(variant: YoungerFutharkVariant) {
+        _selectedYoungerVariant.value = variant
     }
 
     /**
@@ -165,21 +248,47 @@ class TranslationViewModel @Inject constructor(
             _isSaving.value = true
             try {
                 val input = state.inputText.trim()
-                val bundle = transliterateBundle(input)
+                val transliterationBundle = transliterateBundle(input)
+                val historicalBundle = translateBundle(
+                    inputText = input,
+                    fidelity = state.selectedFidelity,
+                    youngerVariant = state.selectedYoungerVariant
+                )
                 val quote = Quote(
                     id = 0L,
                     textLatin = input,
                     author = DEFAULT_TRANSLATION_AUTHOR,
-                    runicElder = bundle.outputFor(RunicScript.ELDER_FUTHARK),
-                    runicYounger = bundle.outputFor(RunicScript.YOUNGER_FUTHARK),
-                    runicCirth = bundle.outputFor(RunicScript.CIRTH),
+                    runicElder = if (state.translationMode == TranslationMode.TRANSLATE) {
+                        historicalBundle.outputFor(RunicScript.ELDER_FUTHARK)
+                    } else {
+                        transliterationBundle.outputFor(RunicScript.ELDER_FUTHARK)
+                    },
+                    runicYounger = if (state.translationMode == TranslationMode.TRANSLATE) {
+                        historicalBundle.outputFor(RunicScript.YOUNGER_FUTHARK)
+                    } else {
+                        transliterationBundle.outputFor(RunicScript.YOUNGER_FUTHARK)
+                    },
+                    runicCirth = if (state.translationMode == TranslationMode.TRANSLATE) {
+                        historicalBundle.outputFor(RunicScript.CIRTH)
+                    } else {
+                        transliterationBundle.outputFor(RunicScript.CIRTH)
+                    },
                     isUserCreated = true,
                     isFavorite = false,
                     createdAt = System.currentTimeMillis()
                 )
 
-                quoteRepository.saveUserQuote(quote)
-                _feedbackMessage.value = "Saved to library"
+                val quoteId = quoteRepository.saveUserQuote(quote)
+                if (state.translationMode == TranslationMode.TRANSLATE) {
+                    translationRepository.cacheTranslations(
+                        quoteId = quoteId,
+                        results = historicalBundle.results(),
+                        isBackfilled = false
+                    )
+                    _feedbackMessage.value = "Saved translation to library"
+                } else {
+                    _feedbackMessage.value = "Saved to library"
+                }
             } catch (exception: IOException) {
                 Log.e(TAG, "IO error saving translation", exception)
                 _feedbackMessage.value = "Failed to save translation"
@@ -227,6 +336,42 @@ class TranslationViewModel @Inject constructor(
             TransliterationBundle(errorMessage = exception.message ?: "Transliteration failed")
         }
     }
+
+    @Suppress("TooGenericExceptionCaught")
+    private fun translateBundle(
+        inputText: String,
+        fidelity: TranslationFidelity,
+        youngerVariant: YoungerFutharkVariant
+    ): HistoricalTranslationBundle {
+        if (inputText.isBlank()) {
+            return HistoricalTranslationBundle()
+        }
+
+        return try {
+            HistoricalTranslationBundle(
+                elder = historicalTranslationService.translate(
+                    text = inputText,
+                    script = RunicScript.ELDER_FUTHARK,
+                    fidelity = fidelity,
+                    youngerVariant = youngerVariant
+                ),
+                younger = historicalTranslationService.translate(
+                    text = inputText,
+                    script = RunicScript.YOUNGER_FUTHARK,
+                    fidelity = fidelity,
+                    youngerVariant = youngerVariant
+                ),
+                cirth = historicalTranslationService.translate(
+                    text = inputText,
+                    script = RunicScript.CIRTH,
+                    fidelity = fidelity,
+                    youngerVariant = youngerVariant
+                )
+            )
+        } catch (exception: Exception) {
+            HistoricalTranslationBundle(errorMessage = exception.message ?: "Historical translation failed")
+        }
+    }
 }
 
 private data class TransliterationBundle(
@@ -254,7 +399,22 @@ private data class TransliterationBundle(
 private data class TranslationPreferencesState(
     val selectedScript: RunicScript,
     val selectedFont: String,
+    val persistedWordByWordEnabled: Boolean,
+    val translationMode: TranslationMode,
+    val fidelity: TranslationFidelity,
+    val youngerVariant: YoungerFutharkVariant
+)
+
+private data class TranslationPreferenceBasics(
+    val selectedScript: RunicScript,
+    val selectedFont: String,
     val persistedWordByWordEnabled: Boolean
+)
+
+private data class TranslationModePreferences(
+    val translationMode: TranslationMode,
+    val fidelity: TranslationFidelity,
+    val youngerVariant: YoungerFutharkVariant
 )
 
 private data class TranslationInputState(
@@ -266,10 +426,13 @@ private data class TranslationInputState(
 /**
  * UI state for the translation screen.
  */
-data class TranslationUiState(
+internal data class TranslationUiState(
     val inputText: String = "",
     val transliteratedText: String = "",
     val selectedScript: RunicScript = RunicScript.DEFAULT,
+    val translationMode: TranslationMode = TranslationMode.DEFAULT,
+    val selectedFidelity: TranslationFidelity = TranslationFidelity.DEFAULT,
+    val selectedYoungerVariant: YoungerFutharkVariant = YoungerFutharkVariant.DEFAULT,
     val selectedFont: String = "noto",
     val outputGlyphCount: Int = 0,
     val inputCharacterCount: Int = 0,
@@ -277,10 +440,52 @@ data class TranslationUiState(
     val isSaving: Boolean = false,
     val errorMessage: String? = null,
     val wordByWordEnabled: Boolean = false,
-    val wordBreakdown: List<WordTransliterationPair> = emptyList()
+    val wordBreakdown: List<WordTransliterationPair> = emptyList(),
+    val normalizedForm: String = "",
+    val diplomaticForm: String = "",
+    val confidence: Float? = null,
+    val notes: List<String> = emptyList(),
+    val tokenBreakdown: List<TranslationTokenBreakdown> = emptyList()
 ) {
     /** Display name for the currently selected script. */
     val scriptDisplayName: String get() = selectedScript.displayName
 }
 
 private fun String.glyphCount(): Int = count { character -> !character.isWhitespace() }
+
+private data class HistoricalTranslationBundle(
+    val elder: TranslationResult? = null,
+    val younger: TranslationResult? = null,
+    val cirth: TranslationResult? = null,
+    val errorMessage: String? = null
+) {
+    fun outputFor(script: RunicScript): String = resultFor(script)?.glyphOutput.orEmpty()
+
+    fun resultFor(script: RunicScript): TranslationResult? = when (script) {
+        RunicScript.ELDER_FUTHARK -> elder
+        RunicScript.YOUNGER_FUTHARK -> younger
+        RunicScript.CIRTH -> cirth
+    }
+
+    fun results(): List<TranslationResult> = listOfNotNull(elder, younger, cirth)
+}
+
+private fun List<WordTransliterationPair>.toTranslationBreakdown(): List<TranslationTokenBreakdown> {
+    return map { pair ->
+        TranslationTokenBreakdown(
+            sourceToken = pair.sourceToken,
+            normalizedToken = pair.sourceToken,
+            diplomaticToken = pair.runicToken,
+            glyphToken = pair.runicToken
+        )
+    }
+}
+
+private fun List<TranslationTokenBreakdown>.toWordPairs(): List<WordTransliterationPair> {
+    return map { token ->
+        WordTransliterationPair(
+            sourceToken = token.sourceToken,
+            runicToken = token.glyphToken
+        )
+    }
+}

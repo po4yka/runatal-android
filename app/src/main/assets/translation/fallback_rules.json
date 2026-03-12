@@ -1,0 +1,16 @@
+{
+  "synonyms": {
+    "hunts": "hunt",
+    "wanders": "wander",
+    "begins": "begin",
+    "miles": "mile",
+    "works": "work",
+    "does": "do"
+  },
+  "paraphrases": {
+    "computer": "reiknandi vél",
+    "opportunity": "gott færi",
+    "yourself": "sjálfr",
+    "everyone": "hverr maðr"
+  }
+}

@@ -77,7 +77,7 @@ import com.po4yka.runicquotes.util.ShareAppearance
 import com.po4yka.runicquotes.util.ShareTemplate
 
 @Composable
-fun ShareScreen(
+internal fun ShareScreen(
     onNavigateBack: () -> Unit = {},
     quoteId: Long = 0L,
     viewModel: ShareViewModel = hiltViewModel()

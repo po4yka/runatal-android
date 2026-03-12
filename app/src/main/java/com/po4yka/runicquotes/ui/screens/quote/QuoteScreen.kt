@@ -107,7 +107,7 @@ import kotlinx.coroutines.delay
  * action buttons (save/share/shuffle), recent quotes, history link.
  */
 @Composable
-fun QuoteScreen(
+internal fun QuoteScreen(
     onNavigateToHistory: () -> Unit = {},
     onNavigateToShare: (Long) -> Unit = {},
     onBrowseLibrary: (() -> Unit)? = null,

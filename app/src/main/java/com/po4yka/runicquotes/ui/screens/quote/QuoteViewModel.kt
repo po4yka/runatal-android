@@ -2,17 +2,20 @@ package com.po4yka.runicquotes.ui.screens.quote
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.util.Log
 import com.po4yka.runicquotes.data.preferences.UserPreferences
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
+import com.po4yka.runicquotes.data.repository.NoOpTranslationRepository
+import com.po4yka.runicquotes.data.repository.TranslationRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
+import com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair
 import com.po4yka.runicquotes.util.QuoteShareManager
 import com.po4yka.runicquotes.util.ShareAppearance
 import com.po4yka.runicquotes.util.ShareTemplate
-import android.util.Log
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,11 +34,13 @@ import javax.inject.Inject
  * Business logic is delegated to domain layer.
  */
 @HiltViewModel
-class QuoteViewModel @Inject constructor(
+@Suppress("TooManyFunctions")
+internal class QuoteViewModel @Inject constructor(
     private val quoteRepository: QuoteRepository,
     private val userPreferencesManager: UserPreferencesManager,
     private val quoteShareManager: QuoteShareManager,
-    private val transliterationFactory: TransliterationFactory
+    private val transliterationFactory: TransliterationFactory,
+    private val translationRepository: TranslationRepository = NoOpTranslationRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<QuoteUiState>(QuoteUiState.Loading)
@@ -253,7 +258,7 @@ class QuoteViewModel @Inject constructor(
         }
     }
 
-    private fun applyPreferencesToCurrentQuote(
+    private suspend fun applyPreferencesToCurrentQuote(
         preferences: UserPreferences,
         wordByWordOverride: Boolean? = localWordByWordOverride.value
     ) {
@@ -267,46 +272,67 @@ class QuoteViewModel @Inject constructor(
             .filter { it.id != excludeId }
             .take(RECENT_QUOTES_LIMIT)
             .map { quote ->
+                val resolvedRunic = resolveRunicContent(quote, preferences.selectedScript)
                 RecentQuoteItem(
                     quote = quote,
-                    runicText = quote.getRunicText(preferences.selectedScript, transliterationFactory)
+                    runicText = resolvedRunic.runicText
                 )
             }
     }
 
-    private fun emitSuccessState(
+    private suspend fun emitSuccessState(
         quote: Quote,
         preferences: UserPreferences,
         wordByWordOverride: Boolean? = localWordByWordOverride.value
     ) {
-        val runicText = quote.getRunicText(preferences.selectedScript, transliterationFactory)
-        val wordBreakdown = transliterationFactory.transliterateWordByWord(
-            text = quote.textLatin,
-            script = preferences.selectedScript
-        ).wordPairs
+        val resolvedRunic = resolveRunicContent(quote, preferences.selectedScript)
         val wordByWordEnabled = wordByWordOverride ?: preferences.wordByWordTransliterationEnabled
         // Re-render recent quotes runic text when script changes
         val updatedRecent = recentQuotes.map { item ->
+            val resolvedRecent = resolveRunicContent(item.quote, preferences.selectedScript)
             item.copy(
-                runicText = item.quote.getRunicText(
-                    preferences.selectedScript,
-                    transliterationFactory
-                )
+                runicText = resolvedRecent.runicText
             )
         }
         recentQuotes = updatedRecent
         _uiState.update {
             QuoteUiState.Success(
                 quote = quote,
-                runicText = runicText,
+                runicText = resolvedRunic.runicText,
                 selectedScript = preferences.selectedScript,
                 selectedFont = preferences.selectedFont,
                 showTransliteration = preferences.showTransliteration,
                 wordByWordEnabled = wordByWordEnabled,
-                wordBreakdown = wordBreakdown,
+                wordBreakdown = resolvedRunic.wordBreakdown,
                 recentQuotes = updatedRecent
             )
         }
+    }
+
+    private suspend fun resolveRunicContent(
+        quote: Quote,
+        script: RunicScript
+    ): ResolvedRunicContent {
+        val cachedTranslation = translationRepository.getCachedTranslation(quote.id, script)
+        if (cachedTranslation != null) {
+            return ResolvedRunicContent(
+                runicText = cachedTranslation.glyphOutput,
+                wordBreakdown = cachedTranslation.tokenBreakdown.map { token ->
+                    WordTransliterationPair(
+                        sourceToken = token.sourceToken,
+                        runicToken = token.glyphToken
+                    )
+                }
+            )
+        }
+
+        return ResolvedRunicContent(
+            runicText = quote.getRunicText(script, transliterationFactory),
+            wordBreakdown = transliterationFactory.transliterateWordByWord(
+                text = quote.textLatin,
+                script = script
+            ).wordPairs
+        )
     }
 
     private companion object {
@@ -314,3 +340,8 @@ class QuoteViewModel @Inject constructor(
         const val RECENT_QUOTES_LIMIT = 3
     }
 }
+
+private data class ResolvedRunicContent(
+    val runicText: String,
+    val wordBreakdown: List<WordTransliterationPair>
+)

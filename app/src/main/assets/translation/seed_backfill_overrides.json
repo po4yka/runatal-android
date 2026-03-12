@@ -1,0 +1,56 @@
+[
+  {
+    "sourceText": "The wolf hunts at night",
+    "results": [
+      {
+        "script": "YOUNGER_FUTHARK",
+        "fidelity": "STRICT",
+        "historicalStage": "OLD_NORSE",
+        "normalizedForm": "úlfr veiðir um nótt",
+        "diplomaticForm": "ulfr uiþir um nutt",
+        "glyphOutput": "ᚢᛚᚠᚱ ᚢᛁᚦᛁᚱ ᚢᛘ ᚾᚢᛏᛏ",
+        "variant": "LONG_BRANCH",
+        "confidence": 0.97,
+        "notes": ["Matched a curated Old Norse example from the translation specification."],
+        "tokenBreakdown": [
+          { "sourceToken": "wolf", "normalizedToken": "úlfr", "diplomaticToken": "ulfr", "glyphToken": "ᚢᛚᚠᚱ" },
+          { "sourceToken": "hunts", "normalizedToken": "veiðir", "diplomaticToken": "uiþir", "glyphToken": "ᚢᛁᚦᛁᚱ" },
+          { "sourceToken": "at", "normalizedToken": "um", "diplomaticToken": "um", "glyphToken": "ᚢᛘ" },
+          { "sourceToken": "night", "normalizedToken": "nótt", "diplomaticToken": "nutt", "glyphToken": "ᚾᚢᛏᛏ" }
+        ]
+      },
+      {
+        "script": "ELDER_FUTHARK",
+        "fidelity": "STRICT",
+        "historicalStage": "PROTO_NORSE",
+        "normalizedForm": "wulfaz waiþiþi nahts",
+        "diplomaticForm": "wulfaz waiþiþi nahts",
+        "glyphOutput": "ᚹᚢᛚᚠᚨᛉ ᚹᚨᛁᚦᛁᚦᛁ ᚾᚨᚻᛏᛊ",
+        "confidence": 0.9,
+        "notes": ["Matched a curated Proto-Norse example for documentation parity."],
+        "tokenBreakdown": [
+          { "sourceToken": "wolf", "normalizedToken": "wulfaz", "diplomaticToken": "wulfaz", "glyphToken": "ᚹᚢᛚᚠᚨᛉ" },
+          { "sourceToken": "hunts", "normalizedToken": "waiþiþi", "diplomaticToken": "waiþiþi", "glyphToken": "ᚹᚨᛁᚦᛁᚦᛁ" },
+          { "sourceToken": "night", "normalizedToken": "nahts", "diplomaticToken": "nahts", "glyphToken": "ᚾᚨᚻᛏᛊ" }
+        ]
+      },
+      {
+        "script": "CIRTH",
+        "fidelity": "STRICT",
+        "historicalStage": "EREBOR_ENGLISH",
+        "normalizedForm": "the wolf hunts at night",
+        "diplomaticForm": "th·e w·o·l·f h·u·n·t·s a·t n·i·gh·t",
+        "glyphOutput": "    gh",
+        "confidence": 0.82,
+        "notes": ["Cluster-aware Erebor transcription applied to a canonical example."],
+        "tokenBreakdown": [
+          { "sourceToken": "the", "normalizedToken": "the", "diplomaticToken": "th·e", "glyphToken": "" },
+          { "sourceToken": "wolf", "normalizedToken": "wolf", "diplomaticToken": "w·o·l·f", "glyphToken": "" },
+          { "sourceToken": "hunts", "normalizedToken": "hunts", "diplomaticToken": "h·u·n·t·s", "glyphToken": "" },
+          { "sourceToken": "at", "normalizedToken": "at", "diplomaticToken": "a·t", "glyphToken": "" },
+          { "sourceToken": "night", "normalizedToken": "night", "diplomaticToken": "n·i·gh·t", "glyphToken": "gh" }
+        ]
+      }
+    ]
+  }
+]
