@@ -179,10 +179,15 @@ class QuoteListViewModelTest {
         viewModel = createViewModel()
         advanceUntilIdle()
 
-        viewModel.toggleFavorite(testQuotes.first())
-        advanceUntilIdle()
+        viewModel.events.test {
+            viewModel.toggleFavorite(testQuotes.first())
+            advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.errorMessage).isEqualTo("Failed to update favorite: disk")
+            assertThat(awaitItem()).isEqualTo(
+                QuoteListEvent.ShowMessage("Failed to update favorite: disk")
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test

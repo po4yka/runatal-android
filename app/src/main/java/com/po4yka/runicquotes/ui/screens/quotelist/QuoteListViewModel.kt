@@ -10,11 +10,13 @@ import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -33,7 +35,8 @@ class QuoteListViewModel @Inject constructor(
     val uiState: StateFlow<QuoteListUiState> = _uiState.asStateFlow()
     private val currentFilter = MutableStateFlow(QuoteFilter.ALL)
     private val searchQuery = MutableStateFlow("")
-    private val errorMessage = MutableStateFlow<String?>(null)
+    private val _events = Channel<QuoteListEvent>(Channel.BUFFERED)
+    val events = _events.receiveAsFlow()
 
     /** @suppress */
     companion object {
@@ -67,11 +70,10 @@ class QuoteListViewModel @Inject constructor(
                     ) { collections, prefs ->
                         QuoteListSourceState(collections = collections, preferences = prefs)
                     },
-                    combine(currentFilter, searchQuery, errorMessage) { selectedFilter, query, error ->
+                    combine(currentFilter, searchQuery) { selectedFilter, query ->
                         QuoteListFilterState(
                             currentFilter = selectedFilter,
-                            searchQuery = query,
-                            errorMessage = error
+                            searchQuery = query
                         )
                     }
                 ) { sourceState, filterState ->
@@ -98,7 +100,6 @@ class QuoteListViewModel @Inject constructor(
                         selectedScript = sourceState.preferences.selectedScript,
                         selectedFont = sourceState.preferences.selectedFont,
                         isLoading = false,
-                        errorMessage = filterState.errorMessage,
                         filterCounts = mapOf(
                             QuoteFilter.ALL to sourceState.collections.allQuotes.size,
                             QuoteFilter.FAVORITES to sourceState.collections.favorites.size,
@@ -110,20 +111,12 @@ class QuoteListViewModel @Inject constructor(
                 }
             } catch (e: IOException) {
                 Log.e(TAG, "IO error loading quotes", e)
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = "Failed to load quotes: ${e.message}"
-                    )
-                }
+                _uiState.update { it.copy(isLoading = false) }
+                _events.send(QuoteListEvent.ShowMessage("Failed to load quotes: ${e.message}"))
             } catch (e: IllegalStateException) {
                 Log.e(TAG, "Invalid state loading quotes", e)
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = "Invalid state: ${e.message}"
-                    )
-                }
+                _uiState.update { it.copy(isLoading = false) }
+                _events.send(QuoteListEvent.ShowMessage("Invalid state: ${e.message}"))
             }
         }
     }
@@ -151,10 +144,10 @@ class QuoteListViewModel @Inject constructor(
                 quoteRepository.toggleFavorite(quote.id, !quote.isFavorite)
             } catch (e: IOException) {
                 Log.e(TAG, "IO error toggling favorite", e)
-                errorMessage.value = "Failed to update favorite: ${e.message}"
+                _events.send(QuoteListEvent.ShowMessage("Failed to update favorite: ${e.message}"))
             } catch (e: IllegalStateException) {
                 Log.e(TAG, "Invalid state toggling favorite", e)
-                errorMessage.value = "Invalid state: ${e.message}"
+                _events.send(QuoteListEvent.ShowMessage("Invalid state: ${e.message}"))
             }
         }
     }
@@ -166,10 +159,10 @@ class QuoteListViewModel @Inject constructor(
                 quoteRepository.deleteUserQuote(quoteId)
             } catch (e: IOException) {
                 Log.e(TAG, "IO error deleting quote", e)
-                errorMessage.value = "Failed to delete quote: ${e.message}"
+                _events.send(QuoteListEvent.ShowMessage("Failed to delete quote: ${e.message}"))
             } catch (e: IllegalStateException) {
                 Log.e(TAG, "Invalid state deleting quote", e)
-                errorMessage.value = "Invalid state: ${e.message}"
+                _events.send(QuoteListEvent.ShowMessage("Invalid state: ${e.message}"))
             }
         }
     }
@@ -181,17 +174,12 @@ class QuoteListViewModel @Inject constructor(
                 quoteRepository.saveUserQuote(quote.copy(isUserCreated = true))
             } catch (e: IOException) {
                 Log.e(TAG, "IO error restoring quote", e)
-                errorMessage.value = "Failed to restore quote: ${e.message}"
+                _events.send(QuoteListEvent.ShowMessage("Failed to restore quote: ${e.message}"))
             } catch (e: IllegalStateException) {
                 Log.e(TAG, "Invalid state restoring quote", e)
-                errorMessage.value = "Invalid state: ${e.message}"
+                _events.send(QuoteListEvent.ShowMessage("Invalid state: ${e.message}"))
             }
         }
-    }
-
-    /** Clears any error message. */
-    fun clearError() {
-        errorMessage.value = null
     }
 
     private suspend fun restorePersistedFilters() {
@@ -214,8 +202,7 @@ private data class QuoteListSourceState(
 
 private data class QuoteListFilterState(
     val currentFilter: QuoteFilter,
-    val searchQuery: String,
-    val errorMessage: String?
+    val searchQuery: String
 )
 
 /** UI state for the Library screen. */
@@ -226,9 +213,14 @@ data class QuoteListUiState(
     val selectedScript: RunicScript = RunicScript.ELDER_FUTHARK,
     val selectedFont: String = "noto",
     val isLoading: Boolean = false,
-    val errorMessage: String? = null,
     val filterCounts: Map<QuoteFilter, Int> = emptyMap()
 )
+
+/** One-off UI events emitted by the library screen. */
+sealed interface QuoteListEvent {
+    /** Shows transient feedback to the user. */
+    data class ShowMessage(val message: String) : QuoteListEvent
+}
 
 /** Tab filters for the Library screen: All, Favorites, Custom. */
 enum class QuoteFilter(

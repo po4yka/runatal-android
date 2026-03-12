@@ -1,13 +1,8 @@
 package com.po4yka.runicquotes.ui.screens.packs
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -34,6 +29,9 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,7 +58,6 @@ import com.po4yka.runicquotes.ui.components.RunicChoiceChip
 import com.po4yka.runicquotes.ui.components.ErrorState
 import com.po4yka.runicquotes.ui.components.RunicGlyphBadge
 import com.po4yka.runicquotes.ui.components.RunicInfoCard
-import com.po4yka.runicquotes.ui.components.RunicInlineBanner
 import com.po4yka.runicquotes.ui.components.RunicTopBar
 import com.po4yka.runicquotes.ui.components.RunicTopBarIconAction
 import com.po4yka.runicquotes.ui.components.SkeletonCard
@@ -69,7 +66,6 @@ import com.po4yka.runicquotes.ui.theme.RunicExpressiveTheme
 import com.po4yka.runicquotes.ui.components.SkeletonCircle
 import com.po4yka.runicquotes.ui.components.rememberShimmerBrush
 import com.po4yka.runicquotes.ui.components.runicChoiceChipColors
-import kotlinx.coroutines.delay
 
 @Composable
 fun PackDetailScreen(
@@ -79,9 +75,7 @@ fun PackDetailScreen(
     viewModel: PackDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val reducedMotion = LocalReduceMotion.current
-    val motion = RunicExpressiveTheme.motion
-    var feedbackMessage by remember { mutableStateOf<String?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(packId) {
         viewModel.initializePackIfNeeded(packId)
@@ -90,17 +84,18 @@ fun PackDetailScreen(
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
-                is PackDetailEvent.ShowFeedback -> {
-                    feedbackMessage = event.message
+                is PackDetailEvent.ShowMessage -> {
+                    val result = snackbarHostState.showSnackbar(
+                        message = event.message,
+                        actionLabel = event.actionLabel
+                    )
+                    if (result == SnackbarResult.ActionPerformed &&
+                        event.action == PackDetailEventAction.VIEW_LIBRARY
+                    ) {
+                        onViewLibrary()
+                    }
                 }
             }
-        }
-    }
-
-    LaunchedEffect(feedbackMessage) {
-        if (feedbackMessage != null) {
-            delay(2800)
-            feedbackMessage = null
         }
     }
 
@@ -110,6 +105,7 @@ fun PackDetailScreen(
                 onNavigateBack = onNavigateBack
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         Box(
@@ -135,40 +131,6 @@ fun PackDetailScreen(
                     pack = state.pack,
                     onToggleLibrary = viewModel::toggleLibrary
                 )
-            }
-
-            AnimatedVisibility(
-                visible = feedbackMessage != null,
-                enter = if (reducedMotion) {
-                    EnterTransition.None
-                } else {
-                    fadeIn(
-                        animationSpec = tween(
-                            durationMillis = motion.shortDurationMillis,
-                            easing = motion.standardEasing
-                        )
-                    )
-                },
-                exit = if (reducedMotion) {
-                    ExitTransition.None
-                } else {
-                    fadeOut(
-                        animationSpec = tween(
-                            durationMillis = motion.shortDurationMillis,
-                            easing = motion.standardEasing
-                        )
-                    )
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(horizontal = 16.dp, vertical = 20.dp)
-            ) {
-                feedbackMessage?.let { message ->
-                    PackFeedbackBanner(
-                        message = message,
-                        onViewLibrary = onViewLibrary
-                    )
-                }
             }
         }
     }
@@ -446,22 +408,6 @@ private fun PackQuoteCard(quote: PackPreviewQuote) {
             )
         }
     }
-}
-
-@Composable
-private fun PackFeedbackBanner(
-    message: String,
-    onViewLibrary: () -> Unit
-) {
-    RunicInlineBanner(
-        message = message,
-        trailingText = "View",
-        onTrailingClick = onViewLibrary,
-        trailingContentDescription = "View library",
-        modifier = Modifier.fillMaxWidth(),
-        shadowElevation = RunicExpressiveTheme.elevations.raisedCard,
-        expandContent = true
-    )
 }
 
 @Composable

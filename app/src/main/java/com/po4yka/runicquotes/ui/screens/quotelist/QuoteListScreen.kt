@@ -93,10 +93,11 @@ fun QuoteListScreen(
     var deleteCandidate by remember { mutableStateOf<Quote?>(null) }
     var bottomSheetQuote by remember { mutableStateOf<Quote?>(null) }
 
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearError()
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is QuoteListEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
+            }
         }
     }
 

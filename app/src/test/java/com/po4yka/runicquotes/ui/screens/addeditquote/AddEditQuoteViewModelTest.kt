@@ -120,7 +120,6 @@ class AddEditQuoteViewModelTest {
             assertThat(state.isSaving).isFalse()
             assertThat(state.quoteTextError).isNull()
             assertThat(state.authorError).isNull()
-            assertThat(state.errorMessage).isNull()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -453,7 +452,6 @@ class AddEditQuoteViewModelTest {
         // Then: Inline validation is shown and confirmation is not triggered
         viewModel.uiState.test {
             val state = awaitItem()
-            assertThat(state.errorMessage).isNull()
             assertThat(state.quoteTextError).isEqualTo("Quote must be at least 3 characters")
             assertThat(state.showConfirmation).isFalse()
             cancelAndIgnoreRemainingEvents()
@@ -481,7 +479,6 @@ class AddEditQuoteViewModelTest {
         // Then: Inline validation is shown and confirmation is not triggered
         viewModel.uiState.test {
             val state = awaitItem()
-            assertThat(state.errorMessage).isNull()
             assertThat(state.authorError).isEqualTo("Author is required")
             assertThat(state.showConfirmation).isFalse()
             cancelAndIgnoreRemainingEvents()
@@ -510,7 +507,6 @@ class AddEditQuoteViewModelTest {
         // Then: Inline validation is shown
         viewModel.uiState.test {
             val state = awaitItem()
-            assertThat(state.errorMessage).isNull()
             assertThat(state.quoteTextError).isEqualTo("Quote must be at least 3 characters")
             assertThat(state.showConfirmation).isFalse()
             cancelAndIgnoreRemainingEvents()
@@ -740,15 +736,18 @@ class AddEditQuoteViewModelTest {
         viewModel.updateAuthor("Author")
         advanceUntilIdle()
 
-        // When: Saving quote
-        viewModel.saveQuote()
-        advanceUntilIdle()
+        viewModel.events.test {
+            viewModel.saveQuote()
+            advanceUntilIdle()
 
-        // Then: Error message is set and confirmation not shown
+            assertThat(awaitItem()).isEqualTo(
+                AddEditQuoteEvent.ShowMessage("Failed to save quote: Database error")
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+
         viewModel.uiState.test {
             val state = awaitItem()
-            assertThat(state.errorMessage).isNotNull()
-            assertThat(state.errorMessage).contains("Failed to save quote")
             assertThat(state.isSaving).isFalse()
             assertThat(state.showConfirmation).isFalse()
             cancelAndIgnoreRemainingEvents()
@@ -773,25 +772,28 @@ class AddEditQuoteViewModelTest {
         viewModel.updateAuthor("Author")
         advanceUntilIdle()
 
-        // When: Saving quote
-        viewModel.saveQuote()
-        advanceUntilIdle()
+        viewModel.events.test {
+            viewModel.saveQuote()
+            advanceUntilIdle()
 
-        // Then: Error message is set
+            assertThat(awaitItem()).isEqualTo(
+                AddEditQuoteEvent.ShowMessage("Invalid state: Invalid state")
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+
         viewModel.uiState.test {
             val state = awaitItem()
-            assertThat(state.errorMessage).isNotNull()
-            assertThat(state.errorMessage).contains("Invalid state")
             assertThat(state.showConfirmation).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `clearError removes error message`() = runTest {
-        // Given: ViewModel with repository error
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
-        coEvery { quoteRepository.saveUserQuote(any()) } throws IOException("Database error")
+    fun `deleteQuote emits message when repository delete fails`() = runTest {
+        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 1L))
+        coEvery { quoteRepository.getQuoteById(1L) } returns testQuote
+        coEvery { quoteRepository.deleteUserQuote(1L) } throws IOException("Database error")
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
@@ -800,27 +802,17 @@ class AddEditQuoteViewModelTest {
         )
         advanceUntilIdle()
 
-        viewModel.updateTextLatin("Test quote")
-        viewModel.updateAuthor("Author")
-        advanceUntilIdle()
-
-        // Trigger repository error
-        viewModel.saveQuote()
-        advanceUntilIdle()
-
-        // When: Clearing error
-        viewModel.uiState.test {
-            val stateWithError = awaitItem()
-            assertThat(stateWithError.errorMessage).isNotNull()
-
-            viewModel.clearError()
+        viewModel.events.test {
+            viewModel.deleteQuote()
             advanceUntilIdle()
 
-            val stateWithoutError = awaitItem()
-            assertThat(stateWithoutError.errorMessage).isNull()
-
+            assertThat(awaitItem()).isEqualTo(
+                AddEditQuoteEvent.ShowMessage("Failed to delete quote: Database error")
+            )
             cancelAndIgnoreRemainingEvents()
         }
+
+        assertThat(viewModel.uiState.value.isDeleting).isFalse()
     }
 
     // ==================== Preferences Update Tests ====================

@@ -145,7 +145,7 @@ internal class AddEditQuoteViewModel @Inject constructor(
                 return@launch
             }
 
-            _uiState.update { it.copy(isSaving = true, errorMessage = null) }
+            _uiState.update { it.copy(isSaving = true) }
 
             try {
                 val trimmedText = state.textLatin.trim()
@@ -206,20 +206,12 @@ internal class AddEditQuoteViewModel @Inject constructor(
                 }
             } catch (e: IOException) {
                 Log.e(TAG, "IO error saving quote", e)
-                _uiState.update {
-                    it.copy(
-                        isSaving = false,
-                        errorMessage = "Failed to save quote: ${e.message}"
-                    )
-                }
+                _uiState.update { it.copy(isSaving = false) }
+                _events.send(AddEditQuoteEvent.ShowMessage("Failed to save quote: ${e.message}"))
             } catch (e: IllegalStateException) {
                 Log.e(TAG, "Invalid state saving quote", e)
-                _uiState.update {
-                    it.copy(
-                        isSaving = false,
-                        errorMessage = "Invalid state: ${e.message}"
-                    )
-                }
+                _uiState.update { it.copy(isSaving = false) }
+                _events.send(AddEditQuoteEvent.ShowMessage("Invalid state: ${e.message}"))
             }
         }
     }
@@ -236,12 +228,12 @@ internal class AddEditQuoteViewModel @Inject constructor(
                 _events.send(AddEditQuoteEvent.NavigateBackAfterDelete)
             } catch (e: IOException) {
                 Log.e(TAG, "IO error deleting quote", e)
-                _uiState.update {
-                    it.copy(
-                        isDeleting = false,
-                        errorMessage = "Failed to delete quote: ${e.message}"
-                    )
-                }
+                _uiState.update { it.copy(isDeleting = false) }
+                _events.send(AddEditQuoteEvent.ShowMessage("Failed to delete quote: ${e.message}"))
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Invalid state deleting quote", e)
+                _uiState.update { it.copy(isDeleting = false) }
+                _events.send(AddEditQuoteEvent.ShowMessage("Invalid state: ${e.message}"))
             }
         }
     }
@@ -262,13 +254,6 @@ internal class AddEditQuoteViewModel @Inject constructor(
                 selectedFont = it.selectedFont
             )
         }
-    }
-
-    /**
-     * Clears any error message.
-     */
-    fun clearError() {
-        _uiState.update { it.copy(errorMessage = null) }
     }
 
     /**
@@ -352,12 +337,14 @@ data class AddEditQuoteUiState(
     val isDeleting: Boolean = false,
     val hasUnsavedChanges: Boolean = false,
     val canSave: Boolean = false,
-    val showConfirmation: Boolean = false,
-    val errorMessage: String? = null
+    val showConfirmation: Boolean = false
 )
 
 /** One-off navigation events emitted by the add/edit quote screen. */
 sealed interface AddEditQuoteEvent {
+    /** Shows transient feedback to the user. */
+    data class ShowMessage(val message: String) : AddEditQuoteEvent
+
     /** Navigates back after an existing quote has been saved. */
     data object NavigateBackAfterEdit : AddEditQuoteEvent
 

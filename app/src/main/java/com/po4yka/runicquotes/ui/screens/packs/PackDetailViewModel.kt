@@ -81,18 +81,22 @@ class PackDetailViewModel @Inject constructor(
                 quotePackRepository.updatePack(updated)
                 _uiState.update { PackDetailUiState.Success(updated) }
                 _events.send(
-                    PackDetailEvent.ShowFeedback(
+                    PackDetailEvent.ShowMessage(
                         message = if (updated.isInLibrary) {
                             "${updated.quoteCount} quotes added to library"
                         } else {
                             "${updated.name} removed from library"
-                        }
+                        },
+                        actionLabel = if (updated.isInLibrary) "View library" else null,
+                        action = if (updated.isInLibrary) PackDetailEventAction.VIEW_LIBRARY else null
                     )
                 )
             } catch (e: IOException) {
                 Log.e(TAG, "IO error toggling library status", e)
+                _events.send(PackDetailEvent.ShowMessage("Failed to update pack: ${e.message}"))
             } catch (e: IllegalStateException) {
                 Log.e(TAG, "Invalid state toggling library status", e)
+                _events.send(PackDetailEvent.ShowMessage("Invalid state: ${e.message}"))
             }
         }
     }
@@ -124,5 +128,14 @@ sealed interface PackDetailUiState {
 /** One-off UI events emitted by the pack detail screen. */
 sealed interface PackDetailEvent {
     /** Displays transient pack-related feedback. */
-    data class ShowFeedback(val message: String) : PackDetailEvent
+    data class ShowMessage(
+        val message: String,
+        val actionLabel: String? = null,
+        val action: PackDetailEventAction? = null
+    ) : PackDetailEvent
+}
+
+/** Supported actions for pack-detail transient feedback. */
+enum class PackDetailEventAction {
+    VIEW_LIBRARY
 }

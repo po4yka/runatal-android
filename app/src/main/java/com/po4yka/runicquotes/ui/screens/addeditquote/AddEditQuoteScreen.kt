@@ -111,16 +111,10 @@ internal fun AddEditQuoteScreen(
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
+                is AddEditQuoteEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
                 AddEditQuoteEvent.NavigateBackAfterDelete,
                 AddEditQuoteEvent.NavigateBackAfterEdit -> currentNavigateBack()
             }
-        }
-    }
-
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearError()
         }
     }
 
