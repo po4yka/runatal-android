@@ -4,12 +4,15 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.po4yka.runicquotes.domain.model.RunicScript
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -25,37 +28,45 @@ class UserPreferencesManager @Inject constructor(
     /**
      * Flow of user preferences that emits whenever preferences change.
      */
-    val userPreferencesFlow: Flow<UserPreferences> = dataStore.data.map { preferences ->
-        UserPreferences(
-            selectedScript = preferences[SELECTED_SCRIPT]
-                ?.let { scriptName -> RunicScript.entries.firstOrNull { it.name == scriptName } }
-                ?: RunicScript.DEFAULT,
-            selectedFont = preferences[SELECTED_FONT] ?: "noto",
-            widgetUpdateMode = preferences[WIDGET_UPDATE_MODE] ?: "daily",
-            widgetDisplayMode = preferences[WIDGET_DISPLAY_MODE] ?: "rune_latin",
-            quoteListFilter = preferences[QUOTE_LIST_FILTER] ?: "all",
-            quoteSearchQuery = preferences[QUOTE_SEARCH_QUERY] ?: "",
-            quoteAuthorFilter = preferences[QUOTE_AUTHOR_FILTER] ?: "",
-            quoteLengthFilter = preferences[QUOTE_LENGTH_FILTER] ?: "any",
-            quoteCollectionFilter = preferences[QUOTE_COLLECTION_FILTER] ?: "all",
-            lastQuoteDate = preferences[LAST_QUOTE_DATE] ?: 0L,
-            lastDailyQuoteId = preferences[LAST_DAILY_QUOTE_ID] ?: 0L,
-            themeMode = preferences[THEME_MODE] ?: "system",
-            dynamicColorEnabled = preferences[DYNAMIC_COLOR_ENABLED] ?: false,
-            themePack = preferences[THEME_PACK] ?: "stone",
-            appIconVariant = preferences[APP_ICON_VARIANT] ?: "storm_slate",
-            showTransliteration = preferences[SHOW_TRANSLITERATION] ?: true,
-            wordByWordTransliterationEnabled = preferences[WORD_BY_WORD_TRANSLITERATION_ENABLED] ?: false,
-            fontSize = preferences[FONT_SIZE] ?: 1.0f,
-            largeRunesEnabled = preferences[LARGE_RUNES_ENABLED] ?: false,
-            highContrastEnabled = preferences[HIGH_CONTRAST_ENABLED] ?: false,
-            reducedMotionEnabled = preferences[REDUCED_MOTION_ENABLED] ?: false,
-            hasCompletedOnboarding = preferences[HAS_COMPLETED_ONBOARDING] ?: false,
-            dailyQuoteNotifications = preferences[DAILY_QUOTE_NOTIFICATIONS] ?: true,
-            streakNotifications = preferences[STREAK_NOTIFICATIONS] ?: true,
-            packUpdateNotifications = preferences[PACK_UPDATE_NOTIFICATIONS] ?: true
-        )
-    }
+    val userPreferencesFlow: Flow<UserPreferences> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            UserPreferences(
+                selectedScript = preferences[SELECTED_SCRIPT]
+                    ?.let { scriptName -> RunicScript.entries.firstOrNull { it.name == scriptName } }
+                    ?: RunicScript.DEFAULT,
+                selectedFont = preferences[SELECTED_FONT] ?: "noto",
+                widgetUpdateMode = preferences[WIDGET_UPDATE_MODE] ?: "daily",
+                widgetDisplayMode = preferences[WIDGET_DISPLAY_MODE] ?: "rune_latin",
+                quoteListFilter = preferences[QUOTE_LIST_FILTER] ?: "all",
+                quoteSearchQuery = preferences[QUOTE_SEARCH_QUERY] ?: "",
+                quoteAuthorFilter = preferences[QUOTE_AUTHOR_FILTER] ?: "",
+                quoteLengthFilter = preferences[QUOTE_LENGTH_FILTER] ?: "any",
+                quoteCollectionFilter = preferences[QUOTE_COLLECTION_FILTER] ?: "all",
+                lastQuoteDate = preferences[LAST_QUOTE_DATE] ?: 0L,
+                lastDailyQuoteId = preferences[LAST_DAILY_QUOTE_ID] ?: 0L,
+                themeMode = preferences[THEME_MODE] ?: "system",
+                dynamicColorEnabled = preferences[DYNAMIC_COLOR_ENABLED] ?: false,
+                themePack = preferences[THEME_PACK] ?: "stone",
+                appIconVariant = preferences[APP_ICON_VARIANT] ?: "storm_slate",
+                showTransliteration = preferences[SHOW_TRANSLITERATION] ?: true,
+                wordByWordTransliterationEnabled = preferences[WORD_BY_WORD_TRANSLITERATION_ENABLED] ?: false,
+                fontSize = preferences[FONT_SIZE] ?: 1.0f,
+                largeRunesEnabled = preferences[LARGE_RUNES_ENABLED] ?: false,
+                highContrastEnabled = preferences[HIGH_CONTRAST_ENABLED] ?: false,
+                reducedMotionEnabled = preferences[REDUCED_MOTION_ENABLED] ?: false,
+                hasCompletedOnboarding = preferences[HAS_COMPLETED_ONBOARDING] ?: false,
+                dailyQuoteNotifications = preferences[DAILY_QUOTE_NOTIFICATIONS] ?: true,
+                streakNotifications = preferences[STREAK_NOTIFICATIONS] ?: true,
+                packUpdateNotifications = preferences[PACK_UPDATE_NOTIFICATIONS] ?: true
+            )
+        }
 
     /**
      * Updates the selected runic script.

@@ -56,6 +56,17 @@ internal class TranslationRepositoryImpl @Inject constructor(
         )?.toDomain()
     }
 
+    override suspend fun getLatestAvailableTranslation(
+        quoteId: Long,
+        script: RunicScript
+    ): TranslationResult? {
+        return translationRecordDao.getLatestAvailableForScript(
+            quoteId = quoteId,
+            script = script.name,
+            unavailableStatus = TranslationResolutionStatus.UNAVAILABLE.name
+        )?.toDomain()
+    }
+
     override suspend fun cacheTranslation(
         quoteId: Long,
         result: TranslationResult,
@@ -154,6 +165,10 @@ internal class TranslationRepositoryImpl @Inject constructor(
                 completedAt = System.currentTimeMillis()
             )
         )
+    }
+
+    override suspend fun deleteTranslationsForQuote(quoteId: Long) {
+        translationRecordDao.deleteForQuote(quoteId)
     }
 
     private fun buildStrictResults(sourceText: String): List<TranslationResult> {

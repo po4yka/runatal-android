@@ -5,9 +5,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
+import com.po4yka.runicquotes.data.repository.NoOpTranslationRepository
 import com.po4yka.runicquotes.data.repository.QuoteRepository
+import com.po4yka.runicquotes.data.repository.TranslationRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
+import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,15 +27,17 @@ import javax.inject.Inject
  * Provides live preview of runic transliteration as user types.
  */
 @HiltViewModel
-class AddEditQuoteViewModel @Inject constructor(
+internal class AddEditQuoteViewModel @Inject constructor(
     private val quoteRepository: QuoteRepository,
     private val userPreferencesManager: UserPreferencesManager,
     private val transliterationFactory: TransliterationFactory,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    private val translationRepository: TranslationRepository = NoOpTranslationRepository
 ) : ViewModel() {
 
     private var quoteId: Long = savedStateHandle.get<Long>("quoteId") ?: 0L
     private var loadedQuoteId: Long? = null
+    private var loadedQuote: Quote? = null
     private var initialTextLatin: String = ""
     private var initialAuthor: String = ""
     private var hasAttemptedSave: Boolean = false
@@ -80,17 +85,20 @@ class AddEditQuoteViewModel @Inject constructor(
         viewModelScope.launch {
             val quote = quoteRepository.getQuoteById(quoteId)
             if (quote != null && quote.isUserCreated) {
+                loadedQuote = quote
                 initialTextLatin = quote.textLatin
                 initialAuthor = quote.author
                 _uiState.update {
                     it.copy(
                         textLatin = quote.textLatin,
                         author = quote.author,
+                        runicElderPreview = quote.getRunicText(RunicScript.ELDER_FUTHARK, transliterationFactory),
+                        runicYoungerPreview = quote.getRunicText(RunicScript.YOUNGER_FUTHARK, transliterationFactory),
+                        runicCirthPreview = quote.getRunicText(RunicScript.CIRTH, transliterationFactory),
                         createdAtMillis = quote.createdAt,
                         isEditing = true
                     )
                 }
-                updateRunicPreviews()
                 recomputeDerivedState()
             }
         }
@@ -101,7 +109,7 @@ class AddEditQuoteViewModel @Inject constructor(
      */
     fun updateTextLatin(text: String) {
         _uiState.update { it.copy(textLatin = text) }
-        updateRunicPreviews()
+        updateRunicPreviews(text)
         recomputeDerivedState()
     }
 
@@ -136,6 +144,9 @@ class AddEditQuoteViewModel @Inject constructor(
             _uiState.update { it.copy(isSaving = true, errorMessage = null) }
 
             try {
+                val trimmedText = state.textLatin.trim()
+                val trimmedAuthor = state.author.trim()
+                val didTextChange = state.isEditing && trimmedText != initialTextLatin.trim()
                 val createdAt = if (state.isEditing && state.createdAtMillis != 0L) {
                     state.createdAtMillis
                 } else {
@@ -143,21 +154,33 @@ class AddEditQuoteViewModel @Inject constructor(
                 }
                 val quote = Quote(
                     id = quoteId,
-                    textLatin = state.textLatin.trim(),
-                    author = state.author.trim(),
+                    textLatin = trimmedText,
+                    author = trimmedAuthor,
                     runicElder = state.runicElderPreview,
                     runicYounger = state.runicYoungerPreview,
                     runicCirth = state.runicCirthPreview,
                     isUserCreated = true,
-                    isFavorite = false,
+                    isFavorite = loadedQuote?.isFavorite ?: false,
                     createdAt = createdAt
                 )
 
                 val savedQuoteId = quoteRepository.saveUserQuote(quote)
+                if (didTextChange) {
+                    runCatching {
+                        translationRepository.deleteTranslationsForQuote(savedQuoteId)
+                    }.onFailure { throwable ->
+                        Log.w(
+                            TAG,
+                            "Saved edited quote but failed to invalidate translation cache for id=$savedQuoteId",
+                            throwable
+                        )
+                    }
+                }
                 quoteId = savedQuoteId
                 loadedQuoteId = savedQuoteId
-                initialTextLatin = state.textLatin.trim()
-                initialAuthor = state.author.trim()
+                loadedQuote = quote.copy(id = savedQuoteId)
+                initialTextLatin = trimmedText
+                initialAuthor = trimmedAuthor
                 if (state.isEditing) {
                     _uiState.update {
                         it.copy(
@@ -225,6 +248,7 @@ class AddEditQuoteViewModel @Inject constructor(
     fun resetForNewQuote() {
         quoteId = 0L
         loadedQuoteId = null
+        loadedQuote = null
         initialTextLatin = ""
         initialAuthor = ""
         hasAttemptedSave = false
@@ -246,13 +270,16 @@ class AddEditQuoteViewModel @Inject constructor(
     /**
      * Regenerates runic previews for all scripts based on current text.
      */
-    private fun updateRunicPreviews() {
-        val text = _uiState.value.textLatin
+    private fun updateRunicPreviews(text: String = _uiState.value.textLatin) {
+        val preservedQuote = loadedQuote?.takeIf { it.textLatin == text }
         _uiState.update {
             it.copy(
-                runicElderPreview = transliterationFactory.transliterate(text, RunicScript.ELDER_FUTHARK),
-                runicYoungerPreview = transliterationFactory.transliterate(text, RunicScript.YOUNGER_FUTHARK),
-                runicCirthPreview = transliterationFactory.transliterate(text, RunicScript.CIRTH)
+                runicElderPreview = preservedQuote?.getRunicText(RunicScript.ELDER_FUTHARK, transliterationFactory)
+                    ?: transliterationFactory.transliterate(text, RunicScript.ELDER_FUTHARK),
+                runicYoungerPreview = preservedQuote?.getRunicText(RunicScript.YOUNGER_FUTHARK, transliterationFactory)
+                    ?: transliterationFactory.transliterate(text, RunicScript.YOUNGER_FUTHARK),
+                runicCirthPreview = preservedQuote?.getRunicText(RunicScript.CIRTH, transliterationFactory)
+                    ?: transliterationFactory.transliterate(text, RunicScript.CIRTH)
             )
         }
     }

@@ -92,7 +92,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
-fun AddEditQuoteScreen(
+internal fun AddEditQuoteScreen(
     onNavigateBack: () -> Unit,
     quoteId: Long = 0L,
     viewModel: AddEditQuoteViewModel = hiltViewModel()

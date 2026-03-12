@@ -5,9 +5,9 @@ import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.translation.HistoricalTranslationService
 import com.po4yka.runicquotes.domain.translation.HistoricalStage
 import com.po4yka.runicquotes.domain.translation.TranslationFidelity
+import com.po4yka.runicquotes.domain.translation.TranslationProvenanceEntry
 import com.po4yka.runicquotes.domain.translation.TranslationResolutionStatus
 import com.po4yka.runicquotes.domain.translation.TranslationResult
-import com.po4yka.runicquotes.domain.translation.TranslationProvenanceEntry
 import com.po4yka.runicquotes.domain.translation.YoungerFutharkVariant
 
 /**
@@ -19,6 +19,11 @@ internal interface TranslationRepository {
         script: RunicScript,
         fidelity: TranslationFidelity = TranslationFidelity.DEFAULT,
         youngerVariant: YoungerFutharkVariant = YoungerFutharkVariant.DEFAULT
+    ): TranslationResult?
+
+    suspend fun getLatestAvailableTranslation(
+        quoteId: Long,
+        script: RunicScript
     ): TranslationResult?
 
     suspend fun cacheTranslation(
@@ -45,6 +50,8 @@ internal interface TranslationRepository {
     suspend fun backfillQuote(quote: Quote)
 
     suspend fun backfillAllQuotes()
+
+    suspend fun deleteTranslationsForQuote(quoteId: Long)
 }
 
 /**
@@ -100,4 +107,11 @@ internal object NoOpTranslationRepository : TranslationRepository {
     override suspend fun backfillQuote(quote: Quote) = Unit
 
     override suspend fun backfillAllQuotes() = Unit
+
+    override suspend fun getLatestAvailableTranslation(
+        quoteId: Long,
+        script: RunicScript
+    ): TranslationResult? = null
+
+    override suspend fun deleteTranslationsForQuote(quoteId: Long) = Unit
 }

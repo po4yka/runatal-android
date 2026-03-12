@@ -5,12 +5,19 @@ import com.google.common.truth.Truth.assertThat
 import com.po4yka.runicquotes.data.preferences.UserPreferences
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
+import com.po4yka.runicquotes.data.repository.TranslationRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.transliteration.CirthTransliterator
 import com.po4yka.runicquotes.domain.transliteration.ElderFutharkTransliterator
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import com.po4yka.runicquotes.domain.transliteration.YoungerFutharkTransliterator
+import com.po4yka.runicquotes.domain.translation.HistoricalStage
+import com.po4yka.runicquotes.domain.translation.TranslationFidelity
+import com.po4yka.runicquotes.domain.translation.TranslationProvenanceEntry
+import com.po4yka.runicquotes.domain.translation.TranslationResolutionStatus
+import com.po4yka.runicquotes.domain.translation.TranslationResult
+import com.po4yka.runicquotes.domain.translation.TranslationTokenBreakdown
 import com.po4yka.runicquotes.util.QuoteShareManager
 import com.po4yka.runicquotes.util.ShareAppearance
 import com.po4yka.runicquotes.util.ShareTemplate
@@ -701,5 +708,66 @@ class QuoteViewModelTest {
         advanceUntilIdle()
 
         coVerify { userPreferencesManager.updateShowTransliteration(false) }
+    }
+
+    @Test
+    fun `latest available translation is preferred over stored transliteration`() = runTest {
+        val translationRepository = mockk<TranslationRepository>()
+        val translatedQuote = testQuote.copy(runicElder = "stale")
+        val cachedTranslation = TranslationResult(
+            sourceText = translatedQuote.textLatin,
+            script = RunicScript.ELDER_FUTHARK,
+            fidelity = TranslationFidelity.READABLE,
+            historicalStage = HistoricalStage.OLD_NORSE,
+            normalizedForm = "test",
+            diplomaticForm = "test",
+            glyphOutput = "cached elder",
+            resolutionStatus = TranslationResolutionStatus.RECONSTRUCTED,
+            confidence = 0.88f,
+            notes = listOf("cached"),
+            unresolvedTokens = emptyList(),
+            provenance = listOf(
+                TranslationProvenanceEntry(
+                    sourceId = "cache",
+                    label = "Cache",
+                    role = "test",
+                    license = "none",
+                    detail = "preferred"
+                )
+            ),
+            tokenBreakdown = listOf(
+                TranslationTokenBreakdown(
+                    sourceToken = "Test",
+                    normalizedToken = "test",
+                    diplomaticToken = "cached",
+                    glyphToken = "cached"
+                )
+            ),
+            engineVersion = "engine",
+            datasetVersion = "dataset"
+        )
+        coEvery { quoteRepository.quoteOfTheDay() } returns translatedQuote
+        coEvery { translationRepository.getLatestAvailableTranslation(1L, RunicScript.ELDER_FUTHARK) } returns
+            cachedTranslation
+        coEvery { translationRepository.getLatestAvailableTranslation(1L, RunicScript.YOUNGER_FUTHARK) } returns null
+        coEvery { translationRepository.getLatestAvailableTranslation(1L, RunicScript.CIRTH) } returns null
+
+        viewModel = QuoteViewModel(
+            quoteRepository,
+            userPreferencesManager,
+            quoteShareManager,
+            transliterationFactory,
+            translationRepository
+        )
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as QuoteUiState.Success
+        assertThat(state.runicText).isEqualTo("cached elder")
+        assertThat(state.wordBreakdown).containsExactly(
+            com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair(
+                sourceToken = "Test",
+                runicToken = "cached"
+            )
+        )
     }
 }

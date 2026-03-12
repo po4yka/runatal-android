@@ -3,7 +3,9 @@ package com.po4yka.runicquotes
 import android.app.Application
 import android.content.Context
 import android.util.Log
+import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Constraints
+import androidx.work.Configuration
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
@@ -24,15 +26,23 @@ import javax.inject.Inject
  * Handles app-level initialization such as database seeding.
  */
 @HiltAndroidApp
-class RunicQuotesApplication : Application() {
+class RunicQuotesApplication : Application(), Configuration.Provider {
 
     @Inject
     lateinit var quoteRepository: QuoteRepository
+
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     lateinit var widgetSyncManager: WidgetSyncManager
         private set
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
 
     override fun onCreate() {
         super.onCreate()

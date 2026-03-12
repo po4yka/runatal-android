@@ -6,6 +6,7 @@ import com.google.common.truth.Truth.assertThat
 import com.po4yka.runicquotes.data.preferences.UserPreferences
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
 import com.po4yka.runicquotes.data.repository.QuoteRepository
+import com.po4yka.runicquotes.data.repository.TranslationRepository
 import com.po4yka.runicquotes.domain.model.Quote
 import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.transliteration.CirthTransliterator
@@ -169,9 +170,9 @@ class AddEditQuoteViewModelTest {
             assertThat(state.textLatin).isEqualTo(testQuote.textLatin)
             assertThat(state.author).isEqualTo(testQuote.author)
             assertThat(state.isEditing).isTrue()
-            assertThat(state.runicElderPreview).isNotEmpty()
-            assertThat(state.runicYoungerPreview).isNotEmpty()
-            assertThat(state.runicCirthPreview).isNotEmpty()
+            assertThat(state.runicElderPreview).isEqualTo(testQuote.runicElder)
+            assertThat(state.runicYoungerPreview).isEqualTo(testQuote.runicYounger)
+            assertThat(state.runicCirthPreview).isEqualTo(testQuote.runicCirth)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -654,8 +655,9 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `saveQuote updates existing quote`() = runTest {
         // Given: ViewModel editing existing quote
+        val favoriteQuote = testQuote.copy(isFavorite = true)
         savedStateHandle = SavedStateHandle(mapOf("quoteId" to 1L))
-        coEvery { quoteRepository.getQuoteById(1L) } returns testQuote
+        coEvery { quoteRepository.getQuoteById(1L) } returns favoriteQuote
         var editSavedCallbackCalled = false
         var savedQuote: Quote? = null
         coEvery { quoteRepository.saveUserQuote(any()) } coAnswers {
@@ -681,13 +683,38 @@ class AddEditQuoteViewModelTest {
         // Then: Quote is saved with original ID, original timestamp, and no create confirmation
         coVerify { quoteRepository.saveUserQuote(match { it.id == 1L }) }
         assertThat(savedQuote).isNotNull()
-        assertThat(savedQuote!!.createdAt).isEqualTo(testQuote.createdAt)
+        assertThat(savedQuote!!.createdAt).isEqualTo(favoriteQuote.createdAt)
+        assertThat(savedQuote!!.isFavorite).isTrue()
         assertThat(editSavedCallbackCalled).isTrue()
         viewModel.uiState.test {
             val state = awaitItem()
             assertThat(state.showConfirmation).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `saveQuote invalidates cached translations when edited text changes`() = runTest {
+        val translationRepository = mockk<TranslationRepository>(relaxed = true)
+        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 1L))
+        coEvery { quoteRepository.getQuoteById(1L) } returns testQuote
+        coEvery { quoteRepository.saveUserQuote(any()) } returns 1L
+
+        viewModel = AddEditQuoteViewModel(
+            quoteRepository,
+            userPreferencesManager,
+            transliterationFactory,
+            savedStateHandle,
+            translationRepository
+        )
+        advanceUntilIdle()
+
+        viewModel.updateTextLatin("Updated quote")
+        advanceUntilIdle()
+        viewModel.saveQuote()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { translationRepository.deleteTranslationsForQuote(1L) }
     }
 
     // ==================== Error Handling Tests ====================

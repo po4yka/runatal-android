@@ -13,8 +13,6 @@ import com.po4yka.runicquotes.domain.model.RunicScript
 import com.po4yka.runicquotes.domain.model.getRunicText
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import com.po4yka.runicquotes.domain.transliteration.WordTransliterationPair
-import com.po4yka.runicquotes.domain.translation.TranslationFidelity
-import com.po4yka.runicquotes.domain.translation.YoungerFutharkVariant
 import com.po4yka.runicquotes.util.QuoteShareManager
 import com.po4yka.runicquotes.util.ShareAppearance
 import com.po4yka.runicquotes.util.ShareTemplate
@@ -315,16 +313,14 @@ internal class QuoteViewModel @Inject constructor(
         quote: Quote,
         script: RunicScript
     ): ResolvedRunicContent {
-        val cachedTranslation = translationRepository.getCachedTranslation(
+        val latestTranslation = translationRepository.getLatestAvailableTranslation(
             quoteId = quote.id,
-            script = script,
-            fidelity = TranslationFidelity.STRICT,
-            youngerVariant = YoungerFutharkVariant.DEFAULT
+            script = script
         )
-        if (cachedTranslation != null) {
+        if (latestTranslation != null) {
             return ResolvedRunicContent(
-                runicText = cachedTranslation.glyphOutput,
-                wordBreakdown = cachedTranslation.tokenBreakdown.map { token ->
+                runicText = latestTranslation.glyphOutput,
+                wordBreakdown = latestTranslation.tokenBreakdown.map { token ->
                     WordTransliterationPair(
                         sourceToken = token.sourceToken,
                         runicToken = token.glyphToken

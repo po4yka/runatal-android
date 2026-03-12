@@ -6,7 +6,11 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runicquotes.domain.model.RunicScript
+import io.mockk.every
+import io.mockk.mockk
 import java.util.UUID
+import java.io.IOException
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
@@ -118,5 +122,18 @@ class UserPreferencesManagerJvmTest {
         assertThat(preferences.highContrastEnabled).isFalse()
         assertThat(preferences.hasCompletedOnboarding).isFalse()
         assertThat(preferences.dailyQuoteNotifications).isTrue()
+    }
+
+    @Test
+    fun `io failures while reading preferences fall back to defaults`() = testScope.runTest {
+        val failingDataStore = mockk<DataStore<Preferences>>()
+        every { failingDataStore.data } returns flow { throw IOException("disk") }
+
+        val manager = UserPreferencesManager(failingDataStore)
+        val preferences = manager.userPreferencesFlow.first()
+
+        assertThat(preferences.selectedScript).isEqualTo(RunicScript.DEFAULT)
+        assertThat(preferences.themeMode).isEqualTo("system")
+        assertThat(preferences.widgetUpdateMode).isEqualTo("daily")
     }
 }
