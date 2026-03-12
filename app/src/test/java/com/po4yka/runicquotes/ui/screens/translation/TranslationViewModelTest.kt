@@ -23,8 +23,11 @@ import com.po4yka.runicquotes.domain.translation.TranslationResult
 import com.po4yka.runicquotes.domain.translation.TranslationTokenBreakdown
 import com.po4yka.runicquotes.domain.translation.YoungerFutharkVariant
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -307,6 +310,109 @@ class TranslationViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
 
+        collector.cancel()
+    }
+
+    @Test
+    fun `saveToLibrary caches structured translations in translate mode`() = runTest {
+        coEvery { quoteRepository.saveUserQuote(any()) } returns 34L
+        val cachedResults = slot<List<TranslationResult>>()
+        every {
+            historicalTranslationService.translate(any(), any(), any(), any())
+        } answers {
+            TranslationResult(
+                sourceText = firstArg(),
+                script = secondArg(),
+                fidelity = thirdArg(),
+                derivationKind = TranslationDerivationKind.TOKEN_COMPOSED,
+                historicalStage = when (secondArg<RunicScript>()) {
+                    RunicScript.YOUNGER_FUTHARK -> HistoricalStage.OLD_NORSE
+                    RunicScript.ELDER_FUTHARK -> HistoricalStage.PROTO_NORSE
+                    RunicScript.CIRTH -> HistoricalStage.EREBOR_ENGLISH
+                },
+                normalizedForm = "${firstArg<String>().lowercase()} normalized",
+                diplomaticForm = "${firstArg<String>().lowercase()} diplomatic",
+                glyphOutput = "${secondArg<RunicScript>().name.lowercase()} glyphs",
+                resolutionStatus = TranslationResolutionStatus.RECONSTRUCTED,
+                confidence = 0.8f,
+                provenance = listOf(
+                    TranslationProvenanceEntry(
+                        sourceId = "runor",
+                        label = "Runor",
+                        role = "Reference",
+                        license = "Reference only"
+                    )
+                ),
+                engineVersion = "engine",
+                datasetVersion = "dataset"
+            )
+        }
+        coEvery {
+            translationRepository.cacheTranslations(
+                quoteId = 34L,
+                results = capture(cachedResults),
+                isBackfilled = false
+            )
+        } returns Unit
+
+        val collector = launch { viewModel.uiState.collect { } }
+        viewModel.selectMode(TranslationMode.TRANSLATE)
+        viewModel.updateInputText("night")
+        advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.saveToLibrary()
+            advanceUntilIdle()
+
+            assertThat(awaitItem()).isEqualTo(TranslationEvent.ShowMessage("Saved translation to library"))
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertThat(cachedResults.captured.map { it.script }).containsExactly(
+            RunicScript.ELDER_FUTHARK,
+            RunicScript.YOUNGER_FUTHARK,
+            RunicScript.CIRTH
+        )
+        collector.cancel()
+    }
+
+    @Test
+    fun `selecting fidelity and younger variant updates translation requests`() = runTest {
+        every {
+            historicalTranslationService.translate(any(), any(), any(), any())
+        } returns placeholderTranslation(
+            text = "night",
+            script = RunicScript.YOUNGER_FUTHARK
+        )
+
+        val collector = launch { viewModel.uiState.collect { } }
+        viewModel.selectMode(TranslationMode.TRANSLATE)
+        viewModel.selectScript(RunicScript.YOUNGER_FUTHARK)
+        viewModel.selectFidelity(TranslationFidelity.DECORATIVE)
+        viewModel.selectYoungerVariant(YoungerFutharkVariant.SHORT_TWIG)
+        viewModel.updateInputText("night")
+        advanceUntilIdle()
+
+        verify(atLeast = 1) {
+            historicalTranslationService.translate(
+                "night",
+                RunicScript.YOUNGER_FUTHARK,
+                TranslationFidelity.DECORATIVE,
+                YoungerFutharkVariant.SHORT_TWIG
+            )
+        }
+        collector.cancel()
+    }
+
+    @Test
+    fun `saveToLibrary is a no op when input is blank`() = runTest {
+        val collector = launch { viewModel.uiState.collect { } }
+
+        viewModel.saveToLibrary()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
+        coVerify(exactly = 0) { translationRepository.cacheTranslations(any(), any(), any()) }
         collector.cancel()
     }
 

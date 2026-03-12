@@ -299,7 +299,9 @@ private fun TranslationModeSelector(
     onSelectMode: (TranslationMode) -> Unit
 ) {
     RunicChoiceGroup(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("translation_mode_selector"),
         expand = true,
         shape = RoundedCornerShape(12.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -311,7 +313,15 @@ private fun TranslationModeSelector(
             RunicChoiceChip(
                 selected = isSelected,
                 onClick = { onSelectMode(mode) },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(
+                        if (mode == TranslationMode.TRANSLITERATE) {
+                            "translation_mode_transliterate"
+                        } else {
+                            "translation_mode_translate"
+                        }
+                    ),
                 shape = when (index) {
                     0 -> RoundedCornerShape(topStart = 11.dp, bottomStart = 11.dp)
                     TranslationMode.entries.lastIndex -> RoundedCornerShape(topEnd = 11.dp, bottomEnd = 11.dp)
@@ -341,7 +351,9 @@ private fun TranslationScriptSelector(
     onSelectScript: (RunicScript) -> Unit
 ) {
     RunicChoiceGroup(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("translation_script_selector"),
         expand = true,
         shape = RoundedCornerShape(12.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -354,7 +366,9 @@ private fun TranslationScriptSelector(
             RunicChoiceChip(
                 selected = isSelected,
                 onClick = { onSelectScript(script) },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("translation_script_${script.name.lowercase()}"),
                 shape = when (index) {
                     0 -> RoundedCornerShape(topStart = 11.dp, bottomStart = 11.dp)
                     RunicScript.entries.lastIndex -> RoundedCornerShape(topEnd = 11.dp, bottomEnd = 11.dp)
@@ -397,7 +411,9 @@ private fun TranslationFidelitySelector(
 ) {
     TranslationSectionLabel("Historical fidelity")
     RunicChoiceGroup(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("translation_fidelity_selector"),
         expand = true,
         shape = RoundedCornerShape(12.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -409,7 +425,9 @@ private fun TranslationFidelitySelector(
             RunicChoiceChip(
                 selected = isSelected,
                 onClick = { onSelectFidelity(fidelity) },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("translation_fidelity_${fidelity.name.lowercase()}"),
                 shape = when (index) {
                     0 -> RoundedCornerShape(topStart = 11.dp, bottomStart = 11.dp)
                     TranslationFidelity.entries.lastIndex -> RoundedCornerShape(topEnd = 11.dp, bottomEnd = 11.dp)
@@ -439,7 +457,9 @@ private fun YoungerVariantSelector(
 ) {
     TranslationSectionLabel("Younger Futhark variant")
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("translation_variant_selector"),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         YoungerFutharkVariant.entries.forEach { variant ->
@@ -447,7 +467,9 @@ private fun YoungerVariantSelector(
             RunicChoiceChip(
                 selected = isSelected,
                 onClick = { onSelectVariant(variant) },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("translation_variant_${variant.name.lowercase()}"),
                 shape = RoundedCornerShape(12.dp),
                 colors = runicChoiceChipColors(selected = isSelected)
             ) { contentColor ->
@@ -607,6 +629,7 @@ private fun TranslationOutputCard(
     unavailableExplanation: String?
 ) {
     RunicInfoCard(
+        modifier = Modifier.testTag("translation_output_card"),
         containerColor = MaterialTheme.colorScheme.surface,
         borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)
     ) {
@@ -742,6 +765,7 @@ private fun HistoricalTranslationMetaSection(
     }
 
     RunicInfoCard(
+        modifier = Modifier.testTag("translation_meta_section"),
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)
     ) {
@@ -778,7 +802,9 @@ private fun TranslationStatusRow(
 ) {
     if (resolutionStatus != null || derivationKindLabel.isNotBlank()) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("translation_status_row"),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -906,7 +932,16 @@ private fun TranslationBulletSection(
     title: String,
     items: List<String>
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(
+        modifier = Modifier.testTag(
+            when (title) {
+                "Why this output?" -> "translation_provenance_section"
+                "Notes" -> "translation_notes_section"
+                else -> "translation_bullet_section"
+            }
+        ),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
         Text(
             text = title,
             style = MaterialTheme.typography.labelLarge,
@@ -1074,7 +1109,9 @@ private fun TranslationActionRow(
 
         RunicActionButton(
             label = if (hasInput) "Clear" else "Script",
-            modifier = Modifier.weight(0.95f),
+            modifier = Modifier
+                .weight(0.95f)
+                .testTag("translation_secondary_action"),
             enabled = true,
             onClick = if (hasInput) onClear else onCycleScript,
             colors = secondaryActionColors,
@@ -1082,7 +1119,9 @@ private fun TranslationActionRow(
         )
         RunicActionButton(
             label = if (hasInput) "Save to library" else "Translate",
-            modifier = Modifier.weight(2.05f),
+            modifier = Modifier
+                .weight(2.05f)
+                .testTag("translation_save_action"),
             enabled = if (hasInput) canSave else true,
             onClick = if (hasInput) onSave else onFocusInput,
             colors = primaryActionColors,
@@ -1098,6 +1137,7 @@ private fun AccuracyContextLink(onClick: () -> Unit) {
         title = "Accuracy & context",
         description = "Modern conventions, limitations, and historical notes",
         onClick = onClick,
+        modifier = Modifier.testTag("translation_accuracy_link"),
         titleColor = MaterialTheme.colorScheme.onSurface
     )
 }

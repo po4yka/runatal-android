@@ -126,6 +126,57 @@ class HistoricalTranslationServiceTest {
         assertThat(result.notes.joinToString()).contains("sequence-table transcription")
         assertThat(result.provenance.single().sourceId).isEqualTo("tolkien_appendix_e")
     }
+
+    @Test
+    fun `strict younger translation returns unavailable when lemma coverage is missing`() {
+        val result = service.translate(
+            text = "satellite",
+            script = RunicScript.YOUNGER_FUTHARK,
+            fidelity = TranslationFidelity.STRICT
+        )
+
+        assertThat(result.resolutionStatus).isEqualTo(TranslationResolutionStatus.UNAVAILABLE)
+        assertThat(result.unresolvedTokens).containsExactly("satellite")
+        assertThat(result.notes.single()).contains("Missing Old Norse lemma")
+        assertThat(result.glyphOutput).isEmpty()
+    }
+
+    @Test
+    fun `readable younger translation preserves unknown tokens phonetically`() {
+        val result = service.translate(
+            text = "satellite",
+            script = RunicScript.YOUNGER_FUTHARK,
+            fidelity = TranslationFidelity.READABLE
+        )
+
+        assertThat(result.derivationKind).isEqualTo(TranslationDerivationKind.TOKEN_COMPOSED)
+        assertThat(result.resolutionStatus).isEqualTo(TranslationResolutionStatus.APPROXIMATED)
+        assertThat(result.notes.joinToString()).contains("Readable mode preserved 'satellite' phonetically")
+        assertThat(result.provenance.single().sourceId).isEqualTo("internal_heuristics")
+        assertThat(result.glyphOutput).isNotEmpty()
+    }
+
+    @Test
+    fun `younger token composed translation changes glyphs by branch variant only`() {
+        val longBranch = service.translate(
+            text = "king night",
+            script = RunicScript.YOUNGER_FUTHARK,
+            fidelity = TranslationFidelity.STRICT,
+            youngerVariant = YoungerFutharkVariant.LONG_BRANCH
+        )
+        val shortTwig = service.translate(
+            text = "king night",
+            script = RunicScript.YOUNGER_FUTHARK,
+            fidelity = TranslationFidelity.STRICT,
+            youngerVariant = YoungerFutharkVariant.SHORT_TWIG
+        )
+
+        assertThat(longBranch.derivationKind).isEqualTo(TranslationDerivationKind.TOKEN_COMPOSED)
+        assertThat(shortTwig.derivationKind).isEqualTo(TranslationDerivationKind.TOKEN_COMPOSED)
+        assertThat(longBranch.normalizedForm).isEqualTo(shortTwig.normalizedForm)
+        assertThat(longBranch.diplomaticForm).isEqualTo(shortTwig.diplomaticForm)
+        assertThat(longBranch.glyphOutput).isNotEqualTo(shortTwig.glyphOutput)
+    }
 }
 
 private class FakeCuratedTranslationStore :

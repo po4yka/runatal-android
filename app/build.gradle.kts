@@ -158,6 +158,7 @@ dependencies {
     testImplementation(libs.truth)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.robolectric)
+    testImplementation(libs.work.testing)
 
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.androidx.test.ext.junit)
@@ -365,6 +366,19 @@ val transliterationCoverageIncludes = listOf(
     "**/domain/transliteration/**"
 )
 
+val translationCoverageIncludes = listOf(
+    "**/domain/translation/**",
+    "**/data/repository/TranslationRepository*",
+    "**/data/translation/AssetTranslationDatasetProvider*",
+    "**/worker/TranslationBackfillWorker*",
+    "**/ui/screens/translation/TranslationViewModel*"
+)
+
+val translationCoverageExcludes = listOf(
+    "**/ui/screens/translation/TranslationScreen*",
+    "**/ui/screens/translation/TranslationAccuracyScreen*"
+)
+
 val coverageSourceDirectories = files(
     "$projectDir/src/main/java",
     "$projectDir/src/main/kotlin"
@@ -375,10 +389,17 @@ fun coverageExecutionData() = fileTree(layout.buildDirectory) {
     include("outputs/code_coverage/debugAndroidTest/connected/**/*.ec")
 }
 
-fun coverageClassTree(includes: List<String>? = null) =
+fun unitCoverageExecutionData() = fileTree(layout.buildDirectory) {
+    include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
+}
+
+fun coverageClassTree(
+    includes: List<String>? = null,
+    extraExcludes: List<String> = emptyList()
+) =
     fileTree("${layout.buildDirectory.get()}/intermediates/classes/debug/transformDebugClassesWithAsm/dirs") {
         includes?.let { include(it) }
-        exclude(coverageExclusions)
+        exclude(coverageExclusions + extraExcludes)
     }
 
 tasks.register<JacocoReport>("jacocoProjectCoverageReport") {
@@ -437,8 +458,48 @@ tasks.register<JacocoCoverageVerification>("jacocoTransliterationCoverageVerific
     executionData.setFrom(coverageExecutionData())
 }
 
+tasks.register<JacocoReport>("jacocoTranslationCoverageReport") {
+    dependsOn("testDebugUnitTest")
+    group = "verification"
+    description = "Generates focused JVM coverage for the translation feature."
+
+    reports {
+        xml.required.set(true)
+        xml.outputLocation.set(
+            layout.buildDirectory.file("reports/jacoco/translationCoverage/translationCoverage.xml")
+        )
+        html.required.set(true)
+        html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco/translationCoverage/html"))
+    }
+
+    sourceDirectories.setFrom(coverageSourceDirectories)
+    classDirectories.setFrom(files(coverageClassTree(translationCoverageIncludes, translationCoverageExcludes)))
+    executionData.setFrom(unitCoverageExecutionData())
+}
+
+tasks.register<JacocoCoverageVerification>("jacocoTranslationCoverageVerification") {
+    dependsOn("jacocoTranslationCoverageReport")
+    group = "verification"
+    description = "Enforces the translation JVM line-coverage target."
+
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.85".toBigDecimal()
+            }
+        }
+    }
+
+    sourceDirectories.setFrom(coverageSourceDirectories)
+    classDirectories.setFrom(files(coverageClassTree(translationCoverageIncludes, translationCoverageExcludes)))
+    executionData.setFrom(unitCoverageExecutionData())
+}
+
 tasks.named("check") {
     dependsOn("jacocoTransliterationCoverageVerification")
+    dependsOn("jacocoTranslationCoverageVerification")
 }
 
 tasks.named("preBuild") {
