@@ -16,6 +16,20 @@ import kotlinx.coroutines.Dispatchers
 annotation class DefaultDispatcher
 
 /**
+ * Qualifier for blocking IO work that should run on [Dispatchers.IO].
+ */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class IoDispatcher
+
+/**
+ * Qualifier for UI-thread work that should run on [Dispatchers.Main].
+ */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class MainDispatcher
+
+/**
  * Provides coroutine dispatchers used by application components.
  */
 @Module
@@ -28,4 +42,18 @@ object DispatcherModule {
     @Provides
     @DefaultDispatcher
     fun provideDefaultDispatcher(): CoroutineDispatcher = Dispatchers.Default
+
+    /**
+     * Provides the IO dispatcher for file and disk operations.
+     */
+    @Provides
+    @IoDispatcher
+    fun provideIoDispatcher(): CoroutineDispatcher = Dispatchers.IO
+
+    /**
+     * Provides the main dispatcher for UI-affecting work.
+     */
+    @Provides
+    @MainDispatcher
+    fun provideMainDispatcher(): CoroutineDispatcher = Dispatchers.Main
 }

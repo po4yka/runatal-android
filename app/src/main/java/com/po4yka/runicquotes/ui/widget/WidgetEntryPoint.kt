@@ -1,11 +1,13 @@
 package com.po4yka.runicquotes.ui.widget
 
 import com.po4yka.runicquotes.data.preferences.UserPreferencesManager
+import com.po4yka.runicquotes.di.IoDispatcher
 import com.po4yka.runicquotes.domain.repository.QuoteRepository
 import com.po4yka.runicquotes.domain.transliteration.TransliterationFactory
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
 
 /**
  * Hilt EntryPoint for accessing dependencies in the widget.
@@ -22,4 +24,8 @@ interface WidgetEntryPoint {
 
     /** Provides the transliteration factory instance. */
     fun transliterationFactory(): TransliterationFactory
+
+    /** Provides the IO dispatcher for widget loading work. */
+    @IoDispatcher
+    fun ioDispatcher(): CoroutineDispatcher
 }

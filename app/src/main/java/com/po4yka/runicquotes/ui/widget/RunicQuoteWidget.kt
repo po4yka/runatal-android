@@ -53,7 +53,6 @@ import com.po4yka.runicquotes.util.RunicTextRenderer
 import dagger.hilt.android.EntryPointAccessors
 import java.io.IOException
 import java.time.LocalDate
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
@@ -460,6 +459,7 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
         )
         val quoteRepository = entryPoint.quoteRepository()
         val preferencesManager = entryPoint.userPreferencesManager()
+        val ioDispatcher = entryPoint.ioDispatcher()
 
         val widgetKey = id.toString()
         val widgetSize = GlanceAppWidgetManager(context).getAppWidgetSizes(id).firstOrNull()
@@ -467,7 +467,7 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
         val widgetHeight = widgetSize?.height?.value?.toInt() ?: DEFAULT_WIDGET_HEIGHT
         val sizeClass = RunicQuoteWidgetMetrics.resolveSizeClass(widgetHeight)
 
-        return withContext(Dispatchers.IO) {
+        return withContext(ioDispatcher) {
             try {
                 val today = LocalDate.now()
                 val preferences = preferencesManager.userPreferencesFlow.first()

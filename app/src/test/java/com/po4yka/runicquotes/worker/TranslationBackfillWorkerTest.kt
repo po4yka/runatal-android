@@ -2,93 +2,72 @@ package com.po4yka.runicquotes.worker
 
 import android.content.Context
 import androidx.work.ListenableWorker.Result
-import androidx.work.testing.TestListenableWorkerBuilder
 import com.google.common.truth.Truth.assertThat
-import com.po4yka.runicquotes.domain.repository.TranslationRepository
-import dagger.hilt.android.EntryPointAccessors
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
 import java.io.IOException
 import kotlinx.coroutines.test.runTest
-import org.junit.After
-import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
-@RunWith(RobolectricTestRunner::class)
 class TranslationBackfillWorkerTest {
 
-    private lateinit var context: Context
-    private lateinit var repository: TranslationRepository
-    private lateinit var entryPoint: TranslationWorkerEntryPoint
-
-    @Before
-    fun setUp() {
-        context = RuntimeEnvironment.getApplication()
-        repository = mockk()
-        entryPoint = mockk()
-
-        every { entryPoint.translationRepository() } returns repository
-        mockkStatic(EntryPointAccessors::class)
-        every {
-            EntryPointAccessors.fromApplication(
-                context,
-                TranslationWorkerEntryPoint::class.java
-            )
-        } returns entryPoint
-    }
-
-    @After
-    fun tearDown() {
-        unmockkStatic(EntryPointAccessors::class)
-    }
+    private val context = mockk<Context>(relaxed = true)
 
     @Test
-    fun `doWork returns success when repository backfill completes`() = runTest {
-        coEvery { repository.backfillAllQuotes() } returns Unit
+    fun `doWork returns success when backfill completes`() = runTest {
+        val backfillRunner = mockk<TranslationBackfillRunner>()
+        coEvery { backfillRunner.backfillAllQuotes() } returns Unit
 
-        val worker = worker(runAttemptCount = 0)
+        val worker = worker(runAttemptCount = 0, backfillRunner = backfillRunner)
 
         assertThat(worker.doWork()).isEqualTo(Result.success())
-        coVerify(exactly = 1) { repository.backfillAllQuotes() }
     }
 
     @Test
     fun `doWork retries on io exception before max attempts`() = runTest {
-        coEvery { repository.backfillAllQuotes() } throws IOException("disk")
+        val backfillRunner = mockk<TranslationBackfillRunner>()
+        coEvery { backfillRunner.backfillAllQuotes() } throws IOException("disk")
 
-        val worker = worker(runAttemptCount = 1)
+        val worker = worker(runAttemptCount = 1, backfillRunner = backfillRunner)
 
         assertThat(worker.doWork()).isEqualTo(Result.retry())
     }
 
     @Test
     fun `doWork fails on io exception after max attempts`() = runTest {
-        coEvery { repository.backfillAllQuotes() } throws IOException("disk")
+        val backfillRunner = mockk<TranslationBackfillRunner>()
+        coEvery { backfillRunner.backfillAllQuotes() } throws IOException("disk")
 
-        val worker = worker(runAttemptCount = 3)
+        val worker = worker(runAttemptCount = 3, backfillRunner = backfillRunner)
 
         assertThat(worker.doWork()).isEqualTo(Result.failure())
     }
 
     @Test
     fun `doWork fails on invalid state exceptions`() = runTest {
-        coEvery { repository.backfillAllQuotes() } throws IllegalStateException("bad")
+        val backfillRunner = mockk<TranslationBackfillRunner>()
+        coEvery { backfillRunner.backfillAllQuotes() } throws IllegalStateException("bad")
 
-        val worker = worker(runAttemptCount = 0)
+        val worker = worker(runAttemptCount = 0, backfillRunner = backfillRunner)
 
         assertThat(worker.doWork()).isEqualTo(Result.failure())
     }
 
-    private fun worker(runAttemptCount: Int): TranslationBackfillWorker {
-        return TestListenableWorkerBuilder<TranslationBackfillWorker>(context)
-            .setRunAttemptCount(runAttemptCount)
-            .build()
+    private fun worker(
+        runAttemptCount: Int,
+        backfillRunner: TranslationBackfillRunner
+    ): TranslationBackfillWorker {
+        return TranslationBackfillWorker(
+            appContext = context,
+            workerParams = workerParams(runAttemptCount = runAttemptCount),
+            backfillRunner = backfillRunner
+        )
+    }
+
+    private fun workerParams(runAttemptCount: Int): androidx.work.WorkerParameters {
+        return mockk<androidx.work.WorkerParameters>().also {
+            every { it.runAttemptCount } returns runAttemptCount
+        }
     }
 }

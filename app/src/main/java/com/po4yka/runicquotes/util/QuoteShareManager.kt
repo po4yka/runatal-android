@@ -10,8 +10,10 @@ import android.net.Uri
 import android.util.Log
 import androidx.core.content.FileProvider
 import com.po4yka.runicquotes.BuildConfig
+import com.po4yka.runicquotes.di.IoDispatcher
+import com.po4yka.runicquotes.di.MainDispatcher
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
@@ -25,7 +27,9 @@ import javax.inject.Singleton
 @Singleton
 class QuoteShareManager @Inject constructor(
     @param:ApplicationContext private val context: Context,
-    private val imageGenerator: QuoteImageGenerator
+    private val imageGenerator: QuoteImageGenerator,
+    @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    @param:MainDispatcher private val mainDispatcher: CoroutineDispatcher
 ) {
     /** Sharing constants. */
     companion object {
@@ -49,7 +53,7 @@ class QuoteShareManager @Inject constructor(
         author: String,
         template: ShareTemplate = ShareTemplate.CARD,
         appearance: ShareAppearance = ShareAppearance.DARK
-    ): Boolean = withContext(Dispatchers.IO) {
+    ): Boolean = withContext(ioDispatcher) {
         try {
             // Generate image
             val bitmap = imageGenerator.generateQuoteImage(
@@ -92,7 +96,7 @@ class QuoteShareManager @Inject constructor(
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
 
-            withContext(Dispatchers.Main) {
+            withContext(mainDispatcher) {
                 context.startActivity(chooserIntent)
             }
 
