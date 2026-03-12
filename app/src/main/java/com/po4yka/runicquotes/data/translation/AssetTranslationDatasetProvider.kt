@@ -140,6 +140,25 @@ internal class AssetTranslationDatasetProvider @Inject constructor(
 
     override fun goldExamples(): List<TranslationGoldExampleEntry> = goldExamplesCache
 
+    /**
+     * Forces eager loading of the bundled translation datasets to reduce first-use latency.
+     */
+    fun warmUp() {
+        datasetManifestCache
+        oldNorseLexiconCache
+        protoNorseLexiconCache
+        paradigmTablesCache
+        ereborTablesCache
+        grammarRulesCache
+        nameAdaptationsCache
+        fallbackTemplatesCache
+        sourceManifestCache
+        youngerPhraseTemplatesCache
+        elderAttestedFormsCache
+        runicCorpusRefsCache
+        goldExamplesCache
+    }
+
     private fun <T> readList(path: String, serializer: kotlinx.serialization.KSerializer<List<T>>): List<T> {
         return readObject(path) { content ->
             json.decodeFromString(serializer, content)

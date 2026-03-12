@@ -490,6 +490,28 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                             palette = palette
                         )
                     }
+
+                    val persistedState = PersistentWidgetStateCache.get(
+                        context = context,
+                        widgetKey = widgetKey,
+                        currentDate = today,
+                        preferences = preferences,
+                        widgetWidth = widgetWidth,
+                        widgetHeight = widgetHeight,
+                        palette = palette,
+                        sizeClass = sizeClass
+                    )
+                    if (persistedState != null) {
+                        WidgetStateCache.put(
+                            widgetKey = widgetKey,
+                            date = today,
+                            preferences = preferences,
+                            widgetWidth = widgetWidth,
+                            widgetHeight = widgetHeight,
+                            state = persistedState
+                        )
+                        return@withContext persistedState
+                    }
                 }
 
                 val quote = if (
@@ -514,13 +536,13 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                         sizeClass = sizeClass
                     )
                     val fontResource = RunicTextRenderer.getFontResource(preferences.selectedFont)
-                    val cacheKey = BitmapCache.generateKey(
+                    val bitmapCacheKey = BitmapCache.generateKey(
                         text = "${sizeClass.name}:$normalizedRunicText",
                         fontResource = fontResource,
                         textSize = textSize,
                         maxWidth = maxWidth
                     )
-                    val runicBitmap = BitmapCache.get(cacheKey) ?: try {
+                    val runicBitmap = BitmapCache.get(bitmapCacheKey) ?: try {
                         val bitmap = RunicTextRenderer.renderTextToBitmap(
                             context = context,
                             config = RenderConfig(
@@ -534,7 +556,7 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                                 maxLines = if (sizeClass == WidgetSizeClass.EXPANDED) 2 else 1
                             )
                         )
-                        BitmapCache.put(cacheKey, bitmap)
+                        BitmapCache.put(bitmapCacheKey, bitmap)
                         bitmap
                     } catch (e: IOException) {
                         Log.e(RUNIC_QUOTE_WIDGET_TAG, "Failed to render runic text bitmap", e)
@@ -566,9 +588,19 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                         widgetHeight = widgetHeight,
                         state = newState
                     )
+                    PersistentWidgetStateCache.put(
+                        context = context,
+                        widgetKey = widgetKey,
+                        date = today,
+                        preferences = preferences,
+                        widgetWidth = widgetWidth,
+                        widgetHeight = widgetHeight,
+                        state = newState,
+                        bitmapCacheKey = bitmapCacheKey
+                    )
                     newState
                 } else {
-                    WidgetState(
+                    val emptyState = WidgetState(
                         latinText = "No quote available",
                         scriptLabel = RunicScript.DEFAULT.displayName,
                         modeLabel = displayMode.displayName,
@@ -577,6 +609,25 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                         sizeClass = sizeClass,
                         displayMode = displayMode
                     )
+                    WidgetStateCache.put(
+                        widgetKey = widgetKey,
+                        date = today,
+                        preferences = preferences,
+                        widgetWidth = widgetWidth,
+                        widgetHeight = widgetHeight,
+                        state = emptyState
+                    )
+                    PersistentWidgetStateCache.put(
+                        context = context,
+                        widgetKey = widgetKey,
+                        date = today,
+                        preferences = preferences,
+                        widgetWidth = widgetWidth,
+                        widgetHeight = widgetHeight,
+                        state = emptyState,
+                        bitmapCacheKey = null
+                    )
+                    emptyState
                 }
             } catch (e: IOException) {
                 Log.e(RUNIC_QUOTE_WIDGET_TAG, "IO error loading widget state", e)

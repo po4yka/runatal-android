@@ -25,6 +25,7 @@ class RefreshQuoteAction() : ActionCallback {
         val widgetKey = glanceId.toString()
         // Clear caches to force fresh data
         WidgetStateCache.clear(widgetKey)
+        PersistentWidgetStateCache.clear(context, widgetKey)
         WidgetInteractionState.requestRandomQuote(widgetKey)
 
         // Update the specific widget that was clicked

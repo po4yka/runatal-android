@@ -18,6 +18,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,7 +36,11 @@ class QuoteShareManager @Inject constructor(
     companion object {
         private const val TAG = "QuoteShareManager"
         private const val SHARE_DIR = "shared_quotes"
-        private const val FILE_NAME = "runic_quote.png"
+        private const val FILE_EXTENSION = "png"
+        private const val MAX_CACHED_FILES = 12
+        private const val UNSIGNED_BYTE_MASK = 0xff
+        private const val HEX_PADDING = 0x100
+        private const val HEX_RADIX = 16
     }
 
     /**
@@ -55,26 +60,26 @@ class QuoteShareManager @Inject constructor(
         appearance: ShareAppearance = ShareAppearance.DARK
     ): Boolean = withContext(ioDispatcher) {
         try {
-            // Generate image
-            val bitmap = imageGenerator.generateQuoteImage(
-                runicText = runicText,
-                latinText = latinText,
-                author = author,
-                template = template,
-                appearance = appearance
-            )
-
-            // Save to cache directory
             val shareDir = File(context.cacheDir, SHARE_DIR).apply {
                 if (!exists()) mkdirs()
             }
+            val imageFile = File(
+                shareDir,
+                "${shareFileKey(runicText, latinText, author, template, appearance)}.$FILE_EXTENSION"
+            )
 
-            val imageFile = File(shareDir, FILE_NAME)
-            FileOutputStream(imageFile).use { outputStream ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+            if (!imageFile.exists() || imageFile.length() == 0L) {
+                val bitmap = imageGenerator.generateQuoteImage(
+                    runicText = runicText,
+                    latinText = latinText,
+                    author = author,
+                    template = template,
+                    appearance = appearance
+                )
+                writeBitmap(bitmap = bitmap, imageFile = imageFile)
+                pruneShareDir(shareDir)
             }
 
-            // Get URI using FileProvider
             val authority = "${BuildConfig.APPLICATION_ID}.fileprovider"
             val imageUri: Uri = FileProvider.getUriForFile(
                 context,
@@ -82,7 +87,6 @@ class QuoteShareManager @Inject constructor(
                 imageFile
             )
 
-            // Create share intent
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "image/png"
                 putExtra(Intent.EXTRA_STREAM, imageUri)
@@ -91,7 +95,6 @@ class QuoteShareManager @Inject constructor(
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
 
-            // Launch share chooser
             val chooserIntent = Intent.createChooser(shareIntent, "Share Quote").apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
@@ -153,6 +156,55 @@ class QuoteShareManager @Inject constructor(
             Log.e(TAG, "No app found to handle text share intent", e)
         } catch (e: SecurityException) {
             Log.e(TAG, "Security exception sharing text", e)
+        }
+    }
+
+    private fun writeBitmap(bitmap: Bitmap, imageFile: File) {
+        val tempFile = File(imageFile.parentFile, "${imageFile.name}.tmp")
+        FileOutputStream(tempFile).use { outputStream ->
+            val compressed = bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+            if (!compressed) {
+                throw IOException("Failed to encode share image")
+            }
+        }
+        if (imageFile.exists()) {
+            imageFile.delete()
+        }
+        if (!tempFile.renameTo(imageFile)) {
+            tempFile.delete()
+            throw IOException("Failed to move share image into cache")
+        }
+    }
+
+    private fun pruneShareDir(shareDir: File) {
+        val cachedFiles = shareDir.listFiles()
+            ?.filter { it.extension.equals(FILE_EXTENSION, ignoreCase = true) }
+            ?.sortedByDescending { it.lastModified() }
+            .orEmpty()
+
+        cachedFiles.drop(MAX_CACHED_FILES).forEach { cachedFile ->
+            cachedFile.delete()
+        }
+    }
+
+    private fun shareFileKey(
+        runicText: String,
+        latinText: String,
+        author: String,
+        template: ShareTemplate,
+        appearance: ShareAppearance
+    ): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val payload = listOf(
+            template.name,
+            appearance.name,
+            runicText,
+            latinText,
+            author
+        ).joinToString(separator = "\u0000")
+        val bytes = digest.digest(payload.toByteArray(Charsets.UTF_8))
+        return bytes.joinToString(separator = "") { byte ->
+            ((byte.toInt() and UNSIGNED_BYTE_MASK) + HEX_PADDING).toString(HEX_RADIX).substring(1)
         }
     }
 }

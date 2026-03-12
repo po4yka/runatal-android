@@ -23,6 +23,7 @@ class RunicQuoteWidgetReceiver : GlanceAppWidgetReceiver() {
         super.onDisabled(context)
         RunicQuotesApplication.widgetSyncManager(context).cancelSchedule(context)
         WidgetStateCache.clear()
+        PersistentWidgetStateCache.clear(context)
         WidgetInteractionState.clear()
     }
 
@@ -33,6 +34,7 @@ class RunicQuoteWidgetReceiver : GlanceAppWidgetReceiver() {
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_DATE_CHANGED -> {
                 WidgetStateCache.clear()
+                PersistentWidgetStateCache.clear(context)
                 RunicQuotesApplication.widgetSyncManager(context).refreshAndRescheduleAsync(context)
             }
         }

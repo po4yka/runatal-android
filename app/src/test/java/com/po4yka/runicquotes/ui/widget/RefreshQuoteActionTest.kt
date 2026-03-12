@@ -8,20 +8,25 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.After
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 
+@RunWith(RobolectricTestRunner::class)
 class RefreshQuoteActionTest {
 
     @After
     fun tearDown() {
         WidgetStateCache.clear()
         WidgetInteractionState.clear()
+        PersistentWidgetStateCache.clear(RuntimeEnvironment.getApplication())
     }
 
     @Test
     fun `onAction clears cache requests random quote and refreshes widget`() {
         val refreshRunner = RecordingRefreshRunner()
         val action = RefreshQuoteAction(refreshRunner)
-        val context = mockk<Context>(relaxed = true)
+        val context = RuntimeEnvironment.getApplication() as Context
         val glanceId = mockk<GlanceId>()
         every { glanceId.toString() } returns "widget-1"
         WidgetStateCache.put(
@@ -31,6 +36,16 @@ class RefreshQuoteActionTest {
             widgetWidth = 300,
             widgetHeight = 151,
             state = WidgetState(latinText = "Cached")
+        )
+        PersistentWidgetStateCache.put(
+            context = context,
+            widgetKey = "widget-1",
+            date = java.time.LocalDate.of(2026, 3, 11),
+            preferences = com.po4yka.runicquotes.data.preferences.UserPreferences(),
+            widgetWidth = 300,
+            widgetHeight = 151,
+            state = WidgetState(latinText = "Cached"),
+            bitmapCacheKey = null
         )
 
         kotlinx.coroutines.test.runTest {
@@ -45,6 +60,18 @@ class RefreshQuoteActionTest {
                 preferences = com.po4yka.runicquotes.data.preferences.UserPreferences(),
                 widgetWidth = 300,
                 widgetHeight = 151
+            )
+        ).isNull()
+        assertThat(
+            PersistentWidgetStateCache.get(
+                context = context,
+                widgetKey = "widget-1",
+                currentDate = java.time.LocalDate.of(2026, 3, 11),
+                preferences = com.po4yka.runicquotes.data.preferences.UserPreferences(),
+                widgetWidth = 300,
+                widgetHeight = 151,
+                palette = WidgetPalette.default(),
+                sizeClass = WidgetSizeClass.MEDIUM
             )
         ).isNull()
         assertThat(WidgetInteractionState.consumeRandomQuoteRequest("widget-1")).isTrue()

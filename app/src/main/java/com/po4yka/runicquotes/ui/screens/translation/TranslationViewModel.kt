@@ -30,12 +30,15 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -47,7 +50,7 @@ import javax.inject.Inject
 /**
  * ViewModel for the translation screen, including saving transliterations to the library.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
 internal class TranslationViewModel @Inject constructor(
     private val userPreferencesManager: UserPreferencesManager,
@@ -98,6 +101,7 @@ internal class TranslationViewModel @Inject constructor(
     companion object {
         private const val TAG = "TranslationViewModel"
         private const val MAX_INPUT_LENGTH = 280
+        private const val TRANSLATE_INPUT_DEBOUNCE_MS = 150L
     }
 
     init {
@@ -111,6 +115,14 @@ internal class TranslationViewModel @Inject constructor(
     }
 
     val events = _events.receiveAsFlow()
+
+    private val debouncedInputText = _translationMode.flatMapLatest { mode ->
+        if (translateFeatureEnabled && mode == TranslationMode.TRANSLATE) {
+            _inputText.debounce(TRANSLATE_INPUT_DEBOUNCE_MS)
+        } else {
+            _inputText
+        }
+    }
 
     private val preferencesSnapshot = combine(
         combine(
@@ -147,7 +159,7 @@ internal class TranslationViewModel @Inject constructor(
     }
 
     private val inputSnapshot = combine(
-        _inputText,
+        debouncedInputText,
         _isSaving,
         _localWordByWordOverride
     ) { inputText, isSaving, localWordByWordOverride ->

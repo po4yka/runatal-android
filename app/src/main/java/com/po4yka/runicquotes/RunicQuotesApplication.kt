@@ -10,6 +10,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.po4yka.runicquotes.data.translation.AssetTranslationDatasetProvider
 import com.po4yka.runicquotes.di.DefaultDispatcher
 import com.po4yka.runicquotes.domain.repository.QuoteRepository
 import com.po4yka.runicquotes.ui.widget.WidgetSyncManager
@@ -39,6 +40,9 @@ class RunicQuotesApplication : Application(), Configuration.Provider {
     @DefaultDispatcher
     lateinit var defaultDispatcher: CoroutineDispatcher
 
+    @Inject
+    internal lateinit var translationDatasetProvider: AssetTranslationDatasetProvider
+
     private lateinit var applicationScope: CoroutineScope
 
     lateinit var widgetSyncManager: WidgetSyncManager
@@ -58,6 +62,13 @@ class RunicQuotesApplication : Application(), Configuration.Provider {
         applicationScope.launch {
             quoteRepository.seedIfNeeded()
             scheduleHistoricalTranslationBackfill()
+        }
+        applicationScope.launch {
+            runCatching {
+                translationDatasetProvider.warmUp()
+            }.onFailure { exception ->
+                Log.w(TAG, "Translation dataset prewarm failed", exception)
+            }
         }
     }
 

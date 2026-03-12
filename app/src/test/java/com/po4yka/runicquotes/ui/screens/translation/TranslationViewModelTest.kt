@@ -33,8 +33,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -274,6 +276,49 @@ class TranslationViewModelTest {
         }
         verify(exactly = 0) {
             historicalTranslationService.translate("night", RunicScript.YOUNGER_FUTHARK, any(), any())
+        }
+        collector.cancel()
+    }
+
+    @Test
+    fun `translate mode debounces input updates before rendering`() = runTest {
+        every {
+            historicalTranslationService.translate(any(), any(), any(), any())
+        } answers {
+            placeholderTranslation(
+                text = firstArg(),
+                script = secondArg()
+            )
+        }
+
+        val collector = launch { viewModel.uiState.collect { } }
+        viewModel.selectMode(TranslationMode.TRANSLATE)
+        runCurrent()
+
+        viewModel.updateInputText("night")
+        runCurrent()
+
+        verify(exactly = 0) {
+            historicalTranslationService.translate(any(), any(), any(), any())
+        }
+
+        advanceTimeBy(149)
+        runCurrent()
+
+        verify(exactly = 0) {
+            historicalTranslationService.translate(any(), any(), any(), any())
+        }
+
+        advanceTimeBy(1)
+        advanceUntilIdle()
+
+        verify(exactly = 1) {
+            historicalTranslationService.translate(
+                "night",
+                RunicScript.ELDER_FUTHARK,
+                TranslationFidelity.DEFAULT,
+                YoungerFutharkVariant.DEFAULT
+            )
         }
         collector.cancel()
     }
