@@ -1,5 +1,3 @@
-import groovy.json.JsonSlurper
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -172,13 +170,16 @@ val translationSeedDir = layout.projectDirectory.dir("src/main/translationSeed")
 val translationDataDir = layout.projectDirectory.dir("src/main/translationSeed/translation")
 val generatedTranslationAssetsDir = layout.buildDirectory.dir("generated/translationAssets")
 
-val validateTranslationCuration by tasks.registering {
-    inputs.dir(translationDataDir)
-    notCompatibleWithConfigurationCache("Uses JSON parsing from a build-script closure.")
+@Suppress("TooManyFunctions") // validation task with many targeted checks
+abstract class ValidateTranslationCurationTask : DefaultTask() {
 
-    doLast {
-        val slurper = JsonSlurper()
-        val baseDir = translationDataDir.asFile
+    @get:InputDirectory
+    abstract val dataDir: DirectoryProperty
+
+    @TaskAction
+    fun validate() {
+        val slurper = groovy.json.JsonSlurper()
+        val baseDir = dataDir.get().asFile
         val requiredFiles = listOf(
             "dataset_manifest.json",
             "source_manifest.json",
@@ -323,6 +324,10 @@ val validateTranslationCuration by tasks.registering {
             "erebor_tables.json contains phrase mappings with unknown runic corpus references."
         }
     }
+}
+
+val validateTranslationCuration by tasks.registering(ValidateTranslationCurationTask::class) {
+    dataDir.set(translationDataDir)
 }
 
 val generateTranslationAssets by tasks.registering(Sync::class) {
