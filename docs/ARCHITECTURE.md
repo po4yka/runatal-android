@@ -11,7 +11,7 @@
 
 ## Overview
 
-Runic Quotes follows **Clean Architecture** principles combined with **MVVM** (Model-View-ViewModel) pattern. The app is structured in distinct layers with clear separation of concerns, making it maintainable, testable, and scalable.
+Runatal follows **Clean Architecture** principles combined with **MVVM** (Model-View-ViewModel) pattern. The app is structured in distinct layers with clear separation of concerns, making it maintainable, testable, and scalable.
 
 ### Architecture Diagram
 
@@ -106,8 +106,8 @@ ui/
 ├── navigation/        # Navigation setup
 │   └── NavGraph.kt
 └── widget/            # Home screen widget
-    ├── RunicQuoteWidget.kt
-    └── RunicQuoteWidgetReceiver.kt
+    ├── RunatalWidget.kt
+    └── RunatalWidgetReceiver.kt
 ```
 
 #### ViewModel Pattern:
@@ -204,7 +204,7 @@ class ElderFutharkTransliterator @Inject constructor() {
 ```kotlin
 data/
 ├── local/             # Local data sources
-│   ├── RunicQuotesDatabase.kt
+│   ├── RunatalDatabase.kt
 │   ├── dao/
 │   │   └── QuoteDao.kt
 │   └── entity/
@@ -248,7 +248,7 @@ class QuoteRepositoryImpl @Inject constructor(
     version = 2,
     exportSchema = true
 )
-abstract class RunicQuotesDatabase : RoomDatabase() {
+abstract class RunatalDatabase : RoomDatabase() {
     abstract fun quoteDao(): QuoteDao
 
     companion object {
@@ -317,14 +317,14 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): RunicQuotesDatabase {
-        return Room.databaseBuilder(context, RunicQuotesDatabase::class.java, "runic_quotes.db")
-            .addMigrations(RunicQuotesDatabase.MIGRATION_1_2)
+    fun provideDatabase(@ApplicationContext context: Context): RunatalDatabase {
+        return Room.databaseBuilder(context, RunatalDatabase::class.java, "runic_quotes.db")
+            .addMigrations(RunatalDatabase.MIGRATION_1_2)
             .build()
     }
 
     @Provides
-    fun provideQuoteDao(db: RunicQuotesDatabase): QuoteDao = db.quoteDao()
+    fun provideQuoteDao(db: RunatalDatabase): QuoteDao = db.quoteDao()
 }
 
 // Repository Module
@@ -494,4 +494,4 @@ The current architecture supports:
 
 **Document Version**: 1.0
 **Last Updated**: Phase 5 Completion
-**Author**: Runic Quotes Team
+**Author**: Runatal Team

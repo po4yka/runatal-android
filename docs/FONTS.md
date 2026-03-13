@@ -1,6 +1,6 @@
 # Fonts Directory
 
-This directory contains the font files required for the Runic Quotes app.
+This directory contains the font files required for the Runatal app.
 
 ## Required Fonts
 

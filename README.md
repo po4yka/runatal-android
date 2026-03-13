@@ -1,4 +1,4 @@
-# Runic Quotes
+# Runatal
 
 [![Android CI](https://github.com/po4yka/runatal-android/workflows/Android%20CI/badge.svg)](https://github.com/po4yka/runatal-android/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -10,7 +10,7 @@ A beautiful Android app that displays inspiring quotes transliterated into ancie
 ## ✨ Features
 
 ### Core Functionality
-- **Daily Runic Quotes**: Get a new inspirational quote every day, transliterated into runes
+- **Daily Runatal**: Get a new inspirational quote every day, transliterated into runes
 - **Multiple Runic Scripts**: Support for three ancient writing systems:
   - **Elder Futhark**: The oldest runic alphabet (2nd-8th centuries)
   - **Younger Futhark**: Simplified Viking Age runes (9th-11th centuries)

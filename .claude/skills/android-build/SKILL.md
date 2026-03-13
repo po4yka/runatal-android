@@ -1,6 +1,6 @@
 ---
 name: android-build
-description: "Project-specific build, test, lint, and CI commands for the Runic Quotes Android app. Use when: (1) building the app, (2) running tests (unit or instrumented), (3) running static analysis (Detekt/Lint), (4) checking coverage, (5) debugging CI failures, or (6) any Gradle task. Triggers on: build, compile, test, lint, detekt, coverage, APK, CI, Gradle."
+description: "Project-specific build, test, lint, and CI commands for the Runatal Android app. Use when: (1) building the app, (2) running tests (unit or instrumented), (3) running static analysis (Detekt/Lint), (4) checking coverage, (5) debugging CI failures, or (6) any Gradle task. Triggers on: build, compile, test, lint, detekt, coverage, APK, CI, Gradle."
 ---
 
 # Android Build

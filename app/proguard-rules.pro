@@ -1,5 +1,5 @@
 # ====================================================================================================
-# Runic Quotes - ProGuard/R8 Optimization Rules
+# Runatal - ProGuard/R8 Optimization Rules
 # ====================================================================================================
 # These rules optimize the app for release builds while preserving necessary classes
 # and methods for runtime reflection, serialization, and Android framework interactions.
@@ -40,11 +40,11 @@
 -keepclasseswithmembers class kotlinx.serialization.json.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
--keep,includedescriptorclasses class com.po4yka.runicquotes.**$$serializer { *; }
--keepclassmembers class com.po4yka.runicquotes.** {
+-keep,includedescriptorclasses class com.po4yka.runatal.**$$serializer { *; }
+-keepclassmembers class com.po4yka.runatal.** {
     *** Companion;
 }
--keepclasseswithmembers class com.po4yka.runicquotes.** {
+-keepclasseswithmembers class com.po4yka.runatal.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
 
@@ -157,12 +157,12 @@
 # APP-SPECIFIC RULES
 # ====================================================================================================
 # Keep domain models (used by Room, serialization, and UI)
--keep class com.po4yka.runicquotes.domain.model.** { *; }
--keep class com.po4yka.runicquotes.data.local.entity.** { *; }
--keep class com.po4yka.runicquotes.data.preferences.** { *; }
+-keep class com.po4yka.runatal.domain.model.** { *; }
+-keep class com.po4yka.runatal.data.local.entity.** { *; }
+-keep class com.po4yka.runatal.data.preferences.** { *; }
 
 # Keep transliterators (core app functionality)
--keep class com.po4yka.runicquotes.domain.transliteration.** { *; }
+-keep class com.po4yka.runatal.domain.transliteration.** { *; }
 
 # Keep ViewModels
 -keep class * extends androidx.lifecycle.ViewModel {

@@ -1,6 +1,6 @@
 ---
 name: compose-ui
-description: "Guide for writing, refactoring, and reviewing Jetpack Compose UI code in the Runic Quotes app. Use when: (1) building or modifying Compose composables, (2) adding animations, (3) fixing recomposition or performance issues, (4) adding accessibility, (5) working with Glance widgets, (6) reviewing Compose code quality. Triggers on: compose UI, composable, animation, recomposition, accessibility, widget, performance, Modifier."
+description: "Guide for writing, refactoring, and reviewing Jetpack Compose UI code in the Runatal app. Use when: (1) building or modifying Compose composables, (2) adding animations, (3) fixing recomposition or performance issues, (4) adding accessibility, (5) working with Glance widgets, (6) reviewing Compose code quality. Triggers on: compose UI, composable, animation, recomposition, accessibility, widget, performance, Modifier."
 ---
 
 # Compose UI Guide
@@ -309,7 +309,7 @@ Replace fixed content with a composable lambda:
 
 ## 7. Glance Widget
 
-The widget uses Glance (not regular Compose). See `ui/widget/RunicQuoteWidget.kt`.
+The widget uses Glance (not regular Compose). See `ui/widget/RunatalWidget.kt`.
 
 ### Key Differences from Regular Compose
 

@@ -1,10 +1,10 @@
 # [runatal-android] AI Agent Guidelines
 
-Cross-tool agent configuration for the Runic Quotes Android project. This file follows the [AGENTS.md](https://agents.md/) open standard and complements the Claude Code-specific `CLAUDE.md`.
+Cross-tool agent configuration for the Runatal Android project. This file follows the [AGENTS.md](https://agents.md/) open standard and complements the Claude Code-specific `CLAUDE.md`.
 
 ## Project Summary
 
-Single-module Android app (Kotlin + Jetpack Compose) that transliterates quotes into runic scripts. Clean Architecture + MVVM. Namespace: `com.po4yka.runicquotes`.
+Single-module Android app (Kotlin + Jetpack Compose) that transliterates quotes into runic scripts. Clean Architecture + MVVM. Namespace: `com.po4yka.runatal`.
 
 ## Build and Test Commands
 
@@ -14,7 +14,7 @@ Single-module Android app (Kotlin + Jetpack Compose) that transliterates quotes 
 
 # Test
 ./gradlew testDebugUnitTest
-./gradlew test --tests "com.po4yka.runicquotes.domain.transliteration.ElderFutharkTransliteratorTest"
+./gradlew test --tests "com.po4yka.runatal.domain.transliteration.ElderFutharkTransliteratorTest"
 
 # Static analysis (zero tolerance -- must report 0 issues)
 ./gradlew detekt
@@ -125,9 +125,9 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on push to main/develop and PRs
 ## File Structure Reference
 
 ```
-app/src/main/java/com/po4yka/runicquotes/
+app/src/main/java/com/po4yka/runatal/
   data/
-    local/          # Room: RunicQuotesDatabase, DAOs, entities
+    local/          # Room: RunatalDatabase, DAOs, entities
     preferences/    # DataStore: UserPreferencesManager
     repository/     # Repository interfaces and implementations
     seed/           # JSON seed data for initial DB population
@@ -147,7 +147,7 @@ app/src/main/java/com/po4yka/runicquotes/
 
 ## Common Pitfalls
 
-- Room schema changes require a migration in `RunicQuotesDatabase`; export schema is enabled
+- Room schema changes require a migration in `RunatalDatabase`; export schema is enabled
 - Glance widgets use their own Compose runtime (`androidx.glance.`) -- do not mix with regular Compose imports
 - Navigation 3 uses route objects, not string routes; check `ui/navigation/` for patterns
 - Detekt `LongParameterList` threshold is 8 for functions (ignores `@Composable` and default params)

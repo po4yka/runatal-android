@@ -1,6 +1,6 @@
-# Contributing to Runic Quotes
+# Contributing to Runatal
 
-Thank you for your interest in contributing to Runic Quotes! This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to Runatal! This document provides guidelines and instructions for contributing to the project.
 
 ## Table of Contents
 - [Code of Conduct](#code-of-conduct)
@@ -141,7 +141,7 @@ We follow the [Kotlin Coding Conventions](https://kotlinlang.org/docs/coding-con
 #### File Organization
 ```kotlin
 // 1. Package declaration
-package com.po4yka.runicquotes.ui.screens.quote
+package com.po4yka.runatal.ui.screens.quote
 
 // 2. Imports (organized and grouped)
 import androidx.compose.runtime.*
@@ -389,7 +389,7 @@ Contributors will be recognized in:
 - Release notes
 - Project documentation
 
-Thank you for contributing to Runic Quotes! 🙏
+Thank you for contributing to Runatal! 🙏
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: runic-transliterator
-description: "Guide for working with the runic transliteration engine in the Runic Quotes app. Use when: (1) adding a new runic script, (2) modifying character mappings, (3) fixing transliteration bugs, (4) understanding the transliteration architecture, or (5) adding rune-related features. Triggers on: transliterate, rune, runic, futhark, cirth, character mapping, script."
+description: "Guide for working with the runic transliteration engine in the Runatal app. Use when: (1) adding a new runic script, (2) modifying character mappings, (3) fixing transliteration bugs, (4) understanding the transliteration architecture, or (5) adding rune-related features. Triggers on: transliterate, rune, runic, futhark, cirth, character mapping, script."
 ---
 
 # Runic Transliteration Engine
@@ -32,7 +32,7 @@ TransliterationFactory (@Singleton)
 | Tests | `test/.../domain/transliteration/` |
 | Rune mappings doc | `docs/translation/RUNES_MAPPING.md` |
 
-All source paths relative to `app/src/main/java/com/po4yka/runicquotes/`.
+All source paths relative to `app/src/main/java/com/po4yka/runatal/`.
 
 ## How Transliteration Works
 

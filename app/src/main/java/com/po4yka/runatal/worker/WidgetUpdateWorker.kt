@@ -1,0 +1,59 @@
+package com.po4yka.runatal.worker
+
+import android.content.Context
+import android.util.Log
+import androidx.hilt.work.HiltWorker
+import androidx.work.CoroutineWorker
+import androidx.work.WorkerParameters
+import com.po4yka.runatal.ui.widget.DefaultWidgetRefreshRunner
+import com.po4yka.runatal.ui.widget.WidgetRefreshRunner
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
+import java.io.IOException
+
+/**
+ * WorkManager worker that updates the widget daily.
+ * Uses Hilt for dependency injection.
+ */
+@HiltWorker
+class WidgetUpdateWorker @AssistedInject constructor(
+    @Assisted appContext: Context,
+    @Assisted workerParams: WorkerParameters
+) : CoroutineWorker(appContext, workerParams) {
+
+    private var refreshRunner: WidgetRefreshRunner = DefaultWidgetRefreshRunner
+
+    internal constructor(
+        appContext: Context,
+        workerParams: WorkerParameters,
+        refreshRunner: WidgetRefreshRunner
+    ) : this(appContext, workerParams) {
+        this.refreshRunner = refreshRunner
+    }
+
+    override suspend fun doWork(): Result {
+        return try {
+            refreshRunner.refreshAll(applicationContext)
+            Result.success()
+        } catch (e: IOException) {
+            Log.e(TAG, "IO error updating widget, attempt $runAttemptCount", e)
+            // Retry on failure
+            if (runAttemptCount < MAX_RETRY_ATTEMPTS) {
+                Result.retry()
+            } else {
+                Log.e(TAG, "Max retry attempts reached, failing widget update", e)
+                Result.failure()
+            }
+        } catch (e: IllegalStateException) {
+            Log.e(TAG, "Invalid state while updating widget", e)
+            Result.failure()
+        }
+    }
+
+    /** Work name and retry configuration constants. */
+    companion object {
+        private const val TAG = "WidgetUpdateWorker"
+        const val WORK_NAME = "widget_update_worker"
+        private const val MAX_RETRY_ATTEMPTS = 3
+    }
+}

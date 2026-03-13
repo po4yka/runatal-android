@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for your interest in improving Runic Quotes! Please describe your feature idea below.
+        Thanks for your interest in improving Runatal! Please describe your feature idea below.
 
   - type: textarea
     id: problem

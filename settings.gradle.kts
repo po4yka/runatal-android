@@ -17,5 +17,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "RunicQuotes"
+rootProject.name = "Runatal"
 include(":app")

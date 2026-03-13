@@ -1,6 +1,6 @@
 ---
 name: room-migration
-description: "Guide for creating safe Room database migrations in the Runic Quotes app. Use when: (1) adding/modifying database tables or columns, (2) creating new entities, (3) writing migration code, (4) updating the database version, (5) adding new DAOs. Triggers on: migration, database change, new table, new column, Room entity, schema change, DAO."
+description: "Guide for creating safe Room database migrations in the Runatal app. Use when: (1) adding/modifying database tables or columns, (2) creating new entities, (3) writing migration code, (4) updating the database version, (5) adding new DAOs. Triggers on: migration, database change, new table, new column, Room entity, schema change, DAO."
 ---
 
 # Room Migration
@@ -9,11 +9,11 @@ description: "Guide for creating safe Room database migrations in the Runic Quot
 
 1. Create/modify the entity in `data/local/entity/`
 2. Add DAO interface in `data/local/dao/` (if new entity)
-3. Write migration SQL in `RunicQuotesDatabase.companion`
+3. Write migration SQL in `RunatalDatabase.companion`
 4. Bump database version in `@Database(version = N+1)`
 5. Register entity in `@Database(entities = [...])`
 6. Register migration in `DatabaseModule.addMigrations(...)`
-7. Expose DAO via abstract function in `RunicQuotesDatabase`
+7. Expose DAO via abstract function in `RunatalDatabase`
 8. Provide DAO in `DatabaseModule`
 9. Export schema: `./gradlew kspDebugKotlin`
 10. Verify: `./gradlew testDebugUnitTest`
@@ -29,17 +29,17 @@ description: "Guide for creating safe Room database migrations in the Runic Quot
 
 | What | Path |
 |------|------|
-| Database class | `data/local/RunicQuotesDatabase.kt` |
+| Database class | `data/local/RunatalDatabase.kt` |
 | Entities | `data/local/entity/*.kt` |
 | DAOs | `data/local/dao/*.kt` |
 | DI module | `di/DatabaseModule.kt` |
 | Schemas | `app/schemas/` |
 
-All source paths relative to `app/src/main/java/com/po4yka/runicquotes/`.
+All source paths relative to `app/src/main/java/com/po4yka/runatal/`.
 
 ## Migration Pattern
 
-Follow existing style in `RunicQuotesDatabase.companion`:
+Follow existing style in `RunatalDatabase.companion`:
 
 ```kotlin
 val MIGRATION_N_N1 = object : Migration(N, N + 1) {
@@ -75,13 +75,13 @@ For foreign keys, use `foreignKeys` parameter with `onDelete = ForeignKey.CASCAD
 
 ## Registration Steps
 
-In `RunicQuotesDatabase.kt`:
+In `RunatalDatabase.kt`:
 - Add entity to `@Database(entities = [..., NewEntity::class])`
 - Add `abstract fun newEntityDao(): NewEntityDao`
 - Add migration to companion object
 
 In `DatabaseModule.kt`:
-- Add migration: `.addMigrations(..., RunicQuotesDatabase.MIGRATION_N_N1)`
+- Add migration: `.addMigrations(..., RunatalDatabase.MIGRATION_N_N1)`
 - Add DAO provider: `@Provides @Singleton fun provideNewEntityDao(db): NewEntityDao = db.newEntityDao()`
 
 ## Destructive Migrations

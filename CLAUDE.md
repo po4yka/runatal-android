@@ -1,4 +1,4 @@
-# Runic Quotes - Claude Code Project Context
+# Runatal - Claude Code Project Context
 
 ## Project Overview
 
@@ -31,7 +31,7 @@ Android app displaying inspirational quotes transliterated into ancient runic sc
 ## Project Structure
 
 ```
-app/src/main/java/com/po4yka/runicquotes/
+app/src/main/java/com/po4yka/runatal/
   data/           # Room DB, DAOs, entities, DataStore, repository impls
   domain/         # Models (Quote, RunicScript, etc.) + transliteration logic
   di/             # Hilt modules (Database, Repository, DataStore, WorkManager, Util)

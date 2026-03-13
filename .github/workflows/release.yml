@@ -93,9 +93,9 @@ jobs:
       - name: Rename APK
         run: |
           mv app/build/outputs/apk/release/app-release-unsigned.apk \
-             app/build/outputs/apk/release/RunicQuotes-${{ steps.version.outputs.VERSION_NAME }}.apk || true
+             app/build/outputs/apk/release/Runatal-${{ steps.version.outputs.VERSION_NAME }}.apk || true
           mv app/build/outputs/apk/release/app-release.apk \
-             app/build/outputs/apk/release/RunicQuotes-${{ steps.version.outputs.VERSION_NAME }}-signed.apk || true
+             app/build/outputs/apk/release/Runatal-${{ steps.version.outputs.VERSION_NAME }}-signed.apk || true
 
       - name: Generate changelog
         id: changelog
@@ -122,7 +122,7 @@ jobs:
           tag_name: ${{ steps.version.outputs.VERSION_TAG }}
           name: Release ${{ steps.version.outputs.VERSION_NAME }}
           body: |
-            # Runic Quotes ${{ steps.version.outputs.VERSION_NAME }}
+            # Runatal ${{ steps.version.outputs.VERSION_NAME }}
 
             ## Changes
             ${{ steps.changelog.outputs.CHANGELOG }}
@@ -141,7 +141,7 @@ jobs:
             ---
             **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.version.outputs.VERSION_TAG }}...HEAD
           files: |
-            app/build/outputs/apk/release/RunicQuotes-*.apk
+            app/build/outputs/apk/release/Runatal-*.apk
             app/build/outputs/bundle/release/app-release.aab
           draft: false
           prerelease: false
@@ -152,7 +152,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-apk-${{ steps.version.outputs.VERSION_NAME }}
-          path: app/build/outputs/apk/release/RunicQuotes-*.apk
+          path: app/build/outputs/apk/release/Runatal-*.apk
           retention-days: 90
 
       - name: Upload AAB artifact

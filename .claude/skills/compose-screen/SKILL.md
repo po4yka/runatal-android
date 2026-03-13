@@ -1,6 +1,6 @@
 ---
 name: compose-screen
-description: "Scaffold a new Compose screen with ViewModel, UI state, Navigation 3 route, and Hilt wiring in the Runic Quotes app. Use when: (1) adding a new screen, (2) creating a new ViewModel, (3) adding navigation routes, (4) wiring up a new feature screen. Triggers on: new screen, add screen, create screen, new feature, add page, navigation route."
+description: "Scaffold a new Compose screen with ViewModel, UI state, Navigation 3 route, and Hilt wiring in the Runatal app. Use when: (1) adding a new screen, (2) creating a new ViewModel, (3) adding navigation routes, (4) wiring up a new feature screen. Triggers on: new screen, add screen, create screen, new feature, add page, navigation route."
 ---
 
 # Compose Screen Scaffold
@@ -25,7 +25,7 @@ description: "Scaffold a new Compose screen with ViewModel, UI state, Navigation
 | Screens | `ui/screens/<name>/` |
 | Tests | `test/.../ui/screens/<name>/` |
 
-All source paths relative to `app/src/main/java/com/po4yka/runicquotes/`.
+All source paths relative to `app/src/main/java/com/po4yka/runatal/`.
 
 ## 1. Route (`Routes.kt`)
 
