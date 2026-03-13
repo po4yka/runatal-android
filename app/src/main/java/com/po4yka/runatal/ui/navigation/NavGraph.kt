@@ -284,13 +284,13 @@ private fun navEntryProvider(
     onSelectOnboardingStyle: (RunicScript, String) -> Unit,
     onCompleteOnboarding: () -> Unit
 ) = entryProvider {
-    onboardingEntries(backStack, selectedScript, onSelectOnboardingStyle, onCompleteOnboarding)
-    topLevelEntries(backStack)
-    detailEntries(backStack)
+    OnboardingEntries(backStack, selectedScript, onSelectOnboardingStyle, onCompleteOnboarding)
+    TopLevelEntries(backStack)
+    DetailEntries(backStack)
 }
 
 @Composable
-private fun EntryProviderScope<Any>.onboardingEntries(
+private fun EntryProviderScope<Any>.OnboardingEntries(
     backStack: SnapshotStateList<Any>,
     selectedScript: RunicScript,
     onSelectOnboardingStyle: (RunicScript, String) -> Unit,
@@ -309,7 +309,7 @@ private fun EntryProviderScope<Any>.onboardingEntries(
 }
 
 @Composable
-private fun EntryProviderScope<Any>.topLevelEntries(
+private fun EntryProviderScope<Any>.TopLevelEntries(
     backStack: SnapshotStateList<Any>
 ) {
     entry<QuoteRoute> {
@@ -371,7 +371,7 @@ private fun EntryProviderScope<Any>.topLevelEntries(
 }
 
 @Composable
-private fun EntryProviderScope<Any>.detailEntries(
+private fun EntryProviderScope<Any>.DetailEntries(
     backStack: SnapshotStateList<Any>
 ) {
     entry<AddEditQuoteRoute> {

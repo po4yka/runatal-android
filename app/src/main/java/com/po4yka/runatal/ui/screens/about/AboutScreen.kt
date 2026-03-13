@@ -1,7 +1,7 @@
 package com.po4yka.runatal.ui.screens.about
 
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -79,7 +79,7 @@ fun AboutScreen(
                 leadingIcon = Icons.Filled.Code,
                 onClick = {
                     context.startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/runatal"))
+                        Intent(Intent.ACTION_VIEW, "https://github.com/runatal".toUri())
                     )
                 }
             )
@@ -92,7 +92,7 @@ fun AboutScreen(
                     context.startActivity(
                         Intent(
                             Intent.ACTION_VIEW,
-                            Uri.parse("https://runatal.app/privacy")
+                            "https://runatal.app/privacy".toUri()
                         )
                     )
                 }

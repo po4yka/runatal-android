@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.withTranslation
 import android.graphics.Color
 import android.graphics.Typeface
 import android.text.Layout
@@ -111,7 +113,7 @@ object RunicTextRenderer {
         height = height.coerceAtLeast(MIN_BITMAP_SIZE)
 
         // Create bitmap
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(width, height)
         val canvas = Canvas(bitmap)
 
         // Draw background if specified
@@ -119,10 +121,9 @@ object RunicTextRenderer {
             canvas.drawColor(it)
         }
 
-        canvas.save()
-        canvas.translate(padding.toFloat(), padding.toFloat())
-        layout.draw(canvas)
-        canvas.restore()
+        canvas.withTranslation(padding.toFloat(), padding.toFloat()) {
+            layout.draw(this)
+        }
 
         return bitmap
     }

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- minSdk is 26 but mipmap-anydpi-v26 is the standard directory name
+         for adaptive-icon XML resources; renaming breaks the build. -->
+    <issue id="ObsoleteSdkInt">
+        <ignore path="res/mipmap-anydpi-v26" />
+    </issue>
+</lint>

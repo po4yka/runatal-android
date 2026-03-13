@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -108,7 +109,7 @@ fun SegmentedControl(
             ) {
                 Box(
                     modifier = Modifier
-                        .offset(x = selectedOffset)
+                        .offset { IntOffset(selectedOffset.roundToPx(), 0) }
                         .width(segmentWidth)
                         .height(controls.segmentedControlMinHeight)
                         .clip(RunicExpressiveTheme.shapes.segment)
@@ -142,9 +143,9 @@ private fun Segment(
     isSelected: Boolean,
     onClick: () -> Unit,
     animDurationMillis: Int,
+    modifier: Modifier = Modifier,
     leadingIcon: ImageVector? = null,
-    count: Int? = null,
-    modifier: Modifier = Modifier
+    count: Int? = null
 ) {
     val spacing = RunicExpressiveTheme.spacing
     val controls = RunicExpressiveTheme.controls

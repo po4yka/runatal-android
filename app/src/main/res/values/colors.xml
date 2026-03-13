@@ -1,28 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Material 3 Expressive Monochromatic Palette -->
-    <!-- Grayscale values from the design spec -->
-    <color name="gray_50">#FAFAFA</color>
-    <color name="gray_100">#F5F5F5</color>
-    <color name="gray_200">#EEEEEE</color>
-    <color name="gray_300">#E0E0E0</color>
-    <color name="gray_400">#BDBDBD</color>
-    <color name="gray_500">#9E9E9E</color>
-    <color name="gray_600">#757575</color>
-    <color name="gray_700">#616161</color>
-    <color name="gray_800">#424242</color>
+    <!-- Grayscale values used by widget layout -->
     <color name="gray_900">#212121</color>
 
-    <color name="black">#000000</color>
     <color name="white">#FFFFFF</color>
 
-    <!-- Theme colors for image generation -->
-    <color name="surface">@color/gray_100</color>
-    <color name="on_surface">@color/gray_900</color>
-    <color name="on_surface_variant">@color/gray_600</color>
-
     <!-- App icon variants -->
-    <color name="ic_launcher_background">#2C3038</color>
     <color name="ic_launcher_bg_storm">#2C3038</color>
     <color name="ic_launcher_fg_storm">#C8CED6</color>
     <color name="ic_launcher_bg_dark">#14171A</color>

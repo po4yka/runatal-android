@@ -9,6 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="66dp"
         android:background="@drawable/widget_preview_card"
+        android:baselineAligned="false"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="14dp"
@@ -25,6 +26,7 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:layout_gravity="center"
+                android:contentDescription="@null"
                 android:src="@drawable/ic_launcher_foreground"
                 android:tint="#F4F6F8" />
         </FrameLayout>
@@ -40,7 +42,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:maxLines="1"
-                android:text="ᚱᚨᛁᛞᛟ ᚢᛁᛊᛞᚨᛗ ᚨᛒᛁᛞᛖᛋ"
+                android:text="@string/widget_preview_runic_text"
                 android:textColor="#232933"
                 android:textSize="12sp" />
 
@@ -49,9 +51,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:maxLines="1"
-                android:text="Hávamál"
+                android:text="@string/widget_preview_source"
                 android:textColor="#69707A"
-                android:textSize="10sp" />
+                android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
 </FrameLayout>

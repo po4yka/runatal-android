@@ -515,13 +515,13 @@ private fun QuoteTextField(
         error = error,
         enabled = enabled,
         singleLine = false,
-        minLines = 3,
-        maxLines = 5,
         keyboardOptions = KeyboardOptions(
             capitalization = KeyboardCapitalization.Sentences,
             keyboardType = KeyboardType.Text
         ),
-        modifier = Modifier.testTag("add_edit_quote_text")
+        modifier = Modifier.testTag("add_edit_quote_text"),
+        minLines = 3,
+        maxLines = 5
     )
 }
 
@@ -544,7 +544,7 @@ private fun AuthorTextField(
             capitalization = KeyboardCapitalization.Words,
             keyboardType = KeyboardType.Text
         ),
-        modifier = Modifier.testTag("add_edit_author_text")
+        modifier = Modifier.testTag("add_edit_author_text"),
     )
 }
 
@@ -557,10 +557,10 @@ private fun EditorTextField(
     error: String?,
     enabled: Boolean,
     singleLine: Boolean,
-    minLines: Int = 1,
-    maxLines: Int = 1,
     keyboardOptions: KeyboardOptions,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    minLines: Int = 1,
+    maxLines: Int = 1
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),

@@ -60,9 +60,9 @@ import com.po4yka.runatal.ui.theme.SupportingTextRole
 @Composable
 fun RunicBottomSheet(
     actions: List<BottomSheetAction>,
-    preview: BottomSheetQuotePreview? = null,
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    preview: BottomSheetQuotePreview? = null
 ) {
     val colors = MaterialTheme.colorScheme
     val sheetState = rememberModalBottomSheetState()

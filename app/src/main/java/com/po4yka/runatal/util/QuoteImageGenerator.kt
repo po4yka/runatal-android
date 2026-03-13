@@ -4,6 +4,7 @@ package com.po4yka.runatal.util
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import androidx.core.graphics.createBitmap
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
@@ -81,7 +82,7 @@ class QuoteImageGenerator @Inject constructor() {
         author: String,
         palette: SharePalette
     ): Bitmap {
-        val bitmap = Bitmap.createBitmap(PORTRAIT_WIDTH, PORTRAIT_HEIGHT, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(PORTRAIT_WIDTH, PORTRAIT_HEIGHT)
         val canvas = Canvas(bitmap)
         canvas.drawColor(palette.background)
 
@@ -149,7 +150,7 @@ class QuoteImageGenerator @Inject constructor() {
         author: String,
         palette: SharePalette
     ): Bitmap {
-        val bitmap = Bitmap.createBitmap(PORTRAIT_WIDTH, PORTRAIT_HEIGHT, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(PORTRAIT_WIDTH, PORTRAIT_HEIGHT)
         val canvas = Canvas(bitmap)
         canvas.drawColor(palette.background)
 
@@ -212,7 +213,7 @@ class QuoteImageGenerator @Inject constructor() {
         author: String,
         palette: SharePalette
     ): Bitmap {
-        val bitmap = Bitmap.createBitmap(LANDSCAPE_WIDTH, LANDSCAPE_HEIGHT, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(LANDSCAPE_WIDTH, LANDSCAPE_HEIGHT)
         val canvas = Canvas(bitmap)
         canvas.drawColor(palette.background)
 

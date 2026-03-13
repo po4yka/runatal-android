@@ -164,10 +164,10 @@ fun SkeletonCard(
  */
 @Composable
 fun SkeletonTextBlock(
+    modifier: Modifier = Modifier,
     lines: Int = 3,
     lineHeight: Dp = 14.dp,
     lineSpacing: Dp = 10.dp,
-    modifier: Modifier = Modifier,
     brush: Brush = rememberShimmerBrush()
 ) {
     Column(modifier = modifier) {
