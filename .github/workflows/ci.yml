@@ -261,7 +261,7 @@ jobs:
           script: ./gradlew testDebugUnitTest connectedDebugAndroidTest jacocoProjectCoverageReport --no-daemon
 
       - name: Upload merged coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           files: ./app/build/reports/jacoco/projectCoverage/projectCoverage.xml
           flags: android,merged
