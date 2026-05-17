@@ -12,13 +12,7 @@ Download and place the following font files in this directory:
 - **Download:** [Google Fonts - Roboto Flex](https://fonts.google.com/specimen/Roboto+Flex)
 - **File name:** `roboto_flex.ttf`
 - **License:** Apache License 2.0 (Open Source)
-- **Instructions:**
-  1. Visit the Google Fonts page
-  2. Click "Download family"
-  3. Extract the ZIP file
-  4. Locate `RobotoFlex-VariableFont_*.ttf` in the extracted folder
-  5. Rename to `roboto_flex.ttf`
-  6. Place in this directory
+- **Instructions:** 1. Visit the Google Fonts page 2. Click "Download family" 3. Extract the ZIP file 4. Locate `RobotoFlex-VariableFont_*.ttf` in the extracted folder 5. Rename to `roboto_flex.ttf` 6. Place in this directory
 
 ### 2. Noto Sans Runic - Primary Runic Font
 **Purpose:** Elder Futhark and Younger Futhark runes (Unicode U+16A0–U+16FF)
@@ -26,13 +20,7 @@ Download and place the following font files in this directory:
 - **Download:** [Google Fonts - Noto Sans Runic](https://fonts.google.com/noto/specimen/Noto+Sans+Runic)
 - **File name:** `noto_sans_runic.ttf`
 - **License:** SIL Open Font License (OFL)
-- **Instructions:**
-  1. Visit the Google Fonts page
-  2. Click "Download family"
-  3. Extract the ZIP file
-  4. Locate `NotoSansRunic-Regular.ttf`
-  5. Rename to `noto_sans_runic.ttf`
-  6. Place in this directory
+- **Instructions:** 1. Visit the Google Fonts page 2. Click "Download family" 3. Extract the ZIP file 4. Locate `NotoSansRunic-Regular.ttf` 5. Rename to `noto_sans_runic.ttf` 6. Place in this directory
 
 ### 3. BabelStone Runic - Alternative Runic Font
 **Purpose:** Alternative rendering for Elder/Younger Futhark with different style
@@ -40,10 +28,7 @@ Download and place the following font files in this directory:
 - **Download:** [BabelStone Fonts](https://www.babelstone.co.uk/Fonts/Download/BabelStoneRunic.ttf)
 - **File name:** `babelstone_runic.ttf`
 - **License:** Free for personal and commercial use
-- **Instructions:**
-  1. Download directly from the link above
-  2. Rename to `babelstone_runic.ttf` (if needed)
-  3. Place in this directory
+- **Instructions:** 1. Download directly from the link above 2. Rename to `babelstone_runic.ttf` (if needed) 3. Place in this directory
 
 ### 4. Cirth/Angerthas Font (Optional - For Future v2.0.0)
 **Purpose:** Tolkien's Cirth runes (Angerthas Moria, Erebor)

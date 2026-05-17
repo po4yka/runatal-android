@@ -36,42 +36,22 @@ The project emphasizes:
 - Kotlin coroutines
 
 ### UI & Navigation
-- Jetpack Compose
-  - **Material 3 Expressive** components
-  - Compose BOM
-  - UI, animation, tooling
-  - Physics-based motion system
-  - Variable typography (Roboto Flex)
-- Navigation Compose
-  - Integrated with **Nav-3** library
+- Jetpack Compose - **Material 3 Expressive** components - Compose BOM - UI, animation, tooling - Physics-based motion system - Variable typography (Roboto Flex)
+- Navigation Compose - Integrated with **Nav-3** library
 
 ### Architecture & DI
-- **Hilt** for DI
-  - Android entry points
-  - Navigation integration
-  - WorkManager integration
-- MVVM with:
-  - ViewModels
-  - Use cases (optional)
-  - Repository pattern
+- **Hilt** for DI - Android entry points - Navigation integration - WorkManager integration
+- MVVM with: - ViewModels - Use cases (optional) - Repository pattern
 
 ### Persistence & Preferences
-- Room Database
-  - `QuoteEntity`, `QuoteDao`, migrations
-- Jetpack DataStore
-  - `UserPreferencesManager` for all persistent settings
+- Room Database - `QuoteEntity`, `QuoteDao`, migrations
+- Jetpack DataStore - `UserPreferencesManager` for all persistent settings
 
 ### Background Work
-- WorkManager
-  - Daily quote refresh
-  - Widget update worker
-  - Hilt-injected workers with assisted dependencies
+- WorkManager - Daily quote refresh - Widget update worker - Hilt-injected workers with assisted dependencies
 
 ### Widget Support
-- Jetpack Glance
-  - Home-screen widget
-  - Hilt entry points
-  - Glance text rendering with runic fonts
+- Jetpack Glance - Home-screen widget - Hilt entry points - Glance text rendering with runic fonts
 
 ### Testing
 - JUnit4
@@ -1474,25 +1454,10 @@ runatal-android/
 ### Phase 1 – Project Setup & Infrastructure (Est: 2-3 days)
 
 #### 1.1 Initial Project Setup
-- [ ] Create new Android Studio project with Empty Compose Activity template
-  - Package: `com.runatal.android`
-  - Min SDK: 26 (Android 8.0)
-  - Target SDK: 34
-  - Compile SDK: 34
-- [ ] Configure `gradle/libs.versions.toml` with version catalog
-  - Kotlin: 2.2.21
-  - AGP: 8.1.3
-  - Compose BOM: 2024.02.00
-  - Hilt: 2.48
-  - Room: 2.6.1
-  - DataStore: 1.0.0
-  - WorkManager: 2.9.0
-  - Glance: 1.0.0
+- [ ] Create new Android Studio project with Empty Compose Activity template - Package: `com.runatal.android` - Min SDK: 26 (Android 8.0) - Target SDK: 34 - Compile SDK: 34
+- [ ] Configure `gradle/libs.versions.toml` with version catalog - Kotlin: 2.2.21 - AGP: 8.1.3 - Compose BOM: 2024.02.00 - Hilt: 2.48 - Room: 2.6.1 - DataStore: 1.0.0 - WorkManager: 2.9.0 - Glance: 1.0.0
 - [ ] Set up `.gitignore` for Android projects
-- [ ] Configure Gradle build files
-  - `settings.gradle.kts`
-  - Root `build.gradle.kts`
-  - App `build.gradle.kts` with all plugins
+- [ ] Configure Gradle build files - `settings.gradle.kts` - Root `build.gradle.kts` - App `build.gradle.kts` with all plugins
 
 #### 1.2 Dependency Injection Setup
 - [ ] Add Hilt dependencies to `build.gradle.kts`
@@ -1518,18 +1483,8 @@ runatal-android/
       @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis()
   )
   ```
-- [ ] Create `data/local/dao/QuoteDao.kt` with operations:
-  - `getRandom(): QuoteEntity`
-  - `getById(id: Long): QuoteEntity?`
-  - `getAll(): Flow<List<QuoteEntity>>`
-  - `getAllPaged(): PagingSource<Int, QuoteEntity>`
-  - `insertAll(quotes: List<QuoteEntity>)`
-  - `delete(quote: QuoteEntity)`
-  - `getCount(): Int`
-- [ ] Create `data/local/RunatalDatabase.kt`
-  - Version 1
-  - Include QuoteEntity
-  - Implement database callback for seeding
+- [ ] Create `data/local/dao/QuoteDao.kt` with operations: - `getRandom(): QuoteEntity` - `getById(id: Long): QuoteEntity?` - `getAll(): Flow<List<QuoteEntity>>` - `getAllPaged(): PagingSource<Int, QuoteEntity>` - `insertAll(quotes: List<QuoteEntity>)` - `delete(quote: QuoteEntity)` - `getCount(): Int`
+- [ ] Create `data/local/RunatalDatabase.kt` - Version 1 - Include QuoteEntity - Implement database callback for seeding
 - [ ] Create database migration strategies file
 
 #### 1.4 Runic Transliteration Engine
@@ -1543,22 +1498,14 @@ runatal-android/
   ```
 - [ ] Create `domain/model/RunicFont.kt` enum
 - [ ] Create `domain/transliteration/RunicTransliterator.kt` interface
-- [ ] Implement `domain/transliteration/ElderFutharkTransliterator.kt`
-  - Complete Unicode mapping for Elder Futhark (U+16A0–U+16EA)
-  - Handle special cases (th, ng, etc.)
-- [ ] Implement `domain/transliteration/YoungerFutharkTransliterator.kt`
-  - Long-branch and short-twig variants
-- [ ] Implement `domain/transliteration/CirthTransliterator.kt`
-  - PUA mapping (U+E080+)
-  - Tengwar mode support
+- [ ] Implement `domain/transliteration/ElderFutharkTransliterator.kt` - Complete Unicode mapping for Elder Futhark (U+16A0–U+16EA) - Handle special cases (th, ng, etc.)
+- [ ] Implement `domain/transliteration/YoungerFutharkTransliterator.kt` - Long-branch and short-twig variants
+- [ ] Implement `domain/transliteration/CirthTransliterator.kt` - PUA mapping (U+E080+) - Tengwar mode support
 - [ ] Create `domain/transliteration/TransliterationFactory.kt`
 - [ ] Add comprehensive unit tests for all transliterators
 
 #### 1.5 Font Integration
-- [ ] Download and verify font licenses:
-  - Noto Sans Runic (OFL)
-  - BabelStone Runic (free use)
-  - Cirth Angerthas font (verify license)
+- [ ] Download and verify font licenses: - Noto Sans Runic (OFL) - BabelStone Runic (free use) - Cirth Angerthas font (verify license)
 - [ ] Create `app/src/main/res/font/` directory
 - [ ] Add `noto_sans_runic.ttf`
 - [ ] Add `babelstone_runic.ttf`
@@ -1579,52 +1526,24 @@ runatal-android/
   )
   ```
 - [ ] Create `data/preferences/UserPreferencesSerializer.kt` (Proto or JSON)
-- [ ] Create `data/preferences/UserPreferencesManager.kt`
-  - Expose `Flow<UserPreferences>`
-  - Suspend functions for updates
+- [ ] Create `data/preferences/UserPreferencesManager.kt` - Expose `Flow<UserPreferences>` - Suspend functions for updates
 - [ ] Add Proto DataStore schema if using proto (optional)
 
 #### 1.7 Repository Layer
 - [ ] Create `data/repository/QuoteRepository.kt` interface
-- [ ] Implement `data/repository/QuoteRepositoryImpl.kt`
-  - `seedDatabaseIfNeeded()` - 100+ quotes
-  - `getQuoteOfTheDay(script: RunicScript): Flow<QuoteEntity>`
-  - `getRandomQuote(): QuoteEntity`
-  - `getAllQuotes(): Flow<List<QuoteEntity>>`
-  - `searchQuotes(query: String): Flow<List<QuoteEntity>>`
-- [ ] Create quote seed data in `data/repository/QuoteSeedData.kt`
-  - Minimum 100 quotes from various sources
-  - Norse mythology, Tolkien, literature, philosophy
-  - Pre-transliterate all to Elder, Younger, Cirth
+- [ ] Implement `data/repository/QuoteRepositoryImpl.kt` - `seedDatabaseIfNeeded()` - 100+ quotes - `getQuoteOfTheDay(script: RunicScript): Flow<QuoteEntity>` - `getRandomQuote(): QuoteEntity` - `getAllQuotes(): Flow<List<QuoteEntity>>` - `searchQuotes(query: String): Flow<List<QuoteEntity>>`
+- [ ] Create quote seed data in `data/repository/QuoteSeedData.kt` - Minimum 100 quotes from various sources - Norse mythology, Tolkien, literature, philosophy - Pre-transliterate all to Elder, Younger, Cirth
 
 ### Phase 2 – UI & ViewModels (Est: 3-4 days)
 
 #### 2.1 Material 3 Expressive Design System & Theme
-- [ ] Create `ui/theme/Color.kt` with **monochromatic black & white scheme**
-  - Pure black (#000000) and pure white (#FFFFFF)
-  - Grayscale tints (Gray50-Gray900)
-  - Alpha/transparency variants (10%, 20%, 30%, 50%, 70%, 90%)
-  - Light theme: white background, black accents
-  - Dark theme: black background, white accents
-  - **NO chromatic colors allowed**
-- [ ] Create `ui/theme/Gradients.kt` with gradient definitions
-  - Radial gradients for backgrounds
-  - Linear gradients for cards
-  - Glow effects for runic text
-- [ ] Create `ui/theme/Type.kt` with **Roboto Flex** M3 Expressive typography
-  - Variable font configuration
-  - Font variation axes (weight, width)
-  - Complete 15-style type scale
-- [ ] Create `ui/theme/Theme.kt` with Material3 Expressive theming
-  - No dynamic color support (monochrome only)
-  - Spring-based animation defaults
-- [ ] Create `ui/theme/Shapes.kt` with M3 Expressive shapes
-  - Rounded corners (4dp, 8dp, 12dp, 16dp, 24dp)
-  - Shape morphing support
+- [ ] Create `ui/theme/Color.kt` with **monochromatic black & white scheme** - Pure black (#000000) and pure white (#FFFFFF) - Grayscale tints (Gray50-Gray900) - Alpha/transparency variants (10%, 20%, 30%, 50%, 70%, 90%) - Light theme: white background, black accents - Dark theme: black background, white accents - **NO chromatic colors allowed**
+- [ ] Create `ui/theme/Gradients.kt` with gradient definitions - Radial gradients for backgrounds - Linear gradients for cards - Glow effects for runic text
+- [ ] Create `ui/theme/Type.kt` with **Roboto Flex** M3 Expressive typography - Variable font configuration - Font variation axes (weight, width) - Complete 15-style type scale
+- [ ] Create `ui/theme/Theme.kt` with Material3 Expressive theming - No dynamic color support (monochrome only) - Spring-based animation defaults
+- [ ] Create `ui/theme/Shapes.kt` with M3 Expressive shapes - Rounded corners (4dp, 8dp, 12dp, 16dp, 24dp) - Shape morphing support
 - [ ] Create `ui/theme/RunicFonts.kt` with runic FontFamily definitions
-- [ ] Add M3 Expressive motion utilities
-  - Spring animation specs
-  - Damping ratio constants
+- [ ] Add M3 Expressive motion utilities - Spring animation specs - Damping ratio constants
 - [ ] Add theme previews for light/dark modes
 - [ ] Validate WCAG AAA contrast ratios (7:1 minimum)
 
@@ -1641,14 +1560,9 @@ runatal-android/
       textAlign: TextAlign = TextAlign.Center
   )
   ```
-- [ ] Create `ui/components/ScriptSelector.kt`
-  - Segmented button group or tabs
-  - Elder / Younger / Cirth options
-- [ ] Create `ui/components/FontSelector.kt`
-  - Dropdown or radio buttons
-- [ ] Create `ui/components/QuoteCard.kt`
-  - Display quote with author
-  - Runic + Latin text toggle
+- [ ] Create `ui/components/ScriptSelector.kt` - Segmented button group or tabs - Elder / Younger / Cirth options
+- [ ] Create `ui/components/FontSelector.kt` - Dropdown or radio buttons
+- [ ] Create `ui/components/QuoteCard.kt` - Display quote with author - Runic + Latin text toggle
 - [ ] Create `ui/components/LoadingIndicator.kt`
 - [ ] Create `ui/components/ErrorMessage.kt`
 
@@ -1677,49 +1591,20 @@ runatal-android/
       val error: String? = null
   )
   ```
-- [ ] Create `ui/quote/QuoteViewModel.kt`
-  - Inject repository and preferences
-  - `loadQuoteOfTheDay()`
-  - `loadRandomQuote()`
-  - `updateScript(RunicScript)`
-  - `updateFont(RunicFont)`
-  - `toggleLatinView()`
-  - `shareQuote()`
-- [ ] Create `ui/quote/QuoteScreen.kt`
-  - App bar with menu
-  - Centered runic quote display
-  - Author attribution
-  - Bottom controls: Next, Share, Settings
-  - Script/Font selectors
-  - Swipe to refresh
+- [ ] Create `ui/quote/QuoteViewModel.kt` - Inject repository and preferences - `loadQuoteOfTheDay()` - `loadRandomQuote()` - `updateScript(RunicScript)` - `updateFont(RunicFont)` - `toggleLatinView()` - `shareQuote()`
+- [ ] Create `ui/quote/QuoteScreen.kt` - App bar with menu - Centered runic quote display - Author attribution - Bottom controls: Next, Share, Settings - Script/Font selectors - Swipe to refresh
 
 #### 2.5 Settings Screen
 - [ ] Create `ui/settings/SettingsUiState.kt`
-- [ ] Create `ui/settings/SettingsViewModel.kt`
-  - All preference updates
-  - Widget configuration
-- [ ] Create `ui/settings/SettingsScreen.kt`
-  - Preference categories
-  - Script selection
-  - Font selection
-  - Widget settings
-  - Theme selection
-  - About button
+- [ ] Create `ui/settings/SettingsViewModel.kt` - All preference updates - Widget configuration
+- [ ] Create `ui/settings/SettingsScreen.kt` - Preference categories - Script selection - Font selection - Widget settings - Theme selection - About button
 
 #### 2.6 About Screen
-- [ ] Create `ui/about/AboutScreen.kt`
-  - App version
-  - Credits
-  - Font licenses
-  - Open source licenses
-  - Links to documentation
+- [ ] Create `ui/about/AboutScreen.kt` - App version - Credits - Font licenses - Open source licenses - Links to documentation
 
 #### 2.7 Quote List Screen (Optional)
 - [ ] Create `ui/quotelist/QuoteListViewModel.kt`
-- [ ] Create `ui/quotelist/QuoteListScreen.kt`
-  - LazyColumn with all quotes
-  - Search functionality
-  - Filter by favorite
+- [ ] Create `ui/quotelist/QuoteListScreen.kt` - LazyColumn with all quotes - Search functionality - Filter by favorite
 
 ### Phase 3 – Widget (Glance) (Est: 2-3 days)
 
@@ -1733,8 +1618,7 @@ runatal-android/
 - [ ] Create widget layout configuration
 
 #### 3.2 Widget Data Management
-- [ ] Create `widget/data/WidgetQuoteRepository.kt`
-  - Interface for widget-specific data access
+- [ ] Create `widget/data/WidgetQuoteRepository.kt` - Interface for widget-specific data access
 - [ ] Create Hilt entry point for widget
   ```kotlin
   @EntryPoint
@@ -1747,10 +1631,7 @@ runatal-android/
 - [ ] Implement widget state management with StateFlow
 
 #### 3.3 Widget UI
-- [ ] Design widget layout (4x2 size)
-  - Runic quote text
-  - Author
-  - Tap to open app
+- [ ] Design widget layout (4x2 size) - Runic quote text - Author - Tap to open app
 - [ ] Implement font rendering in Glance
 - [ ] Add widget configuration activity (optional)
 - [ ] Handle different widget sizes (small, medium, large)
@@ -1776,64 +1657,32 @@ runatal-android/
 ### Phase 4 – Testing & QA (Est: 3-4 days)
 
 #### 4.1 Unit Tests
-- [ ] Create `test/transliteration/` package
-  - `ElderFutharkTransliteratorTest.kt` - all runes
-  - `YoungerFutharkTransliteratorTest.kt`
-  - `CirthTransliteratorTest.kt`
-  - Edge cases: numbers, punctuation, emojis
-- [ ] Create `test/repository/QuoteRepositoryTest.kt`
-  - Mock DAO with MockK
-  - Test all repository methods
-  - Test seeding logic
-- [ ] Create `test/viewmodel/` tests
-  - `QuoteViewModelTest.kt` with Turbine
-  - `SettingsViewModelTest.kt`
-  - Test state flows and updates
+- [ ] Create `test/transliteration/` package - `ElderFutharkTransliteratorTest.kt` - all runes - `YoungerFutharkTransliteratorTest.kt` - `CirthTransliteratorTest.kt` - Edge cases: numbers, punctuation, emojis
+- [ ] Create `test/repository/QuoteRepositoryTest.kt` - Mock DAO with MockK - Test all repository methods - Test seeding logic
+- [ ] Create `test/viewmodel/` tests - `QuoteViewModelTest.kt` with Turbine - `SettingsViewModelTest.kt` - Test state flows and updates
 
 #### 4.2 Instrumented Tests
-- [ ] Create `androidTest/database/` tests
-  - `QuoteDaoTest.kt` with in-memory database
-  - Test all queries
-- [ ] Create `androidTest/ui/` tests
-  - `QuoteScreenTest.kt` with Compose testing
-  - `SettingsScreenTest.kt`
-  - Test interactions and state changes
-- [ ] Create `androidTest/preferences/` tests
-  - `UserPreferencesManagerTest.kt`
-  - Test DataStore operations
+- [ ] Create `androidTest/database/` tests - `QuoteDaoTest.kt` with in-memory database - Test all queries
+- [ ] Create `androidTest/ui/` tests - `QuoteScreenTest.kt` with Compose testing - `SettingsScreenTest.kt` - Test interactions and state changes
+- [ ] Create `androidTest/preferences/` tests - `UserPreferencesManagerTest.kt` - Test DataStore operations
 
 #### 4.3 Integration Tests
-- [ ] Create end-to-end test suite
-  - App launch → Quote display → Settings change → Quote update
+- [ ] Create end-to-end test suite - App launch → Quote display → Settings change → Quote update
 - [ ] Test WorkManager integration
 - [ ] Test widget update flow
 - [ ] Test database migrations (when applicable)
 
 #### 4.4 UI/Screenshot Tests
 - [ ] Set up Paparazzi or Roborazzi for screenshot testing
-- [ ] Create screenshot tests for:
-  - Quote screen (all scripts)
-  - Settings screen
-  - Widget (all sizes)
-  - Dark/light themes
+- [ ] Create screenshot tests for: - Quote screen (all scripts) - Settings screen - Widget (all sizes) - Dark/light themes
 - [ ] Add visual regression tests
 
 #### 4.5 Performance & Quality
-- [ ] Run Detekt and fix all issues
-  - Configure `detekt.yml`
-  - Set up custom rules
+- [ ] Run Detekt and fix all issues - Configure `detekt.yml` - Set up custom rules
 - [ ] Run Android Lint and fix warnings
-- [ ] Profile app with Android Profiler
-  - Memory leaks check
-  - Rendering performance
-- [ ] Test on multiple devices/emulators
-  - Various API levels (26-34)
-  - Different screen sizes
-  - Tablets and foldables
-- [ ] Accessibility audit
-  - TalkBack testing
-  - Content descriptions
-  - Touch target sizes
+- [ ] Profile app with Android Profiler - Memory leaks check - Rendering performance
+- [ ] Test on multiple devices/emulators - Various API levels (26-34) - Different screen sizes - Tablets and foldables
+- [ ] Accessibility audit - TalkBack testing - Content descriptions - Touch target sizes
 
 ### Phase 5 – CI/CD & Deployment (Est: 1-2 days)
 
@@ -1850,10 +1699,7 @@ runatal-android/
       - Build debug APK
       - Upload artifacts
   ```
-- [ ] Create `.github/workflows/release.yml`
-  - Build release APK/AAB
-  - Sign with keystore
-  - Upload to GitHub releases
+- [ ] Create `.github/workflows/release.yml` - Build release APK/AAB - Sign with keystore - Upload to GitHub releases
 - [ ] Set up Dependabot for dependency updates
 - [ ] Add status badges to README
 
@@ -1865,11 +1711,7 @@ runatal-android/
 - [ ] Configure branch protection rules
 
 #### 5.3 Documentation
-- [ ] Create proper `README.md` with:
-  - Screenshots
-  - Features list
-  - Installation instructions
-  - Contributing guide
+- [ ] Create proper `README.md` with: - Screenshots - Features list - Installation instructions - Contributing guide
 - [ ] Add KDoc comments to public APIs
 - [ ] Generate documentation with Dokka
 - [ ] Create architecture diagrams
@@ -1878,52 +1720,32 @@ runatal-android/
 
 #### 6.1 Quote Sharing
 - [ ] Create `ui/share/ShareQuoteViewModel.kt`
-- [ ] Implement quote-to-image export
-  - Canvas drawing with runic text
-  - Custom background (stone texture)
-  - Watermark
+- [ ] Implement quote-to-image export - Canvas drawing with runic text - Custom background (stone texture) - Watermark
 - [ ] Add share intent
 - [ ] Support sharing to social media
 
 #### 6.2 User-Added Quotes
 - [ ] Add `isUserCreated` field to `QuoteEntity`
-- [ ] Create Add/Edit quote screen
-  - Input fields for quote and author
-  - Preview runic transliteration
-- [ ] Implement quote management
-  - Delete user quotes
-  - Edit user quotes
-- [ ] Add favorites system
-  - Boolean flag in entity
-  - Favorites filter
+- [ ] Create Add/Edit quote screen - Input fields for quote and author - Preview runic transliteration
+- [ ] Implement quote management - Delete user quotes - Edit user quotes
+- [ ] Add favorites system - Boolean flag in entity - Favorites filter
 
 #### 6.3 Themes & Visual Polish
-- [ ] Create theme variants:
-  - Stone background
-  - Wood texture
-  - Parchment style
+- [ ] Create theme variants: - Stone background - Wood texture - Parchment style
 - [ ] Implement dynamic theming
-- [ ] Add animated transitions:
-  - Rune fade-in animation
-  - Page transitions
-  - Particle effects (optional)
+- [ ] Add animated transitions: - Rune fade-in animation - Page transitions - Particle effects (optional)
 - [ ] Add haptic feedback
 
 #### 6.4 Advanced Widget Features
 - [ ] Multiple widget sizes/layouts
 - [ ] Widget configuration screen
-- [ ] Interactive widget buttons
-  - Next quote
-  - Favorite
+- [ ] Interactive widget buttons - Next quote - Favorite
 - [ ] Widget themes matching app
 
 #### 6.5 Additional Scripts
-- [ ] Add Anglo-Saxon Futhorc
-  - New transliterator
-  - Font support
+- [ ] Add Anglo-Saxon Futhorc - New transliterator - Font support
 - [ ] Add Medieval Runes (if fonts available)
-- [ ] Add transliteration accuracy mode
-  - Strict vs. phonetic
+- [ ] Add transliteration accuracy mode - Strict vs. phonetic
 
 #### 6.6 Cloud Features (Optional)
 - [ ] Firebase integration
@@ -1936,9 +1758,7 @@ runatal-android/
 #### 7.1 Play Store Assets
 - [ ] Create app icon (adaptive icon)
 - [ ] Create feature graphic (1024x500)
-- [ ] Take screenshots (phone + tablet)
-  - All major features
-  - Multiple languages (if applicable)
+- [ ] Take screenshots (phone + tablet) - All major features - Multiple languages (if applicable)
 - [ ] Create promotional video (optional)
 - [ ] Write store description
 - [ ] Translate store listing (optional)
@@ -1956,9 +1776,7 @@ runatal-android/
 - [ ] Gather feedback and iterate
 - [ ] Performance optimization
 - [ ] Battery usage optimization
-- [ ] APK size optimization
-  - ProGuard/R8 configuration
-  - Resource shrinking
+- [ ] APK size optimization - ProGuard/R8 configuration - Resource shrinking
 
 #### 7.4 Release
 - [ ] Version 1.0.0 release
@@ -2007,18 +1825,10 @@ runatal-android/
 
 **Features:**
 - Font selector UI (Noto/BabelStone for runic scripts)
-- Widget configuration options
-  - Update frequency (daily/manual)
-  - Widget theme selection
-- Quote sharing to social media
-  - Export quote as image with runic text
-  - Custom backgrounds
-- Improved styling and animations
-  - Smooth transitions between quotes
-  - Better loading states
-- Settings screen enhancements
-  - Theme mode (Light/Dark/Auto)
-  - Accessibility options
+- Widget configuration options - Update frequency (daily/manual) - Widget theme selection
+- Quote sharing to social media - Export quote as image with runic text - Custom backgrounds
+- Improved styling and animations - Smooth transitions between quotes - Better loading states
+- Settings screen enhancements - Theme mode (Light/Dark/Auto) - Accessibility options
 
 **Improvements:**
 - Performance optimization
@@ -2037,23 +1847,10 @@ runatal-android/
 **Target: 3-4 weeks after v1.1** | **Priority: Medium**
 
 **Features:**
-- **User-created quotes:**
-  - Add custom quotes with auto-transliteration
-  - Edit/delete user quotes
-  - Separate tab for user quotes
-- **Favorites system:**
-  - Mark quotes as favorites
-  - Filter by favorites
-  - Widget can show favorite quotes
-- **Theme system:**
-  - Stone background theme
-  - Wood texture theme
-  - Parchment style theme
-  - Custom color schemes
-- **Advanced widget:**
-  - Multiple widget sizes (2x2, 4x2, 4x4)
-  - Interactive buttons (next quote, favorite)
-  - Widget-specific themes
+- **User-created quotes:** - Add custom quotes with auto-transliteration - Edit/delete user quotes - Separate tab for user quotes
+- **Favorites system:** - Mark quotes as favorites - Filter by favorites - Widget can show favorite quotes
+- **Theme system:** - Stone background theme - Wood texture theme - Parchment style theme - Custom color schemes
+- **Advanced widget:** - Multiple widget sizes (2x2, 4x2, 4x4) - Interactive buttons (next quote, favorite) - Widget-specific themes
 
 **Data Management:**
 - Local backup/restore
@@ -2071,17 +1868,12 @@ runatal-android/
 **Target: 2-3 weeks after v1.2** | **Priority: Medium**
 
 **Features:**
-- Animated runic transitions
-  - Fade-in animations for runes
-  - Particle effects (optional)
+- Animated runic transitions - Fade-in animations for runes - Particle effects (optional)
 - Quote search functionality
 - Quote categories/tags
 - Statistics (quotes viewed, favorites count)
 - App shortcuts for quick actions
-- Improved accessibility
-  - TalkBack support
-  - Content descriptions for all runes
-  - Adjustable text sizes
+- Improved accessibility - TalkBack support - Content descriptions for all runes - Adjustable text sizes
 
 **Performance:**
 - Database query optimization
@@ -2100,24 +1892,14 @@ runatal-android/
 **Target: 4-6 weeks after v1.3** | **Priority: Low-Medium**
 
 **New Scripts:**
-- Anglo-Saxon Futhorc
-  - Complete transliterator
-  - Font support
+- Anglo-Saxon Futhorc - Complete transliterator - Font support
 - Medieval Runes (if fonts available)
 - Optional: Gothic script
-- Transliteration modes:
-  - Strict mode (historical accuracy)
-  - Phonetic mode (modern pronunciation)
+- Transliteration modes: - Strict mode (historical accuracy) - Phonetic mode (modern pronunciation)
 
 **Cloud Features (Optional):**
-- Firebase integration
-  - User authentication (optional)
-  - Cloud backup/restore
-  - Cross-device sync
-- Community quotes (moderated):
-  - Submit quotes for review
-  - Vote on community quotes
-  - Admin moderation panel
+- Firebase integration - User authentication (optional) - Cloud backup/restore - Cross-device sync
+- Community quotes (moderated): - Submit quotes for review - Vote on community quotes - Admin moderation panel
 
 **Advanced Features:**
 - Quote collections/playlists
@@ -2137,21 +1919,14 @@ runatal-android/
 
 **Ideas for Consideration:**
 - Runic keyboard module (IME)
-- Learn runic alphabet mode
-  - Interactive tutorials
-  - Practice writing runes
+- Learn runic alphabet mode - Interactive tutorials - Practice writing runes
 - Audio pronunciation guide
 - Historical context for quotes
 - Runic calendar integration
 - Watch OS companion app
 - AR mode (view runes in space)
-- Multiple languages support
-  - UI translations
-  - Quote translations
-- Premium features (optional):
-  - Advanced themes
-  - Ad-free experience
-  - Exclusive quote packs
+- Multiple languages support - UI translations - Quote translations
+- Premium features (optional): - Advanced themes - Ad-free experience - Exclusive quote packs
 - Integration with reading apps
 - Export to PDF/epub format
 
@@ -2177,8 +1952,7 @@ runatal-android/
 ### Common Build Issues
 
 #### Issue: Kotlin version mismatch
-**Error:** `The Kotlin Gradle plugin was loaded multiple times`
-**Solution:**
+**Error:** `The Kotlin Gradle plugin was loaded multiple times` **Solution:**
 ```gradle
 // Ensure consistent Kotlin version in gradle/libs.versions.toml
 kotlin = "2.2.21"
@@ -2187,14 +1961,12 @@ kotlin = "2.2.21"
 ```
 
 #### Issue: Compose compiler version incompatibility
-**Error:** `androidx.compose.compiler:compiler version mismatch`
-**Solution:**
+**Error:** `androidx.compose.compiler:compiler version mismatch` **Solution:**
 - Ensure `composeOptions.kotlinCompilerExtensionVersion` matches Compose BOM
 - Check Kotlin-Compose compatibility matrix: https://developer.android.com/jetpack/androidx/releases/compose-kotlin
 
 #### Issue: Hilt kapt errors
-**Error:** `Hilt processor cannot find @HiltAndroidApp`
-**Solution:**
+**Error:** `Hilt processor cannot find @HiltAndroidApp` **Solution:**
 ```kotlin
 // Ensure kapt is applied before hilt plugin in build.gradle.kts
 plugins {
@@ -2204,8 +1976,7 @@ plugins {
 ```
 
 #### Issue: Room schema export location
-**Error:** `Schema export directory is not provided`
-**Solution:**
+**Error:** `Schema export directory is not provided` **Solution:**
 ```kotlin
 android {
     defaultConfig {
@@ -2221,16 +1992,14 @@ android {
 ### Runtime Issues
 
 #### Issue: Font not rendering in widget
-**Symptom:** Widget shows blank squares instead of runes
-**Solution:**
+**Symptom:** Widget shows blank squares instead of runes **Solution:**
 - Verify font files are in `res/font/`
 - Check font file names match FontFamily definitions
 - Ensure Glance supports custom fonts (limitation in early Glance versions)
 - Fallback: Use Unicode runes without custom font
 
 #### Issue: Widget not updating
-**Symptom:** Widget shows old quote after daily update
-**Solution:**
+**Symptom:** Widget shows old quote after daily update **Solution:**
 - Check WorkManager constraints
 - Verify GlanceAppWidgetReceiver is registered in manifest
 - Force widget update:
@@ -2239,16 +2008,14 @@ context.sendBroadcast(Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE))
 ```
 
 #### Issue: Database seeding fails
-**Symptom:** Empty quote list or crash on first launch
-**Solution:**
+**Symptom:** Empty quote list or crash on first launch **Solution:**
 - Check QuoteSeedData.kt for syntax errors
 - Ensure database version is correct
 - Clear app data and reinstall
 - Add logging to seedDatabaseIfNeeded()
 
 #### Issue: DataStore corruption
-**Symptom:** App crashes on preference read
-**Solution:**
+**Symptom:** App crashes on preference read **Solution:**
 ```kotlin
 // Add error handling
 dataStore.data
@@ -2431,8 +2198,7 @@ This project is licensed under the **MIT License** - see LICENSE file for detail
 - BabelStone Runic: Free for personal and commercial use
 - Cirth Angerthas: Verify specific font license
 
-**Third-Party Libraries:**
-All dependencies are used under their respective licenses (Apache 2.0, MIT, etc.)
+**Third-Party Libraries:** All dependencies are used under their respective licenses (Apache 2.0, MIT, etc.)
 
 ---
 
@@ -2449,7 +2215,5 @@ All dependencies are used under their respective licenses (Apache 2.0, MIT, etc.
 
 This comprehensive document defines the complete technical blueprint, architecture, detailed implementation TODO list, and strategic roadmap for the **Runatal (Android)** application.
 
-**Document Version:** 1.0
-**Last Updated:** 2025-11-15
-**Status:** Ready for Implementation
+**Document Version:** 1.0 **Last Updated:** 2025-11-15 **Status:** Ready for Implementation
 

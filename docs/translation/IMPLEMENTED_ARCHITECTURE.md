@@ -15,12 +15,9 @@ The app ships two separate stacks:
 
 The translation stack is offline and asset-backed. It currently exposes three engines:
 
-- `YoungerFutharkTranslationEngine`
-  English -> normalized Old Norse -> diplomatic Latin rune spelling -> Younger Futhark glyphs
-- `ElderFutharkTranslationEngine`
-  English -> constrained Proto-Norse reconstruction -> Elder Futhark glyphs
-- `EreborCirthTranslationEngine`
-  English/Westron-style transcription -> Erebor diplomatic sequence layer -> Cirth glyphs
+- `YoungerFutharkTranslationEngine` English -> normalized Old Norse -> diplomatic Latin rune spelling -> Younger Futhark glyphs
+- `ElderFutharkTranslationEngine` English -> constrained Proto-Norse reconstruction -> Elder Futhark glyphs
+- `EreborCirthTranslationEngine` English/Westron-style transcription -> Erebor diplomatic sequence layer -> Cirth glyphs
 
 Each engine returns `TranslationResult` with:
 
@@ -45,12 +42,9 @@ Each engine returns `TranslationResult` with:
 
 The runtime dataset is split into three internal stores:
 
-- `HistoricalLexiconStore`
-  Old Norse and Proto-Norse lexicon entries, paradigm tables, grammar rules, name adaptations, and fallback templates
-- `RunicCorpusStore`
-  gold examples, Younger phrase templates, Elder attested forms, and runic corpus references
-- `EreborOrthographyStore`
-  Erebor sequence tables, phrase mappings, long-vowel and long-consonant tables
+- `HistoricalLexiconStore` Old Norse and Proto-Norse lexicon entries, paradigm tables, grammar rules, name adaptations, and fallback templates
+- `RunicCorpusStore` gold examples, Younger phrase templates, Elder attested forms, and runic corpus references
+- `EreborOrthographyStore` Erebor sequence tables, phrase mappings, long-vowel and long-consonant tables
 
 The shipped provider is `AssetTranslationDatasetProvider`, which reads generated JSON assets from `app/src/main/translationSeed/translation/`.
 
@@ -58,21 +52,16 @@ The shipped provider is `AssetTranslationDatasetProvider`, which reads generated
 
 The engines do not use one generic fallback path. They use precedence rules:
 
-- Younger Futhark
-  gold example -> curated phrase template -> token composition -> readable/decorative fallback -> strict unavailable
-- Elder Futhark
-  gold example -> curated attested short form/template -> readable/decorative token composition -> strict unavailable
-- Erebor
-  gold example -> curated phrase mapping -> sequence-table transcription -> readable character fallback -> strict unavailable
+- Younger Futhark gold example -> curated phrase template -> token composition -> readable/decorative fallback -> strict unavailable
+- Elder Futhark gold example -> curated attested short form/template -> readable/decorative token composition -> strict unavailable
+- Erebor gold example -> curated phrase mapping -> sequence-table transcription -> readable character fallback -> strict unavailable
 
 ## Persistence
 
 Structured translation output is stored in Room:
 
-- `translation_records`
-  cached translation results keyed by quote, script, fidelity, variant, engine version, and dataset version
-- `translation_backfill_state`
-  resumable one-time backfill progress
+- `translation_records` cached translation results keyed by quote, script, fidelity, variant, engine version, and dataset version
+- `translation_backfill_state` resumable one-time backfill progress
 
 `TranslationRepository` owns cache lookup, persistence, lazy generation, and backfill behavior.
 

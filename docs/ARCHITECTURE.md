@@ -492,6 +492,4 @@ The current architecture supports:
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: Phase 5 Completion
-**Author**: Runatal Team
+**Document Version**: 1.0 **Last Updated**: Phase 5 Completion **Author**: Runatal Team

@@ -1,9 +1,6 @@
 # Runatal
 
-[![Android CI](https://github.com/po4yka/runatal-android/workflows/Android%20CI/badge.svg)](https://github.com/po4yka/runatal-android/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.2.21-blue.svg)](https://kotlinlang.org)
-[![Compose](https://img.shields.io/badge/Jetpack%20Compose-1.7-green.svg)](https://developer.android.com/jetpack/compose)
+[![Android CI](https://github.com/po4yka/runatal-android/workflows/Android%20CI/badge.svg)](https://github.com/po4yka/runatal-android/actions) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.21-blue.svg)](https://kotlinlang.org) [![Compose](https://img.shields.io/badge/Jetpack%20Compose-1.7-green.svg)](https://developer.android.com/jetpack/compose)
 
 A beautiful Android app that displays inspiring quotes transliterated into ancient runic scripts. Built with Jetpack Compose and Material 3 Design, featuring Elder Futhark, Younger Futhark, and Tolkien's Cirth (Angerthas) scripts.
 
@@ -11,10 +8,7 @@ A beautiful Android app that displays inspiring quotes transliterated into ancie
 
 ### Core Functionality
 - **Daily Runatal**: Get a new inspirational quote every day, transliterated into runes
-- **Multiple Runic Scripts**: Support for three ancient writing systems:
-  - **Elder Futhark**: The oldest runic alphabet (2nd-8th centuries)
-  - **Younger Futhark**: Simplified Viking Age runes (9th-11th centuries)
-  - **Cirth (Angerthas)**: Tolkien's elvish runes from Middle-earth
+- **Multiple Runic Scripts**: Support for three ancient writing systems: - **Elder Futhark**: The oldest runic alphabet (2nd-8th centuries) - **Younger Futhark**: Simplified Viking Age runes (9th-11th centuries) - **Cirth (Angerthas)**: Tolkien's elvish runes from Middle-earth
 - **Live Transliteration**: Automatic conversion from Latin alphabet to runic scripts
 - **Home Screen Widget**: Display quote of the day directly on your home screen
 
@@ -81,16 +75,9 @@ A beautiful Android app that displays inspiring quotes transliterated into ancie
    cd runatal-android
    ```
 
-2. **Open in Android Studio**
-   - Launch Android Studio
-   - Select "Open an Existing Project"
-   - Navigate to the cloned repository
-   - Wait for Gradle sync to complete
+2. **Open in Android Studio** - Launch Android Studio - Select "Open an Existing Project" - Navigate to the cloned repository - Wait for Gradle sync to complete
 
-3. **Run the app**
-   - Connect an Android device or start an emulator
-   - Click the "Run" button (▶️) or press Shift+F10
-   - Select your target device
+3. **Run the app** - Connect an Android device or start an emulator - Click the "Run" button (▶️) or press Shift+F10 - Select your target device
 
 ### Building from Command Line
 

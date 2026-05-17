@@ -53,11 +53,7 @@ We pledge to make participation in our project a harassment-free experience for 
    git fetch upstream
    ```
 
-3. **Open in Android Studio**
-   - Launch Android Studio
-   - Select "Open an Existing Project"
-   - Navigate to the cloned directory
-   - Wait for Gradle sync to complete
+3. **Open in Android Studio** - Launch Android Studio - Select "Open an Existing Project" - Navigate to the cloned directory - Wait for Gradle sync to complete
 
 4. **Verify Setup**
    ```bash
@@ -94,10 +90,7 @@ git checkout -b feature/your-feature-name
 
 ### Making Changes
 
-1. **Write Code**
-   - Follow the coding standards (see below)
-   - Add/update tests
-   - Update documentation
+1. **Write Code** - Follow the coding standards (see below) - Add/update tests - Update documentation
 
 2. **Test Locally**
    ```bash
@@ -122,10 +115,7 @@ git checkout -b feature/your-feature-name
    git push origin feature/your-feature-name
    ```
 
-5. **Create Pull Request**
-   - Go to GitHub and create a PR from your fork
-   - Fill out the PR template completely
-   - Link any related issues
+5. **Create Pull Request** - Go to GitHub and create a PR from your fork - Fill out the PR template completely - Link any related issues
 
 ## Coding Standards
 
@@ -209,13 +199,9 @@ di/         → Dependency Injection
    }
    ```
 
-2. **Stable Parameters**
-   - Pass stable types to composables
-   - Use `@Stable` or `@Immutable` when appropriate
+2. **Stable Parameters** - Pass stable types to composables - Use `@Stable` or `@Immutable` when appropriate
 
-3. **Avoid Side Effects in Composition**
-   - Use `LaunchedEffect` for coroutines
-   - Use `DisposableEffect` for cleanup
+3. **Avoid Side Effects in Composition** - Use `LaunchedEffect` for coroutines - Use `DisposableEffect` for cleanup
 
 ### Accessibility Checklist
 - Every meaningful interactive element must expose a label, role, and state description when applicable.
