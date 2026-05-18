@@ -34,7 +34,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run dependency review (if available)
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@v5
         if: github.event_name == 'pull_request'
         with:
           fail-on-severity: high
