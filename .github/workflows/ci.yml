@@ -269,7 +269,7 @@ jobs:
         continue-on-error: true
 
       - name: Add merged coverage comment to PR
-        uses: madrapps/jacoco-report@v1.7.2
+        uses: madrapps/jacoco-report@v1.8.0
         with:
           paths: ${{ github.workspace }}/app/build/reports/jacoco/projectCoverage/projectCoverage.xml
           token: ${{ secrets.GITHUB_TOKEN }}
