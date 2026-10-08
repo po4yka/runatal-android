@@ -238,7 +238,7 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-${{ runner.os }}-37-google-apis-x86_64-pixel-5
+          key: avd-${{ runner.os }}-37.0-google-apis-x86_64-pixel-5-data-6g
 
       - name: Create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
@@ -249,6 +249,7 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_5
+          disk-size: '6G'
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: false
@@ -262,6 +263,7 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_5
+          disk-size: '6G'
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
