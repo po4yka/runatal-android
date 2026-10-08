@@ -1,42 +1,49 @@
 package com.po4yka.runatal.ui.screens.references
 
 import android.util.Log
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runatal.data.repository.RuneReferenceRepository
 import com.po4yka.runatal.domain.model.RuneReference
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.IOException
-import javax.inject.Inject
 
 /**
  * ViewModel for displaying detailed information about a single rune.
  */
-@HiltViewModel
-class RuneDetailViewModel @Inject constructor(
+@HiltViewModel(assistedFactory = RuneDetailViewModel.Factory::class)
+class RuneDetailViewModel @AssistedInject constructor(
     private val runeReferenceRepository: RuneReferenceRepository,
-    savedStateHandle: SavedStateHandle
+    @Assisted private val runeId: Long
 ) : ViewModel() {
-
-    private val runeId: Long = savedStateHandle.get<Long>(RUNE_ID_KEY) ?: 0L
 
     private val _uiState = MutableStateFlow<RuneDetailUiState>(RuneDetailUiState.Loading)
     val uiState: StateFlow<RuneDetailUiState> = _uiState.asStateFlow()
 
+    /** Creates an entry-scoped ViewModel with the typed navigation argument. */
+    @AssistedFactory
+    interface Factory {
+        /** Creates the ViewModel for the selected navigation entry. */
+        fun create(runeId: Long): RuneDetailViewModel
+    }
+
     /** @suppress */
     companion object {
         private const val TAG = "RuneDetailViewModel"
-        private const val RUNE_ID_KEY = "runeId"
     }
 
     init {
-        if (runeId != 0L) {
+        if (runeId > 0L) {
             loadRune()
+        } else {
+            _uiState.value = RuneDetailUiState.Error("Rune not found")
         }
     }
 

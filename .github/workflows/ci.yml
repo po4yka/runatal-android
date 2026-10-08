@@ -21,12 +21,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7.0.1
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v5
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6.0.1
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
           cache: gradle
 
@@ -34,14 +34,14 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run dependency review (if available)
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@v5.0.0
         if: github.event_name == 'pull_request'
         with:
           fail-on-severity: high
         continue-on-error: true  # Don't fail if dependency graph is not enabled
 
       - name: Check Gradle dependencies
-        run: ./gradlew dependencies --configuration debugRuntimeClasspath > dependencies.txt
+        run: ./gradlew :app:dependencies --configuration debugRuntimeClasspath > dependencies.txt
         continue-on-error: true
 
       - name: Display dependency tree summary
@@ -60,7 +60,7 @@ jobs:
 
       - name: Upload dependency report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: dependency-report
           path: dependencies.txt
@@ -73,12 +73,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7.0.1
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v5
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6.0.1
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
           cache: gradle
 
@@ -90,7 +90,7 @@ jobs:
 
       - name: Upload analysis reports
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: static-analysis-reports
           path: |
@@ -106,12 +106,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7.0.1
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v5
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6.0.1
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
           cache: gradle
 
@@ -119,11 +119,11 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run unit tests and generate coverage
-        run: ./gradlew testDebugUnitTest jacocoProjectCoverageReport jacocoTransliterationCoverageVerification
+        run: ./gradlew testDebugUnitTest jacocoProjectCoverageReport jacocoTransliterationCoverageVerification jacocoTranslationCoverageVerification
 
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: unit-test-reports
           path: |
@@ -134,7 +134,7 @@ jobs:
 
       - name: Publish test results
         if: success() || failure()
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        uses: EnricoMi/publish-unit-test-result-action@v2.24.0
         continue-on-error: true
         with:
           files: |
@@ -149,20 +149,19 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7.0.1
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v5
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6.0.1
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
-          cache: gradle
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v6.4.0
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
-          gradle-home-cache-cleanup: true
+          cache-cleanup: on-success
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -177,7 +176,7 @@ jobs:
           fi
 
       - name: Upload APK
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: app-debug-apk-${{ github.sha }}
           path: app/build/outputs/apk/debug/app-debug.apk
@@ -185,7 +184,7 @@ jobs:
 
       - name: Comment PR with APK
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -208,38 +207,45 @@ jobs:
 
   instrumented-test:
     name: Instrumented Tests
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 45
-    if: github.event_name == 'pull_request'  # Only run on PRs to save CI minutes
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7.0.1
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v5
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6.0.1
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
           cache: gradle
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
       - name: AVD cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6.1.0
         id: avd-cache
         with:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-30
+          key: avd-${{ runner.os }}-37-google-apis-x86_64-pixel-5
 
       - name: Create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@v2.38.0
         with:
-          api-level: 30
+          api-level: '37.0'
+          system-image-api-level: '37.0'
           target: google_apis
           arch: x86_64
           profile: pixel_5
@@ -249,9 +255,10 @@ jobs:
           script: echo "Generated AVD snapshot for caching."
 
       - name: Run instrumented tests with merged coverage
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@v2.38.0
         with:
-          api-level: 30
+          api-level: '37.0'
+          system-image-api-level: '37.0'
           target: google_apis
           arch: x86_64
           profile: pixel_5
@@ -261,7 +268,7 @@ jobs:
           script: ./gradlew testDebugUnitTest connectedDebugAndroidTest jacocoProjectCoverageReport --no-daemon
 
       - name: Upload merged coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7.1.1
         with:
           files: ./app/build/reports/jacoco/projectCoverage/projectCoverage.xml
           flags: android,merged
@@ -269,7 +276,8 @@ jobs:
         continue-on-error: true
 
       - name: Add merged coverage comment to PR
-        uses: madrapps/jacoco-report@v1.7.2
+        if: github.event_name == 'pull_request'
+        uses: madrapps/jacoco-report@v1.8.0
         with:
           paths: ${{ github.workspace }}/app/build/reports/jacoco/projectCoverage/projectCoverage.xml
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -279,7 +287,7 @@ jobs:
 
       - name: Upload instrumented test reports
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: instrumented-test-reports
           path: |

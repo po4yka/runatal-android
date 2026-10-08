@@ -81,8 +81,11 @@ import kotlinx.coroutines.launch
 
 @Composable
 internal fun ShareScreen(
+    quoteId: Long,
     onNavigateBack: () -> Unit = {},
-    viewModel: ShareViewModel = hiltViewModel()
+    viewModel: ShareViewModel = hiltViewModel<ShareViewModel, ShareViewModel.Factory>(
+        creationCallback = { factory -> factory.create(quoteId) }
+    )
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedTemplate by viewModel.selectedTemplate.collectAsStateWithLifecycle()

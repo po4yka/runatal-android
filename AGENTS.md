@@ -120,7 +120,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on push to main/develop and PRs
 2. **Lint** -- detekt + Android lint (reports uploaded as artifacts)
 3. **Unit Tests** -- JUnit tests + JaCoCo coverage + Codecov upload
 4. **Build** -- assembleDebug (gated on lint + test passing)
-5. **Instrumented Tests** -- Espresso on emulator (PR-only, macOS runner)
+5. **Instrumented Tests** -- Espresso on Android 17 (API 37) emulator (PR, main push, and manual runs; Ubuntu runner)
 
 ## File Structure Reference
 

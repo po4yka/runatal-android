@@ -1,6 +1,5 @@
 package com.po4yka.runatal.ui.screens.addeditquote
 
-import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.data.preferences.UserPreferences
@@ -42,7 +41,7 @@ class AddEditQuoteViewModelTest {
     private lateinit var quoteRepository: QuoteRepository
     private lateinit var userPreferencesManager: UserPreferencesManager
     private lateinit var transliterationFactory: TransliterationFactory
-    private lateinit var savedStateHandle: SavedStateHandle
+    private var quoteId: Long = 0L
     private lateinit var viewModel: AddEditQuoteViewModel
 
     private val testDispatcher = StandardTestDispatcher()
@@ -96,15 +95,15 @@ class AddEditQuoteViewModelTest {
 
     @Test
     fun `viewModel initializes with empty state for new quote`() = runTest {
-        // Given: SavedStateHandle with no quoteId (new quote)
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        // Given: Zero route quoteId (new quote)
+        quoteId = 0L
 
         // When: ViewModel is created
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -126,15 +125,15 @@ class AddEditQuoteViewModelTest {
 
     @Test
     fun `viewModel loads preferences on initialization`() = runTest {
-        // Given: SavedStateHandle with no quoteId
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        // Given: Zero route quoteId
+        quoteId = 0L
 
         // When: ViewModel is created
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -150,8 +149,8 @@ class AddEditQuoteViewModelTest {
 
     @Test
     fun `viewModel loads existing quote for editing`() = runTest {
-        // Given: SavedStateHandle with quoteId
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 1L))
+        // Given: Route quoteId
+        quoteId = 1L
         coEvery { quoteRepository.getQuoteById(1L) } returns testQuote
 
         // When: ViewModel is created
@@ -159,7 +158,7 @@ class AddEditQuoteViewModelTest {
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -178,9 +177,9 @@ class AddEditQuoteViewModelTest {
 
     @Test
     fun `viewModel does not load system quote for editing`() = runTest {
-        // Given: SavedStateHandle with quoteId for system quote
+        // Given: Route quoteId for system quote
         val systemQuote = testQuote.copy(isUserCreated = false)
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 1L))
+        quoteId = 1L
         coEvery { quoteRepository.getQuoteById(1L) } returns systemQuote
 
         // When: ViewModel is created
@@ -188,7 +187,7 @@ class AddEditQuoteViewModelTest {
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -204,8 +203,8 @@ class AddEditQuoteViewModelTest {
 
     @Test
     fun `viewModel handles null quote gracefully`() = runTest {
-        // Given: SavedStateHandle with quoteId that doesn't exist
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 999L))
+        // Given: Route quoteId that doesn't exist
+        quoteId = 999L
         coEvery { quoteRepository.getQuoteById(999L) } returns null
 
         // When: ViewModel is created
@@ -213,7 +212,7 @@ class AddEditQuoteViewModelTest {
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -232,12 +231,12 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `updateTextLatin updates text and generates previews`() = runTest {
         // Given: ViewModel initialized
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -260,12 +259,12 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `updateTextLatin with empty string clears previews`() = runTest {
         // Given: ViewModel with text
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -290,12 +289,12 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `updateTextLatin handles special characters`() = runTest {
         // Given: ViewModel initialized
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -318,12 +317,12 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `updateAuthor updates author field`() = runTest {
         // Given: ViewModel initialized
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -343,12 +342,12 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `updateAuthor does not affect runic previews`() = runTest {
         // Given: ViewModel with text
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -377,12 +376,12 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `updateSelectedScript changes selected script`() = runTest {
         // Given: ViewModel initialized
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -401,12 +400,12 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `updateSelectedScript to all scripts works correctly`() = runTest {
         // Given: ViewModel initialized
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -434,12 +433,12 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `saveQuote validates empty text`() = runTest {
         // Given: ViewModel with empty text
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -461,12 +460,12 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `saveQuote validates empty author`() = runTest {
         // Given: ViewModel with empty author
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -488,12 +487,12 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `saveQuote validates blank text with spaces`() = runTest {
         // Given: ViewModel with blank text
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -516,14 +515,14 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `saveQuote creates new quote successfully`() = runTest {
         // Given: ViewModel with valid data
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         coEvery { quoteRepository.saveUserQuote(any()) } returns 1L
 
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -547,7 +546,7 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `saveQuote includes all runic previews`() = runTest {
         // Given: ViewModel with valid data
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         var savedQuote: Quote? = null
         coEvery { quoteRepository.saveUserQuote(any()) } coAnswers {
             savedQuote = firstArg()
@@ -558,7 +557,7 @@ class AddEditQuoteViewModelTest {
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -580,7 +579,7 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `saveQuote trims text and author`() = runTest {
         // Given: ViewModel with text containing extra spaces
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         var savedQuote: Quote? = null
         coEvery { quoteRepository.saveUserQuote(any()) } coAnswers {
             savedQuote = firstArg()
@@ -591,7 +590,7 @@ class AddEditQuoteViewModelTest {
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -612,14 +611,14 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `saveQuote sets isSaving flag`() = runTest {
         // Given: ViewModel with valid data
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         coEvery { quoteRepository.saveUserQuote(any()) } returns 1L
 
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -652,7 +651,7 @@ class AddEditQuoteViewModelTest {
     fun `saveQuote updates existing quote`() = runTest {
         // Given: ViewModel editing existing quote
         val favoriteQuote = testQuote.copy(isFavorite = true)
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 1L))
+        quoteId = 1L
         coEvery { quoteRepository.getQuoteById(1L) } returns favoriteQuote
         var savedQuote: Quote? = null
         coEvery { quoteRepository.saveUserQuote(any()) } coAnswers {
@@ -664,7 +663,7 @@ class AddEditQuoteViewModelTest {
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -695,7 +694,7 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `saveQuote invalidates cached translations when edited text changes`() = runTest {
         val translationRepository = mockk<TranslationRepository>(relaxed = true)
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 1L))
+        quoteId = 1L
         coEvery { quoteRepository.getQuoteById(1L) } returns testQuote
         coEvery { quoteRepository.saveUserQuote(any()) } returns 1L
 
@@ -703,7 +702,7 @@ class AddEditQuoteViewModelTest {
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle,
+            quoteId,
             translationRepository
         )
         advanceUntilIdle()
@@ -721,14 +720,14 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `saveQuote handles IOException`() = runTest {
         // Given: Repository throws IOException
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         coEvery { quoteRepository.saveUserQuote(any()) } throws IOException("Database error")
 
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -757,14 +756,14 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `saveQuote handles IllegalStateException`() = runTest {
         // Given: Repository throws IllegalStateException
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         coEvery { quoteRepository.saveUserQuote(any()) } throws IllegalStateException("Invalid state")
 
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -791,14 +790,14 @@ class AddEditQuoteViewModelTest {
 
     @Test
     fun `deleteQuote emits message when repository delete fails`() = runTest {
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 1L))
+        quoteId = 1L
         coEvery { quoteRepository.getQuoteById(1L) } returns testQuote
         coEvery { quoteRepository.deleteUserQuote(1L) } throws IOException("Database error")
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -820,12 +819,12 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `preferences change updates selectedScript`() = runTest {
         // Given: ViewModel initialized
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -851,12 +850,12 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `multiple rapid text updates generate correct previews`() = runTest {
         // Given: ViewModel initialized
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -879,12 +878,12 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `long text generates preview correctly`() = runTest {
         // Given: ViewModel initialized
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 
@@ -907,12 +906,12 @@ class AddEditQuoteViewModelTest {
     @Test
     fun `quote with unicode characters is handled`() = runTest {
         // Given: ViewModel initialized
-        savedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L))
+        quoteId = 0L
         viewModel = AddEditQuoteViewModel(
             quoteRepository,
             userPreferencesManager,
             transliterationFactory,
-            savedStateHandle
+            quoteId
         )
         advanceUntilIdle()
 

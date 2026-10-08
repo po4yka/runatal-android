@@ -94,8 +94,11 @@ import java.util.Locale
 
 @Composable
 internal fun AddEditQuoteScreen(
+    quoteId: Long,
     onNavigateBack: () -> Unit,
-    viewModel: AddEditQuoteViewModel = hiltViewModel()
+    viewModel: AddEditQuoteViewModel = hiltViewModel<AddEditQuoteViewModel, AddEditQuoteViewModel.Factory>(
+        creationCallback = { factory -> factory.create(quoteId) }
+    )
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }

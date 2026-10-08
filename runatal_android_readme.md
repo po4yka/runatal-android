@@ -1,5 +1,7 @@
 # Runatal (Android) – README / TODO / ROADMAP
 
+> Historical planning reference: the dependency versions, build snippets, and initial setup checklists below describe the original plan. For current setup and supported technologies, use [README.md](README.md), [gradle/libs.versions.toml](gradle/libs.versions.toml), [the Gradle wrapper](gradle/wrapper/gradle-wrapper.properties), and [CI workflows](.github/workflows/).
+
 ## 1. Overview
 
 **Runatal** is an Android application built with a modern Kotlin/Compose architecture that displays inspirational and literary quotes rendered in ancient runic scripts:

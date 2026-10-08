@@ -1,7 +1,18 @@
+import com.android.build.api.artifact.ScopedArtifact
+import com.android.build.api.variant.ScopedArtifacts
+import org.gradle.api.file.ArchiveOperations
+import org.gradle.api.file.Directory
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.FileSystemOperations
+import org.gradle.api.file.RegularFile
+import org.gradle.api.provider.ListProperty
+import javax.inject.Inject
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.detekt)
@@ -10,14 +21,19 @@ plugins {
 
 android {
     namespace = "com.po4yka.runatal"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.po4yka.runatal"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0.0"
+
+        buildConfigField("String", "COROUTINES_VERSION", "\"${libs.versions.coroutines.get()}\"")
+        buildConfigField("String", "ROOM_VERSION", "\"${libs.versions.room.get()}\"")
+        buildConfigField("String", "DATASTORE_VERSION", "\"${libs.versions.datastore.get()}\"")
+        buildConfigField("String", "HILT_VERSION", "\"${libs.versions.hilt.asProvider().get()}\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -60,7 +76,7 @@ android {
 
     sourceSets {
         getByName("main") {
-            assets.srcDirs("$buildDir/generated/translationAssets")
+            assets.directories.add(layout.buildDirectory.dir("generated/translationAssets").get().asFile.path)
         }
     }
 
@@ -81,7 +97,6 @@ android {
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         freeCompilerArgs.addAll(
             "-opt-in=kotlin.RequiresOptIn",
             "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api"
@@ -89,9 +104,9 @@ kotlin {
     }
 }
 
-// Room schema export for KSP
-ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
+// Room configures schema export and migration-test assets through its Gradle plugin.
+room3 {
+    schemaDirectory("$projectDir/schemas")
 }
 
 dependencies {
@@ -120,12 +135,12 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
-    implementation(libs.hilt.navigation.compose)
+    ksp(libs.androidx.hilt.compiler)
+    implementation(libs.hilt.lifecycle.viewmodel.compose)
     implementation(libs.hilt.work)
 
     // Room
     implementation(libs.room.runtime)
-    implementation(libs.room.ktx)
     ksp(libs.room.compiler)
 
     // DataStore
@@ -164,6 +179,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.compose.ui.test.junit4)
     androidTestImplementation(libs.room.testing)
+    androidTestImplementation(libs.work.testing)
 }
 
 val translationSeedDir = layout.projectDirectory.dir("src/main/translationSeed")
@@ -326,11 +342,11 @@ abstract class ValidateTranslationCurationTask : DefaultTask() {
     }
 }
 
-val validateTranslationCuration by tasks.registering(ValidateTranslationCurationTask::class) {
+val validateTranslationCuration = tasks.register<ValidateTranslationCurationTask>("validateTranslationCuration") {
     dataDir.set(translationDataDir)
 }
 
-val generateTranslationAssets by tasks.registering(Sync::class) {
+val generateTranslationAssets = tasks.register<Sync>("generateTranslationAssets") {
     dependsOn(validateTranslationCuration)
     from(translationSeedDir)
     into(generatedTranslationAssetsDir)
@@ -345,6 +361,65 @@ detekt {
     )
 }
 
+// Use the same JaCoCo version for AGP instrumentation and Gradle reports.
+android {
+    testCoverage {
+        jacocoVersion = libs.versions.jacoco.get()
+    }
+}
+
+jacoco {
+    toolVersion = libs.versions.jacoco.get()
+}
+
+// Consume AGP's public, uninstrumented project classes rather than an internal task output path.
+abstract class CollectCoverageClasses : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val classDirectories: ListProperty<Directory>
+
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val classJars: ListProperty<RegularFile>
+
+    @get:OutputDirectory
+    abstract val outputDirectory: DirectoryProperty
+
+    @get:Inject
+    abstract val archiveOperations: ArchiveOperations
+
+    @get:Inject
+    abstract val fileSystemOperations: FileSystemOperations
+
+    @TaskAction
+    fun collect() {
+        fileSystemOperations.sync {
+            from(classDirectories)
+            classJars.get().forEach { from(archiveOperations.zipTree(it)) }
+            into(outputDirectory)
+            include("**/*.class")
+            duplicatesStrategy = DuplicatesStrategy.FAIL
+        }
+        check(outputDirectory.get().asFile.resolve("com/po4yka/runatal/MainActivity.class").isFile) {
+            "AGP did not provide application classes for coverage."
+        }
+    }
+}
+
+val collectDebugCoverageClasses = tasks.register<CollectCoverageClasses>("collectDebugCoverageClasses") {
+    outputDirectory.set(layout.buildDirectory.dir("coverage/classes/debug"))
+}
+
+androidComponents.onVariants(androidComponents.selector().withBuildType("debug")) { variant ->
+    variant.artifacts.forScope(ScopedArtifacts.Scope.PROJECT)
+        .use(collectDebugCoverageClasses)
+        .toGet(
+            ScopedArtifact.CLASSES,
+            CollectCoverageClasses::classJars,
+            CollectCoverageClasses::classDirectories
+        )
+}
+
 // JaCoCo configuration for code coverage.
 val coverageExclusions = listOf(
     "**/R.class",
@@ -353,7 +428,9 @@ val coverageExclusions = listOf(
     "**/Manifest*.*",
     "**/*Test*.*",
     "**/*_Factory.*",
+    "**/*_AssistedFactory.*",
     "**/*_HiltModules*.*",
+    "**/*_HiltComponents*.*",
     "**/*_MembersInjector.*",
     "**/*_Impl*.*",
     "**/*ComponentTreeDeps.*",
@@ -403,13 +480,14 @@ fun coverageClassTree(
     includes: List<String>? = null,
     extraExcludes: List<String> = emptyList()
 ) =
-    fileTree("${layout.buildDirectory.get()}/intermediates/classes/debug/transformDebugClassesWithAsm/dirs") {
+    fileTree(collectDebugCoverageClasses.flatMap { it.outputDirectory }) {
         includes?.let { include(it) }
         exclude(coverageExclusions + extraExcludes)
     }
 
 tasks.register<JacocoReport>("jacocoProjectCoverageReport") {
-    dependsOn("testDebugUnitTest")
+    dependsOn("testDebugUnitTest", collectDebugCoverageClasses)
+    mustRunAfter("connectedDebugAndroidTest")
     group = "verification"
     description = "Generates project coverage from unit tests and any available Android test coverage."
 
@@ -426,7 +504,8 @@ tasks.register<JacocoReport>("jacocoProjectCoverageReport") {
 }
 
 tasks.register<JacocoReport>("jacocoTransliterationCoverageReport") {
-    dependsOn("testDebugUnitTest")
+    dependsOn("testDebugUnitTest", collectDebugCoverageClasses)
+    mustRunAfter("connectedDebugAndroidTest")
     group = "verification"
     description = "Generates focused coverage for the transliteration domain layer."
 
@@ -445,7 +524,8 @@ tasks.register<JacocoReport>("jacocoTransliterationCoverageReport") {
 }
 
 tasks.register<JacocoCoverageVerification>("jacocoTransliterationCoverageVerification") {
-    dependsOn("jacocoTransliterationCoverageReport")
+    dependsOn("jacocoTransliterationCoverageReport", collectDebugCoverageClasses)
+    mustRunAfter("connectedDebugAndroidTest")
     group = "verification"
     description = "Enforces the transliteration line-coverage target."
 
@@ -465,7 +545,7 @@ tasks.register<JacocoCoverageVerification>("jacocoTransliterationCoverageVerific
 }
 
 tasks.register<JacocoReport>("jacocoTranslationCoverageReport") {
-    dependsOn("testDebugUnitTest")
+    dependsOn("testDebugUnitTest", collectDebugCoverageClasses)
     group = "verification"
     description = "Generates focused JVM coverage for the translation feature."
 
@@ -484,7 +564,7 @@ tasks.register<JacocoReport>("jacocoTranslationCoverageReport") {
 }
 
 tasks.register<JacocoCoverageVerification>("jacocoTranslationCoverageVerification") {
-    dependsOn("jacocoTranslationCoverageReport")
+    dependsOn("jacocoTranslationCoverageReport", collectDebugCoverageClasses)
     group = "verification"
     description = "Enforces the translation JVM line-coverage target."
 
@@ -510,4 +590,9 @@ tasks.named("check") {
 
 tasks.named("preBuild") {
     dependsOn(generateTranslationAssets)
+}
+
+// Robolectric's Android 17 environment accesses public JDK FileDescriptor internals.
+tasks.withType<Test>().configureEach {
+    jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
 }

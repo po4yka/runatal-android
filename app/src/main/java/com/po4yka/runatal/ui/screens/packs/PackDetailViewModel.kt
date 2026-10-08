@@ -1,11 +1,13 @@
 package com.po4yka.runatal.ui.screens.packs
 
 import android.util.Log
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runatal.data.repository.QuotePackRepository
 import com.po4yka.runatal.domain.model.QuotePack
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,18 +17,15 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
-import javax.inject.Inject
 
 /**
  * ViewModel for pack detail screen with library toggle support.
  */
-@HiltViewModel
-class PackDetailViewModel @Inject constructor(
+@HiltViewModel(assistedFactory = PackDetailViewModel.Factory::class)
+class PackDetailViewModel @AssistedInject constructor(
     private val quotePackRepository: QuotePackRepository,
-    savedStateHandle: SavedStateHandle
+    @Assisted private val packId: Long
 ) : ViewModel() {
-
-    private val packId: Long = savedStateHandle.get<Long>(PACK_ID_KEY) ?: 0L
 
     private val _uiState = MutableStateFlow<PackDetailUiState>(PackDetailUiState.Loading)
     val uiState: StateFlow<PackDetailUiState> = _uiState.asStateFlow()
@@ -34,15 +33,23 @@ class PackDetailViewModel @Inject constructor(
     private val _events = Channel<PackDetailEvent>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
 
+    /** Creates an entry-scoped ViewModel with the typed navigation argument. */
+    @AssistedFactory
+    interface Factory {
+        /** Creates the ViewModel for the selected navigation entry. */
+        fun create(packId: Long): PackDetailViewModel
+    }
+
     /** @suppress */
     companion object {
         private const val TAG = "PackDetailViewModel"
-        private const val PACK_ID_KEY = "packId"
     }
 
     init {
-        if (packId != 0L) {
+        if (packId > 0L) {
             loadPack()
+        } else {
+            _uiState.value = PackDetailUiState.Error("Pack not found")
         }
     }
 

@@ -1,6 +1,10 @@
 package com.po4yka.runatal.ui.translation
 
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isEnabled
+import androidx.compose.ui.test.isSelected
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -36,13 +40,27 @@ class WordByWordTransliterationUiTest {
             composeRule.onNodeWithContentDescription("Show transliteration").performClick()
         }
 
-        assertTrue(composeRule.onAllNodesWithTag("quote_word_breakdown").fetchSemanticsNodes().isEmpty())
+        val wordToggle = hasTestTag("quote_word_by_word_toggle")
+        val wordBreakdown = composeRule.onAllNodesWithTag("quote_word_breakdown", useUnmergedTree = true)
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(wordToggle and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        }
+        // Other journeys persist this setting; start from the full-transliteration state.
+        if (composeRule.onAllNodes(wordToggle and isSelected()).fetchSemanticsNodes().isNotEmpty()) {
+            composeRule.onNodeWithTag("quote_word_by_word_toggle").performClick()
+        }
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(wordToggle and isSelected()).fetchSemanticsNodes().isEmpty() &&
+                wordBreakdown.fetchSemanticsNodes().isEmpty()
+        }
+        assertTrue(wordBreakdown.fetchSemanticsNodes().isEmpty())
 
         composeRule.onNodeWithTag("quote_word_by_word_toggle").performClick()
 
         composeRule.waitUntil(10_000) {
-            composeRule.onAllNodesWithTag("quote_word_breakdown").fetchSemanticsNodes().isNotEmpty()
+            wordBreakdown.fetchSemanticsNodes().isNotEmpty()
         }
+        composeRule.onNodeWithTag("quote_word_by_word_toggle").assertIsSelected()
     }
 
     @Test

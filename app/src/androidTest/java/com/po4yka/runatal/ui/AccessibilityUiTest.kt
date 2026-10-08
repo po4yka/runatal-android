@@ -4,9 +4,12 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.assertAll
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -32,7 +35,7 @@ class AccessibilityUiTest {
             composeRule.onAllNodesWithContentDescription("Share quote").fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithText("Quote of the Day").assert(isHeading())
+        composeRule.onNode(headingNamed("Quote of the Day")).assert(isHeading())
         composeRule.onNodeWithTag("quote_word_by_word_toggle").assert(hasDefinedStateDescription())
 
         if (composeRule.onAllNodesWithContentDescription("Save quote").fetchSemanticsNodes().isNotEmpty()) {
@@ -48,20 +51,20 @@ class AccessibilityUiTest {
 
         composeRule.onNodeWithTag("tab_settings").performClick()
         composeRule.waitUntil(10_000) {
-            composeRule.onAllNodesWithText("Settings").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(headingNamed("Settings")).fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithText("Settings").assert(isHeading())
+        composeRule.onNode(headingNamed("Settings")).assert(isHeading())
         composeRule.onNodeWithText("Large Runes")
             .assert(hasRole(Role.Switch))
             .assert(hasDefinedStateDescription())
 
         composeRule.onNodeWithText("Notification schedule").performScrollTo().performClick()
         composeRule.waitUntil(10_000) {
-            composeRule.onAllNodesWithText("Notifications").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(headingNamed("Notifications")).fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithText("Notifications").assert(isHeading())
+        composeRule.onAllNodesWithText("Notifications").assertCountEquals(2).assertAll(isHeading())
         composeRule.onNodeWithText("Daily Quote Alert")
             .assert(hasRole(Role.Switch))
             .assert(hasDefinedStateDescription())
@@ -75,10 +78,10 @@ class AccessibilityUiTest {
         composeRule.onNodeWithText("Translation").performScrollTo().performClick()
 
         composeRule.waitUntil(10_000) {
-            composeRule.onAllNodesWithText("Translate").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(headingNamed("Translate")).fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithText("Translate").assert(isHeading())
+        composeRule.onNode(headingNamed("Translate")).assert(isHeading())
         composeRule.onNodeWithTag("translation_input_text")
             .assert(hasContentDescriptionValue("English text input"))
         composeRule.onNodeWithTag("translation_input_text").performTextInput("rune stone")
@@ -97,15 +100,17 @@ class AccessibilityUiTest {
         composeRule.onNodeWithText("New custom quote").performClick()
 
         composeRule.waitUntil(10_000) {
-            composeRule.onAllNodesWithText("Create Quote").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(headingNamed("Create Quote")).fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithText("Create Quote").assert(isHeading())
+        composeRule.onNode(headingNamed("Create Quote")).assert(isHeading())
         composeRule.onNodeWithTag("add_edit_quote_text").assert(hasContentDescriptionValue("Quote"))
         composeRule.onNodeWithTag("add_edit_author_text").assert(hasContentDescriptionValue("Author"))
     }
 
     private fun isHeading(): SemanticsMatcher = SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)
+
+    private fun headingNamed(text: String): SemanticsMatcher = hasText(text) and isHeading()
 
     private fun hasDefinedStateDescription(): SemanticsMatcher =
         SemanticsMatcher.keyIsDefined(SemanticsProperties.StateDescription)

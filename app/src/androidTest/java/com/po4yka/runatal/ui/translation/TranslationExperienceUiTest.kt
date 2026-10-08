@@ -1,6 +1,11 @@
 package com.po4yka.runatal.ui.translation
 
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -8,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -38,7 +44,12 @@ class TranslationExperienceUiTest {
 
         assertTrue(composeRule.onAllNodesWithText("Gold example").fetchSemanticsNodes().isNotEmpty())
         assertTrue(composeRule.onAllNodesWithTag("translation_provenance_section").fetchSemanticsNodes().isNotEmpty())
-        assertTrue(composeRule.onAllNodesWithText("Runor-aligned Younger exemplar").fetchSemanticsNodes().isNotEmpty())
+        assertTrue(
+            composeRule.onAllNodes(
+                hasText("Runor-aligned Younger exemplar", substring = true) and
+                    hasAnyAncestor(hasTestTag("translation_provenance_section"))
+            ).fetchSemanticsNodes().isNotEmpty()
+        )
     }
 
     @Test
@@ -74,7 +85,12 @@ class TranslationExperienceUiTest {
 
         assertTrue(composeRule.onAllNodesWithText("Erebor transcription").fetchSemanticsNodes().isNotEmpty())
         assertTrue(composeRule.onAllNodesWithText("Sequence transcription").fetchSemanticsNodes().isNotEmpty())
-        assertTrue(composeRule.onAllNodesWithText("Appendix E").fetchSemanticsNodes().isNotEmpty())
+        assertTrue(
+            composeRule.onAllNodes(
+                hasText("Appendix E / Erebor notes", substring = true) and
+                    hasAnyAncestor(hasTestTag("translation_provenance_section"))
+            ).fetchSemanticsNodes().isNotEmpty()
+        )
     }
 
     @Test
@@ -87,8 +103,12 @@ class TranslationExperienceUiTest {
             composeRule.onAllNodesWithText("Known limitations").fetchSemanticsNodes().isNotEmpty()
         }
 
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Historical context"))
         assertTrue(composeRule.onAllNodesWithText("Historical context").fetchSemanticsNodes().isNotEmpty())
+        composeRule.onNodeWithText("Historical context").assertIsDisplayed()
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Rune reference"))
         assertTrue(composeRule.onAllNodesWithText("Rune reference").fetchSemanticsNodes().isNotEmpty())
+        composeRule.onNodeWithText("Rune reference").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Back").performClick()
 
         composeRule.waitUntil(10_000) {

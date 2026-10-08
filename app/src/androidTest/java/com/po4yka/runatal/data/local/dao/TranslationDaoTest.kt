@@ -1,7 +1,8 @@
 package com.po4yka.runatal.data.local.dao
 
 import android.content.Context
-import androidx.room.Room
+import androidx.room3.Room
+import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.po4yka.runatal.data.local.RunatalDatabase
@@ -31,7 +32,7 @@ class TranslationDaoTest {
         database = Room.inMemoryDatabaseBuilder(
             context,
             RunatalDatabase::class.java
-        ).allowMainThreadQueries().build()
+        ).setDriver(AndroidSQLiteDriver()).allowMainThreadQueries().build()
 
         quoteDao = database.quoteDao()
         translationRecordDao = database.translationRecordDao()

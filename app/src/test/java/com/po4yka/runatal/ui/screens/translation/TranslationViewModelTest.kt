@@ -281,7 +281,7 @@ class TranslationViewModelTest {
     }
 
     @Test
-    fun `translate mode debounces input updates before rendering`() = runTest {
+    fun `typing keeps immediate input while translation rendering is debounced`() = runTest {
         every {
             historicalTranslationService.translate(any(), any(), any(), any())
         } answers {
@@ -295,7 +295,13 @@ class TranslationViewModelTest {
         viewModel.selectMode(TranslationMode.TRANSLATE)
         runCurrent()
 
+        viewModel.updateInputText("n")
+        assertThat(viewModel.inputText.value).isEqualTo("n")
+        viewModel.updateInputText("ni")
+        assertThat(viewModel.inputText.value).isEqualTo("ni")
         viewModel.updateInputText("night")
+        assertThat(viewModel.inputText.value).isEqualTo("night")
+        assertThat(viewModel.uiState.value.inputText).isEmpty()
         runCurrent()
 
         verify(exactly = 0) {
@@ -320,6 +326,60 @@ class TranslationViewModelTest {
                 YoungerFutharkVariant.DEFAULT
             )
         }
+        collector.cancel()
+    }
+
+    @Test
+    fun `pending input hides previous results and cannot save the previous text`() = runTest {
+        every {
+            historicalTranslationService.translate(any(), any(), any(), any())
+        } answers {
+            placeholderTranslation(text = firstArg(), script = secondArg()).copy(
+                normalizedForm = firstArg(),
+                glyphOutput = "ᚾ",
+                resolutionStatus = TranslationResolutionStatus.RECONSTRUCTED,
+                provenance = listOf(
+                    TranslationProvenanceEntry(
+                        sourceId = "regression-source",
+                        label = "Regression source",
+                        role = "Reference",
+                        license = "CC0"
+                    )
+                )
+            )
+        }
+
+        val collector = launch { viewModel.uiState.collect { } }
+        viewModel.selectMode(TranslationMode.TRANSLATE)
+        viewModel.updateInputText("night")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.canSave).isTrue()
+        assertThat(viewModel.uiState.value.transliteratedText).isNotEmpty()
+
+        viewModel.updateInputText("night rune")
+        val pending = viewModel.uiState.value.forInput(viewModel.inputText.value)
+
+        assertThat(pending.inputText).isEqualTo("night rune")
+        assertThat(pending.inputCharacterCount).isEqualTo(10)
+        assertThat(pending.transliteratedText).isEmpty()
+        assertThat(pending.normalizedForm).isEmpty()
+        assertThat(pending.derivationKindLabel).isEmpty()
+        assertThat(pending.provenance).isEmpty()
+        assertThat(pending.resolutionStatus).isNull()
+        assertThat(pending.canSave).isFalse()
+
+        viewModel.saveToLibrary()
+        advanceTimeBy(149)
+        runCurrent()
+        coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
+        coVerify(exactly = 0) { translationRepository.cacheTranslations(any(), any(), any()) }
+
+        advanceTimeBy(1)
+        advanceUntilIdle()
+        val rendered = viewModel.uiState.value.forInput(viewModel.inputText.value)
+        assertThat(rendered.inputText).isEqualTo("night rune")
+        assertThat(rendered.transliteratedText).isNotEmpty()
+        assertThat(rendered.canSave).isTrue()
         collector.cancel()
     }
 
@@ -390,6 +450,26 @@ class TranslationViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
 
+        collector.cancel()
+    }
+
+    @Test
+    fun `saveToLibrary claims the save before its coroutine starts`() = runTest {
+        coEvery { quoteRepository.saveUserQuote(any()) } returns 21L
+
+        val collector = launch { viewModel.uiState.collect { } }
+        viewModel.updateInputText("rune song")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.canSave).isTrue()
+
+        viewModel.saveToLibrary()
+        viewModel.saveToLibrary()
+        coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
+
+        advanceUntilIdle()
+        coVerify(exactly = 1) { quoteRepository.saveUserQuote(any()) }
+        assertThat(viewModel.uiState.value.isSaving).isFalse()
+        assertThat(viewModel.uiState.value.canSave).isTrue()
         collector.cancel()
     }
 

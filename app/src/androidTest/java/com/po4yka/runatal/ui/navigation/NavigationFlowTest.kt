@@ -1,8 +1,10 @@
 package com.po4yka.runatal.ui.navigation
 
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -32,13 +34,16 @@ class NavigationFlowTest {
         composeRule.onNodeWithTag("tab_library")
             .performClick()
         composeRule.waitUntil(10_000) {
-            composeRule.onAllNodesWithText("Browse Quotes").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText("Your collection").fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithTag("quote_list_add_button")
-            .performClick()
+        composeRule.onNodeWithTag("tab_create").performClick()
         composeRule.waitUntil(10_000) {
-            composeRule.onAllNodesWithText("Add Quote").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText("New custom quote").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("New custom quote").performClick()
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodesWithText("Create Quote").fetchSemanticsNodes().isNotEmpty()
         }
 
         composeRule.onNodeWithTag("add_edit_quote_text").performTextInput(quoteText)
@@ -46,18 +51,27 @@ class NavigationFlowTest {
         composeRule.onNodeWithTag("add_edit_save_button").performClick()
 
         composeRule.waitUntil(10_000) {
-            composeRule.onAllNodesWithText("Browse Quotes").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText("View in Library").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("View in Library").performClick()
+        composeRule.onNodeWithTag("tab_library").performClick()
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodesWithText("Your collection").fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithText("My Quotes").performClick()
+        composeRule.onNodeWithText("Custom").performClick()
         composeRule.onNodeWithTag("quote_list_lazy")
             .performScrollToNode(hasText(quoteText, substring = false))
 
         composeRule.onNodeWithText(quoteText)
             .performClick()
 
+        composeRule.onNodeWithText("Edit Quote").performClick()
         composeRule.waitUntil(10_000) {
-            composeRule.onAllNodesWithText("Edit Quote").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(hasTestTag("add_edit_quote_text") and hasText(quoteText))
+                .fetchSemanticsNodes().isNotEmpty()
         }
+        composeRule.onNodeWithTag("add_edit_quote_text").assertTextContains(quoteText)
+        composeRule.onNodeWithTag("add_edit_author_text").assertTextContains(quoteAuthor)
     }
 }

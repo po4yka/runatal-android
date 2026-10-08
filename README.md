@@ -1,6 +1,6 @@
 # Runatal
 
-[![Android CI](https://github.com/po4yka/runatal-android/workflows/Android%20CI/badge.svg)](https://github.com/po4yka/runatal-android/actions) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.21-blue.svg)](https://kotlinlang.org) [![Compose](https://img.shields.io/badge/Jetpack%20Compose-1.7-green.svg)](https://developer.android.com/jetpack/compose)
+[![Android CI](https://github.com/po4yka/runatal-android/workflows/Android%20CI/badge.svg)](https://github.com/po4yka/runatal-android/actions) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-blue.svg)](https://kotlinlang.org) [![Compose](https://img.shields.io/badge/Compose%20BOM-2026.09.00-green.svg)](https://developer.android.com/jetpack/compose)
 
 A beautiful Android app that displays inspiring quotes transliterated into ancient runic scripts. Built with Jetpack Compose and Material 3 Design, featuring Elder Futhark, Younger Futhark, and Tolkien's Cirth (Angerthas) scripts.
 
@@ -39,19 +39,22 @@ A beautiful Android app that displays inspiring quotes transliterated into ancie
 ## 🏗️ Tech Stack
 
 ### Core Technologies
-- **Language**: Kotlin 2.2.21
-- **UI Framework**: Jetpack Compose 1.7
+- **Language**: Kotlin 2.4.21
+- **UI Framework**: Jetpack Compose (BOM 2026.09.00)
 - **Design System**: Material 3 Expressive
 - **Architecture**: MVVM + Clean Architecture
 - **Dependency Injection**: Hilt
-- **Build System**: Gradle 8.1.3 with Kotlin DSL
+- **Build System**: Gradle 9.8.1 + Android Gradle Plugin 9.4.1 with Kotlin DSL
 
 ### Jetpack Components
-- **Room**: Local database with migrations
+- **Room 3**: Local database with migrations
 - **DataStore**: Preferences management
 - **WorkManager**: Background quote updates
 - **Glance**: Home screen widget framework
-- **Navigation**: Type-safe navigation
+- **Navigation**: Navigation 3 with type-safe routes
+
+Dependency versions are defined in [`gradle/libs.versions.toml`](gradle/libs.versions.toml);
+the Gradle distribution is pinned in [`gradle/wrapper/gradle-wrapper.properties`](gradle/wrapper/gradle-wrapper.properties).
 
 ### Testing & Quality
 - **Unit Testing**: JUnit 4, MockK, Turbine
@@ -62,9 +65,10 @@ A beautiful Android app that displays inspiring quotes transliterated into ancie
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Android Studio Hedgehog (2023.1.1) or newer
-- JDK 17 or higher
-- Android SDK with API level 26+ (Android 8.0 Oreo)
+- Android Studio with support for Android Gradle Plugin 9.4 and Android 17
+- JDK 21 to run Gradle (Java/Kotlin bytecode targets Java 17)
+- Android SDK Platform 37 (Android 17) and build tools
+- Android 8.0 Oreo (API 26) or newer device/emulator to run the app
 - Git
 
 ### Installation
@@ -98,6 +102,9 @@ A beautiful Android app that displays inspiring quotes transliterated into ancie
 ./gradlew check
 ```
 
+If your environment provides `build-gate`, run heavy local builds and tests through `build-gate -- <command>`,
+for example `build-gate -- ./gradlew check assembleDebug --max-workers=4`.
+
 The APK will be generated at:
 - Debug: `app/build/outputs/apk/debug/app-debug.apk`
 - Release: `app/build/outputs/apk/release/app-release.apk`
@@ -113,8 +120,8 @@ The project maintains high test coverage with comprehensive test suites:
 # Run project coverage report
 ./gradlew testDebugUnitTest jacocoProjectCoverageReport
 
-# Enforce the transliteration coverage gate
-./gradlew jacocoTransliterationCoverageVerification
+# Enforce the transliteration and translation coverage gates
+./gradlew jacocoTransliterationCoverageVerification jacocoTranslationCoverageVerification
 
 # Run specific test class
 ./gradlew test --tests "ElderFutharkTransliteratorTest"
@@ -128,6 +135,8 @@ The project maintains high test coverage with comprehensive test suites:
 - Repository Layer: 30+ tests with MockK
 - ViewModels: 65+ tests using Turbine for Flow testing
 - Transliteration domain: 90%+ line coverage enforced in CI
+- Translation engine: line coverage enforced by `jacocoTranslationCoverageVerification`
+- Instrumented tests run on an Android 17 (API 37) emulator in CI for PRs, main pushes, and manual runs
 - Project-wide report: merges unit and Android test coverage when both exist
 
 ## 📚 Architecture

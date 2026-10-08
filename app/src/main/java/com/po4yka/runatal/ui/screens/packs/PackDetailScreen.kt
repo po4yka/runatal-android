@@ -69,9 +69,12 @@ import com.po4yka.runatal.ui.components.runicChoiceChipColors
 
 @Composable
 fun PackDetailScreen(
+    packId: Long,
     onNavigateBack: () -> Unit = {},
     onViewLibrary: () -> Unit = {},
-    viewModel: PackDetailViewModel = hiltViewModel()
+    viewModel: PackDetailViewModel = hiltViewModel<PackDetailViewModel, PackDetailViewModel.Factory>(
+        creationCallback = { factory -> factory.create(packId) }
+    )
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }

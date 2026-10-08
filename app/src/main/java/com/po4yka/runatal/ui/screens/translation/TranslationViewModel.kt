@@ -35,6 +35,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
@@ -86,6 +87,10 @@ internal class TranslationViewModel @Inject constructor(
     )
 
     private val _inputText = MutableStateFlow("")
+
+    /** Immediate editing state, independent of asynchronous translation rendering. */
+    val inputText: StateFlow<String> = _inputText.asStateFlow()
+
     private val _selectedScript = MutableStateFlow(RunicScript.DEFAULT)
     private val _selectedFont = MutableStateFlow("noto")
     private val _translationMode = MutableStateFlow(TranslationMode.DEFAULT)
@@ -263,12 +268,12 @@ internal class TranslationViewModel @Inject constructor(
      */
     fun saveToLibrary() {
         val state = uiState.value
-        if (!state.canSave) {
+        if (!state.canSave || state.inputText != _inputText.value || _isSaving.value) {
             return
         }
 
+        _isSaving.value = true
         viewModelScope.launch {
-            _isSaving.value = true
             try {
                 val result = withContext(translationDispatcher) {
                     saveTranslationToLibraryUseCase(
@@ -351,6 +356,24 @@ internal data class TranslationUiState(
 ) {
     /** Display name for the currently selected script. */
     val scriptDisplayName: String get() = selectedScript.displayName
+
+    /** Hides results for previous text while the current input is awaiting rendering. */
+    fun forInput(currentInput: String): TranslationUiState {
+        if (inputText == currentInput) return this
+
+        return TranslationUiState(
+            inputText = currentInput,
+            inputCharacterCount = currentInput.length,
+            selectedScript = selectedScript,
+            translationMode = translationMode,
+            selectedFidelity = selectedFidelity,
+            selectedYoungerVariant = selectedYoungerVariant,
+            selectedFont = selectedFont,
+            translateFeatureEnabled = translateFeatureEnabled,
+            isSaving = isSaving,
+            wordByWordEnabled = wordByWordEnabled
+        )
+    }
 }
 
 private fun TranslationPresentation.toUiState(): TranslationUiState {

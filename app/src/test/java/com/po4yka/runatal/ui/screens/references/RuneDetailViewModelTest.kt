@@ -1,10 +1,10 @@
 package com.po4yka.runatal.ui.screens.references
 
-import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.data.repository.RuneReferenceRepository
 import com.po4yka.runatal.domain.model.RuneReference
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
@@ -46,25 +46,35 @@ class RuneDetailViewModelTest {
     }
 
     @Test
-    fun `saved rune id loads rune on initialization`() = runTest {
+    fun `route rune id loads rune on initialization`() = runTest {
         coEvery { runeReferenceRepository.getRuneById(3L) } returns testRune
 
         val viewModel = RuneDetailViewModel(
             runeReferenceRepository = runeReferenceRepository,
-            savedStateHandle = SavedStateHandle(mapOf("runeId" to 3L))
+            runeId = 3L
         )
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value).isEqualTo(RuneDetailUiState.Success(testRune))
+        coVerify(exactly = 1) { runeReferenceRepository.getRuneById(3L) }
     }
 
     @Test
-    fun `retry uses saved rune id after an error`() = runTest {
+    fun `invalid route rune id exposes an error without loading`() = runTest {
+        val viewModel = RuneDetailViewModel(runeReferenceRepository, runeId = 0L)
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value).isEqualTo(RuneDetailUiState.Error("Rune not found"))
+        coVerify(exactly = 0) { runeReferenceRepository.getRuneById(any()) }
+    }
+
+    @Test
+    fun `retry uses route rune id after an error`() = runTest {
         coEvery { runeReferenceRepository.getRuneById(3L) } throws IOException("disk") andThen testRune
 
         val viewModel = RuneDetailViewModel(
             runeReferenceRepository = runeReferenceRepository,
-            savedStateHandle = SavedStateHandle(mapOf("runeId" to 3L))
+            runeId = 3L
         )
         advanceUntilIdle()
         assertThat(viewModel.uiState.value).isEqualTo(RuneDetailUiState.Error("Failed to load rune: disk"))

@@ -1,16 +1,17 @@
 package com.po4yka.runatal.ui.screens.share
 
 import android.util.Log
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.po4yka.runatal.domain.repository.NoOpTranslationRepository
 import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.domain.repository.TranslationRepository
 import com.po4yka.runatal.util.ShareAppearance
 import com.po4yka.runatal.util.ShareTemplate
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,19 +19,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
-import javax.inject.Inject
 
 /**
  * ViewModel for the share quote screen.
  */
-@HiltViewModel
-internal class ShareViewModel @Inject constructor(
+@HiltViewModel(assistedFactory = ShareViewModel.Factory::class)
+internal class ShareViewModel @AssistedInject constructor(
     private val quoteRepository: QuoteRepository,
-    savedStateHandle: SavedStateHandle,
-    private val translationRepository: TranslationRepository = NoOpTranslationRepository
+    @Assisted private val quoteId: Long,
+    private val translationRepository: TranslationRepository
 ) : ViewModel() {
-
-    private val quoteId: Long = savedStateHandle.get<Long>(QUOTE_ID_KEY) ?: 0L
 
     private val _uiState = MutableStateFlow<ShareUiState>(ShareUiState.Loading)
     val uiState: StateFlow<ShareUiState> = _uiState.asStateFlow()
@@ -41,15 +39,23 @@ internal class ShareViewModel @Inject constructor(
     private val _selectedAppearance = MutableStateFlow(ShareAppearance.DARK)
     val selectedAppearance: StateFlow<ShareAppearance> = _selectedAppearance.asStateFlow()
 
+    /** Creates an entry-scoped ViewModel with the typed navigation argument. */
+    @AssistedFactory
+    interface Factory {
+        /** Creates the ViewModel for the selected navigation entry. */
+        fun create(quoteId: Long): ShareViewModel
+    }
+
     /** @suppress */
     companion object {
         private const val TAG = "ShareViewModel"
-        private const val QUOTE_ID_KEY = "quoteId"
     }
 
     init {
-        if (quoteId != 0L) {
+        if (quoteId > 0L) {
             loadQuote()
+        } else {
+            _uiState.value = ShareUiState.Error("Quote not found")
         }
     }
 

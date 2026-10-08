@@ -1,9 +1,10 @@
 package com.po4yka.runatal.data.local
 
-import androidx.room.Database
-import androidx.room.RoomDatabase
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.room3.Database
+import androidx.room3.RoomDatabase
+import androidx.room3.migration.Migration
+import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.execSQL
 import com.po4yka.runatal.data.local.dao.ArchivedQuoteDao
 import com.po4yka.runatal.data.local.dao.QuoteDao
 import com.po4yka.runatal.data.local.dao.QuotePackDao
@@ -63,14 +64,14 @@ internal abstract class RunatalDatabase : RoomDatabase() {
          * Adds isUserCreated, isFavorite, and createdAt columns.
          */
         val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL(
+            override suspend fun migrate(connection: SQLiteConnection) {
+                connection.execSQL(
                     "ALTER TABLE quotes ADD COLUMN isUserCreated INTEGER NOT NULL DEFAULT 0"
                 )
-                db.execSQL(
+                connection.execSQL(
                     "ALTER TABLE quotes ADD COLUMN isFavorite INTEGER NOT NULL DEFAULT 0"
                 )
-                db.execSQL(
+                connection.execSQL(
                     "ALTER TABLE quotes ADD COLUMN createdAt INTEGER NOT NULL DEFAULT 0"
                 )
             }
@@ -81,11 +82,11 @@ internal abstract class RunatalDatabase : RoomDatabase() {
          * Adds indices on isUserCreated and isFavorite for query performance.
          */
         val MIGRATION_2_3 = object : Migration(2, 3) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL(
+            override suspend fun migrate(connection: SQLiteConnection) {
+                connection.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_quotes_isUserCreated ON quotes (isUserCreated)"
                 )
-                db.execSQL(
+                connection.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_quotes_isFavorite ON quotes (isFavorite)"
                 )
             }
@@ -97,8 +98,8 @@ internal abstract class RunatalDatabase : RoomDatabase() {
          */
         @Suppress("MaxLineLength")
         val MIGRATION_3_4 = object : Migration(3, 4) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL(
+            override suspend fun migrate(connection: SQLiteConnection) {
+                connection.execSQL(
                     """CREATE TABLE IF NOT EXISTS `quote_packs` (
                         `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         `name` TEXT NOT NULL,
@@ -108,11 +109,11 @@ internal abstract class RunatalDatabase : RoomDatabase() {
                         `isInLibrary` INTEGER NOT NULL DEFAULT 0
                     )""".trimIndent()
                 )
-                db.execSQL(
+                connection.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_quote_packs_isInLibrary` ON `quote_packs` (`isInLibrary`)"
                 )
 
-                db.execSQL(
+                connection.execSQL(
                     """CREATE TABLE IF NOT EXISTS `pack_quotes` (
                         `packId` INTEGER NOT NULL,
                         `quoteId` INTEGER NOT NULL,
@@ -121,11 +122,11 @@ internal abstract class RunatalDatabase : RoomDatabase() {
                         FOREIGN KEY(`quoteId`) REFERENCES `quotes`(`id`) ON DELETE CASCADE
                     )""".trimIndent()
                 )
-                db.execSQL(
+                connection.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_pack_quotes_quoteId` ON `pack_quotes` (`quoteId`)"
                 )
 
-                db.execSQL(
+                connection.execSQL(
                     """CREATE TABLE IF NOT EXISTS `archived_quotes` (
                         `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         `originalQuoteId` INTEGER NOT NULL,
@@ -135,14 +136,14 @@ internal abstract class RunatalDatabase : RoomDatabase() {
                         `isDeleted` INTEGER NOT NULL DEFAULT 0
                     )""".trimIndent()
                 )
-                db.execSQL(
+                connection.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_archived_quotes_isDeleted` ON `archived_quotes` (`isDeleted`)"
                 )
-                db.execSQL(
+                connection.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_archived_quotes_archivedAt` ON `archived_quotes` (`archivedAt`)"
                 )
 
-                db.execSQL(
+                connection.execSQL(
                     """CREATE TABLE IF NOT EXISTS `rune_references` (
                         `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         `character` TEXT NOT NULL,
@@ -153,7 +154,7 @@ internal abstract class RunatalDatabase : RoomDatabase() {
                         `script` TEXT NOT NULL
                     )""".trimIndent()
                 )
-                db.execSQL(
+                connection.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_rune_references_script` ON `rune_references` (`script`)"
                 )
             }
@@ -165,8 +166,8 @@ internal abstract class RunatalDatabase : RoomDatabase() {
          */
         @Suppress("MaxLineLength")
         val MIGRATION_4_5 = object : Migration(4, 5) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL(
+            override suspend fun migrate(connection: SQLiteConnection) {
+                connection.execSQL(
                     """CREATE TABLE IF NOT EXISTS `translation_records` (
                         `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         `quoteId` INTEGER NOT NULL,
@@ -187,17 +188,17 @@ internal abstract class RunatalDatabase : RoomDatabase() {
                         FOREIGN KEY(`quoteId`) REFERENCES `quotes`(`id`) ON DELETE CASCADE
                     )""".trimIndent()
                 )
-                db.execSQL(
+                connection.execSQL(
                     """CREATE UNIQUE INDEX IF NOT EXISTS `index_translation_records_quoteId_script_fidelity_engineVersion`
                         ON `translation_records` (`quoteId`, `script`, `fidelity`, `engineVersion`)""".trimIndent()
                 )
-                db.execSQL(
+                connection.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_translation_records_quoteId` ON `translation_records` (`quoteId`)"
                 )
-                db.execSQL(
+                connection.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_translation_records_script` ON `translation_records` (`script`)"
                 )
-                db.execSQL(
+                connection.execSQL(
                     """CREATE TABLE IF NOT EXISTS `translation_backfill_state` (
                         `id` INTEGER PRIMARY KEY NOT NULL,
                         `engineVersion` TEXT NOT NULL,
@@ -217,8 +218,8 @@ internal abstract class RunatalDatabase : RoomDatabase() {
          */
         @Suppress("MaxLineLength")
         val MIGRATION_5_6 = object : Migration(5, 6) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL(
+            override suspend fun migrate(connection: SQLiteConnection) {
+                connection.execSQL(
                     """CREATE TABLE IF NOT EXISTS `translation_records_new` (
                         `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         `quoteId` INTEGER NOT NULL,
@@ -244,7 +245,7 @@ internal abstract class RunatalDatabase : RoomDatabase() {
                         FOREIGN KEY(`quoteId`) REFERENCES `quotes`(`id`) ON DELETE CASCADE
                     )""".trimIndent()
                 )
-                db.execSQL(
+                connection.execSQL(
                     """INSERT INTO `translation_records_new` (
                         `id`, `quoteId`, `sourceText`, `script`, `fidelity`, `normalizedForm`, `diplomaticForm`,
                         `glyphOutput`, `historicalStage`, `variant`, `resolutionStatus`, `confidence`, `notesJson`,
@@ -279,16 +280,16 @@ internal abstract class RunatalDatabase : RoomDatabase() {
                         tr.`updatedAt`
                     FROM `translation_records` tr""".trimIndent()
                 )
-                db.execSQL("DROP TABLE `translation_records`")
-                db.execSQL("ALTER TABLE `translation_records_new` RENAME TO `translation_records`")
-                db.execSQL(
+                connection.execSQL("DROP TABLE `translation_records`")
+                connection.execSQL("ALTER TABLE `translation_records_new` RENAME TO `translation_records`")
+                connection.execSQL(
                     """CREATE UNIQUE INDEX IF NOT EXISTS `index_translation_records_quoteId_script_fidelity_variant_engineVersion_datasetVersion`
                         ON `translation_records` (`quoteId`, `script`, `fidelity`, `variant`, `engineVersion`, `datasetVersion`)""".trimIndent()
                 )
-                db.execSQL(
+                connection.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_translation_records_quoteId` ON `translation_records` (`quoteId`)"
                 )
-                db.execSQL(
+                connection.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_translation_records_script` ON `translation_records` (`script`)"
                 )
             }
@@ -300,8 +301,8 @@ internal abstract class RunatalDatabase : RoomDatabase() {
          */
         @Suppress("MaxLineLength")
         val MIGRATION_6_7 = object : Migration(6, 7) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL(
+            override suspend fun migrate(connection: SQLiteConnection) {
+                connection.execSQL(
                     """CREATE TABLE IF NOT EXISTS `translation_records_new` (
                         `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         `quoteId` INTEGER NOT NULL,
@@ -328,7 +329,7 @@ internal abstract class RunatalDatabase : RoomDatabase() {
                         FOREIGN KEY(`quoteId`) REFERENCES `quotes`(`id`) ON DELETE CASCADE
                     )""".trimIndent()
                 )
-                db.execSQL(
+                connection.execSQL(
                     """INSERT INTO `translation_records_new` (
                         `id`, `quoteId`, `sourceText`, `script`, `fidelity`, `derivationKind`,
                         `normalizedForm`, `diplomaticForm`, `glyphOutput`, `historicalStage`, `variant`,
@@ -364,20 +365,20 @@ internal abstract class RunatalDatabase : RoomDatabase() {
                         `updatedAt`
                     FROM `translation_records`""".trimIndent()
                 )
-                db.execSQL(
+                connection.execSQL(
                     "DROP TABLE `translation_records`"
                 )
-                db.execSQL(
+                connection.execSQL(
                     "ALTER TABLE `translation_records_new` RENAME TO `translation_records`"
                 )
-                db.execSQL(
+                connection.execSQL(
                     """CREATE UNIQUE INDEX IF NOT EXISTS `index_translation_records_quoteId_script_fidelity_variant_engineVersion_datasetVersion`
                         ON `translation_records` (`quoteId`, `script`, `fidelity`, `variant`, `engineVersion`, `datasetVersion`)""".trimIndent()
                 )
-                db.execSQL(
+                connection.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_translation_records_quoteId` ON `translation_records` (`quoteId`)"
                 )
-                db.execSQL(
+                connection.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_translation_records_script` ON `translation_records` (`script`)"
                 )
             }

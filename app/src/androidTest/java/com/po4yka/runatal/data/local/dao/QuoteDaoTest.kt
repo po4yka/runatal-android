@@ -1,7 +1,8 @@
 package com.po4yka.runatal.data.local.dao
 
 import android.content.Context
-import androidx.room.Room
+import androidx.room3.Room
+import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.po4yka.runatal.data.local.RunatalDatabase
@@ -79,7 +80,7 @@ class QuoteDaoTest {
         database = Room.inMemoryDatabaseBuilder(
             context,
             RunatalDatabase::class.java
-        ).allowMainThreadQueries() // For testing purposes
+        ).setDriver(AndroidSQLiteDriver()).allowMainThreadQueries() // For testing purposes
             .build()
 
         quoteDao = database.quoteDao()

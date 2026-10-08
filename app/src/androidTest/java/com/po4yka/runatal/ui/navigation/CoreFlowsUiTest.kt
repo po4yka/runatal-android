@@ -1,7 +1,9 @@
 package com.po4yka.runatal.ui.navigation
 
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -33,12 +35,17 @@ class CoreFlowsUiTest {
             composeRule.onAllNodesWithContentDescription("Share quote").fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithContentDescription("Share quote").performClick()
+        composeRule.onNodeWithContentDescription("Share quote").performScrollTo().performClick()
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodesWithText("Verse").fetchSemanticsNodes().isNotEmpty()
+        }
+        // The Card template offers export actions; Verse also exposes the copy action.
+        composeRule.onNodeWithText("Verse").performScrollTo().performClick()
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodesWithContentDescription("Copy quote").fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithContentDescription("Copy quote").performClick()
+        composeRule.onNodeWithContentDescription("Copy quote").performScrollTo().performClick()
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodesWithText("Quote copied").fetchSemanticsNodes().isNotEmpty()
         }
@@ -94,23 +101,27 @@ class CoreFlowsUiTest {
         composeRule.onNodeWithText("View in Library").performClick()
 
         composeRule.waitForIdle()
-        if (composeRule.onAllNodesWithText("Browse Quotes").fetchSemanticsNodes().isEmpty() &&
+        if (composeRule.onAllNodesWithText("Your collection").fetchSemanticsNodes().isEmpty() &&
             composeRule.onAllNodesWithTag("tab_library").fetchSemanticsNodes().isNotEmpty()
         ) {
             composeRule.onNodeWithTag("tab_library").performClick()
         }
 
         composeRule.waitUntil(10_000) {
-            composeRule.onAllNodesWithText("Browse Quotes").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText("Your collection").fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithText("My Quotes").performClick()
+        composeRule.onNodeWithText("Custom").performClick()
         composeRule.onNodeWithTag("quote_list_lazy")
             .performScrollToNode(hasText(quoteText, substring = false))
         composeRule.onNodeWithText(quoteText).performClick()
 
+        composeRule.onNodeWithText("Edit Quote").performClick()
         composeRule.waitUntil(10_000) {
-            composeRule.onAllNodesWithText("Edit Quote").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(hasTestTag("add_edit_quote_text") and hasText(quoteText))
+                .fetchSemanticsNodes().isNotEmpty()
         }
+        composeRule.onNodeWithTag("add_edit_quote_text").assertTextContains(quoteText)
+        composeRule.onNodeWithTag("add_edit_author_text").assertTextContains(quoteAuthor)
     }
 }

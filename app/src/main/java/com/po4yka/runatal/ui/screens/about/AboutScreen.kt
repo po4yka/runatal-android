@@ -290,7 +290,7 @@ private fun LicenseItem(license: LicenseEntry) {
             color = MaterialTheme.colorScheme.onSurface
         )
         RunicBadgeRow {
-            RunicBadge(text = license.version)
+            license.version?.let { RunicBadge(text = it) }
             RunicBadge(
                 text = license.license,
                 containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f),
@@ -307,7 +307,7 @@ private fun LicenseItem(license: LicenseEntry) {
 
 private data class LicenseEntry(
     val name: String,
-    val version: String,
+    val version: String? = null,
     val description: String,
     val license: String
 )
@@ -315,43 +315,41 @@ private data class LicenseEntry(
 private val LICENSES = listOf(
     LicenseEntry(
         name = "Material Design 3",
-        version = "1.2.0",
         description = "Google's design system for Android",
         license = "Apache-2.0"
     ),
     LicenseEntry(
         name = "Noto Sans Runic",
-        version = "2.003",
+        version = "2.002",
         description = "Unicode runic glyph font by Google Fonts",
         license = "OFL-1.1"
     ),
     LicenseEntry(
         name = "Kotlin Coroutines",
-        version = "1.7.3",
+        version = BuildConfig.COROUTINES_VERSION,
         description = "Asynchronous programming framework",
         license = "Apache-2.0"
     ),
     LicenseEntry(
         name = "Jetpack Compose",
-        version = "1.6.0",
         description = "Modern Android UI toolkit",
         license = "Apache-2.0"
     ),
     LicenseEntry(
         name = "Room Database",
-        version = "2.6.1",
+        version = BuildConfig.ROOM_VERSION,
         description = "SQLite object mapping library",
         license = "Apache-2.0"
     ),
     LicenseEntry(
         name = "DataStore",
-        version = "1.0.0",
+        version = BuildConfig.DATASTORE_VERSION,
         description = "Preferences and proto storage",
         license = "Apache-2.0"
     ),
     LicenseEntry(
         name = "Hilt",
-        version = "2.50",
+        version = BuildConfig.HILT_VERSION,
         description = "Dependency injection for Android",
         license = "Apache-2.0"
     )

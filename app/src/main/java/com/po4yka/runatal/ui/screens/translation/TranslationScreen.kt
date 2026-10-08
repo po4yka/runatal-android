@@ -104,7 +104,9 @@ internal fun TranslationScreen(
     onNavigateToAccuracyContext: () -> Unit = {},
     viewModel: TranslationViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val renderedState by viewModel.uiState.collectAsStateWithLifecycle()
+    val inputText by viewModel.inputText.collectAsStateWithLifecycle()
+    val uiState = renderedState.forInput(inputText)
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -168,8 +170,8 @@ internal fun TranslationScreen(
             TranslationSectionLabel("English text")
 
             TranslationInputCard(
-                text = uiState.inputText,
-                characterCount = uiState.inputCharacterCount,
+                text = inputText,
+                characterCount = inputText.length,
                 focusRequester = focusRequester,
                 onTextChange = viewModel::updateInputText
             )

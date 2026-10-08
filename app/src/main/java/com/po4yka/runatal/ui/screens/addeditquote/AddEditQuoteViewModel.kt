@@ -1,7 +1,6 @@
 package com.po4yka.runatal.ui.screens.addeditquote
 
 import android.util.Log
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
@@ -18,6 +17,9 @@ import com.po4yka.runatal.domain.usecase.addeditquote.LoadEditableQuoteUseCase
 import com.po4yka.runatal.domain.usecase.addeditquote.QuotePreviewSet
 import com.po4yka.runatal.domain.usecase.addeditquote.SaveEditableQuoteRequest
 import com.po4yka.runatal.domain.usecase.addeditquote.SaveEditableQuoteUseCase
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,17 +30,16 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
-import javax.inject.Inject
 
 /**
  * ViewModel for adding or editing user-created quotes.
  * Provides live preview of runic transliteration as user types.
  */
-@HiltViewModel
-internal class AddEditQuoteViewModel @Inject constructor(
+@HiltViewModel(assistedFactory = AddEditQuoteViewModel.Factory::class)
+internal class AddEditQuoteViewModel @AssistedInject constructor(
     private val quoteRepository: QuoteRepository,
     private val userPreferencesManager: UserPreferencesManager,
-    savedStateHandle: SavedStateHandle,
+    @Assisted private var quoteId: Long,
     private val editorInteractors: AddEditQuoteEditorInteractors
 ) : ViewModel() {
 
@@ -46,12 +47,12 @@ internal class AddEditQuoteViewModel @Inject constructor(
         quoteRepository: QuoteRepository,
         userPreferencesManager: UserPreferencesManager,
         transliterationFactory: TransliterationFactory,
-        savedStateHandle: SavedStateHandle,
+        quoteId: Long,
         translationRepository: TranslationRepository = NoOpTranslationRepository
     ) : this(
         quoteRepository = quoteRepository,
         userPreferencesManager = userPreferencesManager,
-        savedStateHandle = savedStateHandle,
+        quoteId = quoteId,
         editorInteractors = AddEditQuoteEditorInteractors(
             loadEditableQuoteUseCase = LoadEditableQuoteUseCase(
                 quoteRepository = quoteRepository,
@@ -66,7 +67,6 @@ internal class AddEditQuoteViewModel @Inject constructor(
         )
     )
 
-    private var quoteId: Long = savedStateHandle.get<Long>("quoteId") ?: 0L
     private var loadedQuoteId: Long? = null
     private var loadedQuote: Quote? = null
     private var initialTextLatin: String = ""
@@ -77,6 +77,13 @@ internal class AddEditQuoteViewModel @Inject constructor(
     val uiState: StateFlow<AddEditQuoteUiState> = _uiState.asStateFlow()
     private val _events = Channel<AddEditQuoteEvent>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
+
+    /** Creates an entry-scoped editor for a new quote (zero) or the selected quote. */
+    @AssistedFactory
+    interface Factory {
+        /** Creates the ViewModel for the selected navigation entry. */
+        fun create(quoteId: Long): AddEditQuoteViewModel
+    }
 
     /** Constants for validation limits. */
     companion object {

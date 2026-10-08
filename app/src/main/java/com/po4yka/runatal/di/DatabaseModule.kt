@@ -1,7 +1,8 @@
 package com.po4yka.runatal.di
 
 import android.content.Context
-import androidx.room.Room
+import androidx.room3.Room
+import androidx.sqlite.driver.AndroidSQLiteDriver
 import com.po4yka.runatal.data.local.RunatalDatabase
 import com.po4yka.runatal.data.local.dao.ArchivedQuoteDao
 import com.po4yka.runatal.data.local.dao.QuoteDao
@@ -34,6 +35,7 @@ internal object DatabaseModule {
             RunatalDatabase::class.java,
             "runic_quotes.db"
         )
+            .setDriver(AndroidSQLiteDriver())
             .addMigrations(
                 RunatalDatabase.MIGRATION_1_2,
                 RunatalDatabase.MIGRATION_2_3,

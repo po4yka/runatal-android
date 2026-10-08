@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -49,6 +48,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.EntryProviderScope
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.scene.Scene
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
@@ -81,12 +81,15 @@ import androidx.navigationevent.NavigationEvent
  */
 @Composable
 fun NavGraph(
-    backStack: SnapshotStateList<Any>,
-    hasCompletedOnboarding: Boolean,
+    backStack: MutableList<NavKey>,
+    hasCompletedOnboarding: Boolean?,
     selectedScript: RunicScript,
     onSelectOnboardingStyle: (RunicScript, String) -> Unit,
     onCompleteOnboarding: () -> Unit
 ) {
+    // Keep the saved stack intact and defer navigation until the persisted startup decision is known.
+    if (hasCompletedOnboarding == null) return
+
     val currentRoute = backStack.lastOrNull() ?: QuoteRoute
     val showBottomBar = currentRoute is QuoteRoute || currentRoute is QuoteListRoute ||
         currentRoute is CreateRoute || currentRoute is SettingsRoute
@@ -94,10 +97,10 @@ fun NavGraph(
     val motion = RunicExpressiveTheme.motion
 
     LaunchedEffect(hasCompletedOnboarding, currentRoute) {
-        if (!hasCompletedOnboarding && currentRoute !is OnboardingRoute) {
+        if (hasCompletedOnboarding == false && currentRoute !is OnboardingRoute) {
             backStack.clear()
             backStack.add(OnboardingRoute)
-        } else if (hasCompletedOnboarding && currentRoute is OnboardingRoute) {
+        } else if (hasCompletedOnboarding == true && currentRoute is OnboardingRoute) {
             backStack.clear()
             backStack.add(QuoteRoute)
         }
@@ -166,8 +169,8 @@ fun NavGraph(
 
 @Composable
 private fun TopLevelBottomBar(
-    currentRoute: Any,
-    backStack: SnapshotStateList<Any>
+    currentRoute: NavKey,
+    backStack: MutableList<NavKey>
 ) {
     val destinations = listOf(
         TopLevelDestination("Today", Icons.Default.AutoAwesome, QuoteRoute, "tab_today"),
@@ -273,25 +276,25 @@ private fun TopLevelBottomBarItem(
 private data class TopLevelDestination(
     val label: String,
     val icon: ImageVector,
-    val route: Any,
+    val route: NavKey,
     val testTag: String
 )
 
 @Composable
 private fun navEntryProvider(
-    backStack: SnapshotStateList<Any>,
+    backStack: MutableList<NavKey>,
     selectedScript: RunicScript,
     onSelectOnboardingStyle: (RunicScript, String) -> Unit,
     onCompleteOnboarding: () -> Unit
-) = entryProvider {
+) = entryProvider<NavKey> {
     OnboardingEntries(backStack, selectedScript, onSelectOnboardingStyle, onCompleteOnboarding)
     TopLevelEntries(backStack)
     DetailEntries(backStack)
 }
 
 @Composable
-private fun EntryProviderScope<Any>.OnboardingEntries(
-    backStack: SnapshotStateList<Any>,
+private fun EntryProviderScope<NavKey>.OnboardingEntries(
+    backStack: MutableList<NavKey>,
     selectedScript: RunicScript,
     onSelectOnboardingStyle: (RunicScript, String) -> Unit,
     onCompleteOnboarding: () -> Unit
@@ -309,8 +312,8 @@ private fun EntryProviderScope<Any>.OnboardingEntries(
 }
 
 @Composable
-private fun EntryProviderScope<Any>.TopLevelEntries(
-    backStack: SnapshotStateList<Any>
+private fun EntryProviderScope<NavKey>.TopLevelEntries(
+    backStack: MutableList<NavKey>
 ) {
     entry<QuoteRoute> {
         QuoteScreen(
@@ -371,16 +374,18 @@ private fun EntryProviderScope<Any>.TopLevelEntries(
 }
 
 @Composable
-private fun EntryProviderScope<Any>.DetailEntries(
-    backStack: SnapshotStateList<Any>
+private fun EntryProviderScope<NavKey>.DetailEntries(
+    backStack: MutableList<NavKey>
 ) {
-    entry<AddEditQuoteRoute> {
+    entry<AddEditQuoteRoute> { route ->
         AddEditQuoteScreen(
+            quoteId = route.quoteId,
             onNavigateBack = { backStack.removeLastOrNull() }
         )
     }
-    entry<PackDetailRoute> {
+    entry<PackDetailRoute> { route ->
         PackDetailScreen(
+            packId = route.packId,
             onNavigateBack = { backStack.removeLastOrNull() },
             onViewLibrary = {
                 backStack.clear()
@@ -401,13 +406,15 @@ private fun EntryProviderScope<Any>.DetailEntries(
             }
         )
     }
-    entry<RuneDetailRoute> {
+    entry<RuneDetailRoute> { route ->
         RuneDetailScreen(
+            runeId = route.runeId,
             onNavigateBack = { backStack.removeLastOrNull() }
         )
     }
-    entry<ShareRoute> {
+    entry<ShareRoute> { route ->
         ShareScreen(
+            quoteId = route.quoteId,
             onNavigateBack = { backStack.removeLastOrNull() }
         )
     }
@@ -463,7 +470,7 @@ private typealias SlideTransitionPair = Pair<
     (Int, Easing) -> ExitTransition
 >
 
-private fun switchTopLevelRoute(backStack: SnapshotStateList<Any>, route: Any) {
+private fun switchTopLevelRoute(backStack: MutableList<NavKey>, route: NavKey) {
     if (backStack.lastOrNull() == route) {
         return
     }
@@ -472,7 +479,7 @@ private fun switchTopLevelRoute(backStack: SnapshotStateList<Any>, route: Any) {
 }
 
 // Navigation 3 Scene keys contain the route class name.
-// String matching is the idiomatic approach since Scene<Any> doesn't expose
+// String matching is the idiomatic approach since Scene<NavKey> doesn't expose
 // the original typed route object in transition specs.
 private val routeRankMap = mapOf(
     "OnboardingRoute" to 0,
@@ -494,12 +501,12 @@ private val routeRankMap = mapOf(
     "AboutRoute" to 16
 )
 
-private fun routeRank(scene: Scene<Any>): Int {
+private fun routeRank(scene: Scene<NavKey>): Int {
     val key = scene.key.toString()
     return routeRankMap.entries.firstOrNull { key.contains(it.key) }?.value ?: 3
 }
 
-private fun AnimatedContentTransitionScope<Scene<Any>>.sceneTransitionOrNone(
+private fun AnimatedContentTransitionScope<Scene<NavKey>>.sceneTransitionOrNone(
     duration: Int,
     easing: Easing
 ): ContentTransform = if (duration == 0) {
@@ -513,9 +520,9 @@ private fun AnimatedContentTransitionScope<Scene<Any>>.sceneTransitionOrNone(
     )
 }
 
-private fun AnimatedContentTransitionScope<Scene<Any>>.resolveSceneTransition(
-    initialState: Scene<Any>,
-    targetState: Scene<Any>,
+private fun AnimatedContentTransitionScope<Scene<NavKey>>.resolveSceneTransition(
+    initialState: Scene<NavKey>,
+    targetState: Scene<NavKey>,
     duration: Int,
     easing: Easing
 ): ContentTransform {
@@ -546,7 +553,7 @@ private enum class RouteKind {
     DETAIL
 }
 
-private fun routeKind(scene: Scene<Any>): RouteKind {
+private fun routeKind(scene: Scene<NavKey>): RouteKind {
     val key = scene.key.toString()
     return when {
         key.contains("OnboardingRoute") -> RouteKind.ONBOARDING
@@ -556,7 +563,7 @@ private fun routeKind(scene: Scene<Any>): RouteKind {
     }
 }
 
-private fun AnimatedContentTransitionScope<Scene<Any>>.slideTransitionPair(
+private fun AnimatedContentTransitionScope<Scene<NavKey>>.slideTransitionPair(
     direction: AnimatedContentTransitionScope.SlideDirection
 ): SlideTransitionPair = Pair(
     { duration, easing ->

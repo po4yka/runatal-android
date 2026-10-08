@@ -53,8 +53,11 @@ import com.po4yka.runatal.ui.theme.RunicExpressiveTheme
 
 @Composable
 fun RuneDetailScreen(
+    runeId: Long,
     onNavigateBack: () -> Unit = {},
-    viewModel: RuneDetailViewModel = hiltViewModel()
+    viewModel: RuneDetailViewModel = hiltViewModel<RuneDetailViewModel, RuneDetailViewModel.Factory>(
+        creationCallback = { factory -> factory.create(runeId) }
+    )
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
