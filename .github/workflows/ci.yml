@@ -231,30 +231,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: AVD cache
-        uses: actions/cache@v6.1.0
-        id: avd-cache
-        with:
-          path: |
-            ~/.android/avd/*
-            ~/.android/adb*
-          key: avd-${{ runner.os }}-37.0-google-apis-x86_64-pixel-5-data-6g
-
-      - name: Create AVD and generate snapshot for caching
-        if: steps.avd-cache.outputs.cache-hit != 'true'
-        uses: reactivecircus/android-emulator-runner@v2.38.0
-        with:
-          api-level: '37.0'
-          system-image-api-level: '37.0'
-          target: google_apis
-          arch: x86_64
-          profile: pixel_5
-          disk-size: '6G'
-          force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          disable-animations: false
-          script: echo "Generated AVD snapshot for caching."
-
+      # Software-rendered Quick Boot snapshots are unreliable; start a fresh AVD once.
       - name: Run instrumented tests with merged coverage
         uses: reactivecircus/android-emulator-runner@v2.38.0
         with:
@@ -264,8 +241,8 @@ jobs:
           arch: x86_64
           profile: pixel_5
           disk-size: '6G'
-          force-avd-creation: false
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          force-avd-creation: true
+          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: ./gradlew testDebugUnitTest connectedDebugAndroidTest jacocoProjectCoverageReport --no-daemon
 
