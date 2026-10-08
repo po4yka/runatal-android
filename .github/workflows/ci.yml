@@ -240,6 +240,7 @@ jobs:
           target: google_apis_ps16k
           arch: x86_64
           profile: pixel_5
+          ram-size: '4096M'
           disk-size: '6G'
           force-avd-creation: true
           # Android 17 mapper requires both host features to advertise DMA readback.
