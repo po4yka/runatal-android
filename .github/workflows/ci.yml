@@ -242,7 +242,8 @@ jobs:
           profile: pixel_5
           disk-size: '6G'
           force-avd-creation: true
-          emulator-options: -no-snapshot -no-window -gpu swiftshader -noaudio -no-boot-anim -camera-back none
+          # Android 17 mapper needs DMA readback; GLDirectMem pairs with the host SharedSlots default.
+          emulator-options: -no-snapshot -no-window -gpu swiftshader -feature GLDirectMem -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: bash .github/scripts/run-instrumented-tests.sh
 
