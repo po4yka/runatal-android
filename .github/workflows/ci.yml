@@ -237,7 +237,7 @@ jobs:
         with:
           api-level: '37.0'
           system-image-api-level: '37.0'
-          target: google_apis
+          target: google_apis_ps16k
           arch: x86_64
           profile: pixel_5
           disk-size: '6G'
