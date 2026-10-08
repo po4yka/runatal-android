@@ -1,6 +1,15 @@
 package com.po4yka.runatal.ui.navigation
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.filterToOne
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.isSelected
+import androidx.compose.ui.test.onChildren
+import androidx.compose.ui.test.onParent
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -111,10 +120,21 @@ class CoreFlowsUiTest {
             composeRule.onAllNodesWithText("Your collection").fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithText("Custom").performClick()
+        val customFilter = hasText("Custom ", substring = true) and
+            SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
+        composeRule.onNode(customFilter).performClick()
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(customFilter and isSelected()).fetchSemanticsNodes().size == 1
+        }
+        composeRule.onNode(customFilter).assertIsSelected()
+
+        val quoteLabel = "\"$quoteText\""
         composeRule.onNodeWithTag("quote_list_lazy")
-            .performScrollToNode(hasText(quoteText, substring = false))
-        composeRule.onNodeWithText(quoteText).performClick()
+            .performScrollToNode(hasText(quoteLabel, substring = false))
+        composeRule.onNodeWithText(quoteLabel)
+            .onParent().onChildren()
+            .filterToOne(hasContentDescription("More actions"))
+            .performClick()
 
         composeRule.onNodeWithText("Edit Quote").performClick()
         composeRule.waitUntil(10_000) {
