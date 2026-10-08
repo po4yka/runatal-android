@@ -1,0 +1,96 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 3,
+    "identityHash": "837b3ea71cfa865b21cd031a8a4907b0",
+    "entities": [
+      {
+        "tableName": "quotes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `textLatin` TEXT NOT NULL, `author` TEXT NOT NULL, `runicElder` TEXT, `runicYounger` TEXT, `runicCirth` TEXT, `isUserCreated` INTEGER NOT NULL, `isFavorite` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "textLatin",
+            "columnName": "textLatin",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "author",
+            "columnName": "author",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "runicElder",
+            "columnName": "runicElder",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "runicYounger",
+            "columnName": "runicYounger",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "runicCirth",
+            "columnName": "runicCirth",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isUserCreated",
+            "columnName": "isUserCreated",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isFavorite",
+            "columnName": "isFavorite",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_quotes_isUserCreated",
+            "unique": false,
+            "columnNames": [
+              "isUserCreated"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_quotes_isUserCreated` ON `${TABLE_NAME}` (`isUserCreated`)"
+          },
+          {
+            "name": "index_quotes_isFavorite",
+            "unique": false,
+            "columnNames": [
+              "isFavorite"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_quotes_isFavorite` ON `${TABLE_NAME}` (`isFavorite`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '837b3ea71cfa865b21cd031a8a4907b0')"
+    ]
+  }
+}

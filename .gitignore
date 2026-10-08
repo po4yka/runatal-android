@@ -76,6 +76,8 @@ fabric.properties
 
 # Room schemas
 **/schemas/
+!app/schemas/
+!app/schemas/**
 
 # KSP generated files
 .ksp/
