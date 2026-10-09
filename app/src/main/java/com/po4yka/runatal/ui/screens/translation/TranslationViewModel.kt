@@ -191,6 +191,8 @@ internal class TranslationViewModel @Inject constructor(
                 translateFeatureEnabled = translateFeatureEnabled
             ).toUiState()
         }
+    }.combine(combine(_inputText, preferencesSnapshot) { text, preferences -> text to preferences }) {
+        rendered, (text, preferences) -> rendered.forSelection(text, preferences)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000L),
@@ -268,7 +270,15 @@ internal class TranslationViewModel @Inject constructor(
      */
     fun saveToLibrary() {
         val state = uiState.value
-        if (!state.canSave || state.inputText != _inputText.value || _isSaving.value) {
+        val currentSelection = TranslationSelection(
+            inputText = _inputText.value,
+            script = _selectedScript.value,
+            font = _selectedFont.value,
+            mode = _translationMode.value,
+            fidelity = _selectedFidelity.value,
+            variant = _selectedYoungerVariant.value
+        )
+        if (!state.canSave || _isSaving.value || state.selection() != currentSelection) {
             return
         }
 
@@ -357,6 +367,28 @@ internal data class TranslationUiState(
     /** Display name for the currently selected script. */
     val scriptDisplayName: String get() = selectedScript.displayName
 
+    /** Invalidates the previous result whenever any translation selection changes. */
+    fun forSelection(currentInput: String, preferences: TranslationPreferencesSnapshot): TranslationUiState {
+        val requestedSelection = TranslationSelection(
+            currentInput, preferences.selectedScript, preferences.selectedFont,
+            preferences.translationMode, preferences.fidelity, preferences.youngerVariant
+        )
+        if (selection() == requestedSelection) return this
+
+        return TranslationUiState(
+            inputText = currentInput,
+            inputCharacterCount = currentInput.length,
+            selectedScript = preferences.selectedScript,
+            translationMode = preferences.translationMode,
+            selectedFidelity = preferences.fidelity,
+            selectedYoungerVariant = preferences.youngerVariant,
+            selectedFont = preferences.selectedFont,
+            translateFeatureEnabled = translateFeatureEnabled,
+            isSaving = isSaving,
+            wordByWordEnabled = wordByWordEnabled
+        )
+    }
+
     /** Hides results for previous text while the current input is awaiting rendering. */
     fun forInput(currentInput: String): TranslationUiState {
         if (inputText == currentInput) return this
@@ -375,6 +407,19 @@ internal data class TranslationUiState(
         )
     }
 }
+
+private data class TranslationSelection(
+    val inputText: String,
+    val script: RunicScript,
+    val font: String,
+    val mode: TranslationMode,
+    val fidelity: TranslationFidelity,
+    val variant: YoungerFutharkVariant
+)
+
+private fun TranslationUiState.selection() = TranslationSelection(
+    inputText, selectedScript, selectedFont, translationMode, selectedFidelity, selectedYoungerVariant
+)
 
 private fun TranslationPresentation.toUiState(): TranslationUiState {
     return TranslationUiState(

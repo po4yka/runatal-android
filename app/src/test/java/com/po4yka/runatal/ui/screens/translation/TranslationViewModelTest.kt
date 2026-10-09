@@ -167,7 +167,7 @@ class TranslationViewModelTest {
             viewModel.selectScript(RunicScript.CIRTH)
             advanceUntilIdle()
 
-            val cirthState = awaitItem()
+            val cirthState = expectMostRecentItem()
             assertThat(cirthState.wordBreakdown).containsExactly(
                 WordTransliterationPair(
                     sourceToken = "thing",
@@ -326,6 +326,72 @@ class TranslationViewModelTest {
                 YoungerFutharkVariant.DEFAULT
             )
         }
+        collector.cancel()
+    }
+
+    @Test
+    fun `pending selection hides all previous translation fields`() {
+        val previous = TranslationUiState(
+            inputText = "night",
+            transliteratedText = "ᚾ",
+            normalizedForm = "nótt",
+            diplomaticForm = "not",
+            canSave = true,
+            resolutionStatus = TranslationResolutionStatus.RECONSTRUCTED
+        )
+        val requested = com.po4yka.runatal.domain.usecase.translation.TranslationPreferencesSnapshot(
+            selectedScript = RunicScript.YOUNGER_FUTHARK,
+            selectedFont = "noto",
+            persistedWordByWordEnabled = false,
+            translationMode = TranslationMode.TRANSLATE,
+            fidelity = TranslationFidelity.DECORATIVE,
+            youngerVariant = YoungerFutharkVariant.SHORT_TWIG
+        )
+
+        val pending = previous.forSelection("night", requested)
+
+        assertThat(pending.translationMode).isEqualTo(TranslationMode.TRANSLATE)
+        assertThat(pending.selectedFidelity).isEqualTo(TranslationFidelity.DECORATIVE)
+        assertThat(pending.selectedYoungerVariant).isEqualTo(YoungerFutharkVariant.SHORT_TWIG)
+        assertThat(pending.canSave).isFalse()
+        assertThat(pending.transliteratedText).isEmpty()
+        assertThat(pending.normalizedForm).isEmpty()
+        assertThat(pending.diplomaticForm).isEmpty()
+        assertThat(pending.resolutionStatus).isNull()
+    }
+
+    @Test
+    fun `save rejects a result from the previous mode fidelity variant or script`() = runTest {
+        every { historicalTranslationService.translate(any(), any(), any(), any()) } answers {
+            placeholderTranslation(text = firstArg(), script = secondArg()).copy(
+                glyphOutput = "ᚾ",
+                resolutionStatus = TranslationResolutionStatus.RECONSTRUCTED
+            )
+        }
+        val collector = launch { viewModel.uiState.collect { } }
+        viewModel.updateInputText("night")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.canSave).isTrue()
+
+        viewModel.selectMode(TranslationMode.TRANSLATE)
+        viewModel.saveToLibrary()
+        coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.translationMode).isEqualTo(TranslationMode.TRANSLATE)
+
+        viewModel.selectFidelity(TranslationFidelity.DECORATIVE)
+        viewModel.saveToLibrary()
+        advanceUntilIdle()
+        viewModel.selectYoungerVariant(YoungerFutharkVariant.SHORT_TWIG)
+        viewModel.saveToLibrary()
+        advanceUntilIdle()
+        viewModel.selectScript(RunicScript.YOUNGER_FUTHARK)
+        viewModel.saveToLibrary()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
+        coVerify(exactly = 0) { translationRepository.cacheTranslations(any(), any(), any()) }
+        assertThat(viewModel.uiState.value.selectedScript).isEqualTo(RunicScript.YOUNGER_FUTHARK)
         collector.cancel()
     }
 
