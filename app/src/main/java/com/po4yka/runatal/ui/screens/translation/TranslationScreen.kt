@@ -97,6 +97,7 @@ import com.po4yka.runatal.ui.theme.RunicTextRole
 import com.po4yka.runatal.ui.theme.RunicTypeRoles
 import com.po4yka.runatal.ui.theme.SupportingTextRole
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 @Composable
 internal fun TranslationScreen(
@@ -782,6 +783,15 @@ private fun HistoricalTranslationMetaSection(
                 confidence = confidence,
                 derivationKindLabel = derivationKindLabel
             )
+            if (confidence != null) {
+                Text(
+                    text = "This heuristic summarizes local evidence and rule coverage. " +
+                        "It is not a measured probability of correctness.",
+                    modifier = Modifier.testTag("translation_score_context"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             TranslationLayersSection(
                 normalizedForm = normalizedForm,
                 diplomaticForm = diplomaticForm,
@@ -827,11 +837,22 @@ private fun TranslationStatusRow(
                 }
             }
             confidence?.let { value ->
-                Text(
-                    text = "Confidence ${(value * 100).toInt()}%",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = "Heuristic score",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "%.2f / 1".format(Locale.ROOT, value),
+                        modifier = Modifier.testTag("translation_heuristic_score"),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

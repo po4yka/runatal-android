@@ -2,6 +2,7 @@ package com.po4yka.runatal.ui.translation
 
 import android.content.ClipboardManager
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
@@ -31,6 +32,39 @@ class TranslationExperienceUiTest {
 
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
+
+    @Test
+    fun translationScreen_attestedOutputShowsHeuristicScoreWithEvidenceAndContext() {
+        openTranslationScreen()
+
+        composeRule.onNodeWithTag("translation_mode_translate").performClick()
+        composeRule.onNodeWithTag("translation_script_elder_futhark").performClick()
+        composeRule.onNodeWithTag("translation_fidelity_strict").performClick()
+        composeRule.onNodeWithTag("translation_input_text").performTextInput("Hlewagastiz")
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodesWithText("Attested").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeRule.onNodeWithTag("translation_heuristic_score").performScrollTo()
+            .assertIsDisplayed().assertTextEquals("0.98 / 1")
+        composeRule.onNodeWithTag("translation_score_context").performScrollTo().assertIsDisplayed()
+            .assertTextEquals(
+                "This heuristic summarizes local evidence and rule coverage. " +
+                    "It is not a measured probability of correctness."
+            )
+        assertTrue(composeRule.onAllNodesWithText("hlewagastiR").fetchSemanticsNodes().isNotEmpty())
+        assertTrue(composeRule.onAllNodes(
+            hasText("Gallehus short golden horn inscription", substring = true) and
+                hasAnyAncestor(hasTestTag("translation_provenance_section"))
+        ).fetchSemanticsNodes().isNotEmpty())
+
+        // The score accompanies the real attested output, not a synthetic metadata-only preview.
+        composeRule.onNodeWithText("Copy").performScrollTo().performClick()
+        composeRule.runOnIdle {
+            val clipboard = composeRule.activity.getSystemService(ClipboardManager::class.java)
+            assertEquals("ᚻᛚᛖᚹᚨᚷᚨᛊᛏᛁᛉ", clipboard.primaryClip?.getItemAt(0)?.text?.toString())
+        }
+    }
 
     @Test
     fun translationScreen_youngerStrictGrammarShowsDerivationAndProvenance() {
@@ -112,12 +146,34 @@ class TranslationExperienceUiTest {
     @Test
     fun translationAccuracyScreen_rendersSectionsAndBackNavigation() {
         openTranslationScreen()
+        composeRule.onNodeWithTag("translation_mode_transliterate").performClick()
+        composeRule.onNodeWithTag("translation_script_elder_futhark").performClick()
+        composeRule.onNodeWithTag("translation_input_text").performTextInput("CK Q QU X V W")
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodesWithText("Copy").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Copy").performScrollTo().performClick()
+        composeRule.runOnIdle {
+            val clipboard = composeRule.activity.getSystemService(ClipboardManager::class.java)
+            assertEquals("ᚲᚲ ᚲᚹ ᚲᚹ ᚲᛊ ᚢ ᚹ", clipboard.primaryClip?.getItemAt(0)?.text?.toString())
+        }
 
         composeRule.onNodeWithTag("translation_accuracy_link").performScrollTo().performClick()
 
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodesWithText("Known limitations").fetchSemanticsNodes().isNotEmpty()
         }
+
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Modern Elder mappings"))
+        composeRule.onNodeWithText("Modern Elder mappings").assertIsDisplayed()
+        assertTrue(composeRule.onAllNodes(
+            hasText("Q and QU to KW (ᚲᚹ); X to KS (ᚲᛊ)", substring = true)
+        ).fetchSemanticsNodes().isNotEmpty())
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Scores are heuristic"))
+        composeRule.onNodeWithText("Scores are heuristic").assertIsDisplayed()
+        assertTrue(composeRule.onAllNodes(
+            hasText("not calibrated against measured accuracy", substring = true)
+        ).fetchSemanticsNodes().isNotEmpty())
 
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Historical context"))
         assertTrue(composeRule.onAllNodesWithText("Historical context").fetchSemanticsNodes().isNotEmpty())

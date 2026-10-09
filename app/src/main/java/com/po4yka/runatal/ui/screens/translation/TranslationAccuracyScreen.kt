@@ -96,9 +96,9 @@ private fun TranslationAccuracyTopBar(onNavigateBack: () -> Unit) {
 @Composable
 private fun ContextLeadCard() {
     RunicArticleLeadCard(
-        text = "This is a modern convention, not a historical reconstruction. " +
-            "Runes were not designed to encode Modern English. " +
-            "Understanding the limits makes the output more meaningful.",
+        text = "Transliterate converts modern Latin spelling into runic glyphs. " +
+            "Historical mode, when enabled, uses a limited bundled corpus and reviewed language rules. " +
+            "Check each result's status, notes, and sources to understand what it supports.",
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant
     )
@@ -111,27 +111,43 @@ private fun LimitationsCard() {
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
         TranslationLimitation(
-            title = "Transliteration, not translation",
-            body = "The output is a phonetic re-encoding of your text using runic characters. " +
-                "The meaning of the original words is not preserved in the runes, only the sounds.",
+            title = "Transliterate follows spelling",
+            body = "Direct output maps letters and selected letter sequences; it does not infer pronunciation " +
+                "or translate meaning. Modern spelling can produce ambiguous or approximate rune choices.",
             showDivider = true
         )
         TranslationLimitation(
-            title = "Modern English was not written in runes",
-            body = "Elder Futhark was designed for Proto-Germanic, not Modern English. " +
-                "Several sounds exist in English that have no direct runic equivalent.",
+            title = "Historical mode has limited coverage",
+            body = "Younger Futhark supports reviewed Old Norse forms and grammar. Elder Futhark supports " +
+                "curated forms and witnessed formulas. Strict returns Unavailable when required evidence or " +
+                "forms are missing. Readable and Decorative allow approximations; check their notes.",
             showDivider = true
         )
         TranslationLimitation(
-            title = "Shared glyphs reduce uniqueness",
-            body = "In Elder Futhark, C, K, and Q map to ᚲ; V and W map to ᚹ. " +
-                "The reverse mapping is ambiguous, so runic text does not uniquely encode every Latin letter.",
+            title = "Modern Elder mappings",
+            body = "C and K map to K (ᚲ); Q and QU to KW (ᚲᚹ); X to KS (ᚲᛊ). " +
+                "V shares U (ᚢ), while W uses W (ᚹ). Shared mappings cannot uniquely recover the original spelling.",
             showDivider = true
         )
         TranslationLimitation(
-            title = "No universally agreed standard",
-            body = "Scholars and enthusiasts differ on the correct mapping of modern sounds to ancient glyphs. " +
-                "Runatal follows a conventional and widely used approach, not a single authoritative source."
+            title = "Statuses describe evidence",
+            body = "Attested identifies a source-backed form or formula. Reconstructed uses reviewed forms, " +
+                "grammar, or a named transcription profile. Approximated can include glyph substitution or " +
+                "preserved modern spelling. These labels do not guarantee correctness for every interpretation.",
+            showDivider = true
+        )
+        TranslationLimitation(
+            title = "Cirth uses an English profile",
+            body = "In Historical mode, Strict Cirth covers the documented title-page English profile and " +
+                "its reviewed words. General Latin spelling is an educational glyph substitution marked " +
+                "Approximated. This is not arbitrary translation into Tolkien's fictional languages.",
+            showDivider = true
+        )
+        TranslationLimitation(
+            title = "Scores are heuristic",
+            body = "The decimal score summarizes local evidence and rule coverage. It is not calibrated " +
+                "against measured accuracy and is not a probability that a translation is correct. " +
+                "Use the result's status, notes, and cited sources alongside it."
         )
     }
 }
