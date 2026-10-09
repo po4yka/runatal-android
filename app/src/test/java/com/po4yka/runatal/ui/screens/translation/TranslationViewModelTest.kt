@@ -99,6 +99,43 @@ class TranslationViewModelTest {
     }
 
     @Test
+    fun `input budget drops a whole supplementary character that cannot fit and persists exact bounded text`() = runTest {
+        val handle = SavedStateHandle()
+        val bounded = TranslationViewModel(
+            transliterationFactory = transliterationFactory,
+            historicalTranslationService = historicalTranslationService,
+            quoteRepository = quoteRepository, translationRepository = translationRepository,
+            userPreferencesManager = userPreferencesManager, translationDispatcher = testDispatcher,
+            savedStateHandle = handle
+        )
+        val prefix = "a".repeat(279)
+        bounded.uiState.test {
+            awaitItem()
+            bounded.updateInputText(prefix + "😀tail")
+            advanceUntilIdle()
+            assertThat(bounded.inputText.value).isEqualTo(prefix)
+            assertThat(handle.get<String>("translation.input")).isEqualTo(prefix)
+            assertThat(bounded.uiState.value.inputCharacterCount).isEqualTo(279)
+            assertThat(bounded.uiState.value.inputText).isEqualTo(prefix)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `input budget keeps a complete supplementary character that fits and counts its two units`() = runTest {
+        val text = "a".repeat(278) + "😀"
+        viewModel.uiState.test {
+            awaitItem()
+            viewModel.updateInputText(text + "tail")
+            advanceUntilIdle()
+            assertThat(viewModel.inputText.value).isEqualTo(text)
+            assertThat(viewModel.uiState.value.inputText).isEqualTo(text)
+            assertThat(viewModel.uiState.value.inputCharacterCount).isEqualTo(280)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `ui state reflects persisted word by word default and selected font`() = runTest {
         viewModel.uiState.test {
             awaitItem()

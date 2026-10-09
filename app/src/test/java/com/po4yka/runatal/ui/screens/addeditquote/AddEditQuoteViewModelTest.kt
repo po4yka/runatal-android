@@ -641,6 +641,27 @@ class AddEditQuoteViewModelTest {
         }
     }
 
+    @Test
+    fun `editor overbudget quote and author retain complete raw surrogate pairs for correction`() = runTest {
+        viewModel = AddEditQuoteViewModel(
+            quoteRepository, userPreferencesManager, transliterationFactory, 0L
+        )
+        advanceUntilIdle()
+        val source = "a".repeat(279) + "😀"
+        val author = "a".repeat(59) + "😀"
+        viewModel.updateTextLatin(source)
+        viewModel.updateAuthor(author)
+        val state = viewModel.uiState.value
+        assertThat(state.textLatin).isEqualTo(source)
+        assertThat(state.author).isEqualTo(author)
+        assertThat(state.quoteCharCount).isEqualTo(281)
+        assertThat(state.authorCharCount).isEqualTo(61)
+        assertThat(state.quoteTextError).isEqualTo("Keep quote under 280 characters")
+        assertThat(state.authorError).isEqualTo("Keep author under 60 characters")
+        assertThat(state.canSave).isFalse()
+        coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
+    }
+
     // ==================== Save Quote Tests - New Quote ====================
 
     @Test

@@ -48,6 +48,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import com.po4yka.runatal.util.takeUtf16Budget
 import javax.inject.Inject
 
 /**
@@ -219,7 +220,7 @@ internal class TranslationViewModel @Inject constructor(
      * Updates the source text with the Figma-defined 280 character cap.
      */
     fun updateInputText(text: String) {
-        _inputText.value = text.take(QuoteInputPolicy.MAX_QUOTE_LENGTH)
+        _inputText.value = text.takeUtf16Budget(QuoteInputPolicy.MAX_QUOTE_LENGTH)
     }
 
     /**
