@@ -14,6 +14,7 @@ object WidgetStateCache {
         val date: LocalDate,
         val widgetWidth: Int,
         val widgetHeight: Int,
+        val renderEnvironment: String,
         val selectedScript: String,
         val selectedFont: String,
         val displayMode: String,
@@ -33,12 +34,14 @@ object WidgetStateCache {
         currentDate: LocalDate,
         preferences: UserPreferences,
         widgetWidth: Int,
-        widgetHeight: Int
+        widgetHeight: Int,
+        renderEnvironment: String
     ): WidgetState? {
         val entry = cache[widgetKey] ?: return null
         val isValid = entry.date == currentDate &&
             entry.widgetWidth == widgetWidth &&
             entry.widgetHeight == widgetHeight &&
+            entry.renderEnvironment == renderEnvironment &&
             entry.selectedScript == preferences.selectedScript.name &&
             entry.selectedFont == preferences.selectedFont &&
             entry.displayMode == preferences.widgetDisplayMode &&
@@ -57,12 +60,14 @@ object WidgetStateCache {
         preferences: UserPreferences,
         widgetWidth: Int,
         widgetHeight: Int,
+        renderEnvironment: String,
         state: WidgetState
     ) {
         cache[widgetKey] = CacheEntry(
             date = date,
             widgetWidth = widgetWidth,
             widgetHeight = widgetHeight,
+            renderEnvironment = renderEnvironment,
             selectedScript = preferences.selectedScript.name,
             selectedFont = preferences.selectedFont,
             displayMode = preferences.widgetDisplayMode,

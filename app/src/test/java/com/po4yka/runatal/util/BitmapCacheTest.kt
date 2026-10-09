@@ -40,4 +40,22 @@ class BitmapCacheTest {
         assertThat(BitmapCache.size()).isEqualTo(0)
         assertThat(retained.isRecycled).isFalse()
     }
+
+    @Test
+    fun `render key distinguishes colors scaling and layout`() {
+        val config = RenderConfig(text = "ᚠᚢ", fontResource = 1, textColor = Color.WHITE)
+        val key = BitmapCache.generateKey(config, 20f)
+        val alternatives = listOf(
+            config.copy(textColor = Color.BLACK),
+            config.copy(backgroundColor = Color.RED),
+            config.copy(fontResource = 2),
+            config.copy(textSizeSp = 30f),
+            config.copy(maxWidth = 100),
+            config.copy(maxLines = 2),
+            config.copy(textAlign = RenderTextAlign.START)
+        )
+
+        alternatives.forEach { assertThat(BitmapCache.generateKey(it, 20f)).isNotEqualTo(key) }
+        assertThat(BitmapCache.generateKey(config, 30f)).isNotEqualTo(key)
+    }
 }

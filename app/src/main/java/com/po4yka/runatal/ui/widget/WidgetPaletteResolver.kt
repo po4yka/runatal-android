@@ -23,6 +23,12 @@ internal fun resolveWidgetPalette(
     )
 }
 
+/** Includes resolved colors and device scaling, which can change without a preference write. */
+internal fun widgetRenderEnvironment(context: Context, palette: WidgetPalette): String {
+    val resources = context.resources
+    return "$palette|${resources.displayMetrics.densityDpi}|${resources.configuration.fontScale}"
+}
+
 private fun isDarkTheme(context: Context, preferences: UserPreferences): Boolean {
     return when (preferences.themeMode) {
         "dark" -> true

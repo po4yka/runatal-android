@@ -54,6 +54,7 @@ class PersistentWidgetStateCacheTest {
             preferences = preferences,
             widgetWidth = 300,
             widgetHeight = 151,
+            renderEnvironment = "test",
             state = originalState,
             bitmapCacheKey = "widget-bitmap"
         )
@@ -66,6 +67,7 @@ class PersistentWidgetStateCacheTest {
             preferences = preferences,
             widgetWidth = 300,
             widgetHeight = 151,
+            renderEnvironment = "test",
             palette = WidgetPalette.default(),
             sizeClass = WidgetSizeClass.COMPACT
         )
@@ -79,6 +81,35 @@ class PersistentWidgetStateCacheTest {
     }
 
     @Test
+    fun `disk cache invalidates when rendering environment changes`() {
+        PersistentWidgetStateCache.put(
+            context = context,
+            widgetKey = "widget-1",
+            date = LocalDate.of(2026, 3, 11),
+            preferences = preferences,
+            widgetWidth = 300,
+            widgetHeight = 151,
+            renderEnvironment = "dark-1",
+            state = WidgetState(latinText = "Cached"),
+            bitmapCacheKey = null
+        )
+
+        val changed = PersistentWidgetStateCache.get(
+            context = context,
+            widgetKey = "widget-1",
+            currentDate = LocalDate.of(2026, 3, 11),
+            preferences = preferences,
+            widgetWidth = 300,
+            widgetHeight = 151,
+            renderEnvironment = "light-2",
+            palette = WidgetPalette.default(),
+            sizeClass = WidgetSizeClass.COMPACT
+        )
+
+        assertThat(changed).isNull()
+    }
+
+    @Test
     fun `get returns null when preferences no longer match`() {
         PersistentWidgetStateCache.put(
             context = context,
@@ -87,6 +118,7 @@ class PersistentWidgetStateCacheTest {
             preferences = preferences,
             widgetWidth = 300,
             widgetHeight = 151,
+            renderEnvironment = "test",
             state = WidgetState(latinText = "Cached"),
             bitmapCacheKey = null
         )
@@ -98,6 +130,7 @@ class PersistentWidgetStateCacheTest {
             preferences = preferences.copy(selectedScript = RunicScript.ELDER_FUTHARK),
             widgetWidth = 300,
             widgetHeight = 151,
+            renderEnvironment = "test",
             palette = WidgetPalette.default(),
             sizeClass = WidgetSizeClass.MEDIUM
         )

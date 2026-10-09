@@ -33,14 +33,15 @@ class WidgetStateCacheTest {
 
     @Test
     fun `put and get returns cached state when inputs match`() {
-        WidgetStateCache.put("widget", LocalDate.of(2026, 3, 11), preferences, 300, 151, state)
+        WidgetStateCache.put("widget", LocalDate.of(2026, 3, 11), preferences, 300, 151, "test", state)
 
         val cached = WidgetStateCache.get(
             widgetKey = "widget",
             currentDate = LocalDate.of(2026, 3, 11),
             preferences = preferences,
             widgetWidth = 300,
-            widgetHeight = 151
+            widgetHeight = 151,
+            renderEnvironment = "test"
         )
 
         assertThat(cached).isEqualTo(state)
@@ -48,21 +49,23 @@ class WidgetStateCacheTest {
 
     @Test
     fun `cache invalidates when date or rendering preferences change`() {
-        WidgetStateCache.put("widget", LocalDate.of(2026, 3, 11), preferences, 300, 151, state)
+        WidgetStateCache.put("widget", LocalDate.of(2026, 3, 11), preferences, 300, 151, "test", state)
 
         val differentDate = WidgetStateCache.get(
             widgetKey = "widget",
             currentDate = LocalDate.of(2026, 3, 12),
             preferences = preferences,
             widgetWidth = 300,
-            widgetHeight = 151
+            widgetHeight = 151,
+            renderEnvironment = "test"
         )
         val differentScript = WidgetStateCache.get(
             widgetKey = "widget",
             currentDate = LocalDate.of(2026, 3, 11),
             preferences = preferences.copy(selectedScript = RunicScript.ELDER_FUTHARK),
             widgetWidth = 300,
-            widgetHeight = 151
+            widgetHeight = 151,
+            renderEnvironment = "test"
         )
 
         assertThat(differentDate).isNull()
@@ -71,22 +74,34 @@ class WidgetStateCacheTest {
 
     @Test
     fun `cache invalidates when widget size changes`() {
-        WidgetStateCache.put("widget", LocalDate.of(2026, 3, 11), preferences, 300, 151, state)
+        WidgetStateCache.put("widget", LocalDate.of(2026, 3, 11), preferences, 300, 151, "test", state)
 
         val resized = WidgetStateCache.get(
             widgetKey = "widget",
             currentDate = LocalDate.of(2026, 3, 11),
             preferences = preferences,
             widgetWidth = 400,
-            widgetHeight = 151
+            widgetHeight = 151,
+            renderEnvironment = "test"
         )
 
         assertThat(resized).isNull()
     }
 
     @Test
+    fun `cache invalidates when resolved palette or device scaling changes`() {
+        WidgetStateCache.put("widget", LocalDate.of(2026, 3, 11), preferences, 300, 151, "dark-1", state)
+
+        val changed = WidgetStateCache.get(
+            "widget", LocalDate.of(2026, 3, 11), preferences, 300, 151, "light-2"
+        )
+
+        assertThat(changed).isNull()
+    }
+
+    @Test
     fun `clear removes cache entries`() {
-        WidgetStateCache.put("widget", LocalDate.of(2026, 3, 11), preferences, 300, 151, state)
+        WidgetStateCache.put("widget", LocalDate.of(2026, 3, 11), preferences, 300, 151, "test", state)
         WidgetStateCache.clear("widget")
 
         assertThat(
@@ -95,7 +110,8 @@ class WidgetStateCacheTest {
                 currentDate = LocalDate.of(2026, 3, 11),
                 preferences = preferences,
                 widgetWidth = 300,
-                widgetHeight = 151
+                widgetHeight = 151,
+                renderEnvironment = "test"
             )
         ).isNull()
     }

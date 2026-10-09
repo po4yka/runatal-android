@@ -35,6 +35,7 @@ internal object PersistentWidgetStateCache {
         val dateEpochDay: Long,
         val widgetWidth: Int,
         val widgetHeight: Int,
+        val renderEnvironment: String,
         val selectedScript: String,
         val selectedFont: String,
         val displayModePreference: String,
@@ -61,6 +62,7 @@ internal object PersistentWidgetStateCache {
         preferences: UserPreferences,
         widgetWidth: Int,
         widgetHeight: Int,
+        renderEnvironment: String,
         palette: WidgetPalette,
         sizeClass: WidgetSizeClass
     ): WidgetState? {
@@ -79,6 +81,7 @@ internal object PersistentWidgetStateCache {
         val isValid = record.dateEpochDay == currentDate.toEpochDay() &&
             record.widgetWidth == widgetWidth &&
             record.widgetHeight == widgetHeight &&
+            record.renderEnvironment == renderEnvironment &&
             record.selectedScript == preferences.selectedScript.name &&
             record.selectedFont == preferences.selectedFont &&
             record.displayModePreference == preferences.widgetDisplayMode &&
@@ -120,6 +123,7 @@ internal object PersistentWidgetStateCache {
         preferences: UserPreferences,
         widgetWidth: Int,
         widgetHeight: Int,
+        renderEnvironment: String,
         state: WidgetState,
         bitmapCacheKey: String?
     ) {
@@ -136,6 +140,7 @@ internal object PersistentWidgetStateCache {
             dateEpochDay = date.toEpochDay(),
             widgetWidth = widgetWidth,
             widgetHeight = widgetHeight,
+            renderEnvironment = renderEnvironment,
             selectedScript = preferences.selectedScript.name,
             selectedFont = preferences.selectedFont,
             displayModePreference = preferences.widgetDisplayMode,

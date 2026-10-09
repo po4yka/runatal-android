@@ -475,6 +475,7 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                 val updateMode = WidgetUpdateMode.fromPersistedValue(preferences.widgetUpdateMode)
                 val randomRequested = WidgetInteractionState.consumeRandomQuoteRequest(widgetKey)
                 val palette = resolveWidgetPalette(context, preferences)
+                val renderEnvironment = widgetRenderEnvironment(context, palette)
 
                 if (!randomRequested) {
                     val cachedState = WidgetStateCache.get(
@@ -482,7 +483,8 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                         currentDate = today,
                         preferences = preferences,
                         widgetWidth = widgetWidth,
-                        widgetHeight = widgetHeight
+                        widgetHeight = widgetHeight,
+                        renderEnvironment = renderEnvironment
                     )
                     if (cachedState != null) {
                         return@withContext cachedState.copy(
@@ -498,6 +500,7 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                         preferences = preferences,
                         widgetWidth = widgetWidth,
                         widgetHeight = widgetHeight,
+                        renderEnvironment = renderEnvironment,
                         palette = palette,
                         sizeClass = sizeClass
                     )
@@ -508,6 +511,7 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                             preferences = preferences,
                             widgetWidth = widgetWidth,
                             widgetHeight = widgetHeight,
+                            renderEnvironment = renderEnvironment,
                             state = persistedState
                         )
                         return@withContext persistedState
@@ -536,26 +540,26 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                         sizeClass = sizeClass
                     )
                     val fontResource = RunicTextRenderer.getFontResource(preferences.selectedFont)
-                    val bitmapCacheKey = BitmapCache.generateKey(
-                        text = "${sizeClass.name}:$normalizedRunicText",
+                    val renderConfig = RenderConfig(
+                        text = normalizedRunicText,
                         fontResource = fontResource,
-                        textSize = textSize,
-                        maxWidth = maxWidth
+                        textSizeSp = textSize,
+                        textColor = palette.runicText,
+                        backgroundColor = null,
+                        maxWidth = maxWidth,
+                        textAlign = RenderTextAlign.START,
+                        maxLines = if (sizeClass == WidgetSizeClass.EXPANDED) 2 else 1
+                    )
+                    val bitmapCacheKey = BitmapCache.generateKey(
+                        config = renderConfig,
+                        textSizePx = android.util.TypedValue.applyDimension(
+                            android.util.TypedValue.COMPLEX_UNIT_SP,
+                            textSize,
+                            context.resources.displayMetrics
+                        )
                     )
                     val runicBitmap = BitmapCache.get(bitmapCacheKey) ?: try {
-                        val bitmap = RunicTextRenderer.renderTextToBitmap(
-                            context = context,
-                            config = RenderConfig(
-                                text = normalizedRunicText,
-                                fontResource = fontResource,
-                                textSizeSp = textSize,
-                                textColor = palette.runicText,
-                                backgroundColor = null,
-                                maxWidth = maxWidth,
-                                textAlign = RenderTextAlign.START,
-                                maxLines = if (sizeClass == WidgetSizeClass.EXPANDED) 2 else 1
-                            )
-                        )
+                        val bitmap = RunicTextRenderer.renderTextToBitmap(context, renderConfig)
                         BitmapCache.put(bitmapCacheKey, bitmap)
                         bitmap
                     } catch (e: IOException) {
@@ -586,6 +590,7 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                         preferences = preferences,
                         widgetWidth = widgetWidth,
                         widgetHeight = widgetHeight,
+                        renderEnvironment = renderEnvironment,
                         state = newState
                     )
                     PersistentWidgetStateCache.put(
@@ -595,6 +600,7 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                         preferences = preferences,
                         widgetWidth = widgetWidth,
                         widgetHeight = widgetHeight,
+                        renderEnvironment = renderEnvironment,
                         state = newState,
                         bitmapCacheKey = bitmapCacheKey
                     )
@@ -615,6 +621,7 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                         preferences = preferences,
                         widgetWidth = widgetWidth,
                         widgetHeight = widgetHeight,
+                        renderEnvironment = renderEnvironment,
                         state = emptyState
                     )
                     PersistentWidgetStateCache.put(
@@ -624,6 +631,7 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                         preferences = preferences,
                         widgetWidth = widgetWidth,
                         widgetHeight = widgetHeight,
+                        renderEnvironment = renderEnvironment,
                         state = emptyState,
                         bitmapCacheKey = null
                     )

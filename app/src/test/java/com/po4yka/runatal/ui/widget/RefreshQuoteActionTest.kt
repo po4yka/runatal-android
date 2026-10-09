@@ -35,6 +35,7 @@ class RefreshQuoteActionTest {
             preferences = com.po4yka.runatal.data.preferences.UserPreferences(),
             widgetWidth = 300,
             widgetHeight = 151,
+            renderEnvironment = "test",
             state = WidgetState(latinText = "Cached")
         )
         PersistentWidgetStateCache.put(
@@ -44,6 +45,7 @@ class RefreshQuoteActionTest {
             preferences = com.po4yka.runatal.data.preferences.UserPreferences(),
             widgetWidth = 300,
             widgetHeight = 151,
+            renderEnvironment = "test",
             state = WidgetState(latinText = "Cached"),
             bitmapCacheKey = null
         )
@@ -59,7 +61,8 @@ class RefreshQuoteActionTest {
                 currentDate = java.time.LocalDate.of(2026, 3, 11),
                 preferences = com.po4yka.runatal.data.preferences.UserPreferences(),
                 widgetWidth = 300,
-                widgetHeight = 151
+                widgetHeight = 151,
+                renderEnvironment = "test"
             )
         ).isNull()
         assertThat(
@@ -70,6 +73,7 @@ class RefreshQuoteActionTest {
                 preferences = com.po4yka.runatal.data.preferences.UserPreferences(),
                 widgetWidth = 300,
                 widgetHeight = 151,
+                renderEnvironment = "test",
                 palette = WidgetPalette.default(),
                 sizeClass = WidgetSizeClass.MEDIUM
             )
