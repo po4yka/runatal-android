@@ -1,5 +1,6 @@
 package com.po4yka.runatal.ui.translation
 
+import android.content.ClipboardManager
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasScrollAction
@@ -22,6 +23,7 @@ import com.po4yka.runatal.ui.dismissOnboardingIfNeeded
 import org.junit.Rule
 import org.junit.Test
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
@@ -73,25 +75,38 @@ class TranslationExperienceUiTest {
     }
 
     @Test
-    fun translationScreen_ereborSequenceTranscriptionShowsTrackAndSources() {
+    fun translationScreen_publishedCirthProfileShowsReconstructionGlyphsAndSources() {
         openTranslationScreen()
 
         composeRule.onNodeWithTag("translation_mode_translate").performClick()
         composeRule.onNodeWithTag("translation_script_cirth").performClick()
-        composeRule.onNodeWithTag("translation_input_text").performTextInput("night")
-
+        composeRule.onNodeWithTag("translation_fidelity_strict").performClick()
+        composeRule.onNodeWithTag("translation_input_text").performTextClearance()
+        composeRule.onNodeWithTag("translation_input_text")
+            .performTextInput("The Lord of the Rings translated from the Red Book")
         composeRule.waitUntil(10_000) {
-            composeRule.onAllNodesWithText("Sequence transcription").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText("Phrase template").fetchSemanticsNodes().isNotEmpty()
         }
-
         assertTrue(composeRule.onAllNodesWithText("Erebor transcription").fetchSemanticsNodes().isNotEmpty())
-        assertTrue(composeRule.onAllNodesWithText("Sequence transcription").fetchSemanticsNodes().isNotEmpty())
-        assertTrue(
-            composeRule.onAllNodes(
-                hasText("Appendix E / Erebor notes", substring = true) and
-                    hasAnyAncestor(hasTestTag("translation_provenance_section"))
-            ).fetchSemanticsNodes().isNotEmpty()
-        )
+        assertTrue(composeRule.onAllNodesWithText("Reconstructed").fetchSemanticsNodes().isNotEmpty())
+        assertTrue(composeRule.onAllNodesWithText("the lord of the rings translated from the red book")
+            .fetchSemanticsNodes().isNotEmpty())
+        assertTrue(composeRule.onAllNodes(
+            hasText("Published title-page English profile", substring = true) and
+                hasAnyAncestor(hasTestTag("translation_provenance_section"))
+        ).fetchSemanticsNodes().isNotEmpty())
+
+        // Copy observes the actual output despite RunicText's source-based accessibility description.
+        composeRule.onNodeWithText("Copy").performScrollTo().performClick()
+        val expected = "\uE0E9\uE08A\uE0BA\uE0E7\uE09E\uE0B3\uE08B\uE088\uE0E7" +
+            "\uE0B3\uE083\uE0E7\uE08A\uE0BA\uE0E7\uE08B\uE0A7\uE0A3\uE0A2\uE0E7 " +
+            "\uE087\uE08B\uE0B1\uE095\uE0A2\uE09E\uE0B1\uE087\uE0BB\uE088\uE0E7" +
+            "\uE082\uE08B\uE0B3\uE085\uE0E7\uE08A\uE0BA\uE0E7\uE08B\uE0AF\uE088\uE0E7" +
+            "\uE081\uE0B4\uE091\uE0EA"
+        composeRule.runOnIdle {
+            val clipboard = composeRule.activity.getSystemService(ClipboardManager::class.java)
+            assertEquals(expected, clipboard.primaryClip?.getItemAt(0)?.text?.toString())
+        }
     }
 
     @Test

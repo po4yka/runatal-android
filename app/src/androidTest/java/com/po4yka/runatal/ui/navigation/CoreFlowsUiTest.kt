@@ -91,7 +91,7 @@ class CoreFlowsUiTest {
         }
 
         composeRule.onNodeWithText("Daily Quote Alert").performClick()
-        composeRule.onNodeWithText("Community Picks").performClick()
+        composeRule.onNodeWithText("Pack Updates").performClick()
         composeRule.onNodeWithText("Back to settings").performScrollTo().performClick()
 
         composeRule.waitUntil(10_000) {

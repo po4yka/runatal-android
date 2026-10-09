@@ -37,8 +37,8 @@ class SavedRunesUiTest {
         }
         composeRule.onNodeWithText("Save rune").performClick()
         waitFor("Remove saved rune")
-        composeRule.onNodeWithContentDescription("Back").performClick()
-        composeRule.onNodeWithContentDescription("Back").performClick()
+        composeRule.onNodeWithContentDescription("Navigate back").performClick()
+        composeRule.onNodeWithContentDescription("Navigate back").performClick()
         composeRule.onNodeWithText("Profile").performScrollTo().performClick()
         composeRule.onNodeWithText("Saved Runes").performScrollTo().performClick()
         waitFor("Fehu")
@@ -46,7 +46,7 @@ class SavedRunesUiTest {
         waitFor("Remove saved rune")
         composeRule.onNodeWithText("Remove saved rune").performClick()
         waitFor("Save rune")
-        composeRule.onNodeWithContentDescription("Back").performClick()
+        composeRule.onNodeWithContentDescription("Navigate back").performClick()
         waitFor("Saved runes")
         composeRule.waitUntil(10_000) { composeRule.onAllNodesWithText("Fehu").fetchSemanticsNodes().isEmpty() }
     }

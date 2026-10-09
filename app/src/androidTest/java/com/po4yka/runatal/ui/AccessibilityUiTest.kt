@@ -64,7 +64,8 @@ class AccessibilityUiTest {
             composeRule.onAllNodes(headingNamed("Notifications")).fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onAllNodesWithText("Notifications").assertCountEquals(2).assertAll(isHeading())
+        composeRule.onAllNodesWithText("Notifications").assertCountEquals(1).assertAll(isHeading())
+        composeRule.onNodeWithText("Notification requests").assert(isHeading())
         composeRule.onNodeWithText("Daily Quote Alert")
             .assert(hasRole(Role.Switch))
             .assert(hasDefinedStateDescription())
