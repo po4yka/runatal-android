@@ -42,8 +42,6 @@ class ElderFutharkTransliterator @Inject constructor() : RunicTransliterator {
         'ŋ' to '\u16DC', // ᛜ INGWAZ
         'o' to '\u16DF', // ᛟ OTHALAN
         'd' to '\u16DE', // ᛞ DAGAZ
-        'x' to '\u16B2', // ᚲ KAUNA + SOWILO (approximation)
-        'q' to '\u16B2', // ᚲ KAUNA + WUNJO (approximation)
         ' ' to ' ',      // Preserve spaces
         '.' to '.',      // Preserve periods
         ',' to ',',      // Preserve commas
@@ -65,7 +63,11 @@ class ElderFutharkTransliterator @Inject constructor() : RunicTransliterator {
     )
 
     override fun transliterate(text: String): String {
+        // Modern Latin spelling approximations require two runes, not a single k rune.
         var result = text.lowercase()
+            .replace("qu", "kw")
+            .replace("q", "kw")
+            .replace("x", "ks")
 
         // Replace digraphs first
         digraphMap.forEach { (latin, rune) ->

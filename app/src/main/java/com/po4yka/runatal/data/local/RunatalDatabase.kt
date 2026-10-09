@@ -4,6 +4,7 @@ import androidx.room3.Database
 import com.po4yka.runatal.data.local.dao.ReadingHistoryDao
 import com.po4yka.runatal.data.local.entity.QuoteReadEntity
 import com.po4yka.runatal.data.local.entity.ReadingDayEntity
+import com.po4yka.runatal.data.local.migration.ElderFutharkSequenceMigration
 import androidx.room3.RoomDatabase
 import androidx.room3.migration.Migration
 import androidx.sqlite.SQLiteConnection
@@ -40,7 +41,7 @@ import com.po4yka.runatal.data.local.migration.TranslationCacheKeyMigration
         QuoteReadEntity::class,
         ReadingDayEntity::class
     ],
-    version = 11,
+    version = 12,
     exportSchema = true
 )
 internal abstract class RunatalDatabase : RoomDatabase() {
@@ -446,6 +447,13 @@ internal abstract class RunatalDatabase : RoomDatabase() {
                     "CREATE UNIQUE INDEX index_quote_reads_quoteId_epochDay_script " +
                         "ON quote_reads(quoteId, epochDay, script)"
                 )
+            }
+        }
+
+        /** Repairs stored direct Elder x/q sequences while preserving quote identities and metadata. */
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override suspend fun migrate(connection: SQLiteConnection) {
+                ElderFutharkSequenceMigration.migrate(connection)
             }
         }
     }

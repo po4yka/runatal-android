@@ -183,7 +183,7 @@ internal class ElderFutharkTranslationEngine @Inject constructor(
 ) : TranslationEngine {
 
     override val script: RunicScript = RunicScript.ELDER_FUTHARK
-    override val engineVersion: String = "ef-translation-v6"
+    override val engineVersion: String = "ef-translation-v7"
 
     private val parser = EnglishSyntaxParser()
     private val sourceCatalog = HistoricalSourceCatalog(
