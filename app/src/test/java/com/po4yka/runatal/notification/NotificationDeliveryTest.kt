@@ -5,6 +5,17 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.room3.Room
+import androidx.sqlite.driver.AndroidSQLiteDriver
+import kotlinx.coroutines.async
+import kotlinx.coroutines.CompletableDeferred
+import com.po4yka.runatal.data.local.RunatalDatabase
+import com.po4yka.runatal.data.local.entity.QuoteEntity
+import com.po4yka.runatal.data.repository.QuoteRepositoryImpl
+import org.robolectric.annotation.SQLiteMode
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.domain.model.Quote
@@ -35,10 +46,12 @@ import org.robolectric.annotation.Config
 /** Android notification APIs and an isolated real DataStore; JVM evidence does not establish device receipt. */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, sdk = [34])
+@SQLiteMode(SQLiteMode.Mode.NATIVE)
 class NotificationDeliveryTest {
     private val today = LocalDate.of(2026, 10, 9)
     private lateinit var scope: CoroutineScope
     private lateinit var directory: File
+    private lateinit var store: DataStore<Preferences>
     private lateinit var preferences: UserPreferencesManager
     private lateinit var publisher: NotificationPublisher
     private lateinit var delivery: NotificationDelivery
@@ -54,9 +67,8 @@ class NotificationDeliveryTest {
         manager = context.getSystemService(NotificationManager::class.java)
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         directory = kotlin.io.path.createTempDirectory("notification-test").toFile()
-        preferences = UserPreferencesManager(PreferenceDataStoreFactory.create(scope = scope) {
-            File(directory, "notifications.preferences_pb")
-        })
+        store = PreferenceDataStoreFactory.create(scope = scope) { File(directory, "notifications.preferences_pb") }
+        preferences = UserPreferencesManager(store)
         publisher = NotificationPublisher(context).apply { createChannels() }
         readings = MutableStateFlow(ReadingStats(0, 0, null))
         val history = mockk<ReadingHistoryRepository>()
@@ -77,6 +89,50 @@ class NotificationDeliveryTest {
             Manifest.permission.POST_NOTIFICATIONS
         )
         publisher.refreshAccess()
+    }
+
+    @Test
+    fun `a real quote hidden during the persisted reservation is rechecked before Android posting`() = runTest {
+        allow()
+        val committed = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        var intercept = true
+        val gated = object : DataStore<Preferences> by store {
+            override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+                val updated = store.updateData(transform)
+                if (intercept && updated[longPreferencesKey("notification_delivered_DAILY")] != null) {
+                    intercept = false
+                    committed.complete(Unit)
+                    release.await()
+                }
+                return updated
+            }
+        }
+        val guardedPreferences = UserPreferencesManager(gated)
+        val time = object : TimeProvider {
+            override fun getCurrentDate() = today
+            override fun getCurrentDayOfYear() = today.dayOfYear
+        }
+        val database = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), RunatalDatabase::class.java)
+            .setDriver(AndroidSQLiteDriver()).build()
+        database.quoteDao().insert(QuoteEntity(100L, "Actual hidden source", "Author", isUserCreated = true))
+        guardedPreferences.selectDailyQuote(today.toEpochDay()) { listOf(100L) }
+        val actualQuotes = QuoteRepositoryImpl(database.quoteDao(), time, guardedPreferences, database.archivedQuoteDao())
+        val history = mockk<ReadingHistoryRepository>(relaxed = true)
+        val guardedDelivery = NotificationDelivery(guardedPreferences, publisher, actualQuotes, history, catalogue, time)
+        val pending = async { guardedDelivery.deliver(NotificationKind.DAILY) }
+        try {
+            committed.await()
+            database.archivedQuoteDao().updateState(100L, "ACTIVE", "HIDDEN", "hide", 1L)
+            release.complete(Unit)
+            pending.await()
+            assertThat(manager.activeNotifications).isEmpty()
+            assertThat(preferences.lastNotificationDay("DAILY")).isNull()
+            assertThat(actualQuotes.getQuoteById(100L)).isNull()
+        } finally {
+            release.complete(Unit)
+            database.close()
+        }
     }
 
     @Test

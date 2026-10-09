@@ -43,11 +43,19 @@ internal class NotificationDelivery @Inject constructor(
         val nowRead = kind == NotificationKind.STREAK && readings.stats().first().lastReadDate == day
         if (time.getCurrentDate() != day) return@withLock
         val title = if (kind == NotificationKind.DAILY) "Daily quote · ${latest.script.displayName}" else payload.title
-        if (!sourceIsCurrent(payload)) return@withLock
         if (!stillEnabled || nowRead || !publisher.snapshot().allows(kind)) return@withLock
         postReserved(kind, title, payload.body,
             reserve = { preferences.markNotificationDelivered(kind.name, day.toEpochDay()) },
-            rollback = { preferences.rollbackNotificationDay(kind.name, day.toEpochDay(), previousDay) })
+            rollback = { preferences.rollbackNotificationDay(kind.name, day.toEpochDay(), previousDay) },
+            beforePost = { stillEligible(kind, day, payload) })
+    }
+
+    private suspend fun stillEligible(
+        kind: NotificationKind, day: java.time.LocalDate, payload: PreparedNotification
+    ): Boolean {
+        val current = preferences.notificationPreferencesFlow.first()
+        val alreadyRead = kind == NotificationKind.STREAK && readings.stats().first().lastReadDate == day
+        return enabled(current, kind) && !alreadyRead && time.getCurrentDate() == day && sourceIsCurrent(payload)
     }
 
     private fun enabled(
@@ -99,18 +107,19 @@ internal class NotificationDelivery @Inject constructor(
             !publisher.snapshot().allows(NotificationKind.PACKS)) return
         postReserved(NotificationKind.PACKS, "Bundled quote packs updated", changed.joinToString("\n"),
             reserve = { preferences.markNotificationPackCatalogue(current) },
-            rollback = { preferences.rollbackNotificationCatalogue(current, seen) })
+            rollback = { preferences.rollbackNotificationCatalogue(current, seen) },
+            beforePost = { preferences.notificationPreferencesFlow.first().packUpdates })
     }
 
     /** Reserves before posting: process death in between may miss an optional reminder, but cannot duplicate it. */
     private suspend fun postReserved(
         kind: NotificationKind, title: String, body: String,
-        reserve: suspend () -> Unit, rollback: suspend () -> Unit
+        reserve: suspend () -> Unit, rollback: suspend () -> Unit, beforePost: suspend () -> Boolean
     ) {
         try {
             reserve()
             currentCoroutineContext().ensureActive()
-            if (!publisher.post(kind, title, body)) {
+            if (!beforePost() || !publisher.post(kind, title, body)) {
                 kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { rollback() }
             }
         } catch (exception: kotlinx.coroutines.CancellationException) {
