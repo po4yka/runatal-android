@@ -9,6 +9,9 @@ import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.util.TimeProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import com.po4yka.runatal.domain.translation.TranslationMode
+import com.po4yka.runatal.domain.translation.TranslationFidelity
+import com.po4yka.runatal.domain.translation.YoungerFutharkVariant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -126,7 +129,10 @@ internal class QuoteRepositoryImpl @Inject constructor(
         runicCirth = runicCirth,
         isUserCreated = isUserCreated,
         isFavorite = isFavorite,
-        createdAt = createdAt
+        createdAt = createdAt,
+        renderingMode = TranslationMode.valueOf(renderingMode),
+        renderingFidelity = TranslationFidelity.valueOf(renderingFidelity),
+        renderingYoungerVariant = YoungerFutharkVariant.valueOf(renderingYoungerVariant)
     )
 
     /**
@@ -141,6 +147,9 @@ internal class QuoteRepositoryImpl @Inject constructor(
         runicCirth = runicCirth,
         isUserCreated = isUserCreated,
         isFavorite = isFavorite,
-        createdAt = createdAt
+        createdAt = createdAt,
+        renderingMode = renderingMode.name,
+        renderingFidelity = renderingFidelity.name,
+        renderingYoungerVariant = renderingYoungerVariant.name
     )
 }

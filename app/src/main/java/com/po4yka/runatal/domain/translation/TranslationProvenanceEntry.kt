@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
  * Source attribution for a translated result or one of its stages.
  */
 @Serializable
-internal data class TranslationProvenanceEntry(
+data class TranslationProvenanceEntry(
     val sourceId: String,
     val referenceId: String? = null,
     val label: String,

@@ -1,5 +1,6 @@
 package com.po4yka.runatal.ui.screens.quote
 
+import com.po4yka.runatal.domain.model.ResolvedQuoteRendering
 import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.transliteration.WordTransliterationPair
@@ -25,6 +26,7 @@ sealed class QuoteUiState {
         val selectedFont: String,
         val showTransliteration: Boolean,
         val wordByWordEnabled: Boolean,
+        val rendering: ResolvedQuoteRendering,
         val wordBreakdown: List<WordTransliterationPair> = emptyList(),
         val recentQuotes: List<RecentQuoteItem> = emptyList()
     ) : QuoteUiState()
@@ -45,5 +47,6 @@ sealed class QuoteUiState {
  */
 data class RecentQuoteItem(
     val quote: Quote,
-    val runicText: String
+    val runicText: String,
+    val rendering: ResolvedQuoteRendering
 )

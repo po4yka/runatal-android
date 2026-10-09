@@ -13,6 +13,7 @@ import com.po4yka.runatal.domain.transliteration.CirthTransliterator
 import com.po4yka.runatal.domain.transliteration.ElderFutharkTransliterator
 import com.po4yka.runatal.domain.transliteration.TransliterationFactory
 import com.po4yka.runatal.domain.transliteration.YoungerFutharkTransliterator
+import com.po4yka.runatal.domain.translation.TranslationMode
 import com.po4yka.runatal.domain.translation.HistoricalStage
 import com.po4yka.runatal.domain.translation.TranslationDerivationKind
 import com.po4yka.runatal.domain.translation.TranslationFidelity
@@ -185,7 +186,7 @@ class QuoteViewModelTest {
     }
 
     @Test
-    fun `latest available translation is preferred over stored transliteration`() = runTest {
+    fun `stored historical selection chooses its exact result instead of direct transliteration`() = runTest {
         val translationRepository = mockk<TranslationRepository>()
         val cachedTranslation = TranslationResult(
             sourceText = testQuote.textLatin,
@@ -218,16 +219,18 @@ class QuoteViewModelTest {
             engineVersion = "engine",
             datasetVersion = "dataset"
         )
-        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote.copy(
+            renderingMode = TranslationMode.TRANSLATE, renderingFidelity = TranslationFidelity.READABLE
+        )
         coEvery {
-            translationRepository.getLatestAvailableTranslation(1L, RunicScript.ELDER_FUTHARK, testQuote.textLatin)
+            translationRepository.getCachedTranslation(1L, RunicScript.ELDER_FUTHARK, testQuote.textLatin, TranslationFidelity.READABLE, any())
         } returns
             cachedTranslation
         coEvery {
-            translationRepository.getLatestAvailableTranslation(1L, RunicScript.YOUNGER_FUTHARK, testQuote.textLatin)
+            translationRepository.getCachedTranslation(1L, RunicScript.YOUNGER_FUTHARK, testQuote.textLatin, TranslationFidelity.READABLE, any())
         } returns null
         coEvery {
-            translationRepository.getLatestAvailableTranslation(1L, RunicScript.CIRTH, testQuote.textLatin)
+            translationRepository.getCachedTranslation(1L, RunicScript.CIRTH, testQuote.textLatin, TranslationFidelity.READABLE, any())
         } returns null
 
         viewModel = createViewModel(translationRepository)
@@ -235,7 +238,7 @@ class QuoteViewModelTest {
 
         val state = viewModel.uiState.value as QuoteUiState.Success
         assertThat(state.runicText).isEqualTo("cached elder")
-        assertThat(state.wordBreakdown.single().runicToken).isEqualTo("cached")
+        assertThat(state.wordBreakdown).isEmpty()
     }
 
     @Test

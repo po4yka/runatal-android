@@ -19,6 +19,7 @@ import com.po4yka.runatal.domain.translation.TranslationResolutionStatus
 import com.po4yka.runatal.domain.translation.TranslationResult
 import com.po4yka.runatal.domain.translation.TranslationTokenBreakdown
 import com.po4yka.runatal.domain.translation.YoungerFutharkVariant
+import com.po4yka.runatal.domain.translation.TranslationMode
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.serialization.builtins.ListSerializer
@@ -54,22 +55,6 @@ internal class TranslationRepositoryImpl @Inject constructor(
             script = script.name,
             fidelity = fidelity.name,
             variant = requestedVariant(script, youngerVariant),
-            engineVersion = engine.engineVersion,
-            datasetVersion = engine.datasetVersion,
-            sourceText = sourceText
-        )?.toDomain()
-    }
-
-    override suspend fun getLatestAvailableTranslation(
-        quoteId: Long,
-        script: RunicScript,
-        sourceText: String
-    ): TranslationResult? {
-        val engine = translationEngineFactory.create(script)
-        return translationRecordDao.getLatestAvailableForScript(
-            quoteId = quoteId,
-            script = script.name,
-            unavailableStatus = TranslationResolutionStatus.UNAVAILABLE.name,
             engineVersion = engine.engineVersion,
             datasetVersion = engine.datasetVersion,
             sourceText = sourceText
@@ -243,7 +228,9 @@ internal class TranslationRepositoryImpl @Inject constructor(
     private fun Quote.toEntity() = QuoteEntity(
         textLatin = textLatin, author = author, runicElder = runicElder,
         runicYounger = runicYounger, runicCirth = runicCirth,
-        isUserCreated = true, isFavorite = isFavorite, createdAt = createdAt
+        isUserCreated = true, isFavorite = isFavorite, createdAt = createdAt,
+        renderingMode = renderingMode.name, renderingFidelity = renderingFidelity.name,
+        renderingYoungerVariant = renderingYoungerVariant.name
     )
 
     private fun QuoteEntity.toDomain() = Quote(
@@ -255,7 +242,10 @@ internal class TranslationRepositoryImpl @Inject constructor(
         runicCirth = runicCirth,
         isUserCreated = isUserCreated,
         isFavorite = isFavorite,
-        createdAt = createdAt
+        createdAt = createdAt,
+        renderingMode = TranslationMode.valueOf(renderingMode),
+        renderingFidelity = TranslationFidelity.valueOf(renderingFidelity),
+        renderingYoungerVariant = YoungerFutharkVariant.valueOf(renderingYoungerVariant)
     )
 
     private fun requestedVariant(

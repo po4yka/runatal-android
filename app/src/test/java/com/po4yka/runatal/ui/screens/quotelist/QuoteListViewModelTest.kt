@@ -5,6 +5,8 @@ import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.domain.repository.QuoteRepository
+import com.po4yka.runatal.domain.repository.NoOpTranslationRepository
+import com.po4yka.runatal.domain.usecase.quote.ResolveQuoteRenderingUseCase
 import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.transliteration.TransliterationFactory
@@ -225,7 +227,7 @@ class QuoteListViewModelTest {
         return QuoteListViewModel(
             quoteRepository = quoteRepository,
             userPreferencesManager = userPreferencesManager,
-            transliterationFactory = transliterationFactory
+            resolveQuoteRenderingUseCase = ResolveQuoteRenderingUseCase(transliterationFactory, NoOpTranslationRepository)
         )
     }
 }

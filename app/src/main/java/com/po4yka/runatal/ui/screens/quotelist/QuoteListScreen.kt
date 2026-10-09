@@ -58,6 +58,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.po4yka.runatal.domain.model.ResolvedQuoteRendering
 import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.domain.model.displayName
 import com.po4yka.runatal.ui.components.BottomSheetAction
@@ -76,7 +77,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuoteListScreen(
+internal fun QuoteListScreen(
     onNavigateToAddQuote: () -> Unit,
     onNavigateToEditQuote: (Long) -> Unit,
     onNavigateToShare: (Long) -> Unit = {},
@@ -202,6 +203,7 @@ fun QuoteListScreen(
                         ) { quoteItem ->
                             QuoteListItem(
                                 quote = quoteItem.quote,
+                                renderingLabel = quoteItem.rendering.label,
                                 onToggleFavorite = {
                                     haptics.lightToggle()
                                     viewModel.toggleFavorite(quoteItem.quote)
@@ -222,6 +224,7 @@ fun QuoteListScreen(
         LibraryActionsBottomSheet(
             quote = quoteItem.quote,
             runicPreviewText = quoteItem.runicPreviewText,
+            rendering = quoteItem.rendering,
             selectedScript = uiState.selectedScript,
             selectedFont = uiState.selectedFont,
             onDismiss = { bottomSheetQuote = null },
@@ -379,6 +382,7 @@ private fun LibraryLoadingSkeleton() {
 @Composable
 private fun QuoteListItem(
     quote: Quote,
+    renderingLabel: String,
     onToggleFavorite: () -> Unit,
     onShowActions: () -> Unit
 ) {
@@ -419,6 +423,12 @@ private fun QuoteListItem(
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = renderingLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Row(
@@ -478,6 +488,7 @@ private fun QuoteListItem(
 private fun LibraryActionsBottomSheet(
     quote: Quote,
     runicPreviewText: String,
+    rendering: ResolvedQuoteRendering,
     selectedScript: com.po4yka.runatal.domain.model.RunicScript,
     selectedFont: String,
     onDismiss: () -> Unit,
@@ -517,14 +528,17 @@ private fun LibraryActionsBottomSheet(
                 onClick = onCopyText
             )
         )
-        add(
-            BottomSheetAction(
-                icon = Icons.Default.TextFields,
-                title = "Copy Runes",
-                subtitle = "Copy ${selectedScript.displayName} transliteration",
-                onClick = onCopyRunes
+        if (rendering.isAvailable) {
+            add(
+                BottomSheetAction(
+                    icon = Icons.Default.TextFields,
+                    title = "Copy Runes",
+                    subtitle = "Copy ${rendering.label}",
+                    onClick = onCopyRunes
+                )
             )
-        )
+        }
+
         if (quote.isUserCreated) {
             add(
                 BottomSheetAction(
@@ -553,7 +567,8 @@ private fun LibraryActionsBottomSheet(
             latinText = quote.textLatin,
             author = quote.author,
             font = selectedFont,
-            script = selectedScript
+            script = selectedScript,
+            rendering = rendering
         ),
         onDismiss = onDismiss
     )

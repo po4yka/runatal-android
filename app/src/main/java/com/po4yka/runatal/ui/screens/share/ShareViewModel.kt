@@ -102,7 +102,7 @@ internal class ShareViewModel @AssistedInject constructor(
     private suspend fun resolveShareQuote(quote: Quote): QuoteShareContent {
         val preferences = userPreferencesManager.userPreferencesFlow.first()
         val presentation = buildQuotePresentationUseCase(quote, preferences.selectedScript, emptyList())
-        return QuoteShareContent(quote, preferences.selectedScript, preferences.selectedFont, presentation.runicText)
+        return QuoteShareContent(quote, preferences.selectedScript, preferences.selectedFont, presentation.rendering)
     }
 
 }

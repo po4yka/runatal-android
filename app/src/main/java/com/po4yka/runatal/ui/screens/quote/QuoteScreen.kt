@@ -72,6 +72,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.po4yka.runatal.ui.components.QuoteRenderingDetails
+import com.po4yka.runatal.domain.model.ResolvedQuoteRendering
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.model.displayName
 import com.po4yka.runatal.domain.model.segmentLabel
@@ -324,7 +326,8 @@ private fun TodayContent(
                     state.selectedFont,
                     state.showTransliteration,
                     state.wordByWordEnabled,
-                    state.wordBreakdown
+                    state.wordBreakdown,
+                    state.rendering
                 ) {
                     HeroQuoteCardState(
                         quoteId = state.quote.id,
@@ -336,7 +339,8 @@ private fun TodayContent(
                         selectedFont = state.selectedFont,
                         showTransliteration = state.showTransliteration,
                         wordByWordEnabled = state.wordByWordEnabled,
-                        wordBreakdown = state.wordBreakdown
+                        wordBreakdown = state.wordBreakdown,
+                        rendering = state.rendering
                     )
                 }
 
@@ -360,6 +364,7 @@ private fun TodayContent(
                         showTransliteration = heroState.showTransliteration,
                         wordByWordEnabled = heroState.wordByWordEnabled,
                         wordBreakdown = heroState.wordBreakdown,
+                        rendering = heroState.rendering,
                         reducedMotion = reducedMotion,
                         contentVisible = contentVisible,
                         revealKey = heroState.quoteId
@@ -400,6 +405,7 @@ private fun TodayContent(
                         state.recentQuotes.forEach { item ->
                             RecentQuoteCard(
                                 runicText = item.runicText,
+                                rendering = item.rendering,
                                 latinText = item.quote.textLatin,
                                 author = item.quote.author,
                                 isFavorite = item.quote.isFavorite,
@@ -592,6 +598,7 @@ private fun HeroQuoteCard(
     showTransliteration: Boolean,
     wordByWordEnabled: Boolean,
     wordBreakdown: List<WordTransliterationPair>,
+    rendering: ResolvedQuoteRendering,
     reducedMotion: Boolean,
     contentVisible: Boolean,
     revealKey: Long
@@ -631,6 +638,8 @@ private fun HeroQuoteCard(
                 reducedMotion = reducedMotion,
                 revealKey = revealKey
             )
+
+            QuoteRenderingDetails(rendering)
 
             if (reducedMotion) {
                 if (showTransliteration) {
@@ -888,6 +897,7 @@ private fun ActionButtonsRow(
 @Composable
 private fun RecentQuoteCard(
     runicText: String,
+    rendering: ResolvedQuoteRendering,
     latinText: String,
     author: String,
     isFavorite: Boolean,
@@ -928,6 +938,12 @@ private fun RecentQuoteCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    text = rendering.label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -1147,5 +1163,6 @@ private data class HeroQuoteCardState(
     val selectedFont: String,
     val showTransliteration: Boolean,
     val wordByWordEnabled: Boolean,
-    val wordBreakdown: List<WordTransliterationPair>
+    val wordBreakdown: List<WordTransliterationPair>,
+    val rendering: ResolvedQuoteRendering
 )

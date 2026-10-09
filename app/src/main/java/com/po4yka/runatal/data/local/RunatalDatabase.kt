@@ -1,5 +1,6 @@
 package com.po4yka.runatal.data.local
 
+import com.po4yka.runatal.data.local.migration.QuoteRenderingSelectionMigration
 import androidx.room3.Database
 import com.po4yka.runatal.data.local.dao.ReadingHistoryDao
 import com.po4yka.runatal.data.local.entity.QuoteReadEntity
@@ -47,7 +48,7 @@ import com.po4yka.runatal.data.local.migration.TranslationCacheKeyMigration
         ReadingDayEntity::class,
         TranslationBackfillCompletionEntity::class
     ],
-    version = 15,
+    version = 16,
     exportSchema = true
 )
 internal abstract class RunatalDatabase : RoomDatabase() {
@@ -485,5 +486,12 @@ internal abstract class RunatalDatabase : RoomDatabase() {
                 TranslationBackfillCompletionMigration.migrate(connection)
             }
         }
+        /** Persists rendering intent independently of automatic translation caches. */
+        val MIGRATION_15_16 = object : Migration(15, 16) {
+            override suspend fun migrate(connection: SQLiteConnection) {
+                QuoteRenderingSelectionMigration.migrate(connection)
+            }
+        }
+
     }
 }

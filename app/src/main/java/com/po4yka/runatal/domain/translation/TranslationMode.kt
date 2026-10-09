@@ -3,7 +3,7 @@ package com.po4yka.runatal.domain.translation
 /**
  * Presentation mode for the translation screen.
  */
-internal enum class TranslationMode {
+enum class TranslationMode {
     TRANSLITERATE,
     TRANSLATE;
 

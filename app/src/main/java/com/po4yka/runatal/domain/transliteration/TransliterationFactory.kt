@@ -1,6 +1,7 @@
 package com.po4yka.runatal.domain.transliteration
 
 import com.po4yka.runatal.domain.model.RunicScript
+import com.po4yka.runatal.domain.translation.YoungerFutharkVariant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -39,25 +40,36 @@ class TransliterationFactory @Inject constructor(
      * @param script The target runic script
      * @return The transliterated text
      */
-    fun transliterate(text: String, script: RunicScript): String {
-        return create(script).transliterate(text)
+    fun transliterate(
+        text: String,
+        script: RunicScript,
+        youngerVariant: YoungerFutharkVariant = YoungerFutharkVariant.DEFAULT
+    ): String {
+        return if (script == RunicScript.YOUNGER_FUTHARK) {
+            youngerFutharkTransliterator.transliterateWithVariant(text, youngerVariant)
+        } else {
+            create(script).transliterate(text)
+        }
     }
 
     /**
      * Transliterates text and provides a per-token breakdown based on whitespace boundaries.
      */
-    fun transliterateWordByWord(text: String, script: RunicScript): TransliterationBreakdown {
+    fun transliterateWordByWord(
+        text: String,
+        script: RunicScript,
+        youngerVariant: YoungerFutharkVariant = YoungerFutharkVariant.DEFAULT
+    ): TransliterationBreakdown {
         if (text.isEmpty()) {
             return TransliterationBreakdown()
         }
 
-        val transliterator = create(script)
-        val fullText = transliterator.transliterate(text)
+        val fullText = transliterate(text, script, youngerVariant)
         val wordPairs = NonWhitespaceTokenRegex.findAll(text).map { match ->
             val sourceToken = match.value
             WordTransliterationPair(
                 sourceToken = sourceToken,
-                runicToken = transliterator.transliterate(sourceToken)
+                runicToken = transliterate(sourceToken, script, youngerVariant)
             )
         }.toList()
 

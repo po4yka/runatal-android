@@ -1,26 +1,26 @@
 package com.po4yka.runatal.domain.usecase.quote
 
 import com.po4yka.runatal.domain.repository.ReadingHistoryRepository
-import com.po4yka.runatal.domain.repository.QuoteRepository
-import com.po4yka.runatal.domain.repository.TranslationRepository
-import com.po4yka.runatal.domain.model.Quote
-import com.po4yka.runatal.domain.model.RunicScript
-import com.po4yka.runatal.domain.model.getRunicText
-import com.po4yka.runatal.domain.transliteration.TransliterationFactory
-import com.po4yka.runatal.domain.transliteration.WordTransliterationPair
 import kotlinx.coroutines.flow.first
+import com.po4yka.runatal.domain.repository.QuoteRepository
+import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.ResolvedQuoteRendering
+import com.po4yka.runatal.domain.model.RunicScript
+import com.po4yka.runatal.domain.transliteration.WordTransliterationPair
 import javax.inject.Inject
 
 internal data class QuotePresentation(
     val quote: Quote,
     val runicText: String,
     val wordBreakdown: List<WordTransliterationPair>,
-    val recentQuotes: List<QuoteRecentPresentationItem>
+    val recentQuotes: List<QuoteRecentPresentationItem>,
+    val rendering: ResolvedQuoteRendering
 )
 
 internal data class QuoteRecentPresentationItem(
     val quote: Quote,
-    val runicText: String
+    val runicText: String,
+    val rendering: ResolvedQuoteRendering
 )
 
 internal data class LoadedQuoteSurface(
@@ -35,8 +35,7 @@ internal enum class QuoteSurfaceSource {
 }
 
 internal class BuildQuotePresentationUseCase @Inject constructor(
-    private val transliterationFactory: TransliterationFactory,
-    private val translationRepository: TranslationRepository
+    private val resolveQuoteRenderingUseCase: ResolveQuoteRenderingUseCase
 ) {
 
     suspend operator fun invoke(
@@ -44,51 +43,21 @@ internal class BuildQuotePresentationUseCase @Inject constructor(
         selectedScript: RunicScript,
         recentQuoteCandidates: List<Quote>
     ): QuotePresentation {
-        val resolvedQuote = resolveRunicContent(quote, selectedScript)
+        val resolvedQuote = resolveQuoteRenderingUseCase(quote, selectedScript)
         val recentQuotes = recentQuoteCandidates.map { recentQuote ->
-            QuoteRecentPresentationItem(
-                quote = recentQuote,
-                runicText = resolveRunicContent(recentQuote, selectedScript).runicText
-            )
+            val rendering = resolveQuoteRenderingUseCase(recentQuote, selectedScript)
+            QuoteRecentPresentationItem(recentQuote, rendering.glyphOutput, rendering)
         }
 
         return QuotePresentation(
             quote = quote,
-            runicText = resolvedQuote.runicText,
+            runicText = resolvedQuote.glyphOutput,
             wordBreakdown = resolvedQuote.wordBreakdown,
-            recentQuotes = recentQuotes
+            recentQuotes = recentQuotes,
+            rendering = resolvedQuote
         )
     }
 
-    private suspend fun resolveRunicContent(
-        quote: Quote,
-        script: RunicScript
-    ): ResolvedQuoteRunicContent {
-        val latestTranslation = translationRepository.getLatestAvailableTranslation(
-            quoteId = quote.id,
-            script = script,
-            sourceText = quote.textLatin
-        )
-        if (latestTranslation != null) {
-            return ResolvedQuoteRunicContent(
-                runicText = latestTranslation.glyphOutput,
-                wordBreakdown = latestTranslation.tokenBreakdown.map { token ->
-                    WordTransliterationPair(
-                        sourceToken = token.sourceToken,
-                        runicToken = token.glyphToken
-                    )
-                }
-            )
-        }
-
-        return ResolvedQuoteRunicContent(
-            runicText = quote.getRunicText(script, transliterationFactory),
-            wordBreakdown = transliterationFactory.transliterateWordByWord(
-                text = quote.textLatin,
-                script = script
-            ).wordPairs
-        )
-    }
 }
 
 internal class LoadQuoteSurfaceUseCase @Inject constructor(
@@ -126,8 +95,3 @@ internal class LoadQuoteSurfaceUseCase @Inject constructor(
         const val RECENT_QUOTES_LIMIT = 3
     }
 }
-
-private data class ResolvedQuoteRunicContent(
-    val runicText: String,
-    val wordBreakdown: List<WordTransliterationPair>
-)

@@ -12,6 +12,7 @@ import com.po4yka.runatal.domain.repository.TranslationRepository
 import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.transliteration.TransliterationFactory
+import com.po4yka.runatal.domain.usecase.quote.ResolveQuoteRenderingUseCase
 import com.po4yka.runatal.domain.usecase.quote.BuildQuotePresentationUseCase
 import com.po4yka.runatal.domain.usecase.quote.LoadQuoteSurfaceUseCase
 import com.po4yka.runatal.domain.usecase.quote.QuotePresentation
@@ -54,14 +55,12 @@ internal class QuoteViewModel @Inject constructor(
         loadQuoteSurfaceUseCase = LoadQuoteSurfaceUseCase(
             quoteRepository = quoteRepository,
             buildQuotePresentationUseCase = BuildQuotePresentationUseCase(
-                transliterationFactory = transliterationFactory,
-                translationRepository = translationRepository
+                ResolveQuoteRenderingUseCase(transliterationFactory, translationRepository)
             ),
             readingHistoryRepository = readingHistoryRepository
         ),
         buildQuotePresentationUseCase = BuildQuotePresentationUseCase(
-            transliterationFactory = transliterationFactory,
-            translationRepository = translationRepository
+            ResolveQuoteRenderingUseCase(transliterationFactory, translationRepository)
         )
     )
 
@@ -261,7 +260,8 @@ internal class QuoteViewModel @Inject constructor(
         val updatedRecent = presentation.recentQuotes.map { item ->
             RecentQuoteItem(
                 quote = item.quote,
-                runicText = item.runicText
+                runicText = item.runicText,
+                rendering = item.rendering
             )
         }
         _uiState.update {
@@ -273,6 +273,7 @@ internal class QuoteViewModel @Inject constructor(
                 showTransliteration = preferences.showTransliteration,
                 wordByWordEnabled = wordByWordEnabled,
                 wordBreakdown = presentation.wordBreakdown,
+                rendering = presentation.rendering,
                 recentQuotes = updatedRecent
             )
         }

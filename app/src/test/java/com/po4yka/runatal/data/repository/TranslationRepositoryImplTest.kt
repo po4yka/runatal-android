@@ -147,7 +147,7 @@ class TranslationRepositoryImplTest {
     }
 
     @Test
-    fun `getLatestAvailableTranslation returns mapped domain result`() = runTest {
+    fun `exact selected translation returns mapped domain result`() = runTest {
         val insertedEntity = slot<TranslationRecordEntity>()
         val result = translationResult(
             script = RunicScript.ELDER_FUTHARK,
@@ -158,17 +158,17 @@ class TranslationRepositoryImplTest {
         repository.cacheTranslation(quoteId = 5L, result = result, isBackfilled = true)
 
         coEvery {
-            translationRecordDao.getLatestAvailableForScript(
+            translationRecordDao.getBySelection(
                 quoteId = 5L,
                 script = RunicScript.ELDER_FUTHARK.name,
-                unavailableStatus = TranslationResolutionStatus.UNAVAILABLE.name,
+                fidelity = TranslationFidelity.STRICT.name, variant = "",
                 engineVersion = "ef-engine-v1",
                 datasetVersion = "dataset-v1",
                 sourceText = "The wolf hunts at night"
             )
         } returns insertedEntity.captured
 
-        val latest = repository.getLatestAvailableTranslation(
+        val latest = repository.getCachedTranslation(
             quoteId = 5L,
             script = RunicScript.ELDER_FUTHARK,
             sourceText = "The wolf hunts at night"

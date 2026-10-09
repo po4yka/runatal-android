@@ -3,7 +3,7 @@ package com.po4yka.runatal.domain.translation
 /**
  * Rendering variant for Younger Futhark.
  */
-internal enum class YoungerFutharkVariant {
+enum class YoungerFutharkVariant {
     LONG_BRANCH,
     SHORT_TWIG;
 

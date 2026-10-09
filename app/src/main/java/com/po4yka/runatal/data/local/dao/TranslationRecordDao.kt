@@ -37,29 +37,6 @@ internal interface TranslationRecordDao {
         sourceText: String
     ): TranslationRecordEntity?
 
-    @Query(
-        """
-        SELECT records.* FROM translation_records records
-        JOIN quotes quote ON quote.id = records.quoteId AND quote.textLatin = records.sourceText
-        WHERE records.quoteId = :quoteId
-            AND records.script = :script
-            AND records.resolutionStatus != :unavailableStatus
-            AND records.sourceText = :sourceText
-            AND records.engineVersion = :engineVersion
-            AND records.datasetVersion = :datasetVersion
-        ORDER BY records.updatedAt DESC, records.id DESC
-        LIMIT 1
-        """
-    )
-    suspend fun getLatestAvailableForScript(
-        quoteId: Long,
-        script: String,
-        unavailableStatus: String,
-        engineVersion: String,
-        datasetVersion: String,
-        sourceText: String
-    ): TranslationRecordEntity?
-
     /** Inserts only derived output whose source still belongs to this quote, under the writer transaction. */
     @Transaction
     suspend fun insertIfSourceMatches(record: TranslationRecordEntity): Boolean {

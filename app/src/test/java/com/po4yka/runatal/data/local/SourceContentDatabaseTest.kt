@@ -64,15 +64,11 @@ class SourceContentDatabaseTest {
         dao.insert(record(source = "older source"))
 
         assertThat(selected("wolf")).isNull()
-        assertThat(latest("wolf")).isNull()
         assertThat(selected("older source")).isNull()
-        assertThat(latest("older source")).isNull()
 
         assertThat(dao.insertIfSourceMatches(record())).isTrue()
         assertThat(selected("wolf")?.sourceText).isEqualTo("wolf")
-        assertThat(latest("wolf")?.sourceText).isEqualTo("wolf")
         assertThat(selected("older source")).isNull()
-        assertThat(latest("older source")).isNull()
     }
 
     @Test
@@ -84,7 +80,7 @@ class SourceContentDatabaseTest {
         assertThat(dao.insertIfSourceMatches(record(source = "king", glyphs = "new output"))).isTrue()
 
         assertThat(dao.insertIfSourceMatches(record(glyphs = "late old output"))).isFalse()
-        assertThat(latest("king")?.glyphOutput).isEqualTo("new output")
+        assertThat(selected("king")?.glyphOutput).isEqualTo("new output")
         assertThat(cacheCount()).isEqualTo(1)
 
         database.quoteDao().deleteUserQuote(1L)
@@ -131,7 +127,7 @@ class SourceContentDatabaseTest {
 
         repository.updateUserQuoteContent(loaded.copy(author = "New author"), "wolf", "User")
 
-        assertThat(latest("wolf")?.glyphOutput).isEqualTo("old output")
+        assertThat(selected("wolf")?.glyphOutput).isEqualTo("old output")
         assertThat(cacheCount()).isEqualTo(1)
     }
 
@@ -174,7 +170,7 @@ class SourceContentDatabaseTest {
         assertThat(failure).isInstanceOf(IOException::class.java)
         assertThat(failure?.cause).isInstanceOf(SQLiteException::class.java)
         assertThat(database.quoteDao().getById(1L)).isEqualTo(original)
-        assertThat(latest("wolf")?.glyphOutput).isEqualTo("old output")
+        assertThat(selected("wolf")?.glyphOutput).isEqualTo("old output")
         assertThat(cacheCount()).isEqualTo(1)
     }
 
@@ -185,10 +181,6 @@ class SourceContentDatabaseTest {
 
     private suspend fun selected(source: String) = database.translationRecordDao().getBySelection(
         1L, "ELDER_FUTHARK", "STRICT", "", "engine-current", "dataset-current", source
-    )
-
-    private suspend fun latest(source: String) = database.translationRecordDao().getLatestAvailableForScript(
-        1L, "ELDER_FUTHARK", "UNAVAILABLE", "engine-current", "dataset-current", source
     )
 
     private fun cacheCount(): Int = withNativeConnection { connection ->

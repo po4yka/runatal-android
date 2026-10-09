@@ -7,9 +7,9 @@ import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.domain.model.RunicScript
-import com.po4yka.runatal.domain.model.getRunicText
+import com.po4yka.runatal.domain.model.ResolvedQuoteRendering
+import com.po4yka.runatal.domain.usecase.quote.ResolveQuoteRenderingUseCase
 import com.po4yka.runatal.domain.repository.QuoteRepository
-import com.po4yka.runatal.domain.transliteration.TransliterationFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,10 +26,10 @@ import javax.inject.Inject
 
 /** ViewModel for the Library screen with tab filtering. */
 @HiltViewModel
-class QuoteListViewModel @Inject constructor(
+internal class QuoteListViewModel @Inject constructor(
     private val quoteRepository: QuoteRepository,
     private val userPreferencesManager: UserPreferencesManager,
-    private val transliterationFactory: TransliterationFactory
+    private val resolveQuoteRenderingUseCase: ResolveQuoteRenderingUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(QuoteListUiState(isLoading = true))
@@ -89,13 +89,8 @@ class QuoteListViewModel @Inject constructor(
                         }
                     }
                     val quoteItems = filteredQuotes.map { quote ->
-                        QuoteListItemUiModel(
-                            quote = quote,
-                            runicPreviewText = quote.getRunicText(
-                                script = sourceState.preferences.selectedScript,
-                                transliterationFactory = transliterationFactory
-                            )
-                        )
+                        val rendering = resolveQuoteRenderingUseCase(quote, sourceState.preferences.selectedScript)
+                        QuoteListItemUiModel(quote, rendering.glyphOutput, rendering)
                     }
 
                     QuoteListUiState(
@@ -221,7 +216,8 @@ data class QuoteListUiState(
 /** Presentation model for quotes rendered in the library list and actions sheet. */
 data class QuoteListItemUiModel(
     val quote: Quote,
-    val runicPreviewText: String
+    val runicPreviewText: String,
+    val rendering: ResolvedQuoteRendering
 )
 
 /** One-off UI events emitted by the library screen. */

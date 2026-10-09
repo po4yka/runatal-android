@@ -188,7 +188,7 @@ class TranslationBackfillDatabaseTest {
             .setDriver(AndroidSQLiteDriver()).addMigrations(
                 RunatalDatabase.MIGRATION_10_11, RunatalDatabase.MIGRATION_11_12,
                 RunatalDatabase.MIGRATION_12_13, RunatalDatabase.MIGRATION_13_14,
-                RunatalDatabase.MIGRATION_14_15
+                RunatalDatabase.MIGRATION_14_15, RunatalDatabase.MIGRATION_15_16
             ).build()
         val migrated = requireNotNull(database.quoteDao().getById(1L))
         assertThat(migrated.textLatin).isEqualTo(source)
@@ -260,7 +260,7 @@ class TranslationBackfillDatabaseTest {
     }
 
     private suspend fun latest(text: String, script: RunicScript = RunicScript.YOUNGER_FUTHARK) =
-        repository.getLatestAvailableTranslation(1L, script, text)
+        repository.getCachedTranslation(1L, script, text)
 
     private fun quote(id: Long = 1L) = QuoteEntity(id = id, textLatin = source, author = "User", isUserCreated = true)
 

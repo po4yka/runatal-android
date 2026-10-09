@@ -90,18 +90,18 @@ class YoungerFutharkMigrationTest {
                 assertThat(migrated.quoteDao().getById(before.id)).isEqualTo(expected)
             }
             assertThat(migrated.quoteDao().getAll()).hasSize(quotes.size)
-            val record = migrated.translationRecordDao().getLatestAvailableForScript(
-                10L, "YOUNGER_FUTHARK", "UNAVAILABLE", "old-engine", "old-dataset", "King"
+            val record = migrated.translationRecordDao().getBySelection(
+                10L, "YOUNGER_FUTHARK", "STRICT", "", "old-engine", "old-dataset", "King"
             )
             assertThat(record?.id).isEqualTo(42L)
             assertThat(record?.glyphOutput).isEqualTo("ᚲᛁᚾ")
-            val elderRecord = migrated.translationRecordDao().getLatestAvailableForScript(
-                1L, "ELDER_FUTHARK", "UNAVAILABLE", "old-engine", "old-dataset", "King"
+            val elderRecord = migrated.translationRecordDao().getBySelection(
+                1L, "ELDER_FUTHARK", "STRICT", "", "old-engine", "old-dataset", "King"
             )
             assertThat(elderRecord?.id).isEqualTo(41L)
             assertThat(elderRecord?.glyphOutput).isEqualTo("keep elder")
-            val cirthRecord = migrated.translationRecordDao().getLatestAvailableForScript(
-                15L, "CIRTH", "UNAVAILABLE", "old-engine", "old-dataset", "King"
+            val cirthRecord = migrated.translationRecordDao().getBySelection(
+                15L, "CIRTH", "STRICT", "", "old-engine", "old-dataset", "King"
             )
             assertThat(cirthRecord?.id).isEqualTo(43L)
             assertThat(cirthRecord?.glyphOutput).isEqualTo("historical cirth")

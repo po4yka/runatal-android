@@ -20,6 +20,11 @@ internal object YoungerFutharkAlphabet {
         'p' to 'b', 'd' to 't', 'ð' to 'þ', 'z' to 's'
     )
 
+    /** Direct Latin spelling preprocessing, shared by all variant-aware callers. */
+    fun renderLatinSpelling(text: String, variant: YoungerFutharkVariant): String = render(
+        text.lowercase(Locale.ROOT).replace("th", "þ").replace("ng", "n"), variant
+    )
+
     /** Renders Latin spellings using the selected sixteen-sign repertoire. */
     fun render(text: String, variant: YoungerFutharkVariant): String {
         val mapping = when (variant) {

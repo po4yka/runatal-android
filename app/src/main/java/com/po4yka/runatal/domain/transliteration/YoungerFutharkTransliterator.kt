@@ -1,7 +1,6 @@
 package com.po4yka.runatal.domain.transliteration
 
 import com.po4yka.runatal.domain.translation.YoungerFutharkVariant
-import java.util.Locale
 import javax.inject.Inject
 
 /**
@@ -12,10 +11,9 @@ class YoungerFutharkTransliterator @Inject constructor() : RunicTransliterator {
 
     override val scriptName: String = "Younger Futhark"
 
-    override fun transliterate(text: String): String {
-        val spelling = text.lowercase(Locale.ROOT)
-            .replace("th", "þ")
-            .replace("ng", "n")
-        return YoungerFutharkAlphabet.render(spelling, YoungerFutharkVariant.LONG_BRANCH)
-    }
+    override fun transliterate(text: String): String = transliterateWithVariant(text, YoungerFutharkVariant.LONG_BRANCH)
+
+    /** Uses the chosen sixteen-sign repertoire for direct Latin spelling. */
+    fun transliterateWithVariant(text: String, variant: YoungerFutharkVariant): String =
+        YoungerFutharkAlphabet.renderLatinSpelling(text, variant)
 }

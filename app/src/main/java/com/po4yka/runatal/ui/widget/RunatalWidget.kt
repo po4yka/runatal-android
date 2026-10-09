@@ -44,7 +44,6 @@ import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.data.preferences.WidgetUpdateMode
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.model.displayName
-import com.po4yka.runatal.domain.model.getRunicText
 import com.po4yka.runatal.ui.components.buildRunicAccessibilityText
 import com.po4yka.runatal.util.BitmapCache
 import com.po4yka.runatal.util.RenderConfig
@@ -482,9 +481,10 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                     val cachedId = WidgetStateCache.quoteId(widgetKey, today)
                         ?: PersistentWidgetStateCache.quoteId(context, widgetKey, today)
                     val quote = selectWidgetQuote(quoteRepository, displayMode, randomRequested, cachedId)
-                    val expectedContent = widgetQuoteContent(
-                        quote, preferences.selectedScript, entryPoint.transliterationFactory()
-                    )
+                    val rendering = quote?.let {
+                        entryPoint.resolveQuoteRenderingUseCase()(it, preferences.selectedScript)
+                    }
+                    val expectedContent = widgetQuoteContent(quote, rendering)
                     val normalizedRunicText = expectedContent.runicText
 
                     if (!randomRequested) {
@@ -576,7 +576,7 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                             runicBitmap = runicBitmap,
                             latinText = quote.textLatin,
                             author = quote.author,
-                            scriptLabel = preferences.selectedScript.displayName,
+                            scriptLabel = checkNotNull(rendering).label,
                             modeLabel = displayMode.displayName,
                             updateModeLabel = updateMode.displayName,
                             palette = palette,
@@ -665,14 +665,13 @@ private suspend fun selectWidgetQuote(
     else -> repository.quoteOfTheDay()
 }
 
-private fun widgetQuoteContent(
+internal fun widgetQuoteContent(
     quote: com.po4yka.runatal.domain.model.Quote?,
-    script: RunicScript,
-    factory: com.po4yka.runatal.domain.transliteration.TransliterationFactory
+    rendering: com.po4yka.runatal.domain.model.ResolvedQuoteRendering?
 ): WidgetQuoteContent = if (quote == null) {
     WidgetQuoteContent(0, "No quote available", "", "")
 } else {
-    WidgetQuoteContent(quote.id, quote.textLatin, quote.author, quote.getRunicText(script, factory))
+    WidgetQuoteContent(quote.id, quote.textLatin, quote.author, checkNotNull(rendering).glyphOutput)
 }
 
 internal object RunatalWidgetMetrics {

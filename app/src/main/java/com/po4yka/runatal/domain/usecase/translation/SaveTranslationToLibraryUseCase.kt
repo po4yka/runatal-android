@@ -33,7 +33,7 @@ internal class SaveTranslationToLibraryUseCase @Inject constructor(
     suspend operator fun invoke(request: SaveTranslationRequest): SaveTranslationResult {
         val input = request.inputText.trim()
         check(input.isNotEmpty()) { "Enter source text before saving." }
-        val transliterationBundle = buildTransliterationBundleUseCase(input)
+        val transliterationBundle = buildTransliterationBundleUseCase(input, youngerVariant = request.youngerVariant)
         check(transliterationBundle.errorMessage == null) { "Could not prepare direct renderings." }
         check(transliterationBundle.outputFor(request.selectedScript).isNotBlank()) { "No selected output to save." }
         val historicalBundle = if (request.translationMode == TranslationMode.TRANSLATE) {
@@ -55,7 +55,10 @@ internal class SaveTranslationToLibraryUseCase @Inject constructor(
             runicCirth = transliterationBundle.outputFor(RunicScript.CIRTH),
             isUserCreated = true,
             isFavorite = false,
-            createdAt = System.currentTimeMillis()
+            createdAt = System.currentTimeMillis(),
+            renderingMode = request.translationMode,
+            renderingFidelity = request.fidelity,
+            renderingYoungerVariant = request.youngerVariant
         )
 
         return if (request.translationMode == TranslationMode.TRANSLATE) {

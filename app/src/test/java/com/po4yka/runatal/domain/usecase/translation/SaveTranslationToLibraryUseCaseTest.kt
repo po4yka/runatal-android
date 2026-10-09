@@ -69,7 +69,10 @@ class SaveTranslationToLibraryUseCaseTest {
         useCase(request(TranslationMode.TRANSLATE))
 
         assertDirectQuote()
-        assertThat(savedQuote.captured.runicYounger).isEqualTo("ᚾᛁᚴᚼᛏ")
+        assertThat(savedQuote.captured.renderingMode).isEqualTo(TranslationMode.TRANSLATE)
+        assertThat(savedQuote.captured.renderingFidelity).isEqualTo(TranslationFidelity.STRICT)
+        assertThat(savedQuote.captured.renderingYoungerVariant).isEqualTo(YoungerFutharkVariant.SHORT_TWIG)
+        assertThat(savedQuote.captured.runicYounger).isEqualTo("ᚿᛁᚴᚽᛐ")
         coVerify(exactly = 0) { quotes.saveUserQuote(any()) }
         coVerify(exactly = 0) { translations.cacheTranslations(any(), any(), any()) }
         assertThat(cached.captured).hasSize(3)
@@ -81,6 +84,8 @@ class SaveTranslationToLibraryUseCaseTest {
         useCase(request(TranslationMode.TRANSLITERATE))
 
         assertDirectQuote()
+        assertThat(savedQuote.captured.renderingMode).isEqualTo(TranslationMode.TRANSLITERATE)
+        assertThat(savedQuote.captured.renderingYoungerVariant).isEqualTo(YoungerFutharkVariant.SHORT_TWIG)
         verify(exactly = 0) { historicalService.translate(any(), any(), any(), any()) }
         coVerify(exactly = 0) { translations.saveUserQuoteWithTranslations(any(), any()) }
         coVerify(exactly = 0) { translations.cacheTranslations(any(), any(), any()) }
@@ -111,7 +116,7 @@ class SaveTranslationToLibraryUseCaseTest {
     @Test
     fun `direct rendering preparation error cannot persist empty quote fields`() = runTest {
         val broken = mockk<BuildTransliterationBundleUseCase>()
-        coEvery { broken(any(), any()) } returns TransliterationBundle(errorMessage = "rendering failure")
+        coEvery { broken(any(), any(), any()) } returns TransliterationBundle(errorMessage = "rendering failure")
         val brokenSave = SaveTranslationToLibraryUseCase(
             quotes, translations, broken, BuildHistoricalTranslationBundleUseCase(historicalService)
         )
@@ -181,7 +186,7 @@ class SaveTranslationToLibraryUseCaseTest {
         assertThat(savedQuote.captured.isUserCreated).isTrue()
         assertThat(savedQuote.captured.runicElder).isEqualTo(factory.transliterate("night", RunicScript.ELDER_FUTHARK))
         assertThat(savedQuote.captured.runicYounger)
-            .isEqualTo(factory.transliterate("night", RunicScript.YOUNGER_FUTHARK))
+            .isEqualTo(factory.transliterate("night", RunicScript.YOUNGER_FUTHARK, YoungerFutharkVariant.SHORT_TWIG))
         assertThat(savedQuote.captured.runicCirth).isEqualTo(factory.transliterate("night", RunicScript.CIRTH))
     }
 

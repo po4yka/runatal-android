@@ -1,8 +1,12 @@
 package com.po4yka.runatal.data.local.entity
 
+import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.Index
 import androidx.room3.PrimaryKey
+import com.po4yka.runatal.domain.translation.TranslationMode
+import com.po4yka.runatal.domain.translation.TranslationFidelity
+import com.po4yka.runatal.domain.translation.YoungerFutharkVariant
 
 /**
  * Room entity representing a quote in the database.
@@ -36,5 +40,11 @@ data class QuoteEntity(
     val isUserCreated: Boolean = false,
     val isFavorite: Boolean = false,
     val createdAt: Long = 0L,
-    val canonicalKey: String? = null
+    val canonicalKey: String? = null,
+    @ColumnInfo(defaultValue = "'TRANSLITERATE'")
+    val renderingMode: String = TranslationMode.TRANSLITERATE.name,
+    @ColumnInfo(defaultValue = "'STRICT'")
+    val renderingFidelity: String = TranslationFidelity.STRICT.name,
+    @ColumnInfo(defaultValue = "'LONG_BRANCH'")
+    val renderingYoungerVariant: String = YoungerFutharkVariant.LONG_BRANCH.name
 )

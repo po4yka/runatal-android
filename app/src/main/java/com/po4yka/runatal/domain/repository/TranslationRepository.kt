@@ -22,12 +22,6 @@ internal interface TranslationRepository {
         youngerVariant: YoungerFutharkVariant = YoungerFutharkVariant.DEFAULT
     ): TranslationResult?
 
-    suspend fun getLatestAvailableTranslation(
-        quoteId: Long,
-        script: RunicScript,
-        sourceText: String
-    ): TranslationResult?
-
     /** Creates the user quote and its prepared historical records atomically. */
     suspend fun saveUserQuoteWithTranslations(quote: Quote, results: List<TranslationResult>): Long
 
@@ -118,12 +112,6 @@ internal object NoOpTranslationRepository : TranslationRepository {
     override suspend fun backfillQuote(quote: Quote) = Unit
 
     override suspend fun backfillAllQuotes() = Unit
-
-    override suspend fun getLatestAvailableTranslation(
-        quoteId: Long,
-        script: RunicScript,
-        sourceText: String
-    ): TranslationResult? = null
 
     override suspend fun deleteTranslationsForQuote(quoteId: Long) = Unit
 }

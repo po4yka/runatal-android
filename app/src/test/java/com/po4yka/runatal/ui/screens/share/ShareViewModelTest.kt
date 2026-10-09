@@ -5,9 +5,9 @@ import com.po4yka.runatal.domain.repository.NoOpTranslationRepository
 import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.domain.repository.TranslationRepository
 import com.po4yka.runatal.domain.model.Quote
-import com.po4yka.runatal.domain.model.QuoteShareContent
 import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
+import com.po4yka.runatal.domain.usecase.quote.ResolveQuoteRenderingUseCase
 import com.po4yka.runatal.domain.usecase.quote.BuildQuotePresentationUseCase
 import com.po4yka.runatal.domain.transliteration.TransliterationFactory
 import com.po4yka.runatal.domain.transliteration.ElderFutharkTransliterator
@@ -16,6 +16,7 @@ import com.po4yka.runatal.domain.transliteration.CirthTransliterator
 import io.mockk.every
 import kotlinx.coroutines.flow.flowOf
 import com.po4yka.runatal.domain.model.RunicScript
+import com.po4yka.runatal.domain.translation.TranslationMode
 import com.po4yka.runatal.domain.translation.HistoricalStage
 import com.po4yka.runatal.domain.translation.TranslationDerivationKind
 import com.po4yka.runatal.domain.translation.TranslationFidelity
@@ -74,10 +75,10 @@ class ShareViewModelTest {
         return ShareViewModel(
             quoteRepository = quoteRepository,
             quoteId = quoteId,
-            buildQuotePresentationUseCase = BuildQuotePresentationUseCase(
+            buildQuotePresentationUseCase = BuildQuotePresentationUseCase(ResolveQuoteRenderingUseCase(
                 TransliterationFactory(ElderFutharkTransliterator(), YoungerFutharkTransliterator(), CirthTransliterator()),
                 translationRepository
-            ),
+            )),
             userPreferencesManager = preferences
         )
     }
@@ -88,9 +89,10 @@ class ShareViewModelTest {
         val viewModel = createViewModel(quoteId = 7L)
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value).isEqualTo(
-            ShareUiState.Success(QuoteShareContent(testQuote, RunicScript.DEFAULT, "noto", testQuote.runicElder.orEmpty()))
-        )
+        val content = (viewModel.uiState.value as ShareUiState.Success).content
+        assertThat(content.quote).isEqualTo(testQuote)
+        assertThat(content.runicText).isEqualTo(testQuote.runicElder)
+        assertThat(content.scriptLabel).contains("Custom stored glyphs")
     }
 
     @Test
@@ -102,7 +104,7 @@ class ShareViewModelTest {
 
         val content = (viewModel.uiState.value as ShareUiState.Success).content
         assertThat(content.script).isEqualTo(RunicScript.CIRTH)
-        assertThat(content.scriptLabel).isEqualTo("Cirth")
+        assertThat(content.scriptLabel).contains("Cirth")
         assertThat(content.runicText).isEqualTo(testQuote.runicCirth)
         assertThat(content.font).isEqualTo("noto")
     }
@@ -147,7 +149,7 @@ class ShareViewModelTest {
     }
 
     @Test
-    fun `latest translations override stored runes on the share surface`() = runTest {
+    fun `persisted historical selection chooses its exact result on the share surface`() = runTest {
         val translationRepository = mockk<TranslationRepository>()
         val elderTranslation = TranslationResult(
             sourceText = testQuote.textLatin,
@@ -177,16 +179,16 @@ class ShareViewModelTest {
             engineVersion = "engine",
             datasetVersion = "dataset"
         )
-        coEvery { quoteRepository.getQuoteById(7L) } returns testQuote
+        coEvery { quoteRepository.getQuoteById(7L) } returns testQuote.copy(renderingMode = TranslationMode.TRANSLATE)
         coEvery {
-            translationRepository.getLatestAvailableTranslation(7L, RunicScript.ELDER_FUTHARK, testQuote.textLatin)
+            translationRepository.getCachedTranslation(7L, RunicScript.ELDER_FUTHARK, testQuote.textLatin, TranslationFidelity.STRICT, any())
         } returns
             elderTranslation
         coEvery {
-            translationRepository.getLatestAvailableTranslation(7L, RunicScript.YOUNGER_FUTHARK, testQuote.textLatin)
+            translationRepository.getCachedTranslation(7L, RunicScript.YOUNGER_FUTHARK, testQuote.textLatin, TranslationFidelity.STRICT, any())
         } returns null
         coEvery {
-            translationRepository.getLatestAvailableTranslation(7L, RunicScript.CIRTH, testQuote.textLatin)
+            translationRepository.getCachedTranslation(7L, RunicScript.CIRTH, testQuote.textLatin, TranslationFidelity.STRICT, any())
         } returns cirthTranslation
 
         val viewModel = createViewModel(
@@ -195,9 +197,10 @@ class ShareViewModelTest {
         )
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value).isEqualTo(
-            ShareUiState.Success(QuoteShareContent(testQuote, RunicScript.DEFAULT, "noto", "cached elder"))
-        )
+        val content = (viewModel.uiState.value as ShareUiState.Success).content
+        assertThat(content.runicText).isEqualTo("cached elder")
+        assertThat(content.rendering.mode).isEqualTo(TranslationMode.TRANSLATE)
+        assertThat(content.rendering.resolutionStatus).isEqualTo(TranslationResolutionStatus.ATTESTED)
     }
 
     @Test
@@ -210,8 +213,9 @@ class ShareViewModelTest {
         viewModel.retry()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value).isEqualTo(
-            ShareUiState.Success(QuoteShareContent(testQuote, RunicScript.DEFAULT, "noto", testQuote.runicElder.orEmpty()))
-        )
+        val content = (viewModel.uiState.value as ShareUiState.Success).content
+        assertThat(content.quote).isEqualTo(testQuote)
+        assertThat(content.runicText).isEqualTo(testQuote.runicElder)
+        assertThat(content.scriptLabel).contains("Custom stored glyphs")
     }
 }

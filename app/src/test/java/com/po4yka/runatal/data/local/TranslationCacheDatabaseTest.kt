@@ -38,17 +38,17 @@ class TranslationCacheDatabaseTest {
     }
 
     @Test
-    fun `latest available query ignores newer successes from obsolete engine and dataset versions`() = runTest {
+    fun `exact selection query ignores newer successes from obsolete engine and dataset versions`() = runTest {
         database.quoteDao().insert(QuoteEntity(id = 1L, textLatin = "wolf", author = "Test"))
         val dao = database.translationRecordDao()
         dao.insert(record("engine-current", "dataset-current", 10L))
         dao.insert(record("engine-obsolete", "dataset-current", 20L))
         dao.insert(record("engine-current", "dataset-obsolete", 30L))
 
-        val latest = dao.getLatestAvailableForScript(
+        val latest = dao.getBySelection(
             quoteId = 1L,
             script = "YOUNGER_FUTHARK",
-            unavailableStatus = "UNAVAILABLE",
+            fidelity = "STRICT", variant = "LONG_BRANCH",
             engineVersion = "engine-current",
             datasetVersion = "dataset-current", sourceText = "wolf"
         )
@@ -64,10 +64,10 @@ class TranslationCacheDatabaseTest {
         val dao = database.translationRecordDao()
         dao.insert(record("engine-obsolete", "dataset-current", 20L).copy(sourceText = "123", glyphOutput = ""))
 
-        val latest = dao.getLatestAvailableForScript(
+        val latest = dao.getBySelection(
             quoteId = 1L,
             script = "YOUNGER_FUTHARK",
-            unavailableStatus = "UNAVAILABLE",
+            fidelity = "STRICT", variant = "LONG_BRANCH",
             engineVersion = "engine-current",
             datasetVersion = "dataset-current", sourceText = "123"
         )

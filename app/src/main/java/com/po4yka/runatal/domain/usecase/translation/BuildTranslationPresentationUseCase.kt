@@ -71,7 +71,8 @@ internal class BuildTranslationPresentationUseCase @Inject constructor(
         val selectedScript = setOf(preferences.selectedScript)
         val transliterationBundle = buildTransliterationBundleUseCase(
             inputText = input.inputText,
-            scripts = selectedScript
+            scripts = selectedScript,
+            youngerVariant = preferences.youngerVariant
         )
         val effectiveMode = if (translateFeatureEnabled) {
             preferences.translationMode

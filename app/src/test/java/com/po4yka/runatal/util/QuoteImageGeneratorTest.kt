@@ -1,6 +1,8 @@
 package com.po4yka.runatal.util
 
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.ResolvedQuoteRendering
+import com.po4yka.runatal.domain.translation.TranslationMode
 import com.po4yka.runatal.domain.model.QuoteShareContent
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.transliteration.TransliterationFactory
@@ -35,7 +37,7 @@ class QuoteImageGeneratorTest {
             sources.forEach { text ->
                 val content = QuoteShareContent(
                     Quote(1L, text, "Author".repeat(10), null, null, null),
-                    script, "noto", factory.transliterate(text, script)
+                    script, "noto", rendering(factory.transliterate(text, script))
                 )
                 ShareTemplate.entries.forEach { template ->
                     val prepared = generator.prepareLayout(content, template, ShareAppearance.LIGHT)
@@ -70,7 +72,7 @@ class QuoteImageGeneratorTest {
         val text = "Wisdom begins in wonder.\nRunes remember the words we carry."
         val content = QuoteShareContent(
             Quote(1L, text, "Socrates / Runatal", null, null, null),
-            RunicScript.ELDER_FUTHARK, "babelstone", ElderFutharkTransliterator().transliterate(text)
+            RunicScript.ELDER_FUTHARK, "babelstone", rendering(ElderFutharkTransliterator().transliterate(text))
         )
         val output = File("build/reports/share-render").apply { mkdirs() }
         ShareTemplate.entries.forEach { template ->
@@ -86,7 +88,7 @@ class QuoteImageGeneratorTest {
         val bitmap = generator.generateQuoteImage(
             content = QuoteShareContent(
                 Quote(1L, "Runes remember.", "Archivist", null, null, null),
-                RunicScript.CIRTH, "noto", "\uE080 \uE081"
+                RunicScript.CIRTH, "noto", rendering("\uE080 \uE081")
             ),
             template = ShareTemplate.CARD,
             appearance = ShareAppearance.DARK
@@ -101,7 +103,7 @@ class QuoteImageGeneratorTest {
         val bitmap = generator.generateQuoteImage(
             content = QuoteShareContent(
                 Quote(1L, "Verse layout", "Skald", null, null, null),
-                RunicScript.ELDER_FUTHARK, "noto", "\u16A0\u16A2\u16B1"
+                RunicScript.ELDER_FUTHARK, "noto", rendering("\u16A0\u16A2\u16B1")
             ),
             template = ShareTemplate.VERSE,
             appearance = ShareAppearance.LIGHT
@@ -116,7 +118,7 @@ class QuoteImageGeneratorTest {
         val bitmap = generator.generateQuoteImage(
             content = QuoteShareContent(
                 Quote(1L, "Wide layout", "Navigator", null, null, null),
-                RunicScript.YOUNGER_FUTHARK, "noto", "\u16CF\u16B1\u16DE"
+                RunicScript.YOUNGER_FUTHARK, "noto", rendering("\u16CF\u16B1\u16DE")
             ),
             template = ShareTemplate.LANDSCAPE,
             appearance = ShareAppearance.DARK
@@ -125,4 +127,8 @@ class QuoteImageGeneratorTest {
         assertThat(bitmap.width).isEqualTo(1600)
         assertThat(bitmap.height).isEqualTo(900)
     }
+    private fun rendering(glyphs: String) = ResolvedQuoteRendering(
+        glyphs, emptyList(), TranslationMode.TRANSLITERATE, "Transliteration"
+    )
+
 }

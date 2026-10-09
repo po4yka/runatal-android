@@ -1,6 +1,8 @@
 package com.po4yka.runatal.util
 
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.ResolvedQuoteRendering
+import com.po4yka.runatal.domain.translation.TranslationMode
 import com.po4yka.runatal.domain.model.QuoteShareContent
 import com.po4yka.runatal.domain.model.RunicScript
 import android.graphics.Bitmap
@@ -47,7 +49,7 @@ class QuoteShareManagerTest {
 
         val content = QuoteShareContent(
             Quote(1L, "Runes remember.", "Archivist", null, null, null),
-            RunicScript.ELDER_FUTHARK, "noto", "\u16A0\u16A2"
+            RunicScript.ELDER_FUTHARK, "noto", rendering("\u16A0\u16A2")
         )
         val firstResult = manager.shareQuoteAsImage(
             content = content,
@@ -76,4 +78,8 @@ class QuoteShareManagerTest {
         verify(exactly = 3) { imageGenerator.generateQuoteImage(any(), any(), any()) }
         assertThat(shareDir.listFiles()?.count { it.extension == "png" }).isEqualTo(3)
     }
+    private fun rendering(glyphs: String) = ResolvedQuoteRendering(
+        glyphs, emptyList(), TranslationMode.TRANSLITERATE, "Transliteration"
+    )
+
 }
