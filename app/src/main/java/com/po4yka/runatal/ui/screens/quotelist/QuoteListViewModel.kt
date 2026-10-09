@@ -27,6 +27,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -46,6 +48,9 @@ internal class QuoteListViewModel @Inject constructor(
     val uiState: StateFlow<QuoteListUiState> = _uiState.asStateFlow()
     private val currentFilter = MutableStateFlow(QuoteFilter.ALL)
     private val searchQuery = MutableStateFlow("")
+    private val pendingSearchWrite = MutableStateFlow<String?>(null)
+    private var lastPersistedSearch: String? = null
+    private var filterWasChanged = false
     private val _events = Channel<QuoteListEvent>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
 
@@ -55,6 +60,7 @@ internal class QuoteListViewModel @Inject constructor(
     }
 
     init {
+        viewModelScope.launch { persistSearchUpdates() }
         viewModelScope.launch {
             restorePersistedFilters()
             observeQuotes()
@@ -108,6 +114,7 @@ internal class QuoteListViewModel @Inject constructor(
 
     /** Changes the active tab filter and persists it. */
     fun setFilter(filter: QuoteFilter) {
+        filterWasChanged = true
         currentFilter.value = filter
         _uiState.update { it.copy(currentFilter = filter) }
         viewModelScope.launch {
@@ -115,12 +122,34 @@ internal class QuoteListViewModel @Inject constructor(
         }
     }
 
-    /** Updates search query and persists it. */
+    /** Applies search immediately; one writer coalesces pending edits and flushes on navigation. */
     fun updateSearchQuery(query: String) {
         searchQuery.value = query
         _uiState.update { it.copy(searchQuery = query) }
-        viewModelScope.launch {
-            userPreferencesManager.updateQuoteSearchQuery(query)
+        pendingSearchWrite.value = query
+    }
+
+    private suspend fun persistSearchUpdates() {
+        try {
+            pendingSearchWrite.filterNotNull().collect { persistSearch(it) }
+        } finally {
+            withContext(NonCancellable) {
+                pendingSearchWrite.value?.let { if (it != lastPersistedSearch) persistSearch(it) }
+            }
+        }
+    }
+
+    private suspend fun persistSearch(query: String) {
+        try {
+            // Finish the in-flight durable edit; cancellation then flushes only the newest pending value.
+            withContext(NonCancellable) {
+                userPreferencesManager.updateQuoteSearchQuery(query)
+                lastPersistedSearch = query
+            }
+        } catch (exception: IOException) {
+            Log.e(TAG, "Failed to persist Library search", exception)
+            val message = "Couldn't save the search. Your current results remain available."
+            _events.trySend(QuoteListEvent.ShowMessage(message))
         }
     }
 
@@ -181,8 +210,8 @@ internal class QuoteListViewModel @Inject constructor(
 
     private suspend fun restorePersistedFilters() {
         val prefs = userPreferencesManager.userPreferencesFlow.first()
-        currentFilter.value = QuoteFilter.fromPersistedValue(prefs.quoteListFilter)
-        searchQuery.value = prefs.quoteSearchQuery
+        if (!filterWasChanged) currentFilter.value = QuoteFilter.fromPersistedValue(prefs.quoteListFilter)
+        if (pendingSearchWrite.value == null) searchQuery.value = prefs.quoteSearchQuery
     }
 }
 

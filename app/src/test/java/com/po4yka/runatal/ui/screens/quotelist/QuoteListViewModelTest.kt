@@ -17,6 +17,9 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import java.io.IOException
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -278,6 +281,54 @@ class QuoteListViewModelTest {
         assertThat(viewModel.uiState.value.searchQuery).isEqualTo("No matching source")
         assertThat(viewModel.uiState.value.quotes).isEmpty()
         assertThat(viewModel.uiState.value.isLoading).isFalse()
+    }
+
+    @Test
+    fun `rapid input keeps immediate results while only the newest pending query is persisted`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        repeat(100) { viewModel.updateSearchQuery("query $it") }
+        assertThat(viewModel.uiState.value.searchQuery).isEqualTo("query 99")
+        advanceUntilIdle()
+        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery("query 99") }
+        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery(any()) }
+    }
+
+    @Test
+    fun `leaving during a write commits the in flight edit and flushes only the final query`() = runTest {
+        val started = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        coEvery { userPreferencesManager.updateQuoteSearchQuery("a") } coAnswers {
+            started.complete(Unit)
+            release.await()
+        }
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.updateSearchQuery("a")
+        runCurrent()
+        assertThat(started.isCompleted).isTrue()
+        viewModel.updateSearchQuery("ab")
+        viewModel.updateSearchQuery("abc")
+        viewModel.viewModelScope.cancel()
+        release.complete(Unit)
+        advanceUntilIdle()
+        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery("a") }
+        coVerify(exactly = 0) { userPreferencesManager.updateQuoteSearchQuery("ab") }
+        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery("abc") }
+    }
+
+    @Test
+    fun `a persistence failure leaves search usable and reports the failure`() = runTest {
+        coEvery { userPreferencesManager.updateQuoteSearchQuery(any()) } throws IOException("storage")
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.events.test {
+            viewModel.updateSearchQuery("wander")
+            advanceUntilIdle()
+            assertThat((awaitItem() as QuoteListEvent.ShowMessage).message).contains("Couldn't save the search")
+            assertThat(viewModel.uiState.value.quotes).containsExactly(testQuotes[1])
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     private fun createViewModel(): QuoteListViewModel {
