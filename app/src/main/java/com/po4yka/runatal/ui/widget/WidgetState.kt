@@ -53,8 +53,14 @@ data class WidgetPalette(
 }
 
 /** Exact quote content required before accepting a previously rendered widget. */
-data class WidgetQuoteContent(val quoteId: Long, val latinText: String, val author: String, val runicText: String) {
+data class WidgetQuoteContent(
+    val quoteId: Long,
+    val latinText: String,
+    val author: String,
+    val runicText: String,
+    val scriptLabel: String
+) {
     /** Rejects edited, deleted, or differently rendered quote snapshots. */
     fun matches(state: WidgetState): Boolean = quoteId == state.quoteId && latinText == state.latinText &&
-        author == state.author && runicText == state.runicText
+        author == state.author && runicText == state.runicText && scriptLabel == state.scriptLabel
 }

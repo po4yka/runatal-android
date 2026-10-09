@@ -26,7 +26,9 @@ class WidgetStateCacheTest {
         sizeClass = WidgetSizeClass.COMPACT
     )
 
-    private val expectedContent = WidgetQuoteContent(state.quoteId, state.latinText, state.author, state.runicText)
+    private val expectedContent = WidgetQuoteContent(
+        state.quoteId, state.latinText, state.author, state.runicText, state.scriptLabel
+    )
 
     @After
     fun tearDown() {
@@ -116,6 +118,23 @@ class WidgetStateCacheTest {
                 "widget", LocalDate.of(2026, 3, 11), preferences, 300, 151, "test", changed
             )).isNull()
         }
+    }
+
+    @Test
+    fun `same glyphs cannot reuse a cache with a different rendering mode or resolution label`() {
+        val today = LocalDate.of(2026, 3, 11)
+        val direct = state.copy(scriptLabel = "Elder Futhark · Transliteration")
+        val original = expectedContent.copy(scriptLabel = direct.scriptLabel)
+        WidgetStateCache.put("widget", today, preferences, 300, 151, "test", direct)
+        assertThat(WidgetStateCache.get("widget", today, preferences, 300, 151, "test", original)).isEqualTo(direct)
+        listOf(
+            "Elder Futhark · Proto-Norse · Strict · Attested",
+            "Elder Futhark · Proto-Norse · Readable · Reconstructed"
+        ).forEach { changedLabel ->
+                val changed = original.copy(scriptLabel = changedLabel)
+                assertThat(changed.runicText).isEqualTo(direct.runicText)
+                assertThat(WidgetStateCache.get("widget", today, preferences, 300, 151, "test", changed)).isNull()
+            }
     }
 
     @Test

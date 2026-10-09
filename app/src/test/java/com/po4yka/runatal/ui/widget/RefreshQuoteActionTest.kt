@@ -63,7 +63,7 @@ class RefreshQuoteActionTest {
                 widgetWidth = 300,
                 widgetHeight = 151,
                 renderEnvironment = "test",
-                expectedContent = WidgetQuoteContent(0, "Cached", "", "")
+                expectedContent = WidgetQuoteContent(0, "Cached", "", "", "")
             )
         ).isNull()
         assertThat(
@@ -75,7 +75,7 @@ class RefreshQuoteActionTest {
                 widgetWidth = 300,
                 widgetHeight = 151,
                 renderEnvironment = "test",
-                expectedContent = WidgetQuoteContent(0, "Cached", "", ""),
+                expectedContent = WidgetQuoteContent(0, "Cached", "", "", ""),
                 palette = WidgetPalette.default(),
                 sizeClass = WidgetSizeClass.MEDIUM
             )

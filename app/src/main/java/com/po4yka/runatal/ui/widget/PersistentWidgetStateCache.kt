@@ -56,7 +56,8 @@ internal object PersistentWidgetStateCache {
         val bitmapCacheKey: String? = null
     ) {
         fun matchesContent(expected: WidgetQuoteContent): Boolean = quoteId == expected.quoteId &&
-            latinText == expected.latinText && author == expected.author && runicText == expected.runicText
+            latinText == expected.latinText && author == expected.author && runicText == expected.runicText &&
+            scriptLabel == expected.scriptLabel
 
         fun matchesDimensions(date: LocalDate, width: Int, height: Int, environment: String): Boolean =
             dateEpochDay == date.toEpochDay() && widgetWidth == width && widgetHeight == height &&

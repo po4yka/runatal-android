@@ -68,7 +68,7 @@ class PersistentWidgetStateCacheTest {
             widgetWidth = 300,
             widgetHeight = 151,
             renderEnvironment = "test",
-            expectedContent = WidgetQuoteContent(0, "Fehu Uruz", "Skald", "\u16A0\u16A2"),
+            expectedContent = WidgetQuoteContent(0, "Fehu Uruz", "Skald", "\u16A0\u16A2", "Cirth"),
             palette = WidgetPalette.default(),
             sizeClass = WidgetSizeClass.COMPACT
         )
@@ -103,7 +103,7 @@ class PersistentWidgetStateCacheTest {
             widgetWidth = 300,
             widgetHeight = 151,
             renderEnvironment = "light-2",
-            expectedContent = WidgetQuoteContent(0, "Cached", "", ""),
+            expectedContent = WidgetQuoteContent(0, "Cached", "", "", ""),
             palette = WidgetPalette.default(),
             sizeClass = WidgetSizeClass.COMPACT
         )
@@ -117,7 +117,7 @@ class PersistentWidgetStateCacheTest {
             context, "widget-1", LocalDate.of(2026, 3, 11), preferences, 300, 151, "test",
             WidgetState(quoteId = 7, latinText = "Original", author = "Author", runicText = "ᚠ"), null
         )
-        val original = WidgetQuoteContent(7, "Original", "Author", "ᚠ")
+        val original = WidgetQuoteContent(7, "Original", "Author", "ᚠ", "")
         listOf(original.copy(latinText = "Edited"), original.copy(quoteId = 0)).forEach { current ->
             val restored = PersistentWidgetStateCache.get(
                 context, "widget-1", LocalDate.of(2026, 3, 11), preferences, 300, 151, "test",
@@ -127,6 +127,26 @@ class PersistentWidgetStateCacheTest {
         }
         assertThat(PersistentWidgetStateCache.quoteId(context, "widget-1", LocalDate.of(2026, 3, 11)))
             .isEqualTo(7)
+    }
+
+    @Test
+    fun `disk snapshot rejects changed rendering labels even when source and glyphs are identical`() {
+        val today = LocalDate.of(2026, 3, 11)
+        val direct = WidgetState(quoteId = 7, latinText = "Original", author = "Author", runicText = "ᚠ",
+            scriptLabel = "Elder Futhark · Transliteration")
+        PersistentWidgetStateCache.put(context, "widget-1", today, preferences, 300, 151, "test", direct, null)
+        val original = WidgetQuoteContent(7, "Original", "Author", "ᚠ", direct.scriptLabel)
+        assertThat(PersistentWidgetStateCache.get(context, "widget-1", today, preferences, 300, 151, "test",
+            original, WidgetPalette.default(), WidgetSizeClass.COMPACT)?.scriptLabel).isEqualTo(direct.scriptLabel)
+        listOf(
+            "Elder Futhark · Proto-Norse · Strict · Attested",
+            "Elder Futhark · Proto-Norse · Readable · Reconstructed"
+        ).forEach { changedLabel ->
+                val current = original.copy(scriptLabel = changedLabel)
+                assertThat(current.runicText).isEqualTo(direct.runicText)
+                assertThat(PersistentWidgetStateCache.get(context, "widget-1", today, preferences, 300, 151,
+                    "test", current, WidgetPalette.default(), WidgetSizeClass.COMPACT)).isNull()
+            }
     }
 
     @Test
@@ -151,7 +171,7 @@ class PersistentWidgetStateCacheTest {
             widgetWidth = 300,
             widgetHeight = 151,
             renderEnvironment = "test",
-            expectedContent = WidgetQuoteContent(0, "Cached", "", ""),
+            expectedContent = WidgetQuoteContent(0, "Cached", "", "", ""),
             palette = WidgetPalette.default(),
             sizeClass = WidgetSizeClass.MEDIUM
         )

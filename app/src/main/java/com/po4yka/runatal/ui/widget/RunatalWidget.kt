@@ -669,9 +669,10 @@ internal fun widgetQuoteContent(
     quote: com.po4yka.runatal.domain.model.Quote?,
     rendering: com.po4yka.runatal.domain.model.ResolvedQuoteRendering?
 ): WidgetQuoteContent = if (quote == null) {
-    WidgetQuoteContent(0, "No quote available", "", "")
+    WidgetQuoteContent(0, "No quote available", "", "", RunicScript.DEFAULT.displayName)
 } else {
-    WidgetQuoteContent(quote.id, quote.textLatin, quote.author, checkNotNull(rendering).glyphOutput)
+    val resolved = checkNotNull(rendering)
+    WidgetQuoteContent(quote.id, quote.textLatin, quote.author, resolved.glyphOutput, resolved.label)
 }
 
 internal object RunatalWidgetMetrics {
