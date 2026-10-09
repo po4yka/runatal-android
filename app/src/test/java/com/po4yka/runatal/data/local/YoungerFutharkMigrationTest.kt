@@ -66,7 +66,7 @@ class YoungerFutharkMigrationTest {
             }
             database = Room.databaseBuilder(context, RunatalDatabase::class.java, databaseName)
                 .setDriver(AndroidSQLiteDriver())
-                .addMigrations(RunatalDatabase.MIGRATION_8_9, RunatalDatabase.MIGRATION_9_10, RunatalDatabase.MIGRATION_10_11, RunatalDatabase.MIGRATION_11_12)
+                .addMigrations(RunatalDatabase.MIGRATION_8_9, RunatalDatabase.MIGRATION_9_10, RunatalDatabase.MIGRATION_10_11, RunatalDatabase.MIGRATION_11_12, RunatalDatabase.MIGRATION_12_13)
                 .build()
             val migrated = requireNotNull(database)
             val converter = YoungerFutharkTransliterator()
@@ -76,8 +76,12 @@ class YoungerFutharkMigrationTest {
                         runicElder = ElderFutharkTransliterator().transliterate(before.textLatin),
                         runicYounger = converter.transliterate(before.textLatin)
                     )
-                    before.id == 10L || before.canonicalKey != null ->
-                        before.copy(runicYounger = converter.transliterate(before.textLatin))
+                    before.canonicalKey != null -> before.copy(
+                        runicElder = ElderFutharkTransliterator().transliterate(before.textLatin),
+                        runicYounger = converter.transliterate(before.textLatin),
+                        runicCirth = CirthTransliterator().transliterate(before.textLatin)
+                    )
+                    before.id == 10L -> before.copy(runicYounger = converter.transliterate(before.textLatin))
                     before.id == 15L -> before.copy(
                         runicCirth = CirthTransliterator().transliterate(before.textLatin)
                     )

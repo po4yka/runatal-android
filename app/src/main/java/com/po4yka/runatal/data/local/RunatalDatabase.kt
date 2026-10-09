@@ -5,6 +5,7 @@ import com.po4yka.runatal.data.local.dao.ReadingHistoryDao
 import com.po4yka.runatal.data.local.entity.QuoteReadEntity
 import com.po4yka.runatal.data.local.entity.ReadingDayEntity
 import com.po4yka.runatal.data.local.migration.ElderFutharkSequenceMigration
+import com.po4yka.runatal.data.local.migration.CanonicalQuoteRenderingMigration
 import androidx.room3.RoomDatabase
 import androidx.room3.migration.Migration
 import androidx.sqlite.SQLiteConnection
@@ -41,7 +42,7 @@ import com.po4yka.runatal.data.local.migration.TranslationCacheKeyMigration
         QuoteReadEntity::class,
         ReadingDayEntity::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = true
 )
 internal abstract class RunatalDatabase : RoomDatabase() {
@@ -454,6 +455,13 @@ internal abstract class RunatalDatabase : RoomDatabase() {
         val MIGRATION_11_12 = object : Migration(11, 12) {
             override suspend fun migrate(connection: SQLiteConnection) {
                 ElderFutharkSequenceMigration.migrate(connection)
+            }
+        }
+
+        /** Refreshes only proven legacy renderings of canonical quotes. */
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override suspend fun migrate(connection: SQLiteConnection) {
+                CanonicalQuoteRenderingMigration.migrate(connection)
             }
         }
     }
