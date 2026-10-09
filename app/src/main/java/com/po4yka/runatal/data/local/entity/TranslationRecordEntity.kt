@@ -38,7 +38,7 @@ internal data class TranslationRecordEntity(
     val diplomaticForm: String,
     val glyphOutput: String,
     val historicalStage: String,
-    val variant: String? = null,
+    val variant: String = "",
     val resolutionStatus: String,
     val confidence: Float,
     val notesJson: String,

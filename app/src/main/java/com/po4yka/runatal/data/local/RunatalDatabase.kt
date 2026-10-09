@@ -20,6 +20,7 @@ import com.po4yka.runatal.data.local.entity.TranslationBackfillStateEntity
 import com.po4yka.runatal.data.local.entity.TranslationRecordEntity
 import com.po4yka.runatal.data.seed.QuoteSeedData
 import com.po4yka.runatal.data.local.migration.YoungerFutharkRenderingMigration
+import com.po4yka.runatal.data.local.migration.TranslationCacheKeyMigration
 
 /**
  * Room database for Runic Quotes.
@@ -34,7 +35,7 @@ import com.po4yka.runatal.data.local.migration.YoungerFutharkRenderingMigration
         TranslationRecordEntity::class,
         TranslationBackfillStateEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = true
 )
 internal abstract class RunatalDatabase : RoomDatabase() {
@@ -412,6 +413,13 @@ internal abstract class RunatalDatabase : RoomDatabase() {
         val MIGRATION_8_9 = object : Migration(8, 9) {
             override suspend fun migrate(connection: SQLiteConnection) {
                 YoungerFutharkRenderingMigration.migrate(connection)
+            }
+        }
+
+        /** Makes every translation-selection key unique, including scripts without variants. */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override suspend fun migrate(connection: SQLiteConnection) {
+                TranslationCacheKeyMigration.migrate(connection)
             }
         }
     }

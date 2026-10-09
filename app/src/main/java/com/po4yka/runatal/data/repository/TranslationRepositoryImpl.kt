@@ -202,7 +202,7 @@ internal class TranslationRepositoryImpl @Inject constructor(
             normalizedForm = normalizedForm,
             diplomaticForm = diplomaticForm,
             glyphOutput = glyphOutput,
-            requestedVariant = variant,
+            requestedVariant = variant.takeIf { it.isNotEmpty() },
             resolutionStatus = TranslationResolutionStatus.valueOf(resolutionStatus),
             confidence = confidence,
             notes = json.decodeFromString(ListSerializer(String.serializer()), notesJson),
@@ -236,7 +236,7 @@ internal class TranslationRepositoryImpl @Inject constructor(
             diplomaticForm = diplomaticForm,
             glyphOutput = glyphOutput,
             historicalStage = historicalStage.name,
-            variant = requestedVariant,
+            variant = requestedVariant.orEmpty(),
             resolutionStatus = resolutionStatus.name,
             confidence = confidence,
             notesJson = json.encodeToString(ListSerializer(String.serializer()), notes),
@@ -272,7 +272,7 @@ internal class TranslationRepositoryImpl @Inject constructor(
     private fun requestedVariant(
         script: RunicScript,
         youngerVariant: YoungerFutharkVariant
-    ): String? = if (script == RunicScript.YOUNGER_FUTHARK) youngerVariant.name else null
+    ): String = if (script == RunicScript.YOUNGER_FUTHARK) youngerVariant.name else ""
 
     private fun backfillVersion(): String = RunicScript.entries.joinToString("|") { script ->
         val engine = translationEngineFactory.create(script)

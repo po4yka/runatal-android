@@ -75,6 +75,50 @@ class TranslationCacheDatabaseTest {
         assertThat(latest).isNull()
     }
 
+    @Test
+    fun `repeated writes for scripts without variants replace the selected result`() = runTest {
+        database.quoteDao().insert(QuoteEntity(id = 1L, textLatin = "wolf", author = "Test"))
+        val dao = database.translationRecordDao()
+        listOf("ELDER_FUTHARK", "CIRTH").forEach { script ->
+            val original = record("engine-current", "dataset-current", 10L)
+                .copy(script = script, variant = "", glyphOutput = "first")
+            dao.insert(original)
+            val replacement = original.copy(glyphOutput = "replacement", updatedAt = 20L)
+            val replacementId = dao.insert(replacement)
+
+            val selected = dao.getBySelection(
+                quoteId = 1L, script = script, fidelity = "STRICT", variant = "",
+                engineVersion = "engine-current", datasetVersion = "dataset-current"
+            )
+
+            assertThat(selected).isEqualTo(replacement.copy(id = replacementId))
+        }
+    }
+
+    @Test
+    fun `distinct variants fidelities engines and datasets remain independent selections`() = runTest {
+        database.quoteDao().insert(QuoteEntity(id = 1L, textLatin = "wolf", author = "Test"))
+        val dao = database.translationRecordDao()
+        val original = record("engine-current", "dataset-current", 10L)
+        val selections = listOf(
+            original,
+            original.copy(variant = "SHORT_TWIG", glyphOutput = "short twig"),
+            original.copy(fidelity = "READABLE", glyphOutput = "readable"),
+            original.copy(engineVersion = "engine-old", glyphOutput = "old engine"),
+            original.copy(datasetVersion = "dataset-old", glyphOutput = "old dataset")
+        )
+        val stored = selections.map { it.copy(id = dao.insert(it)) }
+
+        stored.forEach { expected ->
+            val selected = dao.getBySelection(
+                quoteId = expected.quoteId, script = expected.script, fidelity = expected.fidelity,
+                variant = expected.variant, engineVersion = expected.engineVersion,
+                datasetVersion = expected.datasetVersion
+            )
+            assertThat(selected).isEqualTo(expected)
+        }
+    }
+
     private fun record(engine: String, dataset: String, timestamp: Long) = TranslationRecordEntity(
         quoteId = 1L,
         sourceText = "wolf",

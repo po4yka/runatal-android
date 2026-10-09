@@ -20,7 +20,7 @@ internal interface TranslationRecordDao {
             AND fidelity = :fidelity
             AND engineVersion = :engineVersion
             AND datasetVersion = :datasetVersion
-            AND ((variant IS NULL AND :variant IS NULL) OR variant = :variant)
+            AND variant = :variant
         LIMIT 1
         """
     )
@@ -28,7 +28,7 @@ internal interface TranslationRecordDao {
         quoteId: Long,
         script: String,
         fidelity: String,
-        variant: String?,
+        variant: String,
         engineVersion: String,
         datasetVersion: String
     ): TranslationRecordEntity?
@@ -41,7 +41,7 @@ internal interface TranslationRecordDao {
             AND resolutionStatus != :unavailableStatus
             AND engineVersion = :engineVersion
             AND datasetVersion = :datasetVersion
-        ORDER BY updatedAt DESC
+        ORDER BY updatedAt DESC, id DESC
         LIMIT 1
         """
     )

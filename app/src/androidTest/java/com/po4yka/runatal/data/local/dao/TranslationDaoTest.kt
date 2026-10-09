@@ -64,7 +64,7 @@ class TranslationDaoTest {
         val elderLegacy = record(
             quoteId = 1L,
             script = "ELDER_FUTHARK",
-            variant = null,
+            variant = "",
             datasetVersion = "dataset-v0",
             glyphOutput = "legacy"
         )
@@ -85,7 +85,7 @@ class TranslationDaoTest {
             quoteId = 1L,
             script = "ELDER_FUTHARK",
             fidelity = "STRICT",
-            variant = null,
+            variant = "",
             engineVersion = "engine-v1",
             datasetVersion = "dataset-v0"
         )
@@ -93,7 +93,7 @@ class TranslationDaoTest {
             quoteId = 1L,
             script = "ELDER_FUTHARK",
             fidelity = "STRICT",
-            variant = null,
+            variant = "",
             engineVersion = "engine-v1",
             datasetVersion = "dataset-v1"
         )
@@ -229,7 +229,7 @@ class TranslationDaoTest {
     private fun record(
         quoteId: Long,
         script: String,
-        variant: String? = null,
+        variant: String = "",
         datasetVersion: String = "dataset-v1",
         resolutionStatus: String = "RECONSTRUCTED",
         updatedAt: Long = 200L,

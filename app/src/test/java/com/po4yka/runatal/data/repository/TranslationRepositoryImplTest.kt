@@ -103,6 +103,31 @@ class TranslationRepositoryImplTest {
     }
 
     @Test
+    fun `nonvariant scripts use a nonnull database key while retaining null domain metadata`() = runTest {
+        listOf(RunicScript.ELDER_FUTHARK, RunicScript.CIRTH).forEach { script ->
+            val stored = slot<TranslationRecordEntity>()
+            val result = translationResult(script = script, requestedVariant = null, glyphOutput = "ᚠ")
+            coEvery { translationRecordDao.insert(capture(stored)) } returns 1L
+
+            repository.cacheTranslation(quoteId = 7L, result = result, isBackfilled = false)
+
+            assertThat(stored.captured.variant).isEmpty()
+            coEvery {
+                translationRecordDao.getBySelection(
+                    quoteId = 7L, script = script.name, fidelity = TranslationFidelity.STRICT.name,
+                    variant = "", engineVersion = engineVersionFor(script), datasetVersion = "dataset-v1"
+                )
+            } returns stored.captured
+
+            val cached = repository.getCachedTranslation(
+                quoteId = 7L, script = script, fidelity = TranslationFidelity.STRICT,
+                youngerVariant = YoungerFutharkVariant.DEFAULT
+            )
+            assertThat(cached).isEqualTo(result)
+        }
+    }
+
+    @Test
     fun `cacheTranslation skips unavailable results`() = runTest {
         repository.cacheTranslation(
             quoteId = 4L,
