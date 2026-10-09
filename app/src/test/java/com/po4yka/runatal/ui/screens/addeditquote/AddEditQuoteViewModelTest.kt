@@ -96,6 +96,39 @@ class AddEditQuoteViewModelTest {
     // ==================== Initialization Tests - New Quote ====================
 
     @Test
+    fun `editor stays read only while loading and reports a missing quote`() = runTest {
+        val loading = CompletableDeferred<Quote?>()
+        coEvery { quoteRepository.getQuoteById(1L) } coAnswers { loading.await() }
+        viewModel = AddEditQuoteViewModel(
+            quoteRepository, userPreferencesManager, transliterationFactory, 1L
+        )
+
+        viewModel.updateTextLatin("Would be overwritten")
+        viewModel.updateAuthor("Would be overwritten")
+        viewModel.saveQuote()
+        viewModel.deleteQuote()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.isLoading).isTrue()
+        assertThat(viewModel.uiState.value.isEditable).isFalse()
+        assertThat(viewModel.uiState.value.textLatin).isEmpty()
+        coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
+        coVerify(exactly = 0) { quoteRepository.deleteUserQuote(any()) }
+        loading.complete(null)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.loadError).isNotNull()
+        assertThat(viewModel.uiState.value.isLoading).isFalse()
+        assertThat(viewModel.uiState.value.canSave).isFalse()
+
+        coEvery { quoteRepository.getQuoteById(1L) } returns testQuote
+        viewModel.retryLoading()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.loadError).isNull()
+        assertThat(viewModel.uiState.value.textLatin).isEqualTo(testQuote.textLatin)
+        assertThat(viewModel.uiState.value.isEditable).isTrue()
+    }
+
+    @Test
     fun `restored editor draft survives loading the original quote`() = runTest {
         coEvery { quoteRepository.getQuoteById(1L) } returns testQuote
         val handle = SavedStateHandle()
