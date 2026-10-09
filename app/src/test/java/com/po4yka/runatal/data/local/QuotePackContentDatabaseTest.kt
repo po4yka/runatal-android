@@ -1,5 +1,6 @@
 package com.po4yka.runatal.data.local
 
+import app.cash.turbine.test
 import android.app.Application
 import androidx.room3.Room
 import androidx.room3.useReaderConnection
@@ -200,6 +201,7 @@ class QuotePackContentDatabaseTest {
         repository.setLibraryMembership(1L, true)
         assertThat(database.archivedQuoteDao().getRetainedById(content.id)?.lifecycleState).isEqualTo("HIDDEN")
         assertThat(database.quotePackDao().availableCount(1L)).isEqualTo(3)
+        assertThat(repository.getPackById(1L)?.quoteCount).isEqualTo(3)
         database.archivedQuoteDao().updateState(content.id, "HIDDEN", "TRASH", "trash", 2L)
         database.archivedQuoteDao().emptyTrash(3L)
         repository.setLibraryMembership(1L, false)
@@ -207,7 +209,29 @@ class QuotePackContentDatabaseTest {
         QuotePackRepositoryImpl(database.quotePackDao()).seedIfNeeded()
         assertThat(database.quotePackDao().wasPurged(checkNotNull(content.canonicalKey))).isTrue()
         assertThat(database.quotePackDao().availableCount(1L)).isEqualTo(3)
+        assertThat(repository.getPackById(1L)?.quoteCount).isEqualTo(3)
         assertThat(database.quoteDao().getAll().none { it.canonicalKey == content.canonicalKey }).isTrue()
+    }
+
+    @Test
+    fun `installed counts observe committed visibility changes without another metadata write`() = runTest {
+        repository.seedIfNeeded()
+        repository.setLibraryMembership(1L, true)
+        val quote = database.quotePackDao().findContent(
+            QuotePackSeedData.getPackQuotes(1L).first().textLatin,
+            QuotePackSeedData.getPackQuotes(1L).first().author,
+            checkNotNull(QuotePackSeedData.getPackQuotes(1L).first().canonicalKey)
+        ) ?: error("Installed content is missing")
+        repository.getAllPacksFlow().test {
+            assertThat(awaitItem().first { it.id == 1L }.quoteCount).isEqualTo(4)
+            database.archivedQuoteDao().updateState(quote.id, "ACTIVE", "ARCHIVED", "archive", 1L)
+            assertThat(awaitItem().first { it.id == 1L }.quoteCount).isEqualTo(3)
+            assertThat(repository.getLibraryPacksFlow().first().first { it.id == 1L }.quoteCount).isEqualTo(3)
+            assertThat(repository.searchPacks("Hávamál").first().first { it.id == 1L }.quoteCount).isEqualTo(3)
+            database.archivedQuoteDao().updateState(quote.id, "ARCHIVED", "ACTIVE", "restore", 2L)
+            assertThat(awaitItem().first { it.id == 1L }.quoteCount).isEqualTo(4)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     private suspend fun membershipCount(packId: Long): Long = database.useReaderConnection { connection ->

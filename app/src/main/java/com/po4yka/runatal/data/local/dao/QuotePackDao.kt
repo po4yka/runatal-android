@@ -11,24 +11,30 @@ import com.po4yka.runatal.data.local.entity.QuoteEntity
 import com.po4yka.runatal.data.local.entity.QuotePackEntity
 import kotlinx.coroutines.flow.Flow
 
+private const val PACKS_WITH_AVAILABLE_COUNTS =
+    "SELECT p.id,p.name,p.description,p.coverRune,p.isInLibrary," +
+        "CASE WHEN p.isInLibrary=1 THEN (SELECT COUNT(*) FROM pack_quotes pq " +
+        "JOIN quotes q ON q.id=pq.quoteId WHERE pq.packId=p.id AND q.lifecycleState='ACTIVE') " +
+        "ELSE p.quoteCount END AS quoteCount FROM quote_packs p "
+
 /** Owns the atomic pack, quote-content and membership aggregate. */
 @Dao
 interface QuotePackDao {
     /** Observes all pack metadata. */
-    @Query("SELECT * FROM quote_packs ORDER BY id ASC")
+    @Query(PACKS_WITH_AVAILABLE_COUNTS + "ORDER BY p.id ASC")
     fun getAllFlow(): Flow<List<QuotePackEntity>>
 
     /** Gets persisted membership state before an atomic command. */
-    @Query("SELECT * FROM quote_packs WHERE id = :id")
+    @Query(PACKS_WITH_AVAILABLE_COUNTS + "WHERE p.id = :id")
     suspend fun getById(id: Long): QuotePackEntity?
 
     /** Observes installed packs. */
-    @Query("SELECT * FROM quote_packs WHERE isInLibrary = 1 ORDER BY id ASC")
+    @Query(PACKS_WITH_AVAILABLE_COUNTS + "WHERE p.isInLibrary = 1 ORDER BY p.id ASC")
     fun getLibraryPacksFlow(): Flow<List<QuotePackEntity>>
 
     /** Searches pack metadata. */
-    @Query("SELECT * FROM quote_packs WHERE name LIKE '%' || :query || '%' " +
-        "OR description LIKE '%' || :query || '%' ORDER BY id ASC")
+    @Query(PACKS_WITH_AVAILABLE_COUNTS + "WHERE p.name LIKE '%' || :query || '%' " +
+        "OR p.description LIKE '%' || :query || '%' ORDER BY p.id ASC")
     fun search(query: String): Flow<List<QuotePackEntity>>
 
     /** Inserts missing packs without cascading deletion of memberships. */
@@ -71,8 +77,8 @@ interface QuotePackDao {
             val existing = checkNotNull(getById(canonical.id))
             val quotes = content.getValue(canonical.id)
             val synced = canonical.copy(isInLibrary = existing.isInLibrary, quoteCount = quotes.size)
-            update(synced)
             if (synced.isInLibrary) installContent(synced.id, quotes)
+            update(synced.copy(quoteCount = if (synced.isInLibrary) availableCount(synced.id) else quotes.size))
         }
     }
 
