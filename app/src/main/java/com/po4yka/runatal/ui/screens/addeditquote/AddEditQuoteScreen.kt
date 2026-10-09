@@ -126,14 +126,14 @@ internal fun AddEditQuoteScreen(
     }
 
     val requestExit = {
-        if (uiState.hasUnsavedChanges && !uiState.isSaving) {
-            showDiscardDialog = true
-        } else {
-            onNavigateBack()
+        when {
+            uiState.isMutating -> Unit
+            uiState.hasUnsavedChanges -> showDiscardDialog = true
+            else -> onNavigateBack()
         }
     }
 
-    BackHandler(enabled = uiState.hasUnsavedChanges && !uiState.isSaving) {
+    BackHandler(enabled = uiState.hasUnsavedChanges || uiState.isMutating) {
         requestExit()
     }
 
