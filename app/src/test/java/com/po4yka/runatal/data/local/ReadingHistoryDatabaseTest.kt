@@ -10,6 +10,7 @@ import com.po4yka.runatal.data.repository.QuoteRepositoryImpl
 import com.po4yka.runatal.data.repository.ReadingHistoryRepositoryImpl
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.util.TimeProvider
+import io.mockk.mockk
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -46,7 +47,7 @@ class ReadingHistoryDatabaseTest {
         val quote = QuoteEntity(id = 1, textLatin = "Actual quote", author = "Reader", isUserCreated = true)
         initial.quoteDao().insert(quote)
         val repository = ReadingHistoryRepositoryImpl(
-            initial.readingHistoryDao(), QuoteRepositoryImpl(initial.quoteDao(), time), time
+            initial.readingHistoryDao(), QuoteRepositoryImpl(initial.quoteDao(), time, mockk()), time
         )
         repository.recordRead(1, RunicScript.ELDER_FUTHARK)
         repository.recordRead(1, RunicScript.ELDER_FUTHARK)

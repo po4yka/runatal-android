@@ -31,6 +31,7 @@ import com.po4yka.runatal.util.TimeProvider
 import java.time.LocalDate
 import java.io.IOException
 import kotlinx.coroutines.test.runTest
+import io.mockk.mockk
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -77,7 +78,7 @@ class HistoricalSaveAggregateDatabaseTest {
             service, engines
         )
         save = SaveTranslationToLibraryUseCase(
-            QuoteRepositoryImpl(database.quoteDao(), clock), translations,
+            QuoteRepositoryImpl(database.quoteDao(), clock, mockk()), translations,
             BuildTransliterationBundleUseCase(direct), BuildHistoricalTranslationBundleUseCase(service)
         )
     }

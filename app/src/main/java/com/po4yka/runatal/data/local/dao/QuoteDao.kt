@@ -48,6 +48,10 @@ internal interface QuoteDao {
     @Query("SELECT * FROM quotes ORDER BY createdAt DESC")
     suspend fun getAll(): List<QuoteEntity>
 
+    /** Stable candidate ordering without loading quote text or glyph fields. */
+    @Query("SELECT id FROM quotes ORDER BY id")
+    suspend fun getQuoteIdentities(): List<Long>
+
     /**
      * Get all quotes as a Flow for reactive updates.
      */

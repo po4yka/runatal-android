@@ -3,6 +3,7 @@ package com.po4yka.runatal.data.repository
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.data.local.dao.QuoteDao
 import com.po4yka.runatal.data.local.entity.QuoteEntity
+import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.util.TimeProvider
 import io.mockk.coEvery
@@ -29,6 +30,7 @@ class QuoteRepositoryImplTest {
 
     private lateinit var quoteDao: QuoteDao
     private lateinit var timeProvider: FakeTimeProvider
+    private lateinit var preferences: UserPreferencesManager
     private lateinit var repository: QuoteRepositoryImpl
 
     /**
@@ -75,7 +77,12 @@ class QuoteRepositoryImplTest {
     fun setUp() {
         quoteDao = mockk()
         timeProvider = FakeTimeProvider(dayOfYear = 1)
-        repository = QuoteRepositoryImpl(quoteDao, timeProvider)
+        preferences = mockk()
+        coEvery { preferences.selectDailyQuote(any(), any()) } coAnswers {
+            val ids = secondArg<suspend () -> List<Long>>().invoke()
+            ids.takeIf { it.isNotEmpty() }?.get(Math.floorMod(firstArg<Long>(), ids.size.toLong()).toInt())
+        }
+        repository = QuoteRepositoryImpl(quoteDao, timeProvider, preferences)
         coEvery { quoteDao.seedCanonicalQuotes(any()) } returns Unit
     }
 
@@ -121,7 +128,7 @@ class QuoteRepositoryImplTest {
     fun `quoteOfTheDay returns consistent quote for same day`() = runTest {
         // Given: Database with quotes
         coEvery { quoteDao.getCount() } returns 3
-        coEvery { quoteDao.getAll() } returns testQuotes
+        stubQuotes(testQuotes)
 
         // When: Getting quote of the day multiple times on same day
         val quote1 = repository.quoteOfTheDay()
@@ -133,18 +140,19 @@ class QuoteRepositoryImplTest {
     }
 
     @Test
-    fun `quoteOfTheDay uses day of year for selection`() = runTest {
+    fun `quoteOfTheDay delegates the local epoch day and stable candidate identities`() = runTest {
         // Given: Database with 3 quotes and day of year set to 5
         timeProvider.setDayOfYear(5)
         coEvery { quoteDao.getCount() } returns 3
-        coEvery { quoteDao.getAll() } returns testQuotes
+        stubQuotes(testQuotes)
 
         // When: Getting quote of the day
         val quote = repository.quoteOfTheDay()
 
-        // Then: Quote index matches dayOfYear % size (5 % 3 = 2)
-        val expectedIndex = 2
+        // Then: Repository resolves the identity selected for the complete local epoch day
+        val expectedIndex = Math.floorMod(timeProvider.getCurrentDate().toEpochDay(), 3L).toInt()
         assertThat(quote?.id).isEqualTo(testQuotes[expectedIndex].id)
+        coVerify { preferences.selectDailyQuote(LocalDate.ofYearDay(2024, 5).toEpochDay(), any()) }
     }
 
     @Test
@@ -152,7 +160,7 @@ class QuoteRepositoryImplTest {
         // Given: Empty database (even after seeding attempt)
         coEvery { quoteDao.getCount() } returns 0
         coEvery { quoteDao.seedCanonicalQuotes(any()) } returns Unit
-        coEvery { quoteDao.getAll() } returns emptyList()
+        stubQuotes(emptyList())
 
         // When: Getting quote of the day
         val quote = repository.quoteOfTheDay()
@@ -166,7 +174,7 @@ class QuoteRepositoryImplTest {
         // Given: Initially empty database, then has quotes after seeding
         coEvery { quoteDao.getCount() } returns 0 andThen 5
         coEvery { quoteDao.seedCanonicalQuotes(any()) } returns Unit
-        coEvery { quoteDao.getAll() } returns testQuotes
+        stubQuotes(testQuotes)
 
         // When: Getting quote of the day
         val quote = repository.quoteOfTheDay()
@@ -181,14 +189,14 @@ class QuoteRepositoryImplTest {
         // Given: Database with quotes and day of year set to 7
         timeProvider.setDayOfYear(7)
         coEvery { quoteDao.getCount() } returns 3
-        coEvery { quoteDao.getAll() } returns testQuotes
+        stubQuotes(testQuotes)
 
         // When: Getting quote of the day
         val quote = repository.quoteOfTheDay()
 
-        // Then: Domain model properties match entity (7 % 3 = 1)
+        // Then: Domain model properties match the selected persisted entity
         assertThat(quote).isNotNull()
-        val expectedIndex = 1
+        val expectedIndex = Math.floorMod(timeProvider.getCurrentDate().toEpochDay(), 3L).toInt()
         val expectedEntity = testQuotes[expectedIndex]
 
         assertThat(quote?.id).isEqualTo(expectedEntity.id)
@@ -299,7 +307,7 @@ class QuoteRepositoryImplTest {
     @Test
     fun `getAllQuotes returns all quotes from DAO`() = runTest {
         // Given: DAO returns list of quotes
-        coEvery { quoteDao.getAll() } returns testQuotes
+        stubQuotes(testQuotes)
 
         // When: Getting all quotes
         val quotes = repository.getAllQuotes()
@@ -314,7 +322,7 @@ class QuoteRepositoryImplTest {
     @Test
     fun `getAllQuotes returns empty list when no quotes`() = runTest {
         // Given: DAO returns empty list
-        coEvery { quoteDao.getAll() } returns emptyList()
+        stubQuotes(emptyList())
 
         // When: Getting all quotes
         val quotes = repository.getAllQuotes()
@@ -406,7 +414,7 @@ class QuoteRepositoryImplTest {
     fun `quoteOfTheDay returns same quote on repeated calls for same day`() = runTest {
         // Given: Database with quotes
         coEvery { quoteDao.getCount() } returns 3
-        coEvery { quoteDao.getAll() } returns testQuotes
+        stubQuotes(testQuotes)
 
         // When: Getting quote multiple times
         val quote1 = repository.quoteOfTheDay()
@@ -425,7 +433,7 @@ class QuoteRepositoryImplTest {
         // Given: Database with one quote
         val singleQuote = listOf(testQuotes[0])
         coEvery { quoteDao.getCount() } returns 1
-        coEvery { quoteDao.getAll() } returns singleQuote
+        stubQuotes(singleQuote)
 
         // When: Getting quote of the day
         val quote = repository.quoteOfTheDay()
@@ -449,7 +457,7 @@ class QuoteRepositoryImplTest {
             )
         }
         coEvery { quoteDao.getCount() } returns 1000
-        coEvery { quoteDao.getAll() } returns manyQuotes
+        stubQuotes(manyQuotes)
 
         // When: Getting quote of the day
         val quote = repository.quoteOfTheDay()
@@ -460,25 +468,25 @@ class QuoteRepositoryImplTest {
     }
 
     @Test
-    fun `day of year modulo works correctly for year boundary`() = runTest {
+    fun `epoch day selection works correctly for year boundary`() = runTest {
         // Given: 3 quotes in database and day of year set to 365 (end of year)
         timeProvider.setDayOfYear(365)
         coEvery { quoteDao.getCount() } returns 3
-        coEvery { quoteDao.getAll() } returns testQuotes
+        stubQuotes(testQuotes)
 
-        // When: Getting quote (day of year will be moduloed by 3)
+        // When: Getting quote using the complete local epoch day
         val quote = repository.quoteOfTheDay()
 
-        // Then: Index is within valid range (365 % 3 = 2)
+        // Then: Selected ID maps to an existing row across the year boundary
         assertThat(quote).isNotNull()
-        assertThat(quote?.id).isEqualTo(testQuotes[365 % 3].id)
+        assertThat(quote?.id).isEqualTo(testQuotes[Math.floorMod(timeProvider.getCurrentDate().toEpochDay(), 3L).toInt()].id)
     }
 
     @Test
     fun `different days return different quotes predictably`() = runTest {
         // Given: Database with 3 quotes
         coEvery { quoteDao.getCount() } returns 3
-        coEvery { quoteDao.getAll() } returns testQuotes
+        stubQuotes(testQuotes)
 
         // When: Getting quotes for different days
         timeProvider.setDayOfYear(1)
@@ -490,25 +498,25 @@ class QuoteRepositoryImplTest {
         timeProvider.setDayOfYear(3)
         val quote3 = repository.quoteOfTheDay()
 
-        // Then: Different quotes are returned based on modulo
-        assertThat(quote1?.id).isEqualTo(testQuotes[1].id) // 1 % 3 = 1
-        assertThat(quote2?.id).isEqualTo(testQuotes[2].id) // 2 % 3 = 2
-        assertThat(quote3?.id).isEqualTo(testQuotes[0].id) // 3 % 3 = 0
+        // Then: Different epoch days are passed to the daily identity selector
+        assertThat(quote1?.id).isEqualTo(testQuotes[1].id)
+        assertThat(quote2?.id).isEqualTo(testQuotes[2].id)
+        assertThat(quote3?.id).isEqualTo(testQuotes[0].id)
     }
 
     @Test
-    fun `same day always returns same quote index`() = runTest {
+    fun `same local day returns the selected quote identity`() = runTest {
         // Given: Database with 3 quotes and day set to 10
         timeProvider.setDayOfYear(10)
         coEvery { quoteDao.getCount() } returns 3
-        coEvery { quoteDao.getAll() } returns testQuotes
+        stubQuotes(testQuotes)
 
         // When: Getting quote multiple times on same day
         val quote1 = repository.quoteOfTheDay()
         val quote2 = repository.quoteOfTheDay()
         val quote3 = repository.quoteOfTheDay()
 
-        // Then: All return same quote (10 % 3 = 1)
+        // Then: All resolve the same selected identity
         assertThat(quote1?.id).isEqualTo(testQuotes[1].id)
         assertThat(quote2?.id).isEqualTo(quote1?.id)
         assertThat(quote3?.id).isEqualTo(quote1?.id)
@@ -523,14 +531,14 @@ class QuoteRepositoryImplTest {
         )
         timeProvider.setDayOfYear(366)
         coEvery { quoteDao.getCount() } returns 5
-        coEvery { quoteDao.getAll() } returns fiveQuotes
+        stubQuotes(fiveQuotes)
 
         // When: Getting quote for day 366
         val quote = repository.quoteOfTheDay()
 
-        // Then: Valid quote is returned (366 % 5 = 1)
+        // Then: Valid quote is returned for the complete leap-year date
         assertThat(quote).isNotNull()
-        assertThat(quote?.id).isEqualTo(fiveQuotes[1].id)
+        assertThat(quote?.id).isEqualTo(fiveQuotes[Math.floorMod(timeProvider.getCurrentDate().toEpochDay(), 5L).toInt()].id)
     }
 
     @Test
@@ -541,7 +549,7 @@ class QuoteRepositoryImplTest {
         // Test with 1 quote
         timeProvider.setDayOfYear(100)
         coEvery { quoteDao.getCount() } returns 1
-        coEvery { quoteDao.getAll() } returns singleQuote
+        stubQuotes(singleQuote)
         val quote = repository.quoteOfTheDay()
         assertThat(quote?.id).isEqualTo(singleQuote[0].id)
     }
@@ -551,7 +559,7 @@ class QuoteRepositoryImplTest {
         // Given: Empty database initially
         coEvery { quoteDao.getCount() } returns 0 andThen 5
         coEvery { quoteDao.seedCanonicalQuotes(any()) } returns Unit
-        coEvery { quoteDao.getAll() } returns testQuotes
+        stubQuotes(testQuotes)
         coEvery { quoteDao.getRandom() } returns testQuotes[0]
 
         // When: Multiple operations that call seedIfNeeded
@@ -747,5 +755,11 @@ class QuoteRepositoryImplTest {
         assertThat(quote?.isFavorite).isTrue()
         assertThat(quote?.createdAt).isEqualTo(500L)
         assertThat(repository.getQuoteById(8L)).isNull()
+    }
+
+    private fun stubQuotes(quotes: List<QuoteEntity>) {
+        coEvery { quoteDao.getAll() } returns quotes
+        coEvery { quoteDao.getQuoteIdentities() } returns quotes.map { it.id }
+        coEvery { quoteDao.getById(any()) } answers { quotes.firstOrNull { it.id == firstArg<Long>() } }
     }
 }

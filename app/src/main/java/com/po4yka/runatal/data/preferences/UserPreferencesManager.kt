@@ -149,22 +149,25 @@ class UserPreferencesManager @Inject constructor(
         }
     }
 
-    /**
-     * Updates the last quote date.
-     */
-    suspend fun updateLastQuoteDate(date: Long) {
-        dataStore.edit { preferences ->
-            preferences[LAST_QUOTE_DATE] = date
+    /** Selects and persists one identity per local epoch day in a single serialized DataStore transaction. */
+    suspend fun selectDailyQuote(epochDay: Long, availableQuoteIds: suspend () -> List<Long>): Long? {
+        val updated = dataStore.edit { preferences ->
+            // Load candidates inside the serialized edit so competing readers cannot use older catalog snapshots.
+            val ids = availableQuoteIds().distinct().sorted()
+            require(ids.all { it > 0L })
+            if (ids.isEmpty()) {
+                preferences.remove(LAST_QUOTE_DATE)
+                preferences.remove(LAST_DAILY_QUOTE_ID)
+                return@edit
+            }
+            val previousId = preferences[LAST_DAILY_QUOTE_ID]
+            if (preferences[LAST_QUOTE_DATE] == epochDay && previousId in ids) return@edit
+            val index = Math.floorMod(epochDay, ids.size.toLong()).toInt()
+            val selectedId = if (ids.size > 1 && ids[index] == previousId) ids[(index + 1) % ids.size] else ids[index]
+            preferences[LAST_QUOTE_DATE] = epochDay
+            preferences[LAST_DAILY_QUOTE_ID] = selectedId
         }
-    }
-
-    /**
-     * Updates the last daily quote ID.
-     */
-    suspend fun updateLastDailyQuoteId(id: Long) {
-        dataStore.edit { preferences ->
-            preferences[LAST_DAILY_QUOTE_ID] = id
-        }
+        return updated[LAST_DAILY_QUOTE_ID]
     }
 
     /**

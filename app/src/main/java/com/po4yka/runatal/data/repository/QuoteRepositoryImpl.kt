@@ -2,6 +2,7 @@ package com.po4yka.runatal.data.repository
 
 import com.po4yka.runatal.data.local.dao.QuoteDao
 import com.po4yka.runatal.data.local.entity.QuoteEntity
+import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.data.seed.QuoteSeedData
 import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.domain.repository.QuoteRepository
@@ -18,7 +19,8 @@ import javax.inject.Singleton
 @Singleton
 internal class QuoteRepositoryImpl @Inject constructor(
     private val quoteDao: QuoteDao,
-    private val timeProvider: TimeProvider
+    private val timeProvider: TimeProvider,
+    private val userPreferencesManager: UserPreferencesManager
 ) : QuoteRepository {
 
     override fun observeQuoteChanges(): Flow<Unit> = quoteDao.observeQuoteIdentities().map { Unit }
@@ -28,18 +30,14 @@ internal class QuoteRepositoryImpl @Inject constructor(
     }
 
     override suspend fun quoteOfTheDay(): Quote? {
-        // Ensure database is seeded
         seedIfNeeded()
-
-        // Get a consistent quote for today based on the day of year
-        val dayOfYear = timeProvider.getCurrentDayOfYear()
-        val allQuotes = quoteDao.getAll()
-
-        if (allQuotes.isEmpty()) return null
-
-        // Use modulo to get a consistent quote for the day
-        val index = dayOfYear % allQuotes.size
-        return allQuotes[index].toDomain()
+        val epochDay = timeProvider.getCurrentDate().toEpochDay()
+        while (true) {
+            val selectedId = userPreferencesManager.selectDailyQuote(epochDay) { quoteDao.getQuoteIdentities() }
+                ?: return null
+            val selected = quoteDao.getById(selectedId)
+            if (selected != null) return selected.toDomain()
+        }
     }
 
     override suspend fun randomQuote(): Quote? {

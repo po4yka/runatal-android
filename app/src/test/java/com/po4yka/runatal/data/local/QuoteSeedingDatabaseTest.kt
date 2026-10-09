@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
+import io.mockk.mockk
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -64,7 +65,7 @@ class QuoteSeedingDatabaseTest {
         dao.insert(userQuote)
 
         repeat(3) {
-            QuoteRepositoryImpl(dao, timeProvider).seedIfNeeded()
+            QuoteRepositoryImpl(dao, timeProvider, mockk()).seedIfNeeded()
         }
 
         assertThat(dao.getById(userQuote.id)).isEqualTo(userQuote)
@@ -79,7 +80,7 @@ class QuoteSeedingDatabaseTest {
         dao.insert(existingCanonical)
         dao.insert(userQuote)
 
-        QuoteRepositoryImpl(dao, timeProvider).seedIfNeeded()
+        QuoteRepositoryImpl(dao, timeProvider, mockk()).seedIfNeeded()
 
         assertThat(dao.getById(existingCanonical.id)).isEqualTo(existingCanonical)
         assertThat(dao.getById(userQuote.id)).isEqualTo(userQuote)
@@ -95,7 +96,7 @@ class QuoteSeedingDatabaseTest {
         val seedJobs = (1..8).map {
             async(Dispatchers.Default) {
                 start.await()
-                QuoteRepositoryImpl(dao, timeProvider).seedIfNeeded()
+                QuoteRepositoryImpl(dao, timeProvider, mockk()).seedIfNeeded()
             }
         }
         val secondUser = userQuote.copy(id = 0L, textLatin = "A concurrent user quote")

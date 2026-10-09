@@ -13,6 +13,7 @@ import com.po4yka.runatal.util.TimeProvider
 import java.time.LocalDate
 import java.io.IOException
 import kotlinx.coroutines.test.runTest
+import io.mockk.mockk
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -47,7 +48,7 @@ class SourceContentDatabaseTest {
         database = Room.databaseBuilder(context, RunatalDatabase::class.java, databaseName)
             .setDriver(AndroidSQLiteDriver())
             .build()
-        repository = QuoteRepositoryImpl(database.quoteDao(), clock)
+        repository = QuoteRepositoryImpl(database.quoteDao(), clock, mockk())
     }
 
     @After
