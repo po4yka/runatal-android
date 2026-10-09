@@ -1,6 +1,7 @@
 package com.po4yka.runatal.ui.screens.addeditquote
 
 import app.cash.turbine.test
+import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
@@ -93,6 +94,60 @@ class AddEditQuoteViewModelTest {
     }
 
     // ==================== Initialization Tests - New Quote ====================
+
+    @Test
+    fun `restored editor draft survives loading the original quote`() = runTest {
+        coEvery { quoteRepository.getQuoteById(1L) } returns testQuote
+        val handle = SavedStateHandle()
+        viewModel = AddEditQuoteViewModel(
+            quoteRepository, userPreferencesManager, transliterationFactory, 1L,
+            savedStateHandle = handle
+        )
+        advanceUntilIdle()
+        viewModel.updateTextLatin("Unsaved replacement")
+        viewModel.updateAuthor("Unsaved author")
+        val restored = SavedStateHandle(handle.keys().associateWith { handle.get<Any>(it) })
+
+        val recreated = AddEditQuoteViewModel(
+            quoteRepository, userPreferencesManager, transliterationFactory, 1L,
+            savedStateHandle = restored
+        )
+        advanceUntilIdle()
+
+        assertThat(recreated.uiState.value.textLatin).isEqualTo("Unsaved replacement")
+        assertThat(recreated.uiState.value.author).isEqualTo("Unsaved author")
+        assertThat(recreated.uiState.value.runicElderPreview)
+            .isEqualTo(transliterationFactory.transliterate("Unsaved replacement", RunicScript.ELDER_FUTHARK))
+        assertThat(recreated.uiState.value.hasUnsavedChanges).isTrue()
+    }
+
+    @Test
+    fun `restored completed creation keeps its identity and confirmation`() = runTest {
+        coEvery { quoteRepository.saveUserQuote(any()) } returns 1L
+        coEvery { quoteRepository.getQuoteById(1L) } returns testQuote
+        val handle = SavedStateHandle()
+        viewModel = AddEditQuoteViewModel(
+            quoteRepository, userPreferencesManager, transliterationFactory, 0L,
+            savedStateHandle = handle
+        )
+        viewModel.updateTextLatin(testQuote.textLatin)
+        viewModel.updateAuthor(testQuote.author)
+        viewModel.saveQuote()
+        advanceUntilIdle()
+        val restored = SavedStateHandle(handle.keys().associateWith { handle.get<Any>(it) })
+
+        val recreated = AddEditQuoteViewModel(
+            quoteRepository, userPreferencesManager, transliterationFactory, 0L,
+            savedStateHandle = restored
+        )
+        advanceUntilIdle()
+        recreated.saveQuote()
+        advanceUntilIdle()
+
+        assertThat(recreated.uiState.value.showConfirmation).isTrue()
+        coVerify(exactly = 1) { quoteRepository.saveUserQuote(any()) }
+        coVerify(exactly = 1) { quoteRepository.getQuoteById(1L) }
+    }
 
     @Test
     fun `save is claimed synchronously and excludes duplicate save and delete`() = runTest {

@@ -1,6 +1,7 @@
 package com.po4yka.runatal.ui.screens.translation
 
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runatal.BuildConfig
@@ -57,7 +58,8 @@ internal class TranslationViewModel @Inject constructor(
     private val userPreferencesManager: UserPreferencesManager,
     private val buildTranslationPresentationUseCase: BuildTranslationPresentationUseCase,
     private val saveTranslationToLibraryUseCase: SaveTranslationToLibraryUseCase,
-    @param:DefaultDispatcher private val translationDispatcher: CoroutineDispatcher
+    @param:DefaultDispatcher private val translationDispatcher: CoroutineDispatcher,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     internal constructor(
@@ -66,7 +68,8 @@ internal class TranslationViewModel @Inject constructor(
         quoteRepository: QuoteRepository,
         translationRepository: TranslationRepository,
         userPreferencesManager: UserPreferencesManager,
-        translationDispatcher: CoroutineDispatcher = Dispatchers.Default
+        translationDispatcher: CoroutineDispatcher = Dispatchers.Default,
+        savedStateHandle: SavedStateHandle = SavedStateHandle()
     ) : this(
         userPreferencesManager = userPreferencesManager,
         buildTranslationPresentationUseCase = BuildTranslationPresentationUseCase(
@@ -83,22 +86,35 @@ internal class TranslationViewModel @Inject constructor(
                 historicalTranslationService
             )
         ),
-        translationDispatcher = translationDispatcher
+        translationDispatcher = translationDispatcher,
+        savedStateHandle = savedStateHandle
     )
 
-    private val _inputText = MutableStateFlow("")
+    private val _inputText = savedStateHandle.getMutableStateFlow("translation.input", "")
 
     /** Immediate editing state, independent of asynchronous translation rendering. */
     val inputText: StateFlow<String> = _inputText.asStateFlow()
 
     private val _selectedScript = MutableStateFlow(RunicScript.DEFAULT)
     private val _selectedFont = MutableStateFlow("noto")
-    private val _translationMode = MutableStateFlow(TranslationMode.DEFAULT)
-    private val _selectedFidelity = MutableStateFlow(TranslationFidelity.DEFAULT)
-    private val _selectedYoungerVariant = MutableStateFlow(YoungerFutharkVariant.DEFAULT)
+    private val _translationMode = MutableStateFlow(
+        if (BuildConfig.ENABLE_EXPERIMENTAL_TRANSLATE) {
+            savedStateHandle.get<String>("translation.mode")?.let(TranslationMode::valueOf) ?: TranslationMode.DEFAULT
+        } else {
+            TranslationMode.TRANSLITERATE
+        }
+    )
+    private val _selectedFidelity = MutableStateFlow(
+        savedStateHandle.get<String>("translation.fidelity")?.let(TranslationFidelity::valueOf)
+            ?: TranslationFidelity.DEFAULT
+    )
+    private val _selectedYoungerVariant = MutableStateFlow(
+        savedStateHandle.get<String>("translation.variant")?.let(YoungerFutharkVariant::valueOf)
+            ?: YoungerFutharkVariant.DEFAULT
+    )
     private val _isSaving = MutableStateFlow(false)
     private val _persistedWordByWordEnabled = MutableStateFlow(false)
-    private val _localWordByWordOverride = MutableStateFlow<Boolean?>(null)
+    private val _localWordByWordOverride = MutableStateFlow<Boolean?>(savedStateHandle["translation.wordByWord"])
     private val translateFeatureEnabled = BuildConfig.ENABLE_EXPERIMENTAL_TRANSLATE
     private val _events = Channel<TranslationEvent>(Channel.BUFFERED)
 
@@ -215,6 +231,7 @@ internal class TranslationViewModel @Inject constructor(
         } else {
             TranslationMode.TRANSLITERATE
         }
+        savedStateHandle["translation.mode"] = _translationMode.value.name
     }
 
     /**
@@ -222,6 +239,7 @@ internal class TranslationViewModel @Inject constructor(
      */
     fun selectFidelity(fidelity: TranslationFidelity) {
         _selectedFidelity.value = fidelity
+        savedStateHandle["translation.fidelity"] = fidelity.name
     }
 
     /**
@@ -229,6 +247,7 @@ internal class TranslationViewModel @Inject constructor(
      */
     fun selectYoungerVariant(variant: YoungerFutharkVariant) {
         _selectedYoungerVariant.value = variant
+        savedStateHandle["translation.variant"] = variant.name
     }
 
     /**
@@ -263,6 +282,7 @@ internal class TranslationViewModel @Inject constructor(
     fun toggleWordByWordMode() {
         _localWordByWordOverride.value =
             !(_localWordByWordOverride.value ?: _persistedWordByWordEnabled.value)
+        savedStateHandle["translation.wordByWord"] = _localWordByWordOverride.value
     }
 
     /**

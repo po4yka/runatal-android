@@ -1,6 +1,7 @@
 package com.po4yka.runatal.ui.screens.translation
 
 import app.cash.turbine.test
+import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
@@ -326,6 +327,33 @@ class TranslationViewModelTest {
                 YoungerFutharkVariant.DEFAULT
             )
         }
+        collector.cancel()
+    }
+
+    @Test
+    fun `restored translation retains input mode fidelity and variant`() = runTest {
+        val handle = SavedStateHandle()
+        val original = TranslationViewModel(
+            transliterationFactory, historicalTranslationService, quoteRepository,
+            translationRepository, userPreferencesManager, testDispatcher, handle
+        )
+        original.updateInputText("Unsaved translation")
+        original.selectMode(TranslationMode.TRANSLATE)
+        original.selectFidelity(TranslationFidelity.DECORATIVE)
+        original.selectYoungerVariant(YoungerFutharkVariant.SHORT_TWIG)
+        val restored = SavedStateHandle(handle.keys().associateWith { handle.get<Any>(it) })
+
+        val recreated = TranslationViewModel(
+            transliterationFactory, historicalTranslationService, quoteRepository,
+            translationRepository, userPreferencesManager, testDispatcher, restored
+        )
+        val collector = launch { recreated.uiState.collect { } }
+        advanceUntilIdle()
+
+        assertThat(recreated.inputText.value).isEqualTo("Unsaved translation")
+        assertThat(recreated.uiState.value.translationMode).isEqualTo(TranslationMode.TRANSLATE)
+        assertThat(recreated.uiState.value.selectedFidelity).isEqualTo(TranslationFidelity.DECORATIVE)
+        assertThat(recreated.uiState.value.selectedYoungerVariant).isEqualTo(YoungerFutharkVariant.SHORT_TWIG)
         collector.cancel()
     }
 

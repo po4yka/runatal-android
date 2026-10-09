@@ -1,6 +1,7 @@
 package com.po4yka.runatal.ui.screens.addeditquote
 
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
@@ -40,7 +41,8 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
     private val quoteRepository: QuoteRepository,
     private val userPreferencesManager: UserPreferencesManager,
     @Assisted private var quoteId: Long,
-    private val editorInteractors: AddEditQuoteEditorInteractors
+    private val editorInteractors: AddEditQuoteEditorInteractors,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     internal constructor(
@@ -48,7 +50,8 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
         userPreferencesManager: UserPreferencesManager,
         transliterationFactory: TransliterationFactory,
         quoteId: Long,
-        translationRepository: TranslationRepository = NoOpTranslationRepository
+        translationRepository: TranslationRepository = NoOpTranslationRepository,
+        savedStateHandle: SavedStateHandle = SavedStateHandle()
     ) : this(
         quoteRepository = quoteRepository,
         userPreferencesManager = userPreferencesManager,
@@ -64,7 +67,8 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
                 quoteRepository = quoteRepository,
                 translationRepository = translationRepository
             )
-        )
+        ),
+        savedStateHandle = savedStateHandle
     )
 
     private var loadedQuoteId: Long? = null
@@ -73,7 +77,14 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
     private var initialAuthor: String = ""
     private var hasAttemptedSave: Boolean = false
 
-    private val _uiState = MutableStateFlow(AddEditQuoteUiState())
+    private val hasRestoredDraft = savedStateHandle.contains(DRAFT_TEXT)
+    private val _uiState = MutableStateFlow(
+        AddEditQuoteUiState(
+            textLatin = savedStateHandle[DRAFT_TEXT] ?: "",
+            author = savedStateHandle[DRAFT_AUTHOR] ?: "",
+            showConfirmation = savedStateHandle[SAVED_CONFIRMATION] ?: false
+        )
+    )
     val uiState: StateFlow<AddEditQuoteUiState> = _uiState.asStateFlow()
     private val _events = Channel<AddEditQuoteEvent>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
@@ -88,6 +99,10 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
     /** Constants for validation limits. */
     companion object {
         private const val TAG = "AddEditQuoteViewModel"
+        private const val DRAFT_TEXT = "editor.text"
+        private const val DRAFT_AUTHOR = "editor.author"
+        private const val SAVED_QUOTE_ID = "editor.quoteId"
+        private const val SAVED_CONFIRMATION = "editor.confirmation"
     }
 
     init {
@@ -104,7 +119,10 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
             }
         }
 
-        initializeQuoteIfNeeded(quoteId)
+        this.quoteId = savedStateHandle[SAVED_QUOTE_ID] ?: quoteId
+        updateRunicPreviews(_uiState.value.textLatin)
+        recomputeDerivedState()
+        initializeQuoteIfNeeded(this.quoteId)
     }
 
     /**
@@ -127,8 +145,8 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
                 initialAuthor = loadedEditableQuote.quote.author
                 _uiState.update {
                     it.copy(
-                        textLatin = loadedEditableQuote.quote.textLatin,
-                        author = loadedEditableQuote.quote.author,
+                        textLatin = if (hasRestoredDraft) it.textLatin else loadedEditableQuote.quote.textLatin,
+                        author = if (hasRestoredDraft) it.author else loadedEditableQuote.quote.author,
                         runicElderPreview = loadedEditableQuote.previews.elder,
                         runicYoungerPreview = loadedEditableQuote.previews.younger,
                         runicCirthPreview = loadedEditableQuote.previews.cirth,
@@ -136,6 +154,7 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
                         isEditing = true
                     )
                 }
+                updateRunicPreviews(_uiState.value.textLatin)
                 recomputeDerivedState()
             }
         }
@@ -146,6 +165,7 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
      */
     fun updateTextLatin(text: String) {
         if (_uiState.value.isMutating) return
+        savedStateHandle[DRAFT_TEXT] = text
         _uiState.update { it.copy(textLatin = text) }
         updateRunicPreviews(text)
         recomputeDerivedState()
@@ -156,6 +176,7 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
      */
     fun updateAuthor(author: String) {
         if (_uiState.value.isMutating) return
+        savedStateHandle[DRAFT_AUTHOR] = author
         _uiState.update { it.copy(author = author) }
         recomputeDerivedState()
     }
@@ -204,6 +225,10 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
                     )
                 }
                 quoteId = result.savedQuote.id
+                savedStateHandle[SAVED_QUOTE_ID] = quoteId
+                savedStateHandle[DRAFT_TEXT] = result.savedQuote.textLatin
+                savedStateHandle[DRAFT_AUTHOR] = result.savedQuote.author
+                savedStateHandle[SAVED_CONFIRMATION] = !state.isEditing
                 loadedQuoteId = result.savedQuote.id
                 loadedQuote = result.savedQuote
                 initialTextLatin = result.savedQuote.textLatin
@@ -269,6 +294,10 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
      * Resets the form for creating another quote after confirmation.
      */
     fun resetForNewQuote() {
+        savedStateHandle.remove<String>(DRAFT_TEXT)
+        savedStateHandle.remove<String>(DRAFT_AUTHOR)
+        savedStateHandle.remove<Long>(SAVED_QUOTE_ID)
+        savedStateHandle.remove<Boolean>(SAVED_CONFIRMATION)
         quoteId = 0L
         loadedQuoteId = null
         loadedQuote = null
