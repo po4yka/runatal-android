@@ -26,6 +26,7 @@ class SaveEditableQuoteUseCaseTest {
     fun `new content derives all previews from trimmed authoritative source`() = runTest {
         val draft = slot<Quote>()
         coEvery { quotes.saveUserQuote(capture(draft)) } returns 7L
+        val preparedPreview = previews(" wolf ")
 
         val result = useCase(
             SaveEditableQuoteRequest(0L, " wolf ", " User ", null, 0L, false, "", "")
@@ -36,6 +37,9 @@ class SaveEditableQuoteUseCaseTest {
         assertThat(draft.captured.runicElder).isEqualTo("ᚹᛟᛚᚠ")
         assertThat(draft.captured.runicYounger).isEqualTo("ᚢᚢᛚᚠ")
         assertThat(draft.captured.runicCirth).isEqualTo("\uE0AC\uE0B3\uE09E\uE082")
+        assertThat(draft.captured.runicElder).isEqualTo(preparedPreview.elder)
+        assertThat(draft.captured.runicYounger).isEqualTo(preparedPreview.younger)
+        assertThat(draft.captured.runicCirth).isEqualTo(preparedPreview.cirth)
         assertThat(result.savedQuote).isEqualTo(draft.captured.copy(id = 7L))
     }
 
@@ -48,6 +52,7 @@ class SaveEditableQuoteUseCaseTest {
         val persisted = loaded.copy(author = "Updated author", isFavorite = true)
         val content = slot<Quote>()
         coEvery { quotes.updateUserQuoteContent(capture(content), "wolf", "User") } returns persisted
+        val preparedPreview = previews(" wolf ", loaded)
 
         val result = useCase(
             SaveEditableQuoteRequest(7L, " wolf ", " Updated author ", loaded, 999L, true, "wolf", loaded.author)
@@ -56,8 +61,31 @@ class SaveEditableQuoteUseCaseTest {
         assertThat(content.captured.runicElder).isEqualTo("manual elder")
         assertThat(content.captured.runicYounger).isEqualTo("manual younger")
         assertThat(content.captured.runicCirth).isEqualTo("manual cirth")
+        assertThat(preparedPreview.elder).isEqualTo(content.captured.runicElder)
+        assertThat(preparedPreview.younger).isEqualTo(content.captured.runicYounger)
+        assertThat(preparedPreview.cirth).isEqualTo(content.captured.runicCirth)
         assertThat(result.savedQuote).isEqualTo(persisted)
         coVerify(exactly = 0) { quotes.saveUserQuote(any()) }
+    }
+
+    @Test
+    fun `source edit replaces manual renderings without collapsing interior whitespace or punctuation`() = runTest {
+        val loaded = Quote(
+            id = 7L, textLatin = "wolf", author = "User", runicElder = "manual elder",
+            runicYounger = "manual younger", runicCirth = "manual cirth", isUserCreated = true
+        )
+        val draft = " \tWolf,  king!\n "
+        val preparedPreview = previews(draft, loaded)
+        val content = slot<Quote>()
+        coEvery { quotes.updateUserQuoteContent(capture(content), "wolf", "User") } coAnswers { firstArg() }
+
+        useCase(SaveEditableQuoteRequest(7L, draft, "User", loaded, 42L, true, "wolf", "User"))
+
+        assertThat(content.captured.textLatin).isEqualTo("Wolf,  king!")
+        assertThat(content.captured.runicElder).isEqualTo(preparedPreview.elder)
+        assertThat(content.captured.runicYounger).isEqualTo(preparedPreview.younger)
+        assertThat(content.captured.runicCirth).isEqualTo(preparedPreview.cirth)
+        assertThat(preparedPreview.elder).isNotEqualTo("manual elder")
     }
 
     @Test

@@ -831,6 +831,10 @@ class AddEditQuoteViewModelTest {
         viewModel.updateTextLatin("  Test quote  ")
         viewModel.updateAuthor("  Test Author  ")
         advanceUntilIdle()
+        val preview = viewModel.uiState.value
+        assertThat(preview.textLatin).isEqualTo("  Test quote  ")
+        assertThat(preview.author).isEqualTo("  Test Author  ")
+        assertThat(preview.quoteCharCount).isEqualTo("  Test quote  ".length)
 
         // When: Saving quote
         viewModel.saveQuote()
@@ -840,6 +844,9 @@ class AddEditQuoteViewModelTest {
         assertThat(savedQuote).isNotNull()
         assertThat(savedQuote!!.textLatin).isEqualTo("Test quote")
         assertThat(savedQuote!!.author).isEqualTo("Test Author")
+        assertThat(savedQuote!!.runicElder).isEqualTo(preview.runicElderPreview)
+        assertThat(savedQuote!!.runicYounger).isEqualTo(preview.runicYoungerPreview)
+        assertThat(savedQuote!!.runicCirth).isEqualTo(preview.runicCirthPreview)
     }
 
     @Test

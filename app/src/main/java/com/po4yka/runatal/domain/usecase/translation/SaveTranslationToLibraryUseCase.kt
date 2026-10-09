@@ -32,7 +32,7 @@ internal class SaveTranslationToLibraryUseCase @Inject constructor(
 ) {
 
     suspend operator fun invoke(request: SaveTranslationRequest): SaveTranslationResult {
-        val input = request.inputText.trim()
+        val input = QuoteInputPolicy.prepareSourceText(request.inputText)
         check(QuoteInputPolicy.quoteTextError(request.inputText) == null) { "Enter valid source text before saving." }
         val transliterationBundle = buildTransliterationBundleUseCase(input, youngerVariant = request.youngerVariant)
         check(transliterationBundle.errorMessage == null) { "Could not prepare direct renderings." }

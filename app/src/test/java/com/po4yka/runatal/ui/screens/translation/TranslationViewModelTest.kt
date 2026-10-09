@@ -7,6 +7,7 @@ import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.domain.repository.TranslationRepository
+import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.transliteration.CirthTransliterator
 import com.po4yka.runatal.domain.transliteration.ElderFutharkTransliterator
@@ -562,6 +563,29 @@ class TranslationViewModelTest {
         assertThat(viewModel.uiState.value.fallbackSuggestion).isEqualTo(
             "Try Readable or Decorative for a best-effort result."
         )
+        collector.cancel()
+    }
+
+    @Test
+    fun `preview and save prepare the same source while retaining the exact raw editing state`() = runTest {
+        val saved = slot<Quote>()
+        coEvery { quoteRepository.saveUserQuote(capture(saved)) } returns 21L
+        val draft = " \tWolf,  king!\n "
+        val collector = launch { viewModel.uiState.collect { } }
+        viewModel.updateInputText(draft)
+        advanceUntilIdle()
+        val preview = viewModel.uiState.value
+
+        viewModel.saveToLibrary()
+        advanceUntilIdle()
+
+        assertThat(viewModel.inputText.value).isEqualTo(draft)
+        assertThat(preview.inputText).isEqualTo(draft)
+        assertThat(preview.inputCharacterCount).isEqualTo(draft.length)
+        assertThat(preview.canSave).isTrue()
+        assertThat(saved.captured.textLatin).isEqualTo("Wolf,  king!")
+        assertThat(saved.captured.runicElder).isEqualTo(preview.transliteratedText)
+        assertThat(preview.wordBreakdown.map { it.sourceToken }).containsExactly("Wolf,", "king!").inOrder()
         collector.cancel()
     }
 

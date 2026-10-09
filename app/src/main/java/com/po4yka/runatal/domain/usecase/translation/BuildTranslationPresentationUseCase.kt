@@ -69,9 +69,10 @@ internal class BuildTranslationPresentationUseCase @Inject constructor(
         input: TranslationInputSnapshot,
         translateFeatureEnabled: Boolean
     ): TranslationPresentation {
+        val source = QuoteInputPolicy.prepareSourceText(input.inputText)
         val selectedScript = setOf(preferences.selectedScript)
         val transliterationBundle = buildTransliterationBundleUseCase(
-            inputText = input.inputText,
+            inputText = source,
             scripts = selectedScript,
             youngerVariant = preferences.youngerVariant
         )
@@ -83,7 +84,7 @@ internal class BuildTranslationPresentationUseCase @Inject constructor(
         val isHistoricalTranslation = effectiveMode == TranslationMode.TRANSLATE
         val translationBundle = if (translateFeatureEnabled && isHistoricalTranslation) {
             buildHistoricalTranslationBundleUseCase(
-                inputText = input.inputText,
+                inputText = source,
                 fidelity = preferences.fidelity,
                 youngerVariant = preferences.youngerVariant,
                 scripts = selectedScript

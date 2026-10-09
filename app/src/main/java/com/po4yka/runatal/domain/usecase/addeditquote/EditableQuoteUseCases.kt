@@ -58,14 +58,15 @@ internal class BuildQuotePreviewsUseCase @Inject constructor(
         text: String,
         preservedQuote: Quote? = null
     ): QuotePreviewSet {
-        val preserved = preservedQuote?.takeIf { it.textLatin == text }
+        val source = QuoteInputPolicy.prepareSourceText(text)
+        val preserved = preservedQuote?.takeIf { it.textLatin == source }
         return QuotePreviewSet(
             elder = preserved?.getRunicText(RunicScript.ELDER_FUTHARK, transliterationFactory)
-                ?: transliterationFactory.transliterate(text, RunicScript.ELDER_FUTHARK),
+                ?: transliterationFactory.transliterate(source, RunicScript.ELDER_FUTHARK),
             younger = preserved?.getRunicText(RunicScript.YOUNGER_FUTHARK, transliterationFactory)
-                ?: transliterationFactory.transliterate(text, RunicScript.YOUNGER_FUTHARK),
+                ?: transliterationFactory.transliterate(source, RunicScript.YOUNGER_FUTHARK),
             cirth = preserved?.getRunicText(RunicScript.CIRTH, transliterationFactory)
-                ?: transliterationFactory.transliterate(text, RunicScript.CIRTH)
+                ?: transliterationFactory.transliterate(source, RunicScript.CIRTH)
         )
     }
 }
@@ -102,7 +103,8 @@ internal class EvaluateQuoteDraftUseCase @Inject constructor() {
         val authorError = rawAuthorError?.takeIf { hasAttemptedSave || author.isNotBlank() }
 
         val hasUnsavedChanges = if (isEditing) {
-            textLatin.trim() != initialTextLatin.trim() || author.trim() != initialAuthor.trim()
+            QuoteInputPolicy.prepareSourceText(textLatin) != QuoteInputPolicy.prepareSourceText(initialTextLatin) ||
+                author.trim() != initialAuthor.trim()
         } else {
             textLatin.isNotBlank() || author.isNotBlank()
         }
@@ -127,7 +129,7 @@ internal class SaveEditableQuoteUseCase @Inject constructor(
     suspend operator fun invoke(request: SaveEditableQuoteRequest): SaveEditableQuoteResult {
         check(QuoteInputPolicy.quoteTextError(request.textLatin) == null) { "Enter valid quote text before saving." }
         check(QuoteInputPolicy.authorError(request.author) == null) { "Enter a valid author before saving." }
-        val trimmedText = request.textLatin.trim()
+        val trimmedText = QuoteInputPolicy.prepareSourceText(request.textLatin)
         val trimmedAuthor = request.author.trim()
         val previews = buildQuotePreviewsUseCase(trimmedText, request.existingQuote)
         val createdAt = if (request.isEditing && request.createdAtMillis != 0L) {
