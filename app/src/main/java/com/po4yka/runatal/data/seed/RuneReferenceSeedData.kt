@@ -1,5 +1,6 @@
 package com.po4yka.runatal.data.seed
 
+import com.po4yka.runatal.domain.transliteration.CirthAlphabet
 import com.po4yka.runatal.data.local.entity.RuneReferenceEntity
 
 /**
@@ -97,56 +98,18 @@ internal object RuneReferenceSeedData {
             "Represents the yew bow, a symbol of craftsmanship and defense."),
     )
 
-    fun getCirthRunes(): List<RuneReferenceEntity> = listOf(
-        rune("\uE080", "Certh 1", "p", "Voiceless bilabial", CIRTH,
-            "The first Certh, representing the sound p in Tolkien's Angerthas."),
-        rune("\uE081", "Certh 2", "b", "Voiced bilabial", CIRTH,
-            "Represents the voiced counterpart b in the Angerthas system."),
-        rune("\uE082", "Certh 3", "f", "Voiceless fricative", CIRTH,
-            "A labiodental fricative rune used for the sound f."),
-        rune("\uE083", "Certh 4", "v", "Voiced fricative", CIRTH,
-            "The voiced pair of Certh 3, representing the sound v."),
-        rune("\uE088", "Certh 9", "t", "Voiceless dental", CIRTH,
-            "Represents the dental stop t, one of the most common Cirth."),
-        rune("\uE089", "Certh 10", "d", "Voiced dental", CIRTH,
-            "The voiced counterpart of Certh 9, used for the sound d."),
-        rune("\uE08C", "Certh 13", "ch", "Voiceless postalveolar", CIRTH,
-            "Represents the ch sound as in the English word chair."),
-        rune("\uE08D", "Certh 14", "j", "Voiced postalveolar", CIRTH,
-            "Represents the j sound in the Angerthas Daeron system."),
-        rune("\uE090", "Certh 17", "k", "Voiceless velar", CIRTH,
-            "One of the velar series representing the hard k sound."),
-        rune("\uE091", "Certh 18", "g", "Voiced velar", CIRTH,
-            "The voiced velar stop g in the Angerthas system."),
-        rune("\uE098", "Certh 25", "kw", "Labialized velar", CIRTH,
-            "A labialized velar stop used in Quenya-influenced texts."),
-        rune("\uE09C", "Certh 29", "s", "Voiceless sibilant", CIRTH,
-            "Represents the sibilant s, widely used across Cirth variants."),
-        rune("\uE0A0", "Certh 33", "r", "Alveolar trill", CIRTH,
-            "The rhotic consonant r, common in both Sindarin and Quenya."),
-        rune("\uE0A4", "Certh 37", "ng", "Velar nasal", CIRTH,
-            "Represents the nasal ng sound as in the English word ring."),
-        rune("\uE0A8", "Certh 41", "l", "Lateral approximant", CIRTH,
-            "The lateral l, frequent in Elvish languages of Middle-earth."),
-        rune("\uE0B0", "Certh 49", "m", "Bilabial nasal", CIRTH,
-            "Represents the nasal m in the Angerthas system."),
-        rune("\uE0B4", "Certh 53", "n", "Alveolar nasal", CIRTH,
-            "The alveolar nasal n, one of the basic consonant Cirth."),
-        rune("\uE0B8", "Certh 57", "w", "Labial-velar", CIRTH,
-            "Represents the semivowel w in Tolkien's writing systems."),
-        rune("\uE0BC", "Certh 61", "y", "Palatal approximant", CIRTH,
-            "The palatal semivowel y used in Elvish transcription."),
-        rune("\uE0C8", "Certh 73", "i", "Close front vowel", CIRTH,
-            "Represents the vowel i, part of the Cirth vowel series."),
-        rune("\uE0C9", "Certh 74", "e", "Mid front vowel", CIRTH,
-            "The mid front vowel e in the Angerthas vowel system."),
-        rune("\uE0CA", "Certh 75", "a", "Open vowel", CIRTH,
-            "Represents the open vowel a, the most common vowel Certh."),
-        rune("\uE0CB", "Certh 76", "o", "Mid back vowel", CIRTH,
-            "The mid back rounded vowel o in the Cirth system."),
-        rune("\uE0CC", "Certh 77", "u", "Close back vowel", CIRTH,
-            "Represents the close back rounded vowel u."),
-    )
+    fun getCirthRunes(): List<RuneReferenceEntity> =
+        (CirthAlphabet.letters.filterKeys { it != "c" && it != "q" } + CirthAlphabet.sequences)
+            .filterKeys { it != "ph" }
+            .entries.distinctBy { it.value }
+            .map { (sound, glyph) ->
+                rune(
+                    glyph, "Cirth ${sound.uppercase()}", sound, "UCSUR glyph identity", CIRTH,
+                    "UCSUR Cirth glyph catalogue: U+${glyph.single().code.toString(16).uppercase()}. " +
+                        "English title-page usage can assign a different sound to this glyph. " +
+                        "https://www.kreativekorp.com/ucsur/charts/PDF/UE080.pdf"
+                )
+            }
 
     private fun rune(
         character: String,

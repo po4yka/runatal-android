@@ -16,7 +16,7 @@ import android.util.Log
 import android.util.TypedValue
 import androidx.core.content.res.ResourcesCompat
 import com.po4yka.runatal.R
-import com.po4yka.runatal.domain.transliteration.CirthGlyphCompat
+import com.po4yka.runatal.domain.model.RunicScript
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.ceil
@@ -67,7 +67,7 @@ object RunicTextRenderer {
         context: Context,
         config: RenderConfig
     ): Bitmap {
-        val normalizedText = CirthGlyphCompat.normalizeLegacyPuaGlyphs(config.text)
+        val normalizedText = config.text
 
         val typeface = loadTypeface(context, config.fontResource)
 
@@ -148,7 +148,8 @@ object RunicTextRenderer {
     /**
      * Gets the font resource ID based on the font name.
      */
-    fun getFontResource(fontName: String): Int {
+    fun getFontResource(fontName: String, script: RunicScript): Int {
+        if (script == RunicScript.CIRTH) return R.font.fairfax_hd_cirth
         return when (fontName.lowercase()) {
             "babelstone" -> R.font.babelstone_runic
             "babelstone_ruled" -> R.font.babelstone_runic_ruled

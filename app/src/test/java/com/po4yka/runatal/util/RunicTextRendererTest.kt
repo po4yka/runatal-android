@@ -1,6 +1,7 @@
 package com.po4yka.runatal.util
 
 import com.google.common.truth.Truth.assertThat
+import com.po4yka.runatal.domain.model.RunicScript
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -15,7 +16,7 @@ class RunicTextRendererTest {
             context = RuntimeEnvironment.getApplication(),
             config = RenderConfig(
                 text = "\uE080 \uE081",
-                fontResource = RunicTextRenderer.getFontResource("noto"),
+                fontResource = RunicTextRenderer.getFontResource("noto", RunicScript.CIRTH),
                 textSizeSp = 24f,
                 backgroundColor = android.graphics.Color.BLACK,
                 maxWidth = 300,
@@ -29,12 +30,20 @@ class RunicTextRendererTest {
     }
 
     @Test
+    fun `Cirth always selects a genuine Cirth font for every font preference`() {
+        listOf("noto", "babelstone", "babelstone_ruled", "unknown").forEach { font ->
+            assertThat(RunicTextRenderer.getFontResource(font, RunicScript.CIRTH))
+                .isEqualTo(com.po4yka.runatal.R.font.fairfax_hd_cirth)
+        }
+    }
+
+    @Test
     fun `getFontResource resolves supported names and defaults unknown values`() {
-        assertThat(RunicTextRenderer.getFontResource("babelstone"))
+        assertThat(RunicTextRenderer.getFontResource("babelstone", RunicScript.ELDER_FUTHARK))
             .isEqualTo(com.po4yka.runatal.R.font.babelstone_runic)
-        assertThat(RunicTextRenderer.getFontResource("babelstone_ruled"))
+        assertThat(RunicTextRenderer.getFontResource("babelstone_ruled", RunicScript.ELDER_FUTHARK))
             .isEqualTo(com.po4yka.runatal.R.font.babelstone_runic_ruled)
-        assertThat(RunicTextRenderer.getFontResource("unknown"))
+        assertThat(RunicTextRenderer.getFontResource("unknown", RunicScript.ELDER_FUTHARK))
             .isEqualTo(com.po4yka.runatal.R.font.noto_sans_runic)
     }
 }

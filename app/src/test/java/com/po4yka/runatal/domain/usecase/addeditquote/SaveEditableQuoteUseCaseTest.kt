@@ -35,7 +35,7 @@ class SaveEditableQuoteUseCaseTest {
         assertThat(draft.captured.author).isEqualTo("User")
         assertThat(draft.captured.runicElder).isEqualTo("ᚹᛟᛚᚠ")
         assertThat(draft.captured.runicYounger).isEqualTo("ᚢᚢᛚᚠ")
-        assertThat(draft.captured.runicCirth).isEqualTo("\uE0B8\uE0CB\uE0A8\uE082")
+        assertThat(draft.captured.runicCirth).isEqualTo("\uE0AC\uE0B3\uE09E\uE082")
         assertThat(result.savedQuote).isEqualTo(draft.captured.copy(id = 7L))
     }
 

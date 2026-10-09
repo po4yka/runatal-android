@@ -3,7 +3,6 @@ package com.po4yka.runatal.ui.components
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -12,11 +11,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
-import com.po4yka.runatal.domain.transliteration.CirthGlyphCompat
-import com.po4yka.runatal.ui.theme.BabelStoneRunic
-import com.po4yka.runatal.ui.theme.BabelStoneRunicRuled
 import com.po4yka.runatal.ui.theme.LocalRunicFontScale
-import com.po4yka.runatal.ui.theme.NotoSansRunic
+import com.po4yka.runatal.util.RunicTextRenderer
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import com.po4yka.runatal.ui.theme.RunicTextRole
 import com.po4yka.runatal.ui.theme.RunicTypeRoles
 import com.po4yka.runatal.domain.model.RunicScript
@@ -55,19 +53,7 @@ fun RunicText(
         role = role,
         script = script
     )
-    val normalizedText = remember(text, script) {
-        if (script == RunicScript.CIRTH) {
-            CirthGlyphCompat.normalizeLegacyPuaGlyphs(text)
-        } else {
-            text
-        }
-    }
-
-    val fontFamily = when (font.lowercase()) {
-        "babelstone" -> BabelStoneRunic
-        "babelstone_ruled" -> BabelStoneRunicRuled
-        else -> NotoSansRunic // Default to Noto Sans Runic
-    }
+    val fontFamily = FontFamily(Font(RunicTextRenderer.getFontResource(font, script)))
 
     val baseStyle = style ?: if (role == RunicTextRole.Default) {
         LocalTextStyle.current
@@ -96,7 +82,7 @@ fun RunicText(
     }
 
     Text(
-        text = normalizedText,
+        text = text,
         modifier = modifier.then(accessibilityModifier),
         color = color,
         fontSize = tunedFontSize,

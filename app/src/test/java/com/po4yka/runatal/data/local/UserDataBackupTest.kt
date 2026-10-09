@@ -29,7 +29,12 @@ import org.w3c.dom.Element
 
 /** Checks system restore eligibility using the production database, preferences and XML rules. */
 @RunWith(RobolectricTestRunner::class)
-@Config(application = CredentialStorageApplication::class, sdk = [30, 34])
+// A separate instrumentation sandbox models a fresh process for the production DataStore singleton.
+@Config(
+    application = CredentialStorageApplication::class,
+    sdk = [30, 34],
+    instrumentedPackages = ["com.po4yka.runatal.di", "com.po4yka.runatal.data.preferences"]
+)
 @SQLiteMode(SQLiteMode.Mode.NATIVE)
 class UserDataBackupTest {
 

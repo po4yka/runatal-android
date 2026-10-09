@@ -303,7 +303,7 @@ internal class EreborCirthTranslationEngine @Inject constructor(
 ) : TranslationEngine {
 
     override val script: RunicScript = RunicScript.CIRTH
-    override val engineVersion: String = "cirth-translation-v4"
+    override val engineVersion: String = "cirth-translation-v5"
 
     private val parser = EnglishSyntaxParser()
     private val sourceCatalog = HistoricalSourceCatalog(
@@ -374,7 +374,8 @@ internal class EreborCirthTranslationEngine @Inject constructor(
                     TranslationFidelity.DECORATIVE -> 0.54f
                 },
                 fallbackStatus = TranslationResolutionStatus.RECONSTRUCTED,
-                defaultNote = "Generated using the offline Erebor transcription pipeline."
+                defaultNote = "Generated using the cited title-page English profile " +
+                    "or an explicit UCSUR glyph approximation."
             )
         )
     }

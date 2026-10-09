@@ -57,13 +57,6 @@
       "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0102366"
     },
     {
-      "id": "tolkien_appendix_e",
-      "name": "Appendix E / Erebor notes",
-      "role": "Cirth transcription reference",
-      "license": "Reference only",
-      "url": "https://tolkiengateway.net/wiki/Angerthas_Erebor"
-    },
-    {
       "id": "internal_heuristics",
       "name": "Runatal heuristics",
       "role": "Offline fallback logic and generated educational notes",
@@ -83,6 +76,20 @@
       "role": "Published inscription transcription and translation",
       "license": "Reference only",
       "url": "https://en.natmus.dk/historical-knowledge/denmark/prehistoric-period-until-1050-ad/the-late-iron-age/the-golden-horns/"
+    },
+    {
+      "id": "fairfax_cirth_sample",
+      "name": "Fairfax HD published Cirth title-page sample",
+      "role": "Named English title-page transcription profile",
+      "license": "Reference only; font separately SIL OFL 1.1",
+      "url": "https://www.kreativekorp.com/software/fonts/fairfaxhd/"
+    },
+    {
+      "id": "ucsur_cirth",
+      "name": "UCSUR Cirth glyph registry",
+      "role": "Private-use glyph identities; not an English phonology source",
+      "license": "Reference only",
+      "url": "https://www.kreativekorp.com/ucsur/charts/PDF/UE080.pdf"
     }
   ]
 }

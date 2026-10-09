@@ -128,10 +128,9 @@ internal data class VerbParadigm(
 @Serializable
 internal data class EreborTablesData(
     val phraseMappings: List<EreborPhraseMappingEntry> = emptyList(),
-    val sequences: Map<String, String> = emptyMap(),
-    val singleCharacters: Map<String, String> = emptyMap(),
-    val longVowels: Map<String, String> = emptyMap(),
-    val longConsonants: Map<String, String> = emptyMap(),
+    val publishedWords: Map<String, String> = emptyMap(),
+    val profileSourceId: String = "internal_heuristics",
+    val profileReferenceId: String? = null,
     val wordSeparator: String = "·"
 )
 

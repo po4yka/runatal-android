@@ -77,7 +77,7 @@ Preposition entries must state their selected sense, governed case, source, and 
 explicitly interpreted as position with dative; directional government must not be inferred from that rule.
 
 Younger gold examples and templates do not override these requirements. They are comparison records,
-not runtime exceptions. Elder and Erebor retain their documented gold/template selection precedence.
+not runtime exceptions. Elder follows its inscription eligibility policy. Cirth STRICT uses the cited published title-page English profile; regression gold examples and secondary wiki pages establish no orthographic exemption.
 
 Elder strict corpus references must include `attestation.locator`, `diplomaticText`, and `historicalStage`,
 with a located source URL. A named fragment must be listed in `namedForms` and occur in the published text.

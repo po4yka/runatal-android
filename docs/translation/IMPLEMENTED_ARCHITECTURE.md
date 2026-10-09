@@ -17,7 +17,7 @@ The translation stack is offline and asset-backed. It currently exposes three en
 
 - `YoungerFutharkTranslationEngine` English -> normalized Old Norse -> diplomatic Latin rune spelling -> Younger Futhark glyphs
 - `ElderFutharkTranslationEngine` English -> located attested forms or curated Proto-Norse approximation/source preservation -> Elder Futhark glyphs
-- `EreborCirthTranslationEngine` English/Westron-style transcription -> Erebor diplomatic sequence layer -> Cirth glyphs
+- `EreborCirthTranslationEngine` cited title-page English word/phrase profile -> genuine UCSUR Cirth glyphs; other English spelling uses explicit educational approximation
 
 Each engine returns `TranslationResult` with:
 
@@ -44,7 +44,7 @@ The runtime dataset is split into three internal stores:
 
 - `HistoricalLexiconStore` Old Norse and Proto-Norse lexicon entries, paradigm tables, grammar rules, name adaptations, and fallback templates
 - `RunicCorpusStore` gold examples, Younger phrase templates, Elder attested forms, and runic corpus references
-- `EreborOrthographyStore` Erebor sequence tables, phrase mappings, long-vowel and long-consonant tables
+- `EreborOrthographyStore` the cited published title-page phrase and eight witnessed word forms
 
 The shipped provider is `AssetTranslationDatasetProvider`, which reads generated JSON assets from `app/src/main/translationSeed/translation/`.
 
@@ -56,7 +56,7 @@ The engines do not use one generic fallback path. They use precedence rules:
   - unsupported syntax, agreement, government, or forms: `STRICT` returns `UNAVAILABLE`
   - `READABLE`/`DECORATIVE` can fall back to an explicitly `APPROXIMATED` lexical or phonological rendering
 - Elder Futhark eligible attested gold example -> located attested form/template -> readable/decorative token composition -> strict unavailable
-- Erebor gold example -> curated phrase mapping -> sequence-table transcription -> readable character fallback -> strict unavailable
+- Cirth exact published title-page phrase -> witnessed profile words -> strict unavailable / readable UCSUR glyph approximation. Gold examples cannot bypass this profile.
 
 Younger gold examples and phrase templates remain dataset comparison records; they do not bypass the grammar pipeline.
 
@@ -149,3 +149,5 @@ Younger grammatical reconstructions combine lexical citations with inflection an
 source manifest, including Barnes's *A New Introduction to Old Norse I* and Zoëga. Missing lexical/inflection
 sources or citations cannot authorize `STRICT` reconstruction. Runic corpus references are not a substitute for
 these grammatical proofs, and reconstructed forms are not presented as inscription attestation.
+
+Cirth encoding, font licensing, bounded English profile, and legacy repair are documented in [CIRTH_FONT.md](../fonts/CIRTH_FONT.md).

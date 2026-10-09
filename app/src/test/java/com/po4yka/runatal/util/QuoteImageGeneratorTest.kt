@@ -7,7 +7,6 @@ import com.po4yka.runatal.domain.transliteration.TransliterationFactory
 import com.po4yka.runatal.domain.transliteration.ElderFutharkTransliterator
 import com.po4yka.runatal.domain.transliteration.YoungerFutharkTransliterator
 import com.po4yka.runatal.domain.transliteration.CirthTransliterator
-import com.po4yka.runatal.domain.transliteration.CirthGlyphCompat
 import android.app.Application
 import android.graphics.Bitmap
 import java.io.File
@@ -42,7 +41,7 @@ class QuoteImageGeneratorTest {
                     val prepared = generator.prepareLayout(content, template, ShareAppearance.LIGHT)
                     assertThat(prepared.blocks.map { it.layout.text.toString() }).containsExactly(
                         "Runatal · ${content.scriptLabel}",
-                        CirthGlyphCompat.normalizeLegacyPuaGlyphs(content.runicText),
+                        content.runicText,
                         "“$text”", "— ${content.author}"
                     )
                     prepared.blocks.forEach { block ->

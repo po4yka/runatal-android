@@ -2,6 +2,8 @@ package com.po4yka.runatal.domain.translation
 
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.transliteration.CirthTransliterator
+import java.text.Normalizer
+import java.util.Locale
 import com.po4yka.runatal.domain.transliteration.ElderFutharkTransliterator
 import com.po4yka.runatal.domain.transliteration.YoungerFutharkAlphabet
 
@@ -51,6 +53,7 @@ internal class TranslationGoldExampleResolver(
     }
 
     private fun isEligible(request: TranslationRequest, result: TranslationGoldExampleResult): Boolean {
+        if (request.script == RunicScript.CIRTH) return false
         if (request.script != RunicScript.ELDER_FUTHARK || request.fidelity != TranslationFidelity.STRICT) return true
         return elderAttestation.allows(
             result.normalizedForm, result.diplomaticForm, result.resolutionStatus,
@@ -464,10 +467,7 @@ internal class CirthOrthographyStage(
             unresolvedTokens = emptyList(),
             provenance = mapping.referenceIds.map { referenceId ->
                 sourceCatalog.provenanceFor(
-                    sourceId = ereborStore.sourceManifest().sources
-                        .firstOrNull { source -> source.id == "tolkien_appendix_e" }
-                        ?.id
-                        ?: "internal_heuristics",
+                    sourceId = ereborStore.ereborTables().profileSourceId,
                     referenceId = referenceId
                 )
             },
@@ -482,79 +482,34 @@ internal class CirthOrthographyStage(
         fidelity: TranslationFidelity
     ): CirthOrthographyOutput {
         val tables = ereborStore.ereborTables()
-        val sequenceMappings = linkedMapOf<String, String>().apply {
-            putAll(tables.longConsonants)
-            putAll(tables.longVowels)
-            putAll(tables.sequences)
-        }
-        val allSequences = sequenceMappings.keys.sortedByDescending { it.length }
-        val diplomaticTokens = mutableListOf<String>()
-        val glyphs = StringBuilder()
-        var remaining = token.lowercase()
-        var appliedCanonicalRule = false
-        var approximated = false
-        var unresolvedToken: String? = null
-
-        while (remaining.isNotEmpty()) {
-            val sequence = allSequences.firstOrNull { remaining.startsWith(it) }
-            val singleCharacter = remaining.first().toString()
-            val nextGlyph = when {
-                sequence != null -> {
-                    appliedCanonicalRule = true
-                    diplomaticTokens += sequence
-                    remaining = remaining.removePrefix(sequence)
-                    sequenceMappings.getValue(sequence)
-                }
-
-                tables.singleCharacters[singleCharacter] != null -> {
-                    diplomaticTokens += singleCharacter
-                    remaining = remaining.drop(1)
-                    tables.singleCharacters.getValue(singleCharacter)
-                }
-
-                fidelity == TranslationFidelity.STRICT -> {
-                    unresolvedToken = token
-                    remaining = ""
-                    null
-                }
-
-                else -> {
-                    diplomaticTokens += singleCharacter
-                    remaining = remaining.drop(1)
-                    approximated = true
-                    transliterator.transliterate(singleCharacter)
-                }
-            }
-
-            nextGlyph?.let(glyphs::append)
-        }
-
-        if (unresolvedToken != null) {
+        val publishedGlyphs = tables.publishedWords[token]
+        if (publishedGlyphs != null) {
             return CirthOrthographyOutput(
-                unresolvedToken = unresolvedToken,
-                notes = listOf("Unsupported Erebor sequence in '$token'.")
+                diplomatic = token,
+                glyphs = publishedGlyphs,
+                notes = listOf("Published title-page English profile: cited word transcription."),
+                resolutionStatus = TranslationResolutionStatus.RECONSTRUCTED,
+                provenance = listOf(sourceCatalog.provenanceFor(
+                    tables.profileSourceId, tables.profileReferenceId,
+                    "Word witnessed in the published corrected title-page sample; no extrapolated spelling rules."
+                ))
             )
         }
-
-        return CirthOrthographyOutput(
-            diplomatic = diplomaticTokens.joinToString(tables.wordSeparator),
-            glyphs = glyphs.toString(),
-            notes = listOfNotNull(
-                if (appliedCanonicalRule) "Applied Erebor sequence-table transcription." else null,
-                if (approximated) "Used readable-mode character fallback for an unsupported Erebor sequence." else null
-            ),
-            resolutionStatus = if (approximated) {
-                TranslationResolutionStatus.APPROXIMATED
-            } else {
-                TranslationResolutionStatus.RECONSTRUCTED
-            },
-            provenance = listOf(
-                sourceCatalog.provenanceFor(
-                    sourceId = "tolkien_appendix_e",
-                    detail = "Erebor orthography table"
-                )
+        return if (fidelity == TranslationFidelity.STRICT) {
+            CirthOrthographyOutput(
+                unresolvedToken = token,
+                notes = listOf("No cited English Cirth profile transcription for '$token'.")
             )
-        )
+        } else {
+            CirthOrthographyOutput(
+                diplomatic = token,
+                glyphs = transliterator.transliterate(token),
+                resolutionStatus = TranslationResolutionStatus.APPROXIMATED,
+                notes = listOf("Educational Latin substitution using UCSUR Cirth glyph identities; " +
+                    "not a reconstructed English pronunciation."),
+                provenance = listOf(sourceCatalog.provenanceFor("ucsur_cirth"))
+            )
+        }
     }
 }
 
@@ -664,7 +619,7 @@ private fun confidenceFor(
 }
 
 private fun String.normalizePhraseKey(): String {
-    return lowercase()
+    return Normalizer.normalize(this, Normalizer.Form.NFC).lowercase(Locale.ROOT)
         .trim()
         .replace(Regex("\\s+"), " ")
 }

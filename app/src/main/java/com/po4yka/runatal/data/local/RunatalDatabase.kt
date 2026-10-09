@@ -6,6 +6,7 @@ import com.po4yka.runatal.data.local.entity.QuoteReadEntity
 import com.po4yka.runatal.data.local.entity.ReadingDayEntity
 import com.po4yka.runatal.data.local.migration.ElderFutharkSequenceMigration
 import com.po4yka.runatal.data.local.migration.CanonicalQuoteRenderingMigration
+import com.po4yka.runatal.data.local.migration.CirthEncodingMigration
 import androidx.room3.RoomDatabase
 import androidx.room3.migration.Migration
 import androidx.sqlite.SQLiteConnection
@@ -42,7 +43,7 @@ import com.po4yka.runatal.data.local.migration.TranslationCacheKeyMigration
         QuoteReadEntity::class,
         ReadingDayEntity::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = true
 )
 internal abstract class RunatalDatabase : RoomDatabase() {
@@ -462,6 +463,13 @@ internal abstract class RunatalDatabase : RoomDatabase() {
         val MIGRATION_12_13 = object : Migration(12, 13) {
             override suspend fun migrate(connection: SQLiteConnection) {
                 CanonicalQuoteRenderingMigration.migrate(connection)
+            }
+        }
+
+        /** Re-encodes proven legacy Cirth output and reference rows without reinterpreting manual content. */
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override suspend fun migrate(connection: SQLiteConnection) {
+                CirthEncodingMigration.migrate(connection)
             }
         }
     }

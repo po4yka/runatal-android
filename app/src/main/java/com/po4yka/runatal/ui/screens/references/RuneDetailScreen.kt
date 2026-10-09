@@ -23,6 +23,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import com.po4yka.runatal.ui.components.RunicText
+import com.po4yka.runatal.domain.model.RunicScript
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -214,8 +216,11 @@ private fun RuneHeroCard(rune: RuneReference) {
                 .semantics { contentDescription = "Rune character: ${rune.character}" },
             contentAlignment = Alignment.Center
         ) {
-            Text(
+            RunicText(
                 text = rune.character,
+                script = RunicScript.valueOf(rune.script.uppercase()),
+                fontSize = MaterialTheme.typography.displayMedium.fontSize,
+                overrideLineHeight = MaterialTheme.typography.displayMedium.lineHeight,
                 style = MaterialTheme.typography.displayMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )

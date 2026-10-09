@@ -13,7 +13,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.withTranslation
 import com.po4yka.runatal.domain.model.QuoteShareContent
-import com.po4yka.runatal.domain.transliteration.CirthGlyphCompat
 import com.po4yka.runatal.ui.theme.runicSharePalette
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -85,10 +84,12 @@ class QuoteImageGenerator @Inject constructor(
     ): List<ShareTextSpec> {
         val palette = runicSharePalette(appearance)
         val runes = ShareTextSpec(
-            text = CirthGlyphCompat.normalizeLegacyPuaGlyphs(content.runicText),
+            text = content.runicText,
             size = if (template == ShareTemplate.CARD) RUNE_SIZE else SUPPORTING_RUNE_SIZE,
             color = palette.primaryText.toArgb(),
-            typeface = RunicTextRenderer.loadTypeface(context, RunicTextRenderer.getFontResource(content.font))
+            typeface = RunicTextRenderer.loadTypeface(
+                context, RunicTextRenderer.getFontResource(content.font, content.script)
+            )
         )
         val latin = ShareTextSpec(
             text = "“${content.textLatin}”",

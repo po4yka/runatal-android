@@ -40,13 +40,13 @@ class TranslationSourcePreservationTest {
     }
 
     @Test
-    fun `Cirth preserves supported contractions as one word including the apostrophe`() {
+    fun `Cirth preserves contractions as an explicit approximation including the apostrophe`() {
         listOf("don’t", "don't").forEach { source ->
-            val result = service.translate(source, RunicScript.CIRTH, TranslationFidelity.STRICT)
-            assertThat(result.resolutionStatus).isEqualTo(TranslationResolutionStatus.RECONSTRUCTED)
+            val result = service.translate(source, RunicScript.CIRTH, TranslationFidelity.READABLE)
+            assertThat(result.resolutionStatus).isEqualTo(TranslationResolutionStatus.APPROXIMATED)
             assertThat(result.normalizedForm).isEqualTo("don't")
-            assertThat(result.diplomaticForm).isEqualTo("d·o·n·'·t")
-            assertThat(result.glyphOutput).isEqualTo("\uE089\uE0CB\uE0B4'\uE088")
+            assertThat(result.diplomaticForm).isEqualTo("don't")
+            assertThat(result.glyphOutput).isEqualTo("\uE088\uE0B3\uE08B'\uE087")
             assertThat(result.tokenBreakdown.single().sourceToken).isEqualTo(source)
             assertThat(result.unresolvedTokens).isEmpty()
         }
@@ -144,11 +144,12 @@ class TranslationSourcePreservationTest {
             if (script == RunicScript.ELDER_FUTHARK) {
                 assertThat(original.resolutionStatus).isEqualTo(TranslationResolutionStatus.UNAVAILABLE)
             } else {
-                assertThat(original.derivationKind).isEqualTo(
-                    if (script == RunicScript.YOUNGER_FUTHARK) TranslationDerivationKind.TOKEN_COMPOSED
-                    else TranslationDerivationKind.GOLD_EXAMPLE
-                )
-                assertThat(original.glyphOutput).isNotEmpty()
+                if (script == RunicScript.YOUNGER_FUTHARK) {
+                    assertThat(original.derivationKind).isEqualTo(TranslationDerivationKind.TOKEN_COMPOSED)
+                } else {
+                    assertThat(original.resolutionStatus).isEqualTo(TranslationResolutionStatus.UNAVAILABLE)
+                    assertThat(original.glyphOutput).isEmpty()
+                }
             }
             listOf(" 2", " 😀").forEach { suffix ->
                 val altered = service.translate(source + suffix, script, TranslationFidelity.STRICT)

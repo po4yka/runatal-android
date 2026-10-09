@@ -45,7 +45,6 @@ import com.po4yka.runatal.data.preferences.WidgetUpdateMode
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.model.displayName
 import com.po4yka.runatal.domain.model.getRunicText
-import com.po4yka.runatal.domain.transliteration.CirthGlyphCompat
 import com.po4yka.runatal.ui.components.buildRunicAccessibilityText
 import com.po4yka.runatal.util.BitmapCache
 import com.po4yka.runatal.util.RenderConfig
@@ -533,14 +532,16 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                         script = preferences.selectedScript,
                         transliterationFactory = entryPoint.transliterationFactory()
                     )
-                    val normalizedRunicText = CirthGlyphCompat.normalizeLegacyPuaGlyphs(runicText)
+                    val normalizedRunicText = runicText
                     val textSize = RunatalWidgetMetrics.runicTextSize(sizeClass, preferences)
                     val maxWidth = RunatalWidgetMetrics.maxRunicWidthPx(
                         resources = context.resources,
                         widgetWidthDp = widgetWidth,
                         sizeClass = sizeClass
                     )
-                    val fontResource = RunicTextRenderer.getFontResource(preferences.selectedFont)
+                    val fontResource = RunicTextRenderer.getFontResource(
+                        preferences.selectedFont, preferences.selectedScript
+                    )
                     val renderConfig = RenderConfig(
                         text = normalizedRunicText,
                         fontResource = fontResource,

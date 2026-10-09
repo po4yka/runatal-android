@@ -14,20 +14,6 @@
     "url": "https://www.raa.se/in-english/digital-services/about-runor/"
   },
   {
-    "id": "cirth_ref_wolf_night",
-    "sourceId": "tolkien_appendix_e",
-    "label": "Appendix E wolf-night example",
-    "detail": "Curated Erebor transcription example for the wolf-night phrase.",
-    "url": "https://tolkiengateway.net/wiki/Angerthas_Erebor"
-  },
-  {
-    "id": "cirth_ref_under_mountain",
-    "sourceId": "tolkien_appendix_e",
-    "label": "Appendix E under-mountain example",
-    "detail": "Curated Erebor transcription example for 'Under the mountain'.",
-    "url": "https://tolkiengateway.net/wiki/Angerthas_Erebor"
-  },
-  {
     "id": "ef_ref_gallehus",
     "sourceId": "natmus_gallehus",
     "label": "Gallehus short golden horn inscription",
@@ -42,5 +28,12 @@
       ],
       "historicalStage": "PROTO_NORSE"
     }
+  },
+  {
+    "id": "cirth_ref_title_page",
+    "sourceId": "fairfax_cirth_sample",
+    "label": "Published title-page English profile",
+    "url": "https://www.kreativekorp.com/software/fonts/fairfaxhd/",
+    "detail": "Cirth demo heading From the title page of Lord of the Rings; corrected translated reading independently catalogued as DCS 2 at https://forodrim.org/daeron/mdics.html. Publisher transcription; not a Tolkien autograph witness."
   }
 ]

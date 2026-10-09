@@ -104,28 +104,29 @@ class HistoricalTranslationServiceTest {
     @Test
     fun `cirth phrase mapping is preferred over sequence transcription when curated`() {
         val result = service.translate(
-            text = "Under the mountain",
+            text = "The Lord of the Rings translated from the Red Book",
             script = RunicScript.CIRTH,
             fidelity = TranslationFidelity.STRICT
         )
 
         assertThat(result.derivationKind).isEqualTo(TranslationDerivationKind.PHRASE_TEMPLATE)
-        assertThat(result.diplomaticForm).isEqualTo("u·n·d·e·r th·e m·ou·n·t·ai·n")
-        assertThat(result.provenance.single().referenceId).isEqualTo("cirth_ref_under_mountain")
+        assertThat(result.diplomaticForm).isEqualTo("the lord of the rings translated from the red book")
+        assertThat(result.provenance.single().referenceId).isEqualTo("cirth_ref_title_page")
     }
 
     @Test
-    fun `cirth sequence transcription records expanded orthography handling`() {
+    fun `unpublished Cirth spelling is an explicit glyph approximation`() {
         val result = service.translate(
             text = "night",
             script = RunicScript.CIRTH,
-            fidelity = TranslationFidelity.STRICT
+            fidelity = TranslationFidelity.READABLE
         )
 
         assertThat(result.derivationKind).isEqualTo(TranslationDerivationKind.SEQUENCE_TRANSCRIPTION)
-        assertThat(result.diplomaticForm).contains("gh")
-        assertThat(result.notes.joinToString()).contains("sequence-table transcription")
-        assertThat(result.provenance.single().sourceId).isEqualTo("tolkien_appendix_e")
+        assertThat(result.diplomaticForm).isEqualTo("night")
+        assertThat(result.resolutionStatus).isEqualTo(TranslationResolutionStatus.APPROXIMATED)
+        assertThat(result.notes.joinToString()).contains("Educational Latin substitution")
+        assertThat(result.provenance.single().sourceId).isEqualTo("ucsur_cirth")
     }
 
     @Test
