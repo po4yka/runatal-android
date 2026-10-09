@@ -1,5 +1,17 @@
 package com.po4yka.runatal.ui.screens.notificationsettings
 
+import android.Manifest
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.material3.Button
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -30,11 +42,24 @@ import com.po4yka.runatal.ui.components.SettingSection
 import com.po4yka.runatal.ui.components.toggleStateDescription
 
 @Composable
-fun NotificationSettingsScreen(
+internal fun NotificationSettingsScreen(
     onNavigateBack: () -> Unit = {},
     viewModel: NotificationSettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val owner = LocalLifecycleOwner.current
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        viewModel.refreshSystemAccess()
+    }
+    DisposableEffect(owner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.refreshSystemAccess()
+        }
+        owner.lifecycle.addObserver(observer)
+        viewModel.refreshSystemAccess()
+        onDispose { owner.lifecycle.removeObserver(observer) }
+    }
 
     Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0)) { paddingValues ->
         Column(
@@ -56,10 +81,25 @@ fun NotificationSettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            SettingSection(title = "Notifications") {
+            if (!state.permissionGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                Button(onClick = { permission.launch(Manifest.permission.POST_NOTIFICATIONS) }) {
+                    Text("Allow Notifications")
+                }
+            }
+            SettingItem(
+                title = "Android notification settings",
+                subtitle = "Manage permission and individual notification channels",
+                onClick = {
+                    context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))
+                }
+            )
+
+            SettingSection(title = "Notification requests") {
                 NotificationToggleItem(
                     title = "Daily Quote Alert",
-                    subtitle = "Receive a new rune quote each morning",
+                    subtitle = "A daily local quote reminder. " +
+                        state.deliveryStatus(state.dailyQuote, state.dailyAllowed),
                     icon = {
                         Icon(
                             imageVector = Icons.Default.Notifications,
@@ -68,11 +108,12 @@ fun NotificationSettingsScreen(
                         )
                     },
                     checked = state.dailyQuote,
-                    onCheckedChange = { viewModel.toggleDailyQuote() }
+                    onCheckedChange = viewModel::updateDailyQuote
                 )
                 NotificationToggleItem(
                     title = "Streak Reminders",
-                    subtitle = "Keep your streak alive with daily reminders",
+                    subtitle = "Only when yesterday's reading streak needs today's reading. " +
+                        state.deliveryStatus(state.streak, state.streakAllowed),
                     icon = {
                         Icon(
                             imageVector = Icons.Default.Notifications,
@@ -81,11 +122,12 @@ fun NotificationSettingsScreen(
                         )
                     },
                     checked = state.streak,
-                    onCheckedChange = { viewModel.toggleStreak() }
+                    onCheckedChange = viewModel::updateStreak
                 )
                 NotificationToggleItem(
-                    title = "Community Picks",
-                    subtitle = "Weekly highlights from shared quotes",
+                    title = "Pack Updates",
+                    subtitle = "Real changes to packs bundled with app updates. " +
+                        state.deliveryStatus(state.packUpdates, state.packsAllowed),
                     icon = {
                         Icon(
                             imageVector = Icons.Default.Star,
@@ -94,7 +136,7 @@ fun NotificationSettingsScreen(
                         )
                     },
                     checked = state.packUpdates,
-                    onCheckedChange = { viewModel.togglePackUpdates() }
+                    onCheckedChange = viewModel::updatePackUpdates
                 )
             }
 
@@ -119,7 +161,7 @@ private fun NotificationToggleItem(
         subtitle = subtitle,
         onClick = { onCheckedChange(!checked) },
         role = Role.Switch,
-        stateDescription = toggleStateDescription(checked),
+        stateDescription = "${toggleStateDescription(checked)}. $subtitle",
         leadingIcon = icon,
         trailing = {
             Switch(

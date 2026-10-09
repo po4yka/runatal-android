@@ -6,7 +6,12 @@ import java.time.LocalDate
 data class QuoteReading(val quote: Quote, val script: RunicScript, val readAt: Long)
 
 /** Reading activity calculated from persisted calendar days. */
-data class ReadingStats(val streakDays: Int, val totalDays: Int, val firstReadDate: LocalDate?) {
+data class ReadingStats(
+    val streakDays: Int,
+    val totalDays: Int,
+    val firstReadDate: LocalDate?,
+    val lastReadDate: LocalDate? = null
+) {
     /** Computes a streak ending today or yesterday; earlier gaps end the streak. */
     companion object {
         /** Derives activity from observed dates and the current local calendar date. */
@@ -18,7 +23,7 @@ data class ReadingStats(val streakDays: Int, val totalDays: Int, val firstReadDa
                 streak++
                 cursor = cursor.minusDays(1)
             }
-            return ReadingStats(streak, dates.size, dates.minOrNull())
+            return ReadingStats(streak, dates.size, dates.minOrNull(), dates.maxOrNull())
         }
     }
 }

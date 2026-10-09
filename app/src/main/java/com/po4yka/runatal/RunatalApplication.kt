@@ -14,6 +14,7 @@ import com.po4yka.runatal.data.translation.AssetTranslationDatasetProvider
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.di.DefaultDispatcher
 import com.po4yka.runatal.domain.repository.QuoteRepository
+import com.po4yka.runatal.notification.NotificationScheduler
 import com.po4yka.runatal.ui.widget.WidgetSyncManager
 import com.po4yka.runatal.worker.TranslationBackfillWorker
 import dagger.hilt.android.HiltAndroidApp
@@ -48,6 +49,9 @@ class RunatalApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var userPreferencesManager: UserPreferencesManager
 
+    @Inject
+    internal lateinit var notificationScheduler: NotificationScheduler
+
     private lateinit var applicationScope: CoroutineScope
 
     lateinit var widgetSyncManager: WidgetSyncManager
@@ -64,6 +68,7 @@ class RunatalApplication : Application(), Configuration.Provider {
         widgetSyncManager = WidgetSyncManager(applicationScope)
         widgetSyncManager.observePreferences(applicationContext, userPreferencesManager.userPreferencesFlow)
         widgetSyncManager.observeLibrary(applicationContext, quoteRepository.getAllQuotesFlow())
+        notificationScheduler.start(applicationScope)
 
         // Seed database on app startup (infrastructure concern, not ViewModel concern)
         applicationScope.launch {

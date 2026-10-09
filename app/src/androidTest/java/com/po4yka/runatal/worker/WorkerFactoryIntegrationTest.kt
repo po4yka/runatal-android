@@ -30,6 +30,21 @@ class WorkerFactoryIntegrationTest {
         assertEquals(TranslationBackfillWorker::class.java, worker.javaClass)
     }
 
+    @Test
+    fun createsDailyNotificationWorkerFromHiltBindings() {
+        assertEquals(DailyQuoteNotificationWorker::class.java, buildWithHilt<DailyQuoteNotificationWorker>().javaClass)
+    }
+
+    @Test
+    fun createsStreakNotificationWorkerFromHiltBindings() {
+        assertEquals(StreakNotificationWorker::class.java, buildWithHilt<StreakNotificationWorker>().javaClass)
+    }
+
+    @Test
+    fun createsPackNotificationWorkerFromHiltBindings() {
+        assertEquals(PackUpdateNotificationWorker::class.java, buildWithHilt<PackUpdateNotificationWorker>().javaClass)
+    }
+
     private inline fun <reified T : ListenableWorker> buildWithHilt(): T {
         val application = ApplicationProvider.getApplicationContext<RunatalApplication>()
         val hiltFactory = application.workerFactory

@@ -10,7 +10,7 @@ class ReadingStatsTest {
     @Test
     fun `streak crosses year boundary and ignores duplicate days`() {
         val days = listOf(today, today.minusDays(1), today.minusDays(1), today.minusDays(2), today.minusDays(4))
-        assertThat(ReadingStats.fromDays(days, today)).isEqualTo(ReadingStats(3, 4, today.minusDays(4)))
+        assertThat(ReadingStats.fromDays(days, today)).isEqualTo(ReadingStats(3, 4, today.minusDays(4), today))
     }
 
     @Test
