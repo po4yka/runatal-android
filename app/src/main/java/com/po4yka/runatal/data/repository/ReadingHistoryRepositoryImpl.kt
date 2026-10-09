@@ -23,10 +23,10 @@ internal class ReadingHistoryRepositoryImpl @Inject constructor(
     private val time: TimeProvider
 ) : ReadingHistoryRepository {
     override suspend fun recordRead(quoteId: Long, script: RunicScript) {
-        dao.record(QuoteReadEntity(
+        storageWrite { dao.record(QuoteReadEntity(
             quoteId = quoteId, epochDay = time.getCurrentDate().toEpochDay(),
             script = script.name, readAt = System.currentTimeMillis()
-        ))
+        )) }
     }
 
     override fun readings(): Flow<List<QuoteReading>> = combine(dao.readings(), quotes.getAllQuotesFlow()) {

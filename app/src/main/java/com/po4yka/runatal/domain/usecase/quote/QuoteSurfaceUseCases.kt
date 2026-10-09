@@ -75,20 +75,13 @@ internal class LoadQuoteSurfaceUseCase @Inject constructor(
             QuoteSurfaceSource.RANDOM -> quoteRepository.randomQuote()
         } ?: return null
 
-        readingHistoryRepository.recordRead(quote.id, selectedScript)
         val recentQuoteCandidates = readingHistoryRepository.readings().first()
             .map { it.quote }.distinctBy { it.id }
             .filter { it.id != quote.id }.take(RECENT_QUOTES_LIMIT)
 
-        return LoadedQuoteSurface(
-            quote = quote,
-            recentQuoteCandidates = recentQuoteCandidates,
-            presentation = buildQuotePresentationUseCase(
-                quote = quote,
-                selectedScript = selectedScript,
-                recentQuoteCandidates = recentQuoteCandidates
-            )
-        )
+        val presentation = buildQuotePresentationUseCase(quote, selectedScript, recentQuoteCandidates)
+        readingHistoryRepository.recordRead(quote.id, selectedScript)
+        return LoadedQuoteSurface(quote, recentQuoteCandidates, presentation)
     }
 
     private companion object {

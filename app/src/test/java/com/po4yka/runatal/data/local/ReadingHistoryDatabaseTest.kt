@@ -69,6 +69,34 @@ class ReadingHistoryDatabaseTest {
         assertThat(reopened.readingHistoryDao().days().first()).hasSize(1)
     }
 
+    @Test
+    fun `a physical read write failure is reported as IO without recording a partial activity day`() = runTest {
+        val storage = open()
+        storage.quoteDao().insert(QuoteEntity(1L, "Read this", "Author", isUserCreated = true))
+        val day = LocalDate.of(2026, 10, 9)
+        val time = object : TimeProvider {
+            override fun getCurrentDate() = day
+            override fun getCurrentDayOfYear() = day.dayOfYear
+        }
+        val repository = ReadingHistoryRepositoryImpl(storage.readingHistoryDao(),
+            QuoteRepositoryImpl(storage.quoteDao(), time, mockk(), storage.archivedQuoteDao()), time)
+        storage.useWriterConnection { connection ->
+            connection.usePrepared("CREATE TRIGGER fail_day BEFORE INSERT ON reading_days " +
+                "BEGIN SELECT RAISE(ABORT, 'activity write failed'); END") { it.step() }
+        }
+        val failure = runCatching { repository.recordRead(1L, RunicScript.ELDER_FUTHARK) }.exceptionOrNull()
+        assertThat(failure).isInstanceOf(java.io.IOException::class.java)
+        assertThat(failure?.cause).isInstanceOf(android.database.sqlite.SQLiteException::class.java)
+        assertThat(storage.readingHistoryDao().readings().first()).isEmpty()
+        assertThat(storage.readingHistoryDao().days().first()).isEmpty()
+        storage.useWriterConnection { connection ->
+            connection.usePrepared("DROP TRIGGER fail_day") { it.step() }
+        }
+        repository.recordRead(1L, RunicScript.ELDER_FUTHARK)
+        assertThat(storage.readingHistoryDao().readings().first()).hasSize(1)
+        assertThat(repository.stats().first().totalDays).isEqualTo(1)
+    }
+
     private fun open(): RunatalDatabase = Room.databaseBuilder(context, RunatalDatabase::class.java, name)
         .setDriver(AndroidSQLiteDriver()).build().also { database = it }
 }
