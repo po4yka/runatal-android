@@ -44,6 +44,7 @@ internal class TranslationRepositoryImpl @Inject constructor(
     override suspend fun getCachedTranslation(
         quoteId: Long,
         script: RunicScript,
+        sourceText: String,
         fidelity: TranslationFidelity,
         youngerVariant: YoungerFutharkVariant
     ): TranslationResult? {
@@ -54,13 +55,15 @@ internal class TranslationRepositoryImpl @Inject constructor(
             fidelity = fidelity.name,
             variant = requestedVariant(script, youngerVariant),
             engineVersion = engine.engineVersion,
-            datasetVersion = engine.datasetVersion
+            datasetVersion = engine.datasetVersion,
+            sourceText = sourceText
         )?.toDomain()
     }
 
     override suspend fun getLatestAvailableTranslation(
         quoteId: Long,
-        script: RunicScript
+        script: RunicScript,
+        sourceText: String
     ): TranslationResult? {
         val engine = translationEngineFactory.create(script)
         return translationRecordDao.getLatestAvailableForScript(
@@ -68,7 +71,8 @@ internal class TranslationRepositoryImpl @Inject constructor(
             script = script.name,
             unavailableStatus = TranslationResolutionStatus.UNAVAILABLE.name,
             engineVersion = engine.engineVersion,
-            datasetVersion = engine.datasetVersion
+            datasetVersion = engine.datasetVersion,
+            sourceText = sourceText
         )?.toDomain()
     }
 
@@ -80,7 +84,9 @@ internal class TranslationRepositoryImpl @Inject constructor(
         if (result.resolutionStatus == TranslationResolutionStatus.UNAVAILABLE) {
             return
         }
-        translationRecordDao.insert(result.toEntity(quoteId = quoteId, isBackfilled = isBackfilled))
+        storageWrite {
+            translationRecordDao.insertIfSourceMatches(result.toEntity(quoteId = quoteId, isBackfilled = isBackfilled))
+        }
     }
 
     override suspend fun cacheTranslations(

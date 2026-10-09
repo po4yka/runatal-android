@@ -653,38 +653,50 @@ class QuoteRepositoryImplTest {
     }
 
     @Test
-    fun `saveUserQuote updates existing quotes and returns original id`() = runTest {
-        val quote = Quote(
-            id = 12L,
-            textLatin = "Existing quote",
-            author = "Builder",
-            runicElder = null,
-            runicYounger = "ᚢᛈᛞᚨᛏᛖ",
-            runicCirth = null,
-            isUserCreated = false,
-            isFavorite = false,
-            createdAt = 99L
+    fun `content command returns persisted favorite and creation metadata`() = runTest {
+        val requested = Quote(
+            id = 12L, textLatin = "Updated source", author = "New author", runicElder = "new glyphs",
+            runicYounger = null, runicCirth = null, isUserCreated = true, isFavorite = false, createdAt = 999L
         )
-        coEvery { quoteDao.update(any()) } returns Unit
+        val persisted = QuoteEntity(
+            id = 12L, textLatin = requested.textLatin, author = requested.author, runicElder = requested.runicElder,
+            isUserCreated = true, isFavorite = true, createdAt = 42L
+        )
+        coEvery { quoteDao.updateUserContent(any(), "Old source", "Old author") } returns persisted
 
-        val result = repository.saveUserQuote(quote)
+        val saved = repository.updateUserQuoteContent(requested, "Old source", "Old author")
 
-        assertThat(result).isEqualTo(12L)
-        coVerify {
-            quoteDao.update(
-                QuoteEntity(
-                    id = 12L,
-                    textLatin = "Existing quote",
-                    author = "Builder",
-                    runicElder = null,
-                    runicYounger = "ᚢᛈᛞᚨᛏᛖ",
-                    runicCirth = null,
-                    isUserCreated = true,
-                    isFavorite = false,
-                    createdAt = 99L
-                )
-            )
-        }
+        assertThat(saved.id).isEqualTo(12L)
+        assertThat(saved.textLatin).isEqualTo("Updated source")
+        assertThat(saved.isFavorite).isTrue()
+        assertThat(saved.createdAt).isEqualTo(42L)
+        coVerify(exactly = 1) { quoteDao.updateUserContent(any(), "Old source", "Old author") }
+    }
+
+    @Test
+    fun `content command rejects a missing or concurrently changed row`() = runTest {
+        coEvery { quoteDao.updateUserContent(any(), any(), any()) } returns null
+        val quote = Quote(
+            id = 12L, textLatin = "Updated", author = "User",
+            runicElder = null, runicYounger = null, runicCirth = null, isUserCreated = true
+        )
+
+        val failure = runCatching { repository.updateUserQuoteContent(quote, "Old", "User") }.exceptionOrNull()
+
+        assertThat(failure).isInstanceOf(IllegalStateException::class.java)
+    }
+
+    @Test
+    fun `creation rejects an existing identity without replacing it`() = runTest {
+        val quote = Quote(
+            id = 12L, textLatin = "Source", author = "User",
+            runicElder = null, runicYounger = null, runicCirth = null, isUserCreated = true
+        )
+
+        val failure = runCatching { repository.saveUserQuote(quote) }.exceptionOrNull()
+
+        assertThat(failure).isInstanceOf(IllegalArgumentException::class.java)
+        coVerify(exactly = 0) { quoteDao.insert(any()) }
     }
 
     @Test

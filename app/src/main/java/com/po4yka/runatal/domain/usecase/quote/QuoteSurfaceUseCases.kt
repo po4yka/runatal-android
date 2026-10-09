@@ -64,7 +64,8 @@ internal class BuildQuotePresentationUseCase @Inject constructor(
     ): ResolvedQuoteRunicContent {
         val latestTranslation = translationRepository.getLatestAvailableTranslation(
             quoteId = quote.id,
-            script = script
+            script = script,
+            sourceText = quote.textLatin
         )
         if (latestTranslation != null) {
             return ResolvedQuoteRunicContent(

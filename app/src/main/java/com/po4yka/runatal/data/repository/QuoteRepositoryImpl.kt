@@ -80,13 +80,20 @@ class QuoteRepositoryImpl @Inject constructor(
     }
 
     override suspend fun saveUserQuote(quote: Quote): Long {
-        val entity = quote.toEntity().copy(isUserCreated = true)
-        return if (quote.id == 0L) {
-            quoteDao.insert(entity)
-        } else {
-            quoteDao.update(entity)
-            quote.id
-        }
+        require(quote.id == 0L) { "New user quotes require a database-assigned identity." }
+        return storageWrite { quoteDao.insert(quote.toEntity().copy(isUserCreated = true)) }
+    }
+
+    override suspend fun updateUserQuoteContent(
+        quote: Quote,
+        expectedTextLatin: String,
+        expectedAuthor: String
+    ): Quote {
+        require(quote.id > 0L) { "Editing requires an existing quote identity." }
+        val updated = checkNotNull(storageWrite {
+            quoteDao.updateUserContent(quote.toEntity(), expectedTextLatin, expectedAuthor)
+        }) { "The quote was deleted or its content changed. Reload it before saving." }
+        return updated.toDomain()
     }
 
     override suspend fun restoreUserQuote(quote: Quote): Long {

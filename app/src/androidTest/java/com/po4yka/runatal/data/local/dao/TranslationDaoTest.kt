@@ -79,7 +79,8 @@ class TranslationDaoTest {
             fidelity = "STRICT",
             variant = "SHORT_TWIG",
             engineVersion = "engine-v1",
-            datasetVersion = "dataset-v1"
+            datasetVersion = "dataset-v1",
+            sourceText = "Quote 1"
         )
         val elderMatch = translationRecordDao.getBySelection(
             quoteId = 1L,
@@ -87,7 +88,8 @@ class TranslationDaoTest {
             fidelity = "STRICT",
             variant = "",
             engineVersion = "engine-v1",
-            datasetVersion = "dataset-v0"
+            datasetVersion = "dataset-v0",
+            sourceText = "Quote 1"
         )
         val datasetMiss = translationRecordDao.getBySelection(
             quoteId = 1L,
@@ -95,7 +97,8 @@ class TranslationDaoTest {
             fidelity = "STRICT",
             variant = "",
             engineVersion = "engine-v1",
-            datasetVersion = "dataset-v1"
+            datasetVersion = "dataset-v1",
+            sourceText = "Quote 1"
         )
 
         assertEquals("short", youngerMatch?.glyphOutput)
@@ -148,7 +151,8 @@ class TranslationDaoTest {
             script = "ELDER_FUTHARK",
             unavailableStatus = "UNAVAILABLE",
             engineVersion = "engine-v1",
-            datasetVersion = "dataset-v1"
+            datasetVersion = "dataset-v1",
+            sourceText = "Quote 2"
         )
 
         assertEquals("newest-available", latest?.glyphOutput)
@@ -167,14 +171,16 @@ class TranslationDaoTest {
             script = "ELDER_FUTHARK",
             unavailableStatus = "UNAVAILABLE",
             engineVersion = "engine-v1",
-            datasetVersion = "dataset-v1"
+            datasetVersion = "dataset-v1",
+            sourceText = "Quote 3"
         )
         val preserved = translationRecordDao.getLatestAvailableForScript(
             quoteId = 4L,
             script = "YOUNGER_FUTHARK",
             unavailableStatus = "UNAVAILABLE",
             engineVersion = "engine-v1",
-            datasetVersion = "dataset-v1"
+            datasetVersion = "dataset-v1",
+            sourceText = "Quote 4"
         )
 
         assertNull(deleted)

@@ -101,6 +101,47 @@ interface QuoteDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(quote: QuoteEntity): Long
 
+    /** Applies a user-content change and its cache invalidation as one transaction. */
+    @Transaction
+    suspend fun updateUserContent(
+        quote: QuoteEntity,
+        expectedTextLatin: String,
+        expectedAuthor: String
+    ): QuoteEntity? {
+        val current = getById(quote.id) ?: return null
+        val sourceMatches = current.textLatin == expectedTextLatin && current.author == expectedAuthor
+        return if (current.isUserCreated && sourceMatches) {
+            val updated = updateContentColumns(
+                id = quote.id, textLatin = quote.textLatin, author = quote.author,
+                runicElder = quote.runicElder, runicYounger = quote.runicYounger, runicCirth = quote.runicCirth
+            )
+            check(updated == 1) { "The quote content could not be updated." }
+            if (expectedTextLatin != quote.textLatin) invalidateContentTranslations(quote.id)
+            getById(quote.id)
+        } else {
+            null
+        }
+    }
+
+    /** Updates only content if the source snapshot is still current and user-owned. */
+    @Query(
+        "UPDATE quotes SET textLatin = :textLatin, author = :author, " +
+            "runicElder = :runicElder, runicYounger = :runicYounger, runicCirth = :runicCirth " +
+            "WHERE id = :id AND isUserCreated = 1"
+    )
+    suspend fun updateContentColumns(
+        id: Long,
+        textLatin: String,
+        author: String,
+        runicElder: String?,
+        runicYounger: String?,
+        runicCirth: String?
+    ): Int
+
+    /** Invalidates derived rows within the same content-write transaction. */
+    @Query("DELETE FROM translation_records WHERE quoteId = :quoteId")
+    suspend fun invalidateContentTranslations(quoteId: Long)
+
     /**
      * Update an existing quote.
      */

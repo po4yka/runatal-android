@@ -62,10 +62,20 @@ interface QuoteRepository {
     suspend fun toggleFavorite(quoteId: Long, isFavorite: Boolean)
 
     /**
-     * Inserts or updates a user-created quote.
-     * @return The ID of the inserted/updated quote.
+     * Creates a user quote with a database-assigned identity. The incoming ID must be zero.
+     * @return The ID of the created quote.
      */
     suspend fun saveUserQuote(quote: Quote): Long
+
+    /**
+     * Updates editor-owned content and invalidates changed-source translations atomically.
+     * Preserves favorite status, creation time and stored identity; rejects missing or changed content.
+     */
+    suspend fun updateUserQuoteContent(
+        quote: Quote,
+        expectedTextLatin: String,
+        expectedAuthor: String
+    ): Quote
 
     /**
      * Re-inserts a deleted user-created quote with its existing identity.

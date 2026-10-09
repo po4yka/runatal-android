@@ -62,7 +62,8 @@ class TranslationCacheKeyMigrationTest {
         expected.forEach { record ->
             val selected = migrated.translationRecordDao().getBySelection(
                 quoteId = record.quoteId, script = record.script, fidelity = record.fidelity,
-                variant = record.variant, engineVersion = record.engineVersion, datasetVersion = record.datasetVersion
+                variant = record.variant, engineVersion = record.engineVersion, datasetVersion = record.datasetVersion,
+                sourceText = record.sourceText
             )
             assertThat(selected).isEqualTo(record)
         }

@@ -50,7 +50,7 @@ class TranslationCacheDatabaseTest {
             script = "YOUNGER_FUTHARK",
             unavailableStatus = "UNAVAILABLE",
             engineVersion = "engine-current",
-            datasetVersion = "dataset-current"
+            datasetVersion = "dataset-current", sourceText = "wolf"
         )
 
         assertThat(latest?.updatedAt).isEqualTo(10L)
@@ -62,14 +62,14 @@ class TranslationCacheDatabaseTest {
     fun `obsolete cached success cannot be selected when no current result exists`() = runTest {
         database.quoteDao().insert(QuoteEntity(id = 1L, textLatin = "123", author = "Test"))
         val dao = database.translationRecordDao()
-        dao.insert(record("engine-obsolete", "dataset-current", 20L).copy(glyphOutput = ""))
+        dao.insert(record("engine-obsolete", "dataset-current", 20L).copy(sourceText = "123", glyphOutput = ""))
 
         val latest = dao.getLatestAvailableForScript(
             quoteId = 1L,
             script = "YOUNGER_FUTHARK",
             unavailableStatus = "UNAVAILABLE",
             engineVersion = "engine-current",
-            datasetVersion = "dataset-current"
+            datasetVersion = "dataset-current", sourceText = "123"
         )
 
         assertThat(latest).isNull()
@@ -88,7 +88,7 @@ class TranslationCacheDatabaseTest {
 
             val selected = dao.getBySelection(
                 quoteId = 1L, script = script, fidelity = "STRICT", variant = "",
-                engineVersion = "engine-current", datasetVersion = "dataset-current"
+                engineVersion = "engine-current", datasetVersion = "dataset-current", sourceText = "wolf"
             )
 
             assertThat(selected).isEqualTo(replacement.copy(id = replacementId))
@@ -113,7 +113,7 @@ class TranslationCacheDatabaseTest {
             val selected = dao.getBySelection(
                 quoteId = expected.quoteId, script = expected.script, fidelity = expected.fidelity,
                 variant = expected.variant, engineVersion = expected.engineVersion,
-                datasetVersion = expected.datasetVersion
+                datasetVersion = expected.datasetVersion, sourceText = expected.sourceText
             )
             assertThat(selected).isEqualTo(expected)
         }

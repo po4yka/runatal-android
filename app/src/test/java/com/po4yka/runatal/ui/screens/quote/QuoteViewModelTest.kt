@@ -219,10 +219,16 @@ class QuoteViewModelTest {
             datasetVersion = "dataset"
         )
         coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
-        coEvery { translationRepository.getLatestAvailableTranslation(1L, RunicScript.ELDER_FUTHARK) } returns
+        coEvery {
+            translationRepository.getLatestAvailableTranslation(1L, RunicScript.ELDER_FUTHARK, testQuote.textLatin)
+        } returns
             cachedTranslation
-        coEvery { translationRepository.getLatestAvailableTranslation(1L, RunicScript.YOUNGER_FUTHARK) } returns null
-        coEvery { translationRepository.getLatestAvailableTranslation(1L, RunicScript.CIRTH) } returns null
+        coEvery {
+            translationRepository.getLatestAvailableTranslation(1L, RunicScript.YOUNGER_FUTHARK, testQuote.textLatin)
+        } returns null
+        coEvery {
+            translationRepository.getLatestAvailableTranslation(1L, RunicScript.CIRTH, testQuote.textLatin)
+        } returns null
 
         viewModel = createViewModel(translationRepository)
         advanceUntilIdle()

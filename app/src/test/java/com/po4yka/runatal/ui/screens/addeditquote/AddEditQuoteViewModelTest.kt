@@ -6,7 +6,6 @@ import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.domain.repository.QuoteRepository
-import com.po4yka.runatal.domain.repository.TranslationRepository
 import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.transliteration.CirthTransliterator
@@ -129,6 +128,42 @@ class AddEditQuoteViewModelTest {
     }
 
     @Test
+    fun `restored draft keeps its original comparison source when database content changes`() = runTest {
+        coEvery { quoteRepository.getQuoteById(1L) } returns testQuote
+        val handle = SavedStateHandle()
+        viewModel = AddEditQuoteViewModel(
+            quoteRepository, userPreferencesManager, transliterationFactory, 1L, savedStateHandle = handle
+        )
+        advanceUntilIdle()
+        viewModel.updateTextLatin("Unsaved replacement")
+        val restored = SavedStateHandle(handle.keys().associateWith { handle.get<Any>(it) })
+        coEvery { quoteRepository.getQuoteById(1L) } returns testQuote.copy(
+            textLatin = "Changed elsewhere", author = "Different author"
+        )
+        coEvery { quoteRepository.updateUserQuoteContent(any(), any(), any()) } throws
+            IllegalStateException("Quote changed since editing began")
+        val recreated = AddEditQuoteViewModel(
+            quoteRepository, userPreferencesManager, transliterationFactory, 1L, savedStateHandle = restored
+        )
+        advanceUntilIdle()
+
+        recreated.events.test {
+            recreated.saveQuote()
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(
+                AddEditQuoteEvent.ShowMessage("Invalid state: Quote changed since editing began")
+            )
+        }
+
+        coVerify {
+            quoteRepository.updateUserQuoteContent(any(), testQuote.textLatin, testQuote.author)
+        }
+        assertThat(recreated.uiState.value.textLatin).isEqualTo("Unsaved replacement")
+        assertThat(recreated.uiState.value.isSaving).isFalse()
+        assertThat(recreated.uiState.value.canSave).isTrue()
+    }
+
+    @Test
     fun `restored editor draft survives loading the original quote`() = runTest {
         coEvery { quoteRepository.getQuoteById(1L) } returns testQuote
         val handle = SavedStateHandle()
@@ -186,9 +221,9 @@ class AddEditQuoteViewModelTest {
     fun `save is claimed synchronously and excludes duplicate save and delete`() = runTest {
         val complete = CompletableDeferred<Unit>()
         coEvery { quoteRepository.getQuoteById(1L) } returns testQuote
-        coEvery { quoteRepository.saveUserQuote(any()) } coAnswers {
+        coEvery { quoteRepository.updateUserQuoteContent(any(), any(), any()) } coAnswers {
             complete.await()
-            1L
+            firstArg<Quote>()
         }
         viewModel = AddEditQuoteViewModel(
             quoteRepository, userPreferencesManager, transliterationFactory, 1L
@@ -204,7 +239,7 @@ class AddEditQuoteViewModelTest {
         viewModel.updateTextLatin("A different draft")
         advanceUntilIdle()
 
-        coVerify(exactly = 1) { quoteRepository.saveUserQuote(any()) }
+        coVerify(exactly = 1) { quoteRepository.updateUserQuoteContent(any(), any(), any()) }
         coVerify(exactly = 0) { quoteRepository.deleteUserQuote(any()) }
         assertThat(viewModel.uiState.value.textLatin).isEqualTo("Changed quote")
         complete.complete(Unit)
@@ -796,9 +831,9 @@ class AddEditQuoteViewModelTest {
         quoteId = 1L
         coEvery { quoteRepository.getQuoteById(1L) } returns favoriteQuote
         var savedQuote: Quote? = null
-        coEvery { quoteRepository.saveUserQuote(any()) } coAnswers {
+        coEvery { quoteRepository.updateUserQuoteContent(any(), any(), any()) } coAnswers {
             savedQuote = firstArg()
-            1L
+            firstArg<Quote>()
         }
 
         viewModel = AddEditQuoteViewModel(
@@ -822,7 +857,7 @@ class AddEditQuoteViewModelTest {
         }
 
         // Then: Quote is saved with original ID, original timestamp, and no create confirmation
-        coVerify { quoteRepository.saveUserQuote(match { it.id == 1L }) }
+        coVerify { quoteRepository.updateUserQuoteContent(match { it.id == 1L }, testQuote.textLatin, testQuote.author) }
         assertThat(savedQuote).isNotNull()
         assertThat(savedQuote!!.createdAt).isEqualTo(favoriteQuote.createdAt)
         assertThat(savedQuote!!.isFavorite).isTrue()
@@ -834,27 +869,20 @@ class AddEditQuoteViewModelTest {
     }
 
     @Test
-    fun `saveQuote invalidates cached translations when edited text changes`() = runTest {
-        val translationRepository = mockk<TranslationRepository>(relaxed = true)
-        quoteId = 1L
+    fun `editing submits original source and author to the atomic content command`() = runTest {
         coEvery { quoteRepository.getQuoteById(1L) } returns testQuote
-        coEvery { quoteRepository.saveUserQuote(any()) } returns 1L
-
-        viewModel = AddEditQuoteViewModel(
-            quoteRepository,
-            userPreferencesManager,
-            transliterationFactory,
-            quoteId,
-            translationRepository
-        )
+        coEvery { quoteRepository.updateUserQuoteContent(any(), any(), any()) } coAnswers { firstArg<Quote>() }
+        viewModel = AddEditQuoteViewModel(quoteRepository, userPreferencesManager, transliterationFactory, 1L)
         advanceUntilIdle()
-
         viewModel.updateTextLatin("Updated quote")
-        advanceUntilIdle()
         viewModel.saveQuote()
         advanceUntilIdle()
 
-        coVerify(exactly = 1) { translationRepository.deleteTranslationsForQuote(1L) }
+        coVerify(exactly = 1) {
+            quoteRepository.updateUserQuoteContent(match { it.textLatin == "Updated quote" },
+                testQuote.textLatin, testQuote.author)
+        }
+        coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
     }
 
     // ==================== Error Handling Tests ====================

@@ -1,7 +1,6 @@
 package com.po4yka.runatal.domain.usecase.addeditquote
 
 import com.po4yka.runatal.domain.repository.QuoteRepository
-import com.po4yka.runatal.domain.repository.TranslationRepository
 import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.model.getRunicText
@@ -32,16 +31,15 @@ internal data class SaveEditableQuoteRequest(
     val quoteId: Long,
     val textLatin: String,
     val author: String,
-    val previews: QuotePreviewSet,
     val existingQuote: Quote?,
     val createdAtMillis: Long,
     val isEditing: Boolean,
-    val initialTextLatin: String
+    val initialTextLatin: String,
+    val initialAuthor: String
 )
 
 internal data class SaveEditableQuoteResult(
-    val savedQuote: Quote,
-    val translationInvalidationError: Throwable? = null
+    val savedQuote: Quote
 )
 
 internal class AddEditQuoteEditorInteractors @Inject constructor(
@@ -138,12 +136,13 @@ internal class EvaluateQuoteDraftUseCase @Inject constructor() {
 
 internal class SaveEditableQuoteUseCase @Inject constructor(
     private val quoteRepository: QuoteRepository,
-    private val translationRepository: TranslationRepository
+    private val buildQuotePreviewsUseCase: BuildQuotePreviewsUseCase
 ) {
 
     suspend operator fun invoke(request: SaveEditableQuoteRequest): SaveEditableQuoteResult {
         val trimmedText = request.textLatin.trim()
         val trimmedAuthor = request.author.trim()
+        val previews = buildQuotePreviewsUseCase(trimmedText, request.existingQuote)
         val createdAt = if (request.isEditing && request.createdAtMillis != 0L) {
             request.createdAtMillis
         } else {
@@ -154,24 +153,25 @@ internal class SaveEditableQuoteUseCase @Inject constructor(
             id = request.quoteId,
             textLatin = trimmedText,
             author = trimmedAuthor,
-            runicElder = request.previews.elder,
-            runicYounger = request.previews.younger,
-            runicCirth = request.previews.cirth,
+            runicElder = previews.elder,
+            runicYounger = previews.younger,
+            runicCirth = previews.cirth,
             isUserCreated = true,
             isFavorite = request.existingQuote?.isFavorite ?: false,
             createdAt = createdAt
         )
 
-        val savedQuoteId = quoteRepository.saveUserQuote(quote)
-        val invalidationError = if (request.isEditing && trimmedText != request.initialTextLatin.trim()) {
-            runCatching { translationRepository.deleteTranslationsForQuote(savedQuoteId) }.exceptionOrNull()
+        val savedQuote = if (quote.id == 0L) {
+            quote.copy(id = quoteRepository.saveUserQuote(quote))
         } else {
-            null
+            val previous = checkNotNull(request.existingQuote) { "Load the quote before editing its content." }
+            check(previous.id == quote.id) { "The loaded quote does not match this editor." }
+            quoteRepository.updateUserQuoteContent(
+                quote = quote,
+                expectedTextLatin = request.initialTextLatin,
+                expectedAuthor = request.initialAuthor
+            )
         }
-
-        return SaveEditableQuoteResult(
-            savedQuote = quote.copy(id = savedQuoteId, createdAt = createdAt),
-            translationInvalidationError = invalidationError
-        )
+        return SaveEditableQuoteResult(savedQuote = savedQuote)
     }
 }

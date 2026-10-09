@@ -77,7 +77,7 @@ class TranslationRepositoryImplTest {
             requestedVariant = YoungerFutharkVariant.SHORT_TWIG.name,
             glyphOutput = "ᚿᛁᚴᚼᛏ"
         )
-        coEvery { translationRecordDao.insert(capture(insertedEntity)) } returns 11L
+        coEvery { translationRecordDao.insertIfSourceMatches(capture(insertedEntity)) } returns true
 
         repository.cacheTranslation(quoteId = 7L, result = result, isBackfilled = false)
 
@@ -88,7 +88,8 @@ class TranslationRepositoryImplTest {
                 fidelity = TranslationFidelity.STRICT.name,
                 variant = YoungerFutharkVariant.SHORT_TWIG.name,
                 engineVersion = "yf-engine-v1",
-                datasetVersion = "dataset-v1"
+                datasetVersion = "dataset-v1",
+                sourceText = "The wolf hunts at night"
             )
         } returns insertedEntity.captured
 
@@ -96,7 +97,8 @@ class TranslationRepositoryImplTest {
             quoteId = 7L,
             script = RunicScript.YOUNGER_FUTHARK,
             fidelity = TranslationFidelity.STRICT,
-            youngerVariant = YoungerFutharkVariant.SHORT_TWIG
+            youngerVariant = YoungerFutharkVariant.SHORT_TWIG,
+            sourceText = "The wolf hunts at night"
         )
 
         assertThat(cached).isEqualTo(result)
@@ -107,7 +109,7 @@ class TranslationRepositoryImplTest {
         listOf(RunicScript.ELDER_FUTHARK, RunicScript.CIRTH).forEach { script ->
             val stored = slot<TranslationRecordEntity>()
             val result = translationResult(script = script, requestedVariant = null, glyphOutput = "ᚠ")
-            coEvery { translationRecordDao.insert(capture(stored)) } returns 1L
+            coEvery { translationRecordDao.insertIfSourceMatches(capture(stored)) } returns true
 
             repository.cacheTranslation(quoteId = 7L, result = result, isBackfilled = false)
 
@@ -115,13 +117,15 @@ class TranslationRepositoryImplTest {
             coEvery {
                 translationRecordDao.getBySelection(
                     quoteId = 7L, script = script.name, fidelity = TranslationFidelity.STRICT.name,
-                    variant = "", engineVersion = engineVersionFor(script), datasetVersion = "dataset-v1"
+                    variant = "", engineVersion = engineVersionFor(script), datasetVersion = "dataset-v1",
+                    sourceText = "The wolf hunts at night"
                 )
             } returns stored.captured
 
             val cached = repository.getCachedTranslation(
                 quoteId = 7L, script = script, fidelity = TranslationFidelity.STRICT,
-                youngerVariant = YoungerFutharkVariant.DEFAULT
+                youngerVariant = YoungerFutharkVariant.DEFAULT,
+                sourceText = "The wolf hunts at night"
             )
             assertThat(cached).isEqualTo(result)
         }
@@ -139,7 +143,7 @@ class TranslationRepositoryImplTest {
             isBackfilled = false
         )
 
-        coVerify(exactly = 0) { translationRecordDao.insert(any()) }
+        coVerify(exactly = 0) { translationRecordDao.insertIfSourceMatches(any()) }
     }
 
     @Test
@@ -150,7 +154,7 @@ class TranslationRepositoryImplTest {
             historicalStage = HistoricalStage.PROTO_NORSE,
             glyphOutput = "ᚹᚢᛚᚠᚨᛉ"
         )
-        coEvery { translationRecordDao.insert(capture(insertedEntity)) } returns 3L
+        coEvery { translationRecordDao.insertIfSourceMatches(capture(insertedEntity)) } returns true
         repository.cacheTranslation(quoteId = 5L, result = result, isBackfilled = true)
 
         coEvery {
@@ -159,13 +163,15 @@ class TranslationRepositoryImplTest {
                 script = RunicScript.ELDER_FUTHARK.name,
                 unavailableStatus = TranslationResolutionStatus.UNAVAILABLE.name,
                 engineVersion = "ef-engine-v1",
-                datasetVersion = "dataset-v1"
+                datasetVersion = "dataset-v1",
+                sourceText = "The wolf hunts at night"
             )
         } returns insertedEntity.captured
 
         val latest = repository.getLatestAvailableTranslation(
             quoteId = 5L,
-            script = RunicScript.ELDER_FUTHARK
+            script = RunicScript.ELDER_FUTHARK,
+            sourceText = "The wolf hunts at night"
         )
 
         assertThat(latest).isEqualTo(result)
@@ -176,7 +182,7 @@ class TranslationRepositoryImplTest {
         val insertedEntity = slot<TranslationRecordEntity>()
         val result = translationResult(script = RunicScript.CIRTH, glyphOutput = "")
 
-        coEvery { translationRecordDao.insert(capture(insertedEntity)) } returns 9L
+        coEvery { translationRecordDao.insertIfSourceMatches(capture(insertedEntity)) } returns true
         every {
             historicalTranslationService.translate(
                 text = "night",
@@ -256,7 +262,7 @@ class TranslationRepositoryImplTest {
 
         val insertedEntities = mutableListOf<TranslationRecordEntity>()
         val upsertedStates = mutableListOf<TranslationBackfillStateEntity>()
-        coEvery { translationRecordDao.insert(capture(insertedEntities)) } returnsMany listOf(1L)
+        coEvery { translationRecordDao.insertIfSourceMatches(capture(insertedEntities)) } returnsMany listOf(true)
         coEvery { translationBackfillStateDao.upsert(capture(upsertedStates)) } returns Unit
 
         repository.backfillAllQuotes()
@@ -399,7 +405,7 @@ class TranslationRepositoryImplTest {
         glyphOutput: String
     ): TranslationResult {
         return TranslationResult(
-            sourceText = "The wolf hunts at night",
+        sourceText = "The wolf hunts at night",
             script = script,
             fidelity = fidelity,
             derivationKind = TranslationDerivationKind.TOKEN_COMPOSED,

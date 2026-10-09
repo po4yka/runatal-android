@@ -17,13 +17,15 @@ internal interface TranslationRepository {
     suspend fun getCachedTranslation(
         quoteId: Long,
         script: RunicScript,
+        sourceText: String,
         fidelity: TranslationFidelity = TranslationFidelity.DEFAULT,
         youngerVariant: YoungerFutharkVariant = YoungerFutharkVariant.DEFAULT
     ): TranslationResult?
 
     suspend fun getLatestAvailableTranslation(
         quoteId: Long,
-        script: RunicScript
+        script: RunicScript,
+        sourceText: String
     ): TranslationResult?
 
     suspend fun cacheTranslation(
@@ -61,6 +63,7 @@ internal object NoOpTranslationRepository : TranslationRepository {
     override suspend fun getCachedTranslation(
         quoteId: Long,
         script: RunicScript,
+        sourceText: String,
         fidelity: TranslationFidelity,
         youngerVariant: YoungerFutharkVariant
     ): TranslationResult? = null
@@ -111,7 +114,8 @@ internal object NoOpTranslationRepository : TranslationRepository {
 
     override suspend fun getLatestAvailableTranslation(
         quoteId: Long,
-        script: RunicScript
+        script: RunicScript,
+        sourceText: String
     ): TranslationResult? = null
 
     override suspend fun deleteTranslationsForQuote(quoteId: Long) = Unit

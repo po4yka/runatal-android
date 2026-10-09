@@ -178,10 +178,16 @@ class ShareViewModelTest {
             datasetVersion = "dataset"
         )
         coEvery { quoteRepository.getQuoteById(7L) } returns testQuote
-        coEvery { translationRepository.getLatestAvailableTranslation(7L, RunicScript.ELDER_FUTHARK) } returns
+        coEvery {
+            translationRepository.getLatestAvailableTranslation(7L, RunicScript.ELDER_FUTHARK, testQuote.textLatin)
+        } returns
             elderTranslation
-        coEvery { translationRepository.getLatestAvailableTranslation(7L, RunicScript.YOUNGER_FUTHARK) } returns null
-        coEvery { translationRepository.getLatestAvailableTranslation(7L, RunicScript.CIRTH) } returns cirthTranslation
+        coEvery {
+            translationRepository.getLatestAvailableTranslation(7L, RunicScript.YOUNGER_FUTHARK, testQuote.textLatin)
+        } returns null
+        coEvery {
+            translationRepository.getLatestAvailableTranslation(7L, RunicScript.CIRTH, testQuote.textLatin)
+        } returns cirthTranslation
 
         val viewModel = createViewModel(
             quoteId = 7L,
