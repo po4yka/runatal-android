@@ -7,6 +7,7 @@ import com.po4yka.runatal.domain.model.QuoteShareContent
 import com.po4yka.runatal.domain.model.RunicScript
 import android.graphics.Bitmap
 import com.google.common.truth.Truth.assertThat
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -41,11 +42,15 @@ class QuoteShareManagerTest {
         } returns Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888)
 
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
+        val repository = mockk<com.po4yka.runatal.domain.repository.QuoteRepository>()
+        coEvery { repository.getQuoteById(1L) } returns
+            Quote(1L, "Runes remember.", "Archivist", null, null, null)
         val manager = QuoteShareManager(
             context = context,
             imageGenerator = imageGenerator,
             ioDispatcher = dispatcher,
-            mainDispatcher = dispatcher
+            mainDispatcher = dispatcher,
+            quoteRepository = repository
         )
 
         val content = QuoteShareContent(
@@ -85,6 +90,12 @@ class QuoteShareManagerTest {
 
         verify(exactly = 3) { imageGenerator.generateQuoteImage(any(), any(), any()) }
         assertThat(shareDir.listFiles()?.count { it.extension == "png" }).isEqualTo(4)
+        coEvery { repository.getQuoteById(1L) } returns null
+        assertThat(manager.shareQuoteAsImage(content)).isFalse()
+        verify(exactly = 3) { imageGenerator.generateQuoteImage(any(), any(), any()) }
+        coEvery { repository.getQuoteById(1L) } returns content.quote andThen null
+        assertThat(manager.shareQuoteAsImage(content, ShareTemplate.VERSE)).isFalse()
+        verify(exactly = 4) { imageGenerator.generateQuoteImage(any(), any(), any()) }
     }
     private fun rendering(glyphs: String) = ResolvedQuoteRendering(
         glyphs, emptyList(), TranslationMode.TRANSLITERATE, "Transliteration"

@@ -31,7 +31,8 @@ class QuoteShareManager @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val imageGenerator: QuoteImageGenerator,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    @param:MainDispatcher private val mainDispatcher: CoroutineDispatcher
+    @param:MainDispatcher private val mainDispatcher: CoroutineDispatcher,
+    private val quoteRepository: com.po4yka.runatal.domain.repository.QuoteRepository
 ) {
     /** Uses the same complete layout for the in-app preview and exported image. */
     suspend fun renderQuoteImage(
@@ -67,6 +68,7 @@ class QuoteShareManager @Inject constructor(
         appearance: ShareAppearance = ShareAppearance.DARK
     ): Boolean = withContext(ioDispatcher) {
         try {
+            if (!isCurrentContent(content)) return@withContext false
             val shareDir = File(context.cacheDir, SHARE_DIR).apply {
                 if (!exists()) mkdirs()
             }
@@ -85,6 +87,7 @@ class QuoteShareManager @Inject constructor(
                 pruneShareDir(shareDir)
             }
 
+            if (!isCurrentContent(content)) return@withContext false
             val authority = "${BuildConfig.APPLICATION_ID}.fileprovider"
             val imageUri: Uri = FileProvider.getUriForFile(
                 context,
@@ -162,6 +165,14 @@ class QuoteShareManager @Inject constructor(
         } catch (e: SecurityException) {
             Log.e(TAG, "Security exception sharing text", e)
         }
+    }
+
+    private suspend fun isCurrentContent(content: QuoteShareContent): Boolean {
+        val current = quoteRepository.getQuoteById(content.quote.id) ?: return false
+        return current.textLatin == content.textLatin && current.author == content.author &&
+            current.renderingMode == content.quote.renderingMode &&
+            current.renderingFidelity == content.quote.renderingFidelity &&
+            current.renderingYoungerVariant == content.quote.renderingYoungerVariant
     }
 
     private fun writeBitmap(bitmap: Bitmap, imageFile: File) {

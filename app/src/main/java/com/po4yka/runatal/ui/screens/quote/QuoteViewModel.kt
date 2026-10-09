@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -76,20 +77,31 @@ internal class QuoteViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 userPreferencesManager.userPreferencesFlow,
-                localWordByWordOverride
-            ) { preferences, wordByWordOverride ->
+                localWordByWordOverride,
+                quoteRepository.observeQuoteChanges().onStart { emit(Unit) }
+            ) { preferences, wordByWordOverride, _ ->
                 preferences to wordByWordOverride
             }.collectLatest { (preferences, wordByWordOverride) ->
-                latestPreferences = preferences
-                if (currentQuote == null) {
-                    loadQuoteOfTheDay(preferences = preferences, showLoading = true)
-                } else {
-                    applyPreferencesToCurrentQuote(
-                        preferences = preferences,
-                        wordByWordOverride = wordByWordOverride
-                    )
-                }
+                refreshObservedQuote(preferences, wordByWordOverride)
             }
+        }
+    }
+
+    private suspend fun refreshObservedQuote(preferences: UserPreferences, wordByWordOverride: Boolean?) {
+        try {
+            latestPreferences = preferences
+            currentQuote = currentQuote?.let { quoteRepository.getQuoteById(it.id) }
+            if (currentQuote == null) {
+                loadQuoteOfTheDay(preferences = preferences, showLoading = true)
+            } else {
+                applyPreferencesToCurrentQuote(preferences, wordByWordOverride)
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: IOException) {
+            _uiState.value = QuoteUiState.Error(e.message ?: "Failed to refresh quote")
+        } catch (e: IllegalStateException) {
+            _uiState.value = QuoteUiState.Error(e.message ?: "Invalid quote state")
         }
     }
 

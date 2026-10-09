@@ -72,6 +72,7 @@ class QuoteViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         quoteRepository = mockk()
+        every { quoteRepository.observeQuoteChanges() } returns kotlinx.coroutines.flow.emptyFlow()
         userPreferencesManager = mockk()
         translationRepository = NoOpTranslationRepository
         transliterationFactory = TransliterationFactory(
@@ -86,6 +87,7 @@ class QuoteViewModelTest {
             preferencesFlow.value = preferencesFlow.value.copy(selectedScript = firstArg())
         }
         coEvery { userPreferencesManager.updateShowTransliteration(any()) } returns Unit
+        coEvery { quoteRepository.getQuoteById(any()) } returns testQuote
         coEvery { quoteRepository.getAllQuotes() } returns listOf(testQuote)
     }
 
@@ -255,6 +257,25 @@ class QuoteViewModelTest {
             assertThat(awaitItem()).isInstanceOf(QuoteUiState.Success::class.java)
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `committed content changes replace Today snapshot and hiding loads a valid daily quote`() = runTest {
+        val changes = kotlinx.coroutines.flow.MutableSharedFlow<Unit>()
+        every { quoteRepository.observeQuoteChanges() } returns changes
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        val edited = testQuote.copy(textLatin = "Changed source", author = "New author", runicElder = null)
+        coEvery { quoteRepository.getQuoteById(1L) } returns edited
+        changes.emit(Unit)
+        advanceUntilIdle()
+        assertThat((viewModel.uiState.value as QuoteUiState.Success).quote).isEqualTo(edited)
+        coEvery { quoteRepository.getQuoteById(1L) } returns null
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote.copy(id = 2L)
+        changes.emit(Unit)
+        advanceUntilIdle()
+        assertThat((viewModel.uiState.value as QuoteUiState.Success).quote.id).isEqualTo(2L)
     }
 
     private fun createViewModel(

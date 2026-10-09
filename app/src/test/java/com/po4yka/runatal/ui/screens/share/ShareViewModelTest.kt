@@ -58,6 +58,7 @@ class ShareViewModelTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         quoteRepository = mockk()
+        every { quoteRepository.observeQuoteChanges() } returns kotlinx.coroutines.flow.emptyFlow()
     }
 
     @After
@@ -218,4 +219,22 @@ class ShareViewModelTest {
         assertThat(content.runicText).isEqualTo(testQuote.runicElder)
         assertThat(content.scriptLabel).contains("Custom stored glyphs")
     }
+    @Test
+    fun `committed updates refresh the share snapshot and inactive quotes remove prepared content`() = runTest {
+        val changes = kotlinx.coroutines.flow.MutableSharedFlow<Unit>()
+        every { quoteRepository.observeQuoteChanges() } returns changes
+        coEvery { quoteRepository.getQuoteById(7L) } returns testQuote
+        val viewModel = createViewModel(7L)
+        advanceUntilIdle()
+        val edited = testQuote.copy(textLatin = "Edited quote", runicElder = null)
+        coEvery { quoteRepository.getQuoteById(7L) } returns edited
+        changes.emit(Unit)
+        advanceUntilIdle()
+        assertThat((viewModel.uiState.value as ShareUiState.Success).content.quote).isEqualTo(edited)
+        coEvery { quoteRepository.getQuoteById(7L) } returns null
+        changes.emit(Unit)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value).isEqualTo(ShareUiState.Error("Quote not found"))
+    }
+
 }

@@ -7,7 +7,11 @@ import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.domain.model.QuoteShareContent
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.domain.usecase.quote.BuildQuotePresentationUseCase
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.Job
+import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.util.ShareAppearance
 import com.po4yka.runatal.util.ShareTemplate
@@ -62,22 +66,27 @@ internal class ShareViewModel @AssistedInject constructor(
         }
     }
 
+    private var loadJob: Job? = null
+
     private fun loadQuote() {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _uiState.value = ShareUiState.Loading
-            try {
-                val quote = quoteRepository.getQuoteById(quoteId)
-                if (quote != null) {
-                    _uiState.value = ShareUiState.Success(resolveShareQuote(quote))
-                } else {
-                    _uiState.value = ShareUiState.Error("Quote not found")
+            combine(
+                userPreferencesManager.userPreferencesFlow,
+                quoteRepository.observeQuoteChanges().onStart { emit(Unit) }
+            ) { preferences, _ -> preferences }.collectLatest { preferences ->
+                try {
+                    val quote = quoteRepository.getQuoteById(quoteId)
+                    _uiState.value = if (quote == null) ShareUiState.Error("Quote not found")
+                        else ShareUiState.Success(resolveShareQuote(quote, preferences))
+                } catch (e: IOException) {
+                    Log.e(TAG, "IO error loading quote", e)
+                    _uiState.value = ShareUiState.Error("Failed to load quote: ${e.message}")
+                } catch (e: IllegalStateException) {
+                    Log.e(TAG, "Invalid state loading quote", e)
+                    _uiState.value = ShareUiState.Error("Invalid state: ${e.message}")
                 }
-            } catch (e: IOException) {
-                Log.e(TAG, "IO error loading quote", e)
-                _uiState.value = ShareUiState.Error("Failed to load quote: ${e.message}")
-            } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state loading quote", e)
-                _uiState.value = ShareUiState.Error("Invalid state: ${e.message}")
             }
         }
     }
@@ -99,8 +108,7 @@ internal class ShareViewModel @AssistedInject constructor(
         }
     }
 
-    private suspend fun resolveShareQuote(quote: Quote): QuoteShareContent {
-        val preferences = userPreferencesManager.userPreferencesFlow.first()
+    private suspend fun resolveShareQuote(quote: Quote, preferences: UserPreferences): QuoteShareContent {
         val presentation = buildQuotePresentationUseCase(quote, preferences.selectedScript, emptyList())
         return QuoteShareContent(quote, preferences.selectedScript, preferences.selectedFont, presentation.rendering)
     }
