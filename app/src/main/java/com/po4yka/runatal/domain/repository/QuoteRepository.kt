@@ -1,6 +1,7 @@
 package com.po4yka.runatal.domain.repository
 
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteLifecycleChange
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -80,16 +81,17 @@ interface QuoteRepository {
         expectedAuthor: String
     ): Quote
 
-    /**
-     * Re-inserts a deleted user-created quote with its existing identity.
-     * @return The restored quote ID.
-     */
-    suspend fun restoreUserQuote(quote: Quote): Long
+    /** Moves an active user quote to retained trash without deleting related metadata. */
+    suspend fun deleteUserQuote(quoteId: Long): QuoteLifecycleChange
 
-    /**
-     * Deletes a user-created quote.
-     */
-    suspend fun deleteUserQuote(quoteId: Long)
+    /** Moves any active quote out of the reading library while retaining its full data. */
+    suspend fun archiveQuote(quoteId: Long): QuoteLifecycleChange
+
+    /** Hides an active quote until the user explicitly restores it. */
+    suspend fun hideQuote(quoteId: Long): QuoteLifecycleChange
+
+    /** Undoes only the exact lifecycle mutation represented by this receipt. */
+    suspend fun undoLifecycleChange(change: QuoteLifecycleChange)
 
     /**
      * Gets a quote by ID.

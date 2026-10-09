@@ -48,7 +48,7 @@ class SourceContentDatabaseTest {
         database = Room.databaseBuilder(context, RunatalDatabase::class.java, databaseName)
             .setDriver(AndroidSQLiteDriver())
             .build()
-        repository = QuoteRepositoryImpl(database.quoteDao(), clock, mockk())
+        repository = QuoteRepositoryImpl(database.quoteDao(), clock, mockk(), database.archivedQuoteDao())
     }
 
     @After
@@ -83,8 +83,15 @@ class SourceContentDatabaseTest {
         assertThat(selected("king")?.glyphOutput).isEqualTo("new output")
         assertThat(cacheCount()).isEqualTo(1)
 
-        database.quoteDao().deleteUserQuote(1L)
+        val deletion = repository.deleteUserQuote(1L)
         assertThat(dao.insertIfSourceMatches(record(source = "king"))).isFalse()
+        assertThat(cacheCount()).isEqualTo(1)
+        assertThat(selected("king")).isNull()
+        assertThat(database.archivedQuoteDao().getRetainedById(1L)?.lifecycleState).isEqualTo("TRASH")
+        repository.undoLifecycleChange(deletion)
+        assertThat(selected("king")?.glyphOutput).isEqualTo("new output")
+        repository.deleteUserQuote(1L)
+        database.archivedQuoteDao().emptyTrash(100L)
         assertThat(cacheCount()).isEqualTo(0)
     }
 

@@ -27,7 +27,8 @@ import com.po4yka.runatal.domain.translation.YoungerFutharkVariant
     indices = [
         Index(value = ["isUserCreated"]),
         Index(value = ["isFavorite"]),
-        Index(value = ["canonicalKey"], unique = true)
+        Index(value = ["canonicalKey"], unique = true),
+        Index(value = ["lifecycleState"])
     ]
 )
 data class QuoteEntity(
@@ -46,5 +47,8 @@ data class QuoteEntity(
     @ColumnInfo(defaultValue = "'STRICT'")
     val renderingFidelity: String = TranslationFidelity.STRICT.name,
     @ColumnInfo(defaultValue = "'LONG_BRANCH'")
-    val renderingYoungerVariant: String = YoungerFutharkVariant.LONG_BRANCH.name
+    val renderingYoungerVariant: String = YoungerFutharkVariant.LONG_BRANCH.name,
+    @ColumnInfo(defaultValue = "'ACTIVE'") val lifecycleState: String = "ACTIVE",
+    @ColumnInfo(defaultValue = "0") val lifecycleChangedAt: Long = 0L,
+    val lifecycleMutationId: String? = null
 )

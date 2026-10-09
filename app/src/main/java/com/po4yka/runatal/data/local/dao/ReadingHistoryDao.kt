@@ -19,7 +19,7 @@ internal interface ReadingHistoryDao {
         insertDay(ReadingDayEntity(read.epochDay))
     }
 
-    @Query("SELECT EXISTS(SELECT 1 FROM quotes WHERE id = :quoteId)")
+    @Query("SELECT EXISTS(SELECT 1 FROM quotes WHERE id = :quoteId AND lifecycleState = 'ACTIVE')")
     suspend fun quoteExists(quoteId: Long): Boolean
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)

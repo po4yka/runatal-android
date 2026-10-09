@@ -21,5 +21,6 @@ data class Quote(
     val createdAt: Long = 0L,
     val renderingMode: TranslationMode = TranslationMode.TRANSLITERATE,
     val renderingFidelity: TranslationFidelity = TranslationFidelity.STRICT,
-    val renderingYoungerVariant: YoungerFutharkVariant = YoungerFutharkVariant.LONG_BRANCH
+    val renderingYoungerVariant: YoungerFutharkVariant = YoungerFutharkVariant.LONG_BRANCH,
+    val lifecycleState: QuoteLifecycleState = QuoteLifecycleState.ACTIVE
 )

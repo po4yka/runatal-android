@@ -125,7 +125,12 @@ class QuotePackContentDatabaseTest {
         assertThat(database.quoteDao().getById(collisionId)?.textLatin).isEqualTo("Preserve changed content")
         assertThat(membershipCount(1L)).isEqualTo(0L)
         assertThat(repository.getPackById(1L)?.isInLibrary).isFalse()
-        database.quoteDao().delete(collision.copy(id = collisionId))
+        database.useWriterConnection { connection ->
+            connection.usePrepared("DELETE FROM quotes WHERE id=?") { statement ->
+                statement.bindLong(1, collisionId)
+                statement.step()
+            }
+        }
         repository.setLibraryMembership(1L, true)
         assertThat(database.quoteDao().getAll()).hasSize(12)
     }
@@ -179,6 +184,30 @@ class QuotePackContentDatabaseTest {
         assertThat(database.quoteDao().getAll()).hasSize(12)
         assertThat(membershipCount(1L)).isEqualTo(4L)
         assertThat(repository.getPackById(1L)?.isInLibrary).isTrue()
+    }
+
+    @Test
+    fun `reinstall preserves retained quotes and cannot resurrect explicitly purged pack sources`() = runTest {
+        repository.seedIfNeeded()
+        repository.setLibraryMembership(1L, true)
+        val content = requireNotNull(database.quotePackDao().findContent(
+            QuotePackSeedData.getPackQuotes(1L).first().textLatin,
+            QuotePackSeedData.getPackQuotes(1L).first().author,
+            checkNotNull(QuotePackSeedData.getPackQuotes(1L).first().canonicalKey)
+        ))
+        database.archivedQuoteDao().updateState(content.id, "ACTIVE", "HIDDEN", "hide", 1L)
+        repository.setLibraryMembership(1L, false)
+        repository.setLibraryMembership(1L, true)
+        assertThat(database.archivedQuoteDao().getRetainedById(content.id)?.lifecycleState).isEqualTo("HIDDEN")
+        assertThat(database.quotePackDao().availableCount(1L)).isEqualTo(3)
+        database.archivedQuoteDao().updateState(content.id, "HIDDEN", "TRASH", "trash", 2L)
+        database.archivedQuoteDao().emptyTrash(3L)
+        repository.setLibraryMembership(1L, false)
+        repository.setLibraryMembership(1L, true)
+        QuotePackRepositoryImpl(database.quotePackDao()).seedIfNeeded()
+        assertThat(database.quotePackDao().wasPurged(checkNotNull(content.canonicalKey))).isTrue()
+        assertThat(database.quotePackDao().availableCount(1L)).isEqualTo(3)
+        assertThat(database.quoteDao().getAll().none { it.canonicalKey == content.canonicalKey }).isTrue()
     }
 
     private suspend fun membershipCount(packId: Long): Long = database.useReaderConnection { connection ->

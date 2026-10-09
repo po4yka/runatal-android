@@ -1,10 +1,13 @@
 package com.po4yka.runatal.data.repository
 
 import com.po4yka.runatal.data.local.dao.QuoteDao
+import com.po4yka.runatal.data.local.dao.ArchivedQuoteDao
 import com.po4yka.runatal.data.local.entity.QuoteEntity
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.data.seed.QuoteSeedData
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteLifecycleChange
+import com.po4yka.runatal.domain.model.QuoteLifecycleState
 import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.util.TimeProvider
 import kotlinx.coroutines.flow.Flow
@@ -14,6 +17,7 @@ import com.po4yka.runatal.domain.translation.TranslationFidelity
 import com.po4yka.runatal.domain.translation.YoungerFutharkVariant
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.util.UUID
 
 /**
  * Implementation of QuoteRepository.
@@ -23,7 +27,8 @@ import javax.inject.Singleton
 internal class QuoteRepositoryImpl @Inject constructor(
     private val quoteDao: QuoteDao,
     private val timeProvider: TimeProvider,
-    private val userPreferencesManager: UserPreferencesManager
+    private val userPreferencesManager: UserPreferencesManager,
+    private val archivedQuoteDao: ArchivedQuoteDao
 ) : QuoteRepository {
 
     override fun observeQuoteChanges(): Flow<Unit> = quoteDao.observeQuoteIdentities().map { Unit }
@@ -83,7 +88,9 @@ internal class QuoteRepositoryImpl @Inject constructor(
     }
 
     override suspend fun saveUserQuote(quote: Quote): Long {
-        require(quote.id == 0L) { "New user quotes require a database-assigned identity." }
+        require(quote.id == 0L && quote.lifecycleState == QuoteLifecycleState.ACTIVE) {
+            "New user quotes require an active, database-assigned identity."
+        }
         return storageWrite { quoteDao.insert(quote.toEntity().copy(isUserCreated = true)) }
     }
 
@@ -99,16 +106,27 @@ internal class QuoteRepositoryImpl @Inject constructor(
         return updated.toDomain()
     }
 
-    override suspend fun restoreUserQuote(quote: Quote): Long {
-        val entity = quote.toEntity().copy(
-            id = quote.id,
-            isUserCreated = true
+    override suspend fun deleteUserQuote(quoteId: Long): QuoteLifecycleChange = storageWrite {
+        archivedQuoteDao.transition(
+            quoteId, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH,
+            UUID.randomUUID().toString(), System.currentTimeMillis(), onlyUserCreated = true
         )
-        return quoteDao.insert(entity)
     }
 
-    override suspend fun deleteUserQuote(quoteId: Long) {
-        quoteDao.deleteUserQuote(quoteId)
+    override suspend fun archiveQuote(quoteId: Long): QuoteLifecycleChange =
+        moveActive(quoteId, QuoteLifecycleState.ARCHIVED)
+
+    override suspend fun hideQuote(quoteId: Long): QuoteLifecycleChange =
+        moveActive(quoteId, QuoteLifecycleState.HIDDEN)
+
+    override suspend fun undoLifecycleChange(change: QuoteLifecycleChange) {
+        storageWrite { archivedQuoteDao.undoBatch(listOf(change)) }
+    }
+
+    private suspend fun moveActive(quoteId: Long, state: QuoteLifecycleState): QuoteLifecycleChange = storageWrite {
+        archivedQuoteDao.transition(
+            quoteId, QuoteLifecycleState.ACTIVE, state, UUID.randomUUID().toString(), System.currentTimeMillis()
+        )
     }
 
     override suspend fun getQuoteById(id: Long): Quote? {
@@ -132,7 +150,8 @@ internal class QuoteRepositoryImpl @Inject constructor(
         createdAt = createdAt,
         renderingMode = TranslationMode.valueOf(renderingMode),
         renderingFidelity = TranslationFidelity.valueOf(renderingFidelity),
-        renderingYoungerVariant = YoungerFutharkVariant.valueOf(renderingYoungerVariant)
+        renderingYoungerVariant = YoungerFutharkVariant.valueOf(renderingYoungerVariant),
+        lifecycleState = QuoteLifecycleState.valueOf(lifecycleState)
     )
 
     /**
@@ -150,6 +169,7 @@ internal class QuoteRepositoryImpl @Inject constructor(
         createdAt = createdAt,
         renderingMode = renderingMode.name,
         renderingFidelity = renderingFidelity.name,
-        renderingYoungerVariant = renderingYoungerVariant.name
+        renderingYoungerVariant = renderingYoungerVariant.name,
+        lifecycleState = lifecycleState.name
     )
 }

@@ -8,6 +8,8 @@ import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.domain.repository.NoOpTranslationRepository
 import com.po4yka.runatal.domain.usecase.quote.ResolveQuoteRenderingUseCase
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteLifecycleChange
+import com.po4yka.runatal.domain.model.QuoteLifecycleState
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.transliteration.TransliterationFactory
 import io.mockk.coEvery
@@ -103,9 +105,17 @@ class QuoteListViewModelTest {
         coEvery { userPreferencesManager.updateQuoteListFilter(any()) } returns Unit
         coEvery { userPreferencesManager.updateQuoteSearchQuery(any()) } returns Unit
         coEvery { quoteRepository.toggleFavorite(any(), any()) } returns Unit
-        coEvery { quoteRepository.deleteUserQuote(any()) } returns Unit
+        coEvery { quoteRepository.deleteUserQuote(any()) } answers {
+            QuoteLifecycleChange(firstArg(), QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, 0L, "delete")
+        }
+        coEvery { quoteRepository.archiveQuote(any()) } answers {
+            QuoteLifecycleChange(firstArg(), QuoteLifecycleState.ACTIVE, QuoteLifecycleState.ARCHIVED, 0L, "archive")
+        }
+        coEvery { quoteRepository.hideQuote(any()) } answers {
+            QuoteLifecycleChange(firstArg(), QuoteLifecycleState.ACTIVE, QuoteLifecycleState.HIDDEN, 0L, "hide")
+        }
         coEvery { quoteRepository.saveUserQuote(any()) } returns 99L
-        coEvery { quoteRepository.restoreUserQuote(any()) } returns 99L
+        coEvery { quoteRepository.undoLifecycleChange(any()) } returns Unit
     }
 
     @After
@@ -203,23 +213,38 @@ class QuoteListViewModelTest {
             advanceUntilIdle()
 
             coVerify { quoteRepository.deleteUserQuote(2L) }
-            assertThat(awaitItem()).isEqualTo(QuoteListEvent.QuoteDeleted(testQuotes[1]))
+            assertThat(awaitItem()).isEqualTo(QuoteListEvent.QuoteMoved(
+                QuoteLifecycleChange(2L, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, 0L, "delete")
+            ))
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `restoreDeletedQuote re-inserts a user-created copy`() = runTest {
+    fun `undo move submits exact receipt and does not reinsert a stale quote snapshot`() = runTest {
         viewModel = createViewModel()
         advanceUntilIdle()
-
-        viewModel.restoreDeletedQuote(testQuotes.first())
+        val change = QuoteLifecycleChange(1L, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, 0L, "delete")
+        viewModel.undoQuoteMove(change)
         advanceUntilIdle()
+        coVerify(exactly = 1) { quoteRepository.undoLifecycleChange(change) }
+        coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
+    }
 
-        coVerify {
-            quoteRepository.restoreUserQuote(
-                match { restored -> restored.id == 1L && restored.isUserCreated }
-            )
+    @Test
+    fun `archive and hide are positive quote actions with separate undo receipts`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.events.test {
+            viewModel.archiveQuote(testQuotes.first())
+            advanceUntilIdle()
+            assertThat((awaitItem() as QuoteListEvent.QuoteMoved).change.state).isEqualTo(QuoteLifecycleState.ARCHIVED)
+            viewModel.hideQuote(testQuotes[1])
+            advanceUntilIdle()
+            assertThat((awaitItem() as QuoteListEvent.QuoteMoved).change.state).isEqualTo(QuoteLifecycleState.HIDDEN)
+            coVerify { quoteRepository.archiveQuote(1L) }
+            coVerify { quoteRepository.hideQuote(2L) }
+            cancelAndIgnoreRemainingEvents()
         }
     }
 

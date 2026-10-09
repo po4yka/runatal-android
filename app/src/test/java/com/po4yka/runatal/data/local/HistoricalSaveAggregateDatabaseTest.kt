@@ -78,7 +78,7 @@ class HistoricalSaveAggregateDatabaseTest {
             service, engines
         )
         save = SaveTranslationToLibraryUseCase(
-            QuoteRepositoryImpl(database.quoteDao(), clock, mockk()), translations,
+            QuoteRepositoryImpl(database.quoteDao(), clock, mockk(), database.archivedQuoteDao()), translations,
             BuildTransliterationBundleUseCase(direct), BuildHistoricalTranslationBundleUseCase(service)
         )
     }

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteLifecycleChange
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.model.ResolvedQuoteRendering
 import com.po4yka.runatal.domain.usecase.quote.ResolveQuoteRenderingUseCase
@@ -153,35 +154,44 @@ internal class QuoteListViewModel @Inject constructor(
         }
     }
 
-    /** Deletes a user-created quote. */
-    fun deleteQuote(quote: Quote) {
+    /** Moves a custom quote to retained trash and provides an exact undo receipt. */
+    fun deleteQuote(quote: Quote) = moveQuote(quote, quoteRepository::deleteUserQuote)
+
+    /** Archives an active quote until it is restored. */
+    fun archiveQuote(quote: Quote) = moveQuote(quote, quoteRepository::archiveQuote)
+
+    /** Hides an active quote until it is restored from the Hidden tab. */
+    fun hideQuote(quote: Quote) = moveQuote(quote, quoteRepository::hideQuote)
+
+    private fun moveQuote(quote: Quote, command: suspend (Long) -> QuoteLifecycleChange) {
         viewModelScope.launch {
             try {
-                quoteRepository.deleteUserQuote(quote.id)
-                _events.send(QuoteListEvent.QuoteDeleted(quote))
-            } catch (e: IOException) {
-                Log.e(TAG, "IO error deleting quote", e)
-                _events.send(QuoteListEvent.ShowMessage("Failed to delete quote: ${e.message}"))
-            } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state deleting quote", e)
-                _events.send(QuoteListEvent.ShowMessage("Invalid state: ${e.message}"))
+                val change = command(quote.id)
+                _events.send(QuoteListEvent.QuoteMoved(change))
+            } catch (exception: IOException) {
+                showLifecycleFailure(exception)
+            } catch (exception: IllegalStateException) {
+                showLifecycleFailure(exception)
             }
         }
     }
 
-    /** Restores a previously deleted quote. */
-    fun restoreDeletedQuote(quote: Quote) {
+    /** Undoes a state mutation without reinserting a stale quote snapshot. */
+    fun undoQuoteMove(change: QuoteLifecycleChange) {
         viewModelScope.launch {
             try {
-                quoteRepository.restoreUserQuote(quote.copy(isUserCreated = true))
-            } catch (e: IOException) {
-                Log.e(TAG, "IO error restoring quote", e)
-                _events.send(QuoteListEvent.ShowMessage("Failed to restore quote: ${e.message}"))
-            } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state restoring quote", e)
-                _events.send(QuoteListEvent.ShowMessage("Invalid state: ${e.message}"))
+                quoteRepository.undoLifecycleChange(change)
+            } catch (exception: IOException) {
+                showLifecycleFailure(exception)
+            } catch (exception: IllegalStateException) {
+                showLifecycleFailure(exception)
             }
         }
+    }
+
+    private suspend fun showLifecycleFailure(exception: Exception) {
+        Log.e(TAG, "Quote lifecycle action failed", exception)
+        _events.send(QuoteListEvent.ShowMessage("Failed to update quote: ${exception.message}"))
     }
 
     private suspend fun restorePersistedFilters() {
@@ -225,8 +235,8 @@ sealed interface QuoteListEvent {
     /** Shows transient feedback to the user. */
     data class ShowMessage(val message: String) : QuoteListEvent
 
-    /** Indicates that a quote was deleted successfully and can be restored. */
-    data class QuoteDeleted(val quote: Quote) : QuoteListEvent
+    /** Provides the exact receipt for a successful, reversible lifecycle action. */
+    data class QuoteMoved(val change: QuoteLifecycleChange) : QuoteListEvent
 }
 
 /** Tab filters for the Library screen: All, Favorites, Custom. */

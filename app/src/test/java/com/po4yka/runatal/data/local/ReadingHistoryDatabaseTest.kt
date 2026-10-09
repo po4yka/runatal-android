@@ -47,7 +47,7 @@ class ReadingHistoryDatabaseTest {
         val quote = QuoteEntity(id = 1, textLatin = "Actual quote", author = "Reader", isUserCreated = true)
         initial.quoteDao().insert(quote)
         val repository = ReadingHistoryRepositoryImpl(
-            initial.readingHistoryDao(), QuoteRepositoryImpl(initial.quoteDao(), time, mockk()), time
+            initial.readingHistoryDao(), QuoteRepositoryImpl(initial.quoteDao(), time, mockk(), initial.archivedQuoteDao()), time
         )
         repository.recordRead(1, RunicScript.ELDER_FUTHARK)
         repository.recordRead(1, RunicScript.ELDER_FUTHARK)
@@ -59,7 +59,8 @@ class ReadingHistoryDatabaseTest {
         val reopened = open()
         assertThat(reopened.readingHistoryDao().readings().first()).hasSize(2)
         assertThat(reopened.readingHistoryDao().days().first()).containsExactly(day.toEpochDay())
-        reopened.quoteDao().delete(quote)
+        reopened.archivedQuoteDao().updateState(1L, "ACTIVE", "TRASH", "delete", 1L)
+        reopened.archivedQuoteDao().emptyTrash(2L)
         assertThat(reopened.readingHistoryDao().readings().first()).isEmpty()
         assertThat(reopened.readingHistoryDao().days().first()).hasSize(1)
         reopened.readingHistoryDao().record(QuoteReadEntity(

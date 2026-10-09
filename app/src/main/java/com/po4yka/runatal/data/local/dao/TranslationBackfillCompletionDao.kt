@@ -13,7 +13,7 @@ import com.po4yka.runatal.data.local.entity.TranslationRecordEntity
 @Dao
 internal interface TranslationBackfillCompletionDao {
     @Query(
-        """SELECT quotes.* FROM quotes WHERE NOT EXISTS (
+        """SELECT quotes.* FROM quotes WHERE lifecycleState = 'ACTIVE' AND NOT EXISTS (
             SELECT 1 FROM translation_backfill_completions completion
             WHERE completion.quoteId = quotes.id AND completion.sourceText = quotes.textLatin
                 AND completion.versionFingerprint = :versionFingerprint
@@ -34,7 +34,7 @@ internal interface TranslationBackfillCompletionDao {
         return true
     }
 
-    @Query("SELECT textLatin FROM quotes WHERE id = :quoteId")
+    @Query("SELECT textLatin FROM quotes WHERE id = :quoteId AND lifecycleState = 'ACTIVE'")
     suspend fun currentSource(quoteId: Long): String?
 
     /** Background work must not replace an existing manually saved translation selection. */

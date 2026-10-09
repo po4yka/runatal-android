@@ -91,7 +91,7 @@ class TranslationBackfillDatabaseTest {
         assertThat(pending()).isEmpty()
         assertThat(latest("I hunt")?.normalizedForm).isEqualTo("ek veiði")
 
-        database.quoteDao().deleteUserQuote(1L)
+        database.archivedQuoteDao().updateState(1L, "ACTIVE", "TRASH", "delete", 1L)
         database.quoteDao().insert(quote())
         assertThat(pending().map { it.id }).containsExactly(1L)
         repository.backfillAllQuotes()
@@ -131,7 +131,7 @@ class TranslationBackfillDatabaseTest {
         database.quoteDao().insert(quote().copy(textLatin = "changed"))
         val dao = database.translationBackfillCompletionDao()
         assertThat(dao.completeAttempt(completion(), listOf(record()))).isFalse()
-        database.quoteDao().deleteUserQuote(1L)
+        database.archivedQuoteDao().updateState(1L, "ACTIVE", "TRASH", "delete", 1L)
         assertThat(dao.completeAttempt(completion(), listOf(record()))).isFalse()
         assertThat(count("translation_records")).isEqualTo(0)
         assertThat(count("translation_backfill_completions")).isEqualTo(0)
@@ -188,7 +188,7 @@ class TranslationBackfillDatabaseTest {
             .setDriver(AndroidSQLiteDriver()).addMigrations(
                 RunatalDatabase.MIGRATION_10_11, RunatalDatabase.MIGRATION_11_12,
                 RunatalDatabase.MIGRATION_12_13, RunatalDatabase.MIGRATION_13_14,
-                RunatalDatabase.MIGRATION_14_15, RunatalDatabase.MIGRATION_15_16
+                RunatalDatabase.MIGRATION_14_15, RunatalDatabase.MIGRATION_15_16, RunatalDatabase.MIGRATION_16_17
             ).build()
         val migrated = requireNotNull(database.quoteDao().getById(1L))
         assertThat(migrated.textLatin).isEqualTo(source)

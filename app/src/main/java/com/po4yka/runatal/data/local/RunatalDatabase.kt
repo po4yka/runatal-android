@@ -1,6 +1,7 @@
 package com.po4yka.runatal.data.local
 
 import com.po4yka.runatal.data.local.migration.QuoteRenderingSelectionMigration
+import com.po4yka.runatal.data.local.migration.QuoteLifecycleMigration
 import androidx.room3.Database
 import com.po4yka.runatal.data.local.dao.ReadingHistoryDao
 import com.po4yka.runatal.data.local.entity.QuoteReadEntity
@@ -21,7 +22,7 @@ import com.po4yka.runatal.data.local.dao.QuotePackDao
 import com.po4yka.runatal.data.local.dao.RuneReferenceDao
 import com.po4yka.runatal.data.local.dao.TranslationBackfillStateDao
 import com.po4yka.runatal.data.local.dao.TranslationRecordDao
-import com.po4yka.runatal.data.local.entity.ArchivedQuoteEntity
+import com.po4yka.runatal.data.local.entity.CanonicalQuoteTombstoneEntity
 import com.po4yka.runatal.data.local.entity.PackQuoteEntity
 import com.po4yka.runatal.data.local.entity.QuoteEntity
 import com.po4yka.runatal.data.local.entity.QuotePackEntity
@@ -40,7 +41,7 @@ import com.po4yka.runatal.data.local.migration.TranslationCacheKeyMigration
         QuoteEntity::class,
         QuotePackEntity::class,
         PackQuoteEntity::class,
-        ArchivedQuoteEntity::class,
+        CanonicalQuoteTombstoneEntity::class,
         RuneReferenceEntity::class,
         TranslationRecordEntity::class,
         TranslationBackfillStateEntity::class,
@@ -48,7 +49,7 @@ import com.po4yka.runatal.data.local.migration.TranslationCacheKeyMigration
         ReadingDayEntity::class,
         TranslationBackfillCompletionEntity::class
     ],
-    version = 16,
+    version = 17,
     exportSchema = true
 )
 internal abstract class RunatalDatabase : RoomDatabase() {
@@ -490,6 +491,13 @@ internal abstract class RunatalDatabase : RoomDatabase() {
         val MIGRATION_15_16 = object : Migration(15, 16) {
             override suspend fun migrate(connection: SQLiteConnection) {
                 QuoteRenderingSelectionMigration.migrate(connection)
+            }
+        }
+
+        /** Retains archive, hidden and trash rows without reinserting snapshots. */
+        val MIGRATION_16_17 = object : Migration(16, 17) {
+            override suspend fun migrate(connection: SQLiteConnection) {
+                QuoteLifecycleMigration.migrate(connection)
             }
         }
 

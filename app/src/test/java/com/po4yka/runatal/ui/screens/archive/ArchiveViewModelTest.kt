@@ -4,10 +4,13 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.data.repository.ArchiveRepository
 import com.po4yka.runatal.domain.model.ArchivedQuote
+import com.po4yka.runatal.domain.model.QuoteLifecycleChange
+import com.po4yka.runatal.domain.model.QuoteLifecycleState
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,63 +23,33 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ArchiveViewModelTest {
-
-    private lateinit var archiveRepository: ArchiveRepository
+    private lateinit var repository: ArchiveRepository
     private lateinit var viewModel: ArchiveViewModel
-
-    private val testDispatcher = StandardTestDispatcher()
-
-    private val archivedQuotesFlow = MutableStateFlow(
-        listOf(
-            ArchivedQuote(
-                id = 1L,
-                originalQuoteId = 11L,
-                textLatin = "The only way to do great work is to love what you do.",
-                author = "Steve Jobs",
-                archivedAt = 1_708_560_000_000L
-            ),
-            ArchivedQuote(
-                id = 2L,
-                originalQuoteId = 12L,
-                textLatin = "In the middle of difficulty lies opportunity.",
-                author = "Albert Einstein",
-                archivedAt = 1_708_473_600_000L
-            )
-        )
-    )
-
-    private val deletedQuotesFlow = MutableStateFlow(
-        listOf(
-            ArchivedQuote(
-                id = 3L,
-                originalQuoteId = 13L,
-                textLatin = "The mind is everything. What you think you become.",
-                author = "Buddha",
-                archivedAt = 1_708_214_400_000L,
-                isDeleted = true
-            )
-        )
-    )
+    private val dispatcher = StandardTestDispatcher()
+    private val archived = listOf(ArchivedQuote(1L, "First", "User", 42L), ArchivedQuote(2L, "Second", "User", 43L))
+    private val hidden = ArchivedQuote(3L, "Hidden", "User", 44L, QuoteLifecycleState.HIDDEN)
+    private val trashed = ArchivedQuote(4L, "Trash", "User", 45L, QuoteLifecycleState.TRASH)
+    private val retained = MutableStateFlow(archived + hidden + trashed)
 
     @Before
     fun setUp() {
-        Dispatchers.setMain(testDispatcher)
-        archiveRepository = mockk()
-
-        every { archiveRepository.getAllArchivedFlow() } returns archivedQuotesFlow
-        every { archiveRepository.getActiveArchivedFlow() } returns archivedQuotesFlow
-        every { archiveRepository.getDeletedFlow() } returns deletedQuotesFlow
-        coEvery { archiveRepository.restoreQuote(any()) } returns Unit
-        coEvery { archiveRepository.archiveQuote(any()) } returns 1L
-        coEvery { archiveRepository.softDeleteQuote(any()) } returns Unit
-        coEvery { archiveRepository.emptyTrash() } returns Unit
-
-        viewModel = ArchiveViewModel(archiveRepository)
-        testDispatcher.scheduler.advanceUntilIdle()
+        Dispatchers.setMain(dispatcher)
+        repository = mockk()
+        every { repository.getRetainedQuotesFlow() } returns retained
+        coEvery { repository.restoreQuotes(any()) } answers {
+            firstArg<List<ArchivedQuote>>().map { receipt(it) }
+        }
+        coEvery { repository.undoChanges(any()) } returns Unit
+        coEvery { repository.moveToTrash(any()) } answers {
+            val quote = firstArg<ArchivedQuote>()
+            receipt(quote).copy(state = QuoteLifecycleState.TRASH)
+        }
+        coEvery { repository.emptyTrash() } returns Unit
+        viewModel = ArchiveViewModel(repository)
+        dispatcher.scheduler.advanceUntilIdle()
     }
 
     @After
@@ -85,85 +58,90 @@ class ArchiveViewModelTest {
     }
 
     @Test
-    fun `selectTab updates selected archive tab`() = runTest {
+    fun `one authoritative snapshot populates archived hidden and trash tabs`() = runTest {
+        assertThat(viewModel.uiState.value.archivedQuotes).containsExactlyElementsIn(archived)
+        assertThat(viewModel.uiState.value.hiddenQuotes).containsExactly(hidden)
+        assertThat(viewModel.uiState.value.deletedQuotes).containsExactly(trashed)
         viewModel.selectTab(ArchiveTab.HIDDEN)
+        assertThat(viewModel.uiState.value.quotesForSelectedTab).containsExactly(hidden)
+        retained.value = listOf(trashed)
         advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.selectedTab).isEqualTo(ArchiveTab.HIDDEN)
         assertThat(viewModel.uiState.value.hiddenQuotes).isEmpty()
+        assertThat(viewModel.uiState.value.deletedQuotes).containsExactly(trashed)
     }
 
     @Test
-    fun `restoreAllArchivedQuotes restores each archived quote and emits batch snackbar`() = runTest {
+    fun `restore all uses one atomic batch and carries its exact undo receipts`() = runTest {
         viewModel.snackbarEvent.test {
             viewModel.restoreAllArchivedQuotes()
             advanceUntilIdle()
-
-            coVerify(exactly = 1) { archiveRepository.restoreQuote(1L) }
-            coVerify(exactly = 1) { archiveRepository.restoreQuote(2L) }
-
-            val event = awaitItem()
-            assertThat(event).isInstanceOf(ArchiveSnackbarEvent.RestoredBatch::class.java)
-            assertThat(event.quotes).hasSize(2)
+            coVerify(exactly = 1) { repository.restoreQuotes(archived) }
+            assertThat(awaitItem()).isEqualTo(ArchiveSnackbarEvent.RestoredBatch(archived.map { receipt(it) }))
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `undoRestore archives each restored quote again`() = runTest {
-        val restoredQuotes = archivedQuotesFlow.value
-
-        viewModel.undoRestore(restoredQuotes)
+    fun `hidden restore all is a positive batch operation`() = runTest {
+        viewModel.selectTab(ArchiveTab.HIDDEN)
+        viewModel.restoreAllArchivedQuotes()
         advanceUntilIdle()
-
-        coVerify(exactly = restoredQuotes.size) {
-            archiveRepository.archiveQuote(any())
-        }
+        coVerify(exactly = 1) { repository.restoreQuotes(listOf(hidden)) }
     }
 
     @Test
-    fun `restoreQuote emits single quote snackbar`() = runTest {
+    fun `undo restore submits exact mutation tokens in one operation`() = runTest {
+        val changes = archived.map { receipt(it) }
+        viewModel.undoRestore(changes)
+        advanceUntilIdle()
+        coVerify(exactly = 1) { repository.undoChanges(changes) }
+    }
+
+    @Test
+    fun `single trash restore produces a persistent undo receipt`() = runTest {
         viewModel.snackbarEvent.test {
-            val quote = archivedQuotesFlow.value.first()
-
-            viewModel.restoreQuote(quote)
+            viewModel.restoreQuote(trashed)
             advanceUntilIdle()
-
-            coVerify { archiveRepository.restoreQuote(quote.id) }
-            val event = awaitItem()
-            assertThat(event).isEqualTo(ArchiveSnackbarEvent.RestoredQuote(listOf(quote)))
+            coVerify { repository.restoreQuotes(listOf(trashed)) }
+            assertThat(awaitItem()).isEqualTo(ArchiveSnackbarEvent.RestoredQuote(listOf(receipt(trashed))))
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `softDeleteQuote and emptyTrash delegate to repository`() = runTest {
-        viewModel.softDeleteQuote(2L)
+    fun `move to trash and explicit purge use separate commands`() = runTest {
+        viewModel.softDeleteQuote(hidden)
         viewModel.emptyTrash()
         advanceUntilIdle()
-
-        coVerify { archiveRepository.softDeleteQuote(2L) }
-        coVerify { archiveRepository.emptyTrash() }
+        coVerify { repository.moveToTrash(hidden) }
+        coVerify { repository.emptyTrash() }
     }
 
     @Test
-    fun `retry clears error and reloads archive after a flow failure`() = runTest {
-        every { archiveRepository.getActiveArchivedFlow() } returnsMany listOf(
-            flow { throw IOException("offline") },
-            archivedQuotesFlow
-        )
-        every { archiveRepository.getDeletedFlow() } returns deletedQuotesFlow
-
-        val failingViewModel = ArchiveViewModel(archiveRepository)
-        advanceUntilIdle()
-
-        assertThat(failingViewModel.uiState.value.errorMessage)
-            .isEqualTo("Failed to load archive: offline")
-
-        failingViewModel.retry()
-        advanceUntilIdle()
-
-        assertThat(failingViewModel.uiState.value.errorMessage).isNull()
-        assertThat(failingViewModel.uiState.value.archivedQuotes).hasSize(2)
+    fun `failed batch restore reports failure without successful restore event`() = runTest {
+        coEvery { repository.restoreQuotes(any()) } throws IOException("disk full")
+        viewModel.snackbarEvent.test {
+            viewModel.restoreAllArchivedQuotes()
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(ArchiveSnackbarEvent.ShowMessage("Failed to restore quotes: disk full"))
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
     }
+
+    @Test
+    fun `retry clears flow failure and restores a single snapshot observation`() = runTest {
+        every { repository.getRetainedQuotesFlow() } returnsMany listOf(flow { throw IOException("offline") }, retained)
+        val failing = ArchiveViewModel(repository)
+        advanceUntilIdle()
+        assertThat(failing.uiState.value.errorMessage).isEqualTo("Failed to load archive: offline")
+        failing.retry()
+        advanceUntilIdle()
+        assertThat(failing.uiState.value.errorMessage).isNull()
+        assertThat(failing.uiState.value.hiddenQuotes).containsExactly(hidden)
+    }
+
+    private fun receipt(quote: ArchivedQuote) = QuoteLifecycleChange(
+        quote.id, quote.lifecycleState, QuoteLifecycleState.ACTIVE, quote.archivedAt, "restore-${quote.id}"
+    )
 }

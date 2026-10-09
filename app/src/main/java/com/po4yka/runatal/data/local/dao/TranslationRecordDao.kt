@@ -17,6 +17,7 @@ internal interface TranslationRecordDao {
         """
         SELECT records.* FROM translation_records records
         JOIN quotes quote ON quote.id = records.quoteId AND quote.textLatin = records.sourceText
+            AND quote.lifecycleState = 'ACTIVE'
         WHERE records.quoteId = :quoteId
             AND records.script = :script
             AND records.fidelity = :fidelity
@@ -45,7 +46,7 @@ internal interface TranslationRecordDao {
         return true
     }
 
-    @Query("SELECT textLatin FROM quotes WHERE id = :quoteId")
+    @Query("SELECT textLatin FROM quotes WHERE id = :quoteId AND lifecycleState = 'ACTIVE'")
     suspend fun currentQuoteSource(quoteId: Long): String?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

@@ -58,6 +58,7 @@ interface QuotePackDao {
 
     /** Deletes only unprotected content owned by the removed pack and no other pack. */
     @Query("DELETE FROM quotes WHERE canonicalKey LIKE 'pack:%' AND isFavorite=0 AND isUserCreated=0 " +
+        "AND lifecycleState='ACTIVE' " +
         "AND id IN (SELECT quoteId FROM pack_quotes WHERE packId=:packId) " +
         "AND NOT EXISTS (SELECT 1 FROM pack_quotes WHERE quoteId=quotes.id AND packId<>:packId)")
     suspend fun deleteUnprotectedContent(packId: Long)
@@ -98,15 +99,26 @@ interface QuotePackDao {
             deleteUnprotectedContent(packId)
             detachPack(packId)
         }
-        val updated = current.copy(isInLibrary = isInLibrary, quoteCount = content.size)
+        val count = if (isInLibrary) availableCount(packId) else content.size
+        val updated = current.copy(isInLibrary = isInLibrary, quoteCount = count)
         update(updated)
         return updated
     }
+
+    /** Honors explicit permanent deletion when materializing bundled content. */
+    @Query("SELECT EXISTS(SELECT 1 FROM canonical_quote_tombstones WHERE canonicalKey=:key)")
+    suspend fun wasPurged(key: String): Boolean
+
+    /** Counts content currently visible from an installed pack. */
+    @Query("SELECT COUNT(*) FROM pack_quotes JOIN quotes ON quotes.id=pack_quotes.quoteId " +
+        "WHERE packId=:packId AND lifecycleState='ACTIVE'")
+    suspend fun availableCount(packId: Long): Int
 
     private suspend fun installContent(packId: Long, content: List<QuoteEntity>) {
         content.forEach { quote ->
             check(!quote.isUserCreated && quote.id == 0L) { "Pack content must use database-assigned identities" }
             val key = checkNotNull(quote.canonicalKey)
+            if (wasPurged(key)) return@forEach
             val existing = findContent(quote.textLatin, quote.author, key)
             val quoteId = existing?.id ?: insertContent(quote)
             check(quoteId > 0L) { "Pack content identity conflicts with an existing quote" }

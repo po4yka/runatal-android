@@ -19,6 +19,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -60,6 +62,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runatal.domain.model.ResolvedQuoteRendering
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteLifecycleState
 import com.po4yka.runatal.domain.model.displayName
 import com.po4yka.runatal.ui.components.BottomSheetAction
 import com.po4yka.runatal.ui.components.BottomSheetQuotePreview
@@ -97,15 +100,20 @@ internal fun QuoteListScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is QuoteListEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
-                is QuoteListEvent.QuoteDeleted -> {
+                is QuoteListEvent.QuoteMoved -> {
                     val result = snackbarHostState.showSnackbar(
-                        message = "Quote deleted",
+                        message = when (event.change.state) {
+                            QuoteLifecycleState.TRASH -> "Quote moved to trash"
+                            QuoteLifecycleState.ARCHIVED -> "Quote archived"
+                            QuoteLifecycleState.HIDDEN -> "Quote hidden"
+                            QuoteLifecycleState.ACTIVE -> "Quote restored"
+                        },
                         actionLabel = "Undo",
                         duration = SnackbarDuration.Short
                     )
                     if (result == SnackbarResult.ActionPerformed) {
                         haptics.lightToggle()
-                        viewModel.restoreDeletedQuote(event.quote)
+                        viewModel.undoQuoteMove(event.change)
                     }
                 }
             }
@@ -268,6 +276,14 @@ internal fun QuoteListScreen(
             onDelete = {
                 bottomSheetQuote = null
                 deleteCandidate = quoteItem.quote
+            },
+            onArchive = {
+                bottomSheetQuote = null
+                viewModel.archiveQuote(quoteItem.quote)
+            },
+            onHide = {
+                bottomSheetQuote = null
+                viewModel.hideQuote(quoteItem.quote)
             }
         )
     }
@@ -275,7 +291,7 @@ internal fun QuoteListScreen(
     deleteCandidate?.let { quote ->
         ConfirmationDialog(
             title = "Delete quote?",
-            message = "This quote will be removed from your library. You can undo it from the snackbar.",
+            message = "This quote will move to trash. You can restore it from the archive until you empty trash.",
             confirmLabel = "Delete",
             onConfirm = {
                 deleteCandidate = null
@@ -497,7 +513,9 @@ private fun LibraryActionsBottomSheet(
     onCopyText: () -> Unit,
     onCopyRunes: () -> Unit,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onArchive: () -> Unit,
+    onHide: () -> Unit
 ) {
     val actions = buildList {
         add(
@@ -539,6 +557,18 @@ private fun LibraryActionsBottomSheet(
             )
         }
 
+        add(
+            BottomSheetAction(
+                icon = Icons.Default.Archive, title = "Archive Quote",
+                subtitle = "Keep this quote in your archive", onClick = onArchive
+            )
+        )
+        add(
+            BottomSheetAction(
+                icon = Icons.Default.VisibilityOff, title = "Hide Quote",
+                subtitle = "Remove from reading until you restore it", onClick = onHide
+            )
+        )
         if (quote.isUserCreated) {
             add(
                 BottomSheetAction(
@@ -552,7 +582,7 @@ private fun LibraryActionsBottomSheet(
                 BottomSheetAction(
                     icon = Icons.Default.Delete,
                     title = "Delete Quote",
-                    subtitle = "Remove permanently",
+                    subtitle = "Move to trash until you restore or empty trash",
                     isDestructive = true,
                     onClick = onDelete
                 )

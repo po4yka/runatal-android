@@ -2,9 +2,12 @@ package com.po4yka.runatal.data.repository
 
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.data.local.dao.QuoteDao
+import com.po4yka.runatal.data.local.dao.ArchivedQuoteDao
 import com.po4yka.runatal.data.local.entity.QuoteEntity
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteLifecycleChange
+import com.po4yka.runatal.domain.model.QuoteLifecycleState
 import com.po4yka.runatal.util.TimeProvider
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -29,6 +32,7 @@ import java.time.LocalDate
 class QuoteRepositoryImplTest {
 
     private lateinit var quoteDao: QuoteDao
+    private lateinit var archiveDao: ArchivedQuoteDao
     private lateinit var timeProvider: FakeTimeProvider
     private lateinit var preferences: UserPreferencesManager
     private lateinit var repository: QuoteRepositoryImpl
@@ -76,13 +80,14 @@ class QuoteRepositoryImplTest {
     @Before
     fun setUp() {
         quoteDao = mockk()
+        archiveDao = mockk()
         timeProvider = FakeTimeProvider(dayOfYear = 1)
         preferences = mockk()
         coEvery { preferences.selectDailyQuote(any(), any()) } coAnswers {
             val ids = secondArg<suspend () -> List<Long>>().invoke()
             ids.takeIf { it.isNotEmpty() }?.get(Math.floorMod(firstArg<Long>(), ids.size.toLong()).toInt())
         }
-        repository = QuoteRepositoryImpl(quoteDao, timeProvider, preferences)
+        repository = QuoteRepositoryImpl(quoteDao, timeProvider, preferences, archiveDao)
         coEvery { quoteDao.seedCanonicalQuotes(any()) } returns Unit
     }
 
@@ -708,50 +713,27 @@ class QuoteRepositoryImplTest {
     }
 
     @Test
-    fun `restoreUserQuote reinserts deleted quote with original id`() = runTest {
-        val quote = Quote(
-            id = 12L,
-            textLatin = "Restored quote",
-            author = "Builder",
-            runicElder = "ᚱᛖᛋᛏᛟᚱᛖᛞ",
-            runicYounger = null,
-            runicCirth = null,
-            isUserCreated = false,
-            isFavorite = true,
-            createdAt = 99L
-        )
-        coEvery { quoteDao.insert(any()) } returns 12L
-
-        val result = repository.restoreUserQuote(quote)
-
-        assertThat(result).isEqualTo(12L)
-        coVerify {
-            quoteDao.insert(
-                QuoteEntity(
-                    id = 12L,
-                    textLatin = "Restored quote",
-                    author = "Builder",
-                    runicElder = "ᚱᛖᛋᛏᛟᚱᛖᛞ",
-                    runicYounger = null,
-                    runicCirth = null,
-                    isUserCreated = true,
-                    isFavorite = true,
-                    createdAt = 99L
-                )
-            )
-        }
+    fun `undoLifecycleChange submits only the exact mutation receipt without reinserting a stale snapshot`() = runTest {
+        val change = QuoteLifecycleChange(12L, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, 0L, "delete")
+        coEvery { archiveDao.undoBatch(listOf(change)) } returns Unit
+        repository.undoLifecycleChange(change)
+        coVerify(exactly = 1) { archiveDao.undoBatch(listOf(change)) }
+        coVerify(exactly = 0) { quoteDao.insert(any()) }
     }
 
     @Test
     fun `deleteUserQuote and getQuoteById delegate and map results`() = runTest {
-        coEvery { quoteDao.deleteUserQuote(4L) } returns Unit
+        val change = QuoteLifecycleChange(4L, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, 0L, "delete")
+        coEvery { archiveDao.transition(4L, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, any(), any(), true) } returns change
         coEvery { quoteDao.getById(2L) } returns testQuotes[1].copy(isFavorite = true, createdAt = 500L)
         coEvery { quoteDao.getById(8L) } returns null
 
         repository.deleteUserQuote(4L)
         val quote = repository.getQuoteById(2L)
 
-        coVerify { quoteDao.deleteUserQuote(4L) }
+        coVerify {
+            archiveDao.transition(4L, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, any(), any(), true)
+        }
         assertThat(quote?.isFavorite).isTrue()
         assertThat(quote?.createdAt).isEqualTo(500L)
         assertThat(repository.getQuoteById(8L)).isNull()

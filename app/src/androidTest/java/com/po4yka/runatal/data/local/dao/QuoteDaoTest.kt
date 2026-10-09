@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.po4yka.runatal.data.local.RunatalDatabase
 import com.po4yka.runatal.data.local.entity.QuoteEntity
+import com.po4yka.runatal.domain.model.QuoteLifecycleState
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -380,13 +381,15 @@ class QuoteDaoTest {
     // ==================== Delete Tests ====================
 
     @Test
-    fun delete_removesQuote() = runTest {
+    fun archive_retainsQuoteOutsideActiveReaders() = runTest {
         // Given: Quote in database
         quoteDao.insert(testQuote1)
         assertEquals(1, quoteDao.getCount())
 
         // When: Deleting quote
-        quoteDao.delete(testQuote1)
+        database.archivedQuoteDao().transition(
+            testQuote1.id, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.ARCHIVED, "archive", 42L
+        )
 
         // Then: Quote is removed
         assertEquals(0, quoteDao.getCount())
@@ -394,13 +397,17 @@ class QuoteDaoTest {
     }
 
     @Test
-    fun deleteAll_removesAllQuotes() = runTest {
+    fun emptyTrash_purgesOnlyExplicitlyTrashedQuotes() = runTest {
         // Given: Multiple quotes
         quoteDao.insertAll(listOf(testQuote1, testQuote2, testQuote3))
         assertEquals(3, quoteDao.getCount())
 
         // When: Deleting all
-        quoteDao.deleteAll()
+        listOf(testQuote1, testQuote2, testQuote3).forEach { quote ->
+            database.archivedQuoteDao().transition(quote.id, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH,
+                "trash-${quote.id}", 42L)
+        }
+        database.archivedQuoteDao().emptyTrash(43L)
 
         // Then: Database is empty
         assertEquals(0, quoteDao.getCount())
@@ -412,10 +419,13 @@ class QuoteDaoTest {
         quoteDao.insert(testQuote2)
 
         // When: Deleting user quote
-        quoteDao.deleteUserQuote(testQuote2.id)
+        database.archivedQuoteDao().transition(
+            testQuote2.id, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, "trash", 42L, true
+        )
 
         // Then: Quote is deleted
         assertNull(quoteDao.getById(testQuote2.id))
+        assertEquals("TRASH", database.archivedQuoteDao().getRetainedById(testQuote2.id)?.lifecycleState)
     }
 
     @Test
@@ -424,7 +434,11 @@ class QuoteDaoTest {
         quoteDao.insert(testQuote1)
 
         // When: Attempting to delete as user quote
-        quoteDao.deleteUserQuote(testQuote1.id)
+        val failure = runCatching {
+            database.archivedQuoteDao().transition(testQuote1.id, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH,
+                "trash", 42L, true)
+        }.exceptionOrNull()
+        assertTrue(failure is IllegalStateException)
 
         // Then: Quote is not deleted (because it's not user-created)
         assertNotNull(quoteDao.getById(testQuote1.id))
@@ -438,7 +452,9 @@ class QuoteDaoTest {
         quoteDao.insertAll(listOf(userQuote1, userQuote2))
 
         // When: Deleting one user quote
-        quoteDao.deleteUserQuote(10)
+        database.archivedQuoteDao().transition(
+            10L, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, "trash", 42L, true
+        )
 
         // Then: Only that quote is deleted
         assertNull(quoteDao.getById(10))

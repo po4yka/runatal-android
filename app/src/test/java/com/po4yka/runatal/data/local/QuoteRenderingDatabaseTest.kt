@@ -66,7 +66,7 @@ class QuoteRenderingDatabaseTest {
         quotes = QuoteRepositoryImpl(database.quoteDao(), object : TimeProvider {
             override fun getCurrentDate(): LocalDate = LocalDate.of(2026, 10, 9)
             override fun getCurrentDayOfYear(): Int = 282
-        }, mockk())
+        }, mockk(), database.archivedQuoteDao())
         resolve = ResolveQuoteRenderingUseCase(factory, translations)
     }
 

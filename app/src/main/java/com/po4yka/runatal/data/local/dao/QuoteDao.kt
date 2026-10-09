@@ -1,7 +1,6 @@
 package com.po4yka.runatal.data.local.dao
 
 import androidx.room3.Dao
-import androidx.room3.Delete
 import androidx.room3.Insert
 import androidx.room3.OnConflictStrategy
 import androidx.room3.Query
@@ -29,7 +28,10 @@ internal interface QuoteDao {
     }
 
     /** Gets persisted canonical identities, independently of user rows. */
-    @Query("SELECT canonicalKey FROM quotes WHERE canonicalKey IS NOT NULL")
+    @Query(
+        "SELECT canonicalKey FROM quotes WHERE canonicalKey IS NOT NULL " +
+            "UNION SELECT canonicalKey FROM canonical_quote_tombstones"
+    )
     suspend fun getCanonicalKeys(): List<String>
 
     /** Inserts canonical rows without overwriting quotes on any identity conflict. */
@@ -39,59 +41,59 @@ internal interface QuoteDao {
     /**
      * Get a random quote from the database.
      */
-    @Query("SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1")
+    @Query("SELECT * FROM quotes WHERE lifecycleState = 'ACTIVE' ORDER BY RANDOM() LIMIT 1")
     suspend fun getRandom(): QuoteEntity?
 
     /**
      * Get all quotes from the database.
      */
-    @Query("SELECT * FROM quotes ORDER BY createdAt DESC")
+    @Query("SELECT * FROM quotes WHERE lifecycleState = 'ACTIVE' ORDER BY createdAt DESC, id DESC")
     suspend fun getAll(): List<QuoteEntity>
 
     /** Stable candidate ordering without loading quote text or glyph fields. */
-    @Query("SELECT id FROM quotes ORDER BY id")
+    @Query("SELECT id FROM quotes WHERE lifecycleState = 'ACTIVE' ORDER BY id")
     suspend fun getQuoteIdentities(): List<Long>
 
     /**
      * Get all quotes as a Flow for reactive updates.
      */
-    @Query("SELECT * FROM quotes ORDER BY createdAt DESC")
+    @Query("SELECT * FROM quotes WHERE lifecycleState = 'ACTIVE' ORDER BY createdAt DESC, id DESC")
     fun getAllAsFlow(): Flow<List<QuoteEntity>>
 
     /**
      * Get a quote by its ID.
      */
-    @Query("SELECT * FROM quotes WHERE id = :id")
+    @Query("SELECT * FROM quotes WHERE id = :id AND lifecycleState = 'ACTIVE'")
     suspend fun getById(id: Long): QuoteEntity?
 
     /**
      * Get the total count of quotes in the database.
      */
-    @Query("SELECT COUNT(*) FROM quotes")
+    @Query("SELECT COUNT(*) FROM quotes WHERE lifecycleState = 'ACTIVE'")
     suspend fun getCount(): Int
 
     /**
      * Get all user-created quotes.
      */
-    @Query("SELECT * FROM quotes WHERE isUserCreated = 1 ORDER BY createdAt DESC")
+    @Query("SELECT * FROM quotes WHERE isUserCreated = 1 AND lifecycleState = 'ACTIVE' ORDER BY createdAt DESC")
     fun getUserQuotesFlow(): Flow<List<QuoteEntity>>
 
     /**
      * Get all favorite quotes.
      */
-    @Query("SELECT * FROM quotes WHERE isFavorite = 1 ORDER BY createdAt DESC")
+    @Query("SELECT * FROM quotes WHERE isFavorite = 1 AND lifecycleState = 'ACTIVE' ORDER BY createdAt DESC")
     fun getFavoritesFlow(): Flow<List<QuoteEntity>>
 
     /**
      * Get all favorite quotes.
      */
-    @Query("SELECT * FROM quotes WHERE isFavorite = 1 ORDER BY createdAt DESC")
+    @Query("SELECT * FROM quotes WHERE isFavorite = 1 AND lifecycleState = 'ACTIVE' ORDER BY createdAt DESC")
     suspend fun getFavorites(): List<QuoteEntity>
 
     /**
      * Toggle favorite status for a quote.
      */
-    @Query("UPDATE quotes SET isFavorite = :isFavorite WHERE id = :id")
+    @Query("UPDATE quotes SET isFavorite = :isFavorite WHERE id = :id AND lifecycleState = 'ACTIVE'")
     suspend fun updateFavoriteStatus(id: Long, isFavorite: Boolean)
 
     /**
@@ -152,7 +154,7 @@ internal interface QuoteDao {
     @Query(
         "UPDATE quotes SET textLatin = :textLatin, author = :author, " +
             "runicElder = :runicElder, runicYounger = :runicYounger, runicCirth = :runicCirth " +
-            "WHERE id = :id AND isUserCreated = 1"
+            "WHERE id = :id AND isUserCreated = 1 AND lifecycleState = 'ACTIVE'"
     )
     suspend fun updateContentColumns(
         id: Long,
@@ -172,7 +174,7 @@ internal interface QuoteDao {
     suspend fun invalidateBackfillCompletion(quoteId: Long)
 
     /** Emits every committed quote invalidation, even when identity query values are unchanged. */
-    @Query("SELECT id FROM quotes ORDER BY id")
+    @Query("SELECT id FROM quotes WHERE lifecycleState = 'ACTIVE' ORDER BY id")
     fun observeQuoteIdentities(): Flow<List<Long>>
 
     /**
@@ -180,22 +182,4 @@ internal interface QuoteDao {
      */
     @Update
     suspend fun update(quote: QuoteEntity)
-
-    /**
-     * Delete a specific quote.
-     */
-    @Delete
-    suspend fun delete(quote: QuoteEntity)
-
-    /**
-     * Delete all quotes from the database.
-     */
-    @Query("DELETE FROM quotes")
-    suspend fun deleteAll()
-
-    /**
-     * Delete a user quote by ID (only if it's user-created).
-     */
-    @Query("DELETE FROM quotes WHERE id = :id AND isUserCreated = 1")
-    suspend fun deleteUserQuote(id: Long)
 }

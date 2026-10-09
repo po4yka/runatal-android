@@ -75,7 +75,7 @@ class DailyQuoteIdentityDatabaseTest {
         database.quoteDao().insert(original.copy(id = 200L, textLatin = "New library quote", createdAt = 999L))
         database.quoteDao().updateFavoriteStatus(100L, true)
         database.quoteDao().updateUserContent(original.copy(textLatin = "Updated content"), original.textLatin, "User")
-        database.quoteDao().deleteUserQuote(200L)
+        repository.deleteUserQuote(200L)
 
         val selected = requireNotNull(repository.quoteOfTheDay())
         assertThat(selected.id).isEqualTo(100L)
@@ -110,12 +110,7 @@ class DailyQuoteIdentityDatabaseTest {
         val replacement = requireNotNull(repository.quoteOfTheDay())
         assertThat(replacement.id).isNotEqualTo(100L)
         assertThat(database.quoteDao().getById(replacement.id)).isNotNull()
-        repository.restoreUserQuote(
-            Quote(
-                id = original.id, textLatin = original.textLatin, author = original.author,
-                runicElder = null, runicYounger = null, runicCirth = null, isUserCreated = true
-            )
-        )
+        database.archivedQuoteDao().updateState(original.id, "TRASH", "ACTIVE", "restore", 100L)
         assertThat(repository.quoteOfTheDay()?.id).isEqualTo(replacement.id)
         assertThat(preferences.userPreferencesFlow.first().lastDailyQuoteId).isEqualTo(replacement.id)
     }
@@ -161,12 +156,12 @@ class DailyQuoteIdentityDatabaseTest {
             override suspend fun getById(id: Long): QuoteEntity? {
                 if (!deleted && id == 100L) {
                     deleted = true
-                    actual.deleteUserQuote(id)
+                    database.archivedQuoteDao().updateState(id, "ACTIVE", "TRASH", "race", 1L)
                 }
                 return actual.getById(id)
             }
         }
-        val racingRepository = QuoteRepositoryImpl(racingDao, clock, preferences)
+        val racingRepository = QuoteRepositoryImpl(racingDao, clock, preferences, database.archivedQuoteDao())
         val selected = requireNotNull(racingRepository.quoteOfTheDay())
         assertThat(deleted).isTrue()
         assertThat(selected.id).isNotEqualTo(100L)
@@ -187,6 +182,6 @@ class DailyQuoteIdentityDatabaseTest {
             scope = CoroutineScope(preferencesJob + Dispatchers.IO), produceFile = { preferencesFile }
         )
         preferences = UserPreferencesManager(dataStore)
-        repository = QuoteRepositoryImpl(database.quoteDao(), clock, preferences)
+        repository = QuoteRepositoryImpl(database.quoteDao(), clock, preferences, database.archivedQuoteDao())
     }
 }

@@ -8,6 +8,8 @@ import com.po4yka.runatal.domain.repository.NoOpTranslationRepository
 import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.domain.repository.TranslationRepository
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteLifecycleChange
+import com.po4yka.runatal.domain.model.QuoteLifecycleState
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.transliteration.CirthTransliterator
 import com.po4yka.runatal.domain.transliteration.ElderFutharkTransliterator
@@ -174,7 +176,8 @@ class QuoteViewModelTest {
     fun `deleteQuote removes current quote and loads next daily quote`() = runTest {
         val nextQuote = testQuote.copy(id = 2L, textLatin = "Next quote")
         coEvery { quoteRepository.quoteOfTheDay() } returns testQuote andThen nextQuote
-        coEvery { quoteRepository.deleteUserQuote(testQuote.id) } returns Unit
+        coEvery { quoteRepository.deleteUserQuote(testQuote.id) } returns
+            QuoteLifecycleChange(testQuote.id, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, 0L, "delete")
 
         viewModel = createViewModel()
         advanceUntilIdle()

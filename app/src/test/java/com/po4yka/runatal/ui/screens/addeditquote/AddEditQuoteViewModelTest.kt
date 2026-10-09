@@ -7,6 +7,8 @@ import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteLifecycleChange
+import com.po4yka.runatal.domain.model.QuoteLifecycleState
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.transliteration.CirthTransliterator
 import com.po4yka.runatal.domain.transliteration.ElderFutharkTransliterator
@@ -250,7 +252,10 @@ class AddEditQuoteViewModelTest {
     fun `delete excludes save and duplicate delete`() = runTest {
         val complete = CompletableDeferred<Unit>()
         coEvery { quoteRepository.getQuoteById(1L) } returns testQuote
-        coEvery { quoteRepository.deleteUserQuote(1L) } coAnswers { complete.await() }
+        coEvery { quoteRepository.deleteUserQuote(1L) } coAnswers {
+            complete.await()
+            QuoteLifecycleChange(1L, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, 0L, "delete")
+        }
         viewModel = AddEditQuoteViewModel(
             quoteRepository, userPreferencesManager, transliterationFactory, 1L
         )
