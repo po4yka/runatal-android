@@ -29,11 +29,13 @@ import io.mockk.every
 import io.mockk.mockk
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -293,6 +295,24 @@ class QuoteViewModelTest {
         advanceUntilIdle()
         assertThat((viewModel.uiState.value as QuoteUiState.Success).quote.id).isEqualTo(2L)
         coVerify(exactly = 2) { quoteRepository.quoteOfTheDay() }
+    }
+
+    @Test
+    fun `a replaced loading request propagates cancellation without publishing an error`() = runTest {
+        var attempts = 0
+        coEvery { quoteRepository.quoteOfTheDay() } coAnswers {
+            if (attempts++ == 0) kotlinx.coroutines.awaitCancellation() else testQuote
+        }
+        viewModel = createViewModel()
+        val states = mutableListOf<QuoteUiState>()
+        backgroundScope.launch(kotlinx.coroutines.test.UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect { states.add(it) }
+        }
+        runCurrent()
+        preferencesFlow.value = defaultPreferences.copy(selectedFont = "babelstone")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value).isInstanceOf(QuoteUiState.Success::class.java)
+        assertThat(states.filterIsInstance<QuoteUiState.Error>()).isEmpty()
     }
 
     private fun createViewModel(

@@ -83,7 +83,9 @@ internal class ShareViewModel @AssistedInject constructor(
                 } catch (e: IOException) {
                     Log.e(TAG, "IO error loading quote", e)
                     _uiState.value = ShareUiState.Error("Failed to load quote: ${e.message}")
-                } catch (e: IllegalStateException) {
+                } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: IllegalStateException) {
                     Log.e(TAG, "Invalid state loading quote", e)
                     _uiState.value = ShareUiState.Error("Invalid state: ${e.message}")
                 }

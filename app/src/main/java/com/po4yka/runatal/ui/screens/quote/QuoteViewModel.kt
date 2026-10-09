@@ -135,6 +135,8 @@ internal class QuoteViewModel @Inject constructor(
             }
         } catch (e: IOException) {
             _uiState.update { QuoteUiState.Error(e.message ?: "Failed to load quote") }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: IllegalStateException) {
             _uiState.update { QuoteUiState.Error(e.message ?: "Invalid state") }
         }
@@ -165,7 +167,9 @@ internal class QuoteViewModel @Inject constructor(
                 }
             } catch (e: IOException) {
                 _uiState.update { QuoteUiState.Error(e.message ?: "Failed to load random quote") }
-            } catch (e: IllegalStateException) {
+            } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: IllegalStateException) {
                 _uiState.update { QuoteUiState.Error(e.message ?: "Invalid state") }
             }
         }
@@ -225,7 +229,9 @@ internal class QuoteViewModel @Inject constructor(
                     loadQuoteOfTheDay(showLoading = true)
                 } catch (e: IOException) {
                     Log.e(TAG, "IO error deleting quote", e)
-                } catch (e: IllegalStateException) {
+                } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: IllegalStateException) {
                     Log.e(TAG, "Invalid state deleting quote", e)
                 }
             }
