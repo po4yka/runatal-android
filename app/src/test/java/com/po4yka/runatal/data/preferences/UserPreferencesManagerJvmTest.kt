@@ -58,6 +58,17 @@ class UserPreferencesManagerJvmTest {
     }
 
     @Test
+    fun `a retired search owner cannot overwrite a newer intent even with a late final flush`() = runTest {
+        val oldGeneration = preferencesManager.reserveQuoteSearchWrite()
+        preferencesManager.updateQuoteSearchQuery("a", oldGeneration)
+        val oldPendingGeneration = preferencesManager.reserveQuoteSearchWrite()
+        val newGeneration = preferencesManager.reserveQuoteSearchWrite()
+        preferencesManager.updateQuoteSearchQuery("xyz", newGeneration)
+        preferencesManager.updateQuoteSearchQuery("abc", oldPendingGeneration)
+        assertThat(preferencesManager.userPreferencesFlow.first().quoteSearchQuery).isEqualTo("xyz")
+    }
+
+    @Test
     fun `daily selection retains identity across same day additions reordering and duplicate candidates`() =
         testScope.runTest {
             preferencesManager.updateThemeMode("dark")
@@ -154,7 +165,7 @@ class UserPreferencesManagerJvmTest {
         preferencesManager.updateWidgetDisplayMode("daily_random_tap")
         preferencesManager.updateWidgetUpdateMode("every_12_hours")
         preferencesManager.updateQuoteListFilter("favorites")
-        preferencesManager.updateQuoteSearchQuery("tolkien")
+        preferencesManager.updateQuoteSearchQuery("tolkien", preferencesManager.reserveQuoteSearchWrite())
         preferencesManager.updateQuoteAuthorFilter("Le Guin")
         preferencesManager.updateQuoteLengthFilter("medium")
         preferencesManager.updateQuoteCollectionFilter("wisdom")

@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,6 +29,7 @@ import javax.inject.Singleton
 class UserPreferencesManager @Inject constructor(
     private val dataStore: DataStore<Preferences>
 ) {
+    private val quoteSearchGeneration = AtomicLong()
 
     /**
      * Flow of user preferences that emits whenever preferences change.
@@ -168,9 +170,12 @@ class UserPreferencesManager @Inject constructor(
     /**
      * Updates quote search query.
      */
-    suspend fun updateQuoteSearchQuery(query: String) {
+    internal fun reserveQuoteSearchWrite(): Long = quoteSearchGeneration.incrementAndGet()
+
+    internal suspend fun updateQuoteSearchQuery(query: String, generation: Long) {
         dataStore.edit { preferences ->
-            preferences[QUOTE_SEARCH_QUERY] = query
+            // Check within the serialized mutation, not before awaiting another writer.
+            if (quoteSearchGeneration.get() == generation) preferences[QUOTE_SEARCH_QUERY] = query
         }
     }
 

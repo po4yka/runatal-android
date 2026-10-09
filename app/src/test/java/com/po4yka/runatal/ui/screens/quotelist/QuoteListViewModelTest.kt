@@ -22,6 +22,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -107,7 +108,9 @@ class QuoteListViewModelTest {
         every { quoteRepository.getUserQuotesFlow() } returns userQuotesFlow
         every { quoteRepository.getFavoritesFlow() } returns favoritesFlow
         coEvery { userPreferencesManager.updateQuoteListFilter(any()) } returns Unit
-        coEvery { userPreferencesManager.updateQuoteSearchQuery(any()) } returns Unit
+        var searchGeneration = 0L
+        every { userPreferencesManager.reserveQuoteSearchWrite() } answers { ++searchGeneration }
+        coEvery { userPreferencesManager.updateQuoteSearchQuery(any(), any()) } returns Unit
         coEvery { quoteRepository.toggleFavorite(any(), any()) } returns Unit
         coEvery { quoteRepository.deleteUserQuote(any()) } answers {
             QuoteLifecycleChange(firstArg(), QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, 0L, "delete")
@@ -176,7 +179,7 @@ class QuoteListViewModelTest {
 
         assertThat(viewModel.uiState.value.searchQuery).isEqualTo("wander")
         assertThat(viewModel.uiState.value.quotes).containsExactly(testQuotes[1])
-        coVerify { userPreferencesManager.updateQuoteSearchQuery("wander") }
+        coVerify { userPreferencesManager.updateQuoteSearchQuery("wander", any()) }
     }
 
     @Test
@@ -290,15 +293,15 @@ class QuoteListViewModelTest {
         repeat(100) { viewModel.updateSearchQuery("query $it") }
         assertThat(viewModel.uiState.value.searchQuery).isEqualTo("query 99")
         advanceUntilIdle()
-        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery("query 99") }
-        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery(any()) }
+        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery("query 99", any()) }
+        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery(any(), any()) }
     }
 
     @Test
     fun `leaving during a write commits the in flight edit and flushes only the final query`() = runTest {
         val started = CompletableDeferred<Unit>()
         val release = CompletableDeferred<Unit>()
-        coEvery { userPreferencesManager.updateQuoteSearchQuery("a") } coAnswers {
+        coEvery { userPreferencesManager.updateQuoteSearchQuery("a", any()) } coAnswers {
             started.complete(Unit)
             release.await()
         }
@@ -312,14 +315,14 @@ class QuoteListViewModelTest {
         viewModel.viewModelScope.cancel()
         release.complete(Unit)
         advanceUntilIdle()
-        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery("a") }
-        coVerify(exactly = 0) { userPreferencesManager.updateQuoteSearchQuery("ab") }
-        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery("abc") }
+        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery("a", any()) }
+        coVerify(exactly = 0) { userPreferencesManager.updateQuoteSearchQuery("ab", any()) }
+        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery("abc", any()) }
     }
 
     @Test
     fun `a persistence failure leaves search usable and reports the failure`() = runTest {
-        coEvery { userPreferencesManager.updateQuoteSearchQuery(any()) } throws IOException("storage")
+        coEvery { userPreferencesManager.updateQuoteSearchQuery(any(), any()) } throws IOException("storage")
         viewModel = createViewModel()
         advanceUntilIdle()
         viewModel.events.test {
@@ -328,6 +331,58 @@ class QuoteListViewModelTest {
             assertThat((awaitItem() as QuoteListEvent.ShowMessage).message).contains("Couldn't save the search")
             assertThat(viewModel.uiState.value.quotes).containsExactly(testQuotes[1])
             cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `an old view model final flush cannot replace the new view model search in real DataStore`() = runTest {
+        val directory = kotlin.io.path.createTempDirectory("library-search-owners").toFile()
+        val storeJob = kotlinx.coroutines.SupervisorJob()
+        val store = androidx.datastore.preferences.core.PreferenceDataStoreFactory.create(
+            scope = kotlinx.coroutines.CoroutineScope(storeJob + testDispatcher)
+        ) { java.io.File(directory, "search.preferences_pb") }
+        val started = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        var block = true
+        val delayed = object : androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences> by store {
+            override suspend fun updateData(
+                transform: suspend (androidx.datastore.preferences.core.Preferences) ->
+                    androidx.datastore.preferences.core.Preferences
+            ): androidx.datastore.preferences.core.Preferences {
+                val value = store.updateData(transform)
+                if (block && value[androidx.datastore.preferences.core.stringPreferencesKey("quote_search_query")] == "a") {
+                    block = false
+                    started.complete(Unit)
+                    release.await()
+                }
+                return value
+            }
+        }
+        val shared = UserPreferencesManager(delayed)
+        val resolver = ResolveQuoteRenderingUseCase(transliterationFactory, NoOpTranslationRepository)
+        val old = QuoteListViewModel(quoteRepository, shared, resolver, testDispatcher)
+        var newer: QuoteListViewModel? = null
+        try {
+            runCurrent()
+            old.updateSearchQuery("a")
+            started.await()
+            old.updateSearchQuery("abc")
+            old.viewModelScope.cancel()
+            val current = QuoteListViewModel(quoteRepository, shared, resolver, testDispatcher)
+            newer = current
+            runCurrent()
+            current.updateSearchQuery("xyz")
+            shared.userPreferencesFlow.first { it.quoteSearchQuery == "xyz" }
+            release.complete(Unit)
+            checkNotNull(old.viewModelScope.coroutineContext[kotlinx.coroutines.Job]).join()
+            assertThat(shared.userPreferencesFlow.first().quoteSearchQuery).isEqualTo("xyz")
+            assertThat(current.uiState.value.searchQuery).isEqualTo("xyz")
+        } finally {
+            release.complete(Unit)
+            old.viewModelScope.cancel()
+            newer?.viewModelScope?.cancel()
+            storeJob.cancel()
+            directory.deleteRecursively()
         }
     }
 

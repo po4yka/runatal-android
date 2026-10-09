@@ -48,8 +48,8 @@ internal class QuoteListViewModel @Inject constructor(
     val uiState: StateFlow<QuoteListUiState> = _uiState.asStateFlow()
     private val currentFilter = MutableStateFlow(QuoteFilter.ALL)
     private val searchQuery = MutableStateFlow("")
-    private val pendingSearchWrite = MutableStateFlow<String?>(null)
-    private var lastPersistedSearch: String? = null
+    private val pendingSearchWrite = MutableStateFlow<SearchWrite?>(null)
+    private var lastPersistedSearch: SearchWrite? = null
     private var filterWasChanged = false
     private val _events = Channel<QuoteListEvent>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
@@ -126,7 +126,7 @@ internal class QuoteListViewModel @Inject constructor(
     fun updateSearchQuery(query: String) {
         searchQuery.value = query
         _uiState.update { it.copy(searchQuery = query) }
-        pendingSearchWrite.value = query
+        pendingSearchWrite.value = SearchWrite(query, userPreferencesManager.reserveQuoteSearchWrite())
     }
 
     private suspend fun persistSearchUpdates() {
@@ -139,12 +139,12 @@ internal class QuoteListViewModel @Inject constructor(
         }
     }
 
-    private suspend fun persistSearch(query: String) {
+    private suspend fun persistSearch(write: SearchWrite) {
         try {
             // Finish the in-flight durable edit; cancellation then flushes only the newest pending value.
             withContext(NonCancellable) {
-                userPreferencesManager.updateQuoteSearchQuery(query)
-                lastPersistedSearch = query
+                userPreferencesManager.updateQuoteSearchQuery(write.query, write.generation)
+                lastPersistedSearch = write
             }
         } catch (exception: IOException) {
             Log.e(TAG, "Failed to persist Library search", exception)
@@ -207,6 +207,8 @@ internal class QuoteListViewModel @Inject constructor(
         Log.e(TAG, "Quote lifecycle action failed", exception)
         _events.send(QuoteListEvent.ShowMessage("Failed to update quote: ${exception.message}"))
     }
+
+    private data class SearchWrite(val query: String, val generation: Long)
 
     private suspend fun restorePersistedFilters() {
         val prefs = userPreferencesManager.userPreferencesFlow.first()
