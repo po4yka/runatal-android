@@ -21,6 +21,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -610,6 +611,36 @@ class AddEditQuoteViewModelTest {
         }
     }
 
+    @Test
+    fun `one and two character saved translations allow author only edits without changing source`() = runTest {
+        listOf("I", "Go").forEach { source ->
+            val loaded = testQuote.copy(
+                textLatin = source, isUserCreated = true,
+                runicElder = transliterationFactory.transliterate(source, RunicScript.ELDER_FUTHARK),
+                runicYounger = transliterationFactory.transliterate(source, RunicScript.YOUNGER_FUTHARK),
+                runicCirth = transliterationFactory.transliterate(source, RunicScript.CIRTH)
+            )
+            coEvery { quoteRepository.getQuoteById(1L) } returns loaded
+            coEvery { quoteRepository.updateUserQuoteContent(any(), source, loaded.author) } answers { firstArg<Quote>() }
+            viewModel = AddEditQuoteViewModel(
+                quoteRepository, userPreferencesManager, transliterationFactory, 1L
+            )
+            advanceUntilIdle()
+            viewModel.updateAuthor("Changed author")
+            assertThat(viewModel.uiState.value.canSave).isTrue()
+            assertThat(viewModel.uiState.value.quoteTextError).isNull()
+            viewModel.saveQuote()
+            advanceUntilIdle()
+            coVerify(exactly = 1) {
+                quoteRepository.updateUserQuoteContent(
+                    match { it.textLatin == source && it.author == "Changed author" }, source, loaded.author
+                )
+            }
+            assertThat(viewModel.uiState.value.textLatin).isEqualTo(source)
+            assertThat(viewModel.events.first()).isEqualTo(AddEditQuoteEvent.NavigateBackAfterEdit)
+        }
+    }
+
     // ==================== Save Quote Tests - New Quote ====================
 
     @Test
@@ -633,7 +664,7 @@ class AddEditQuoteViewModelTest {
         // Then: Inline validation is shown and confirmation is not triggered
         viewModel.uiState.test {
             val state = awaitItem()
-            assertThat(state.quoteTextError).isEqualTo("Quote must be at least 3 characters")
+            assertThat(state.quoteTextError).isEqualTo("Quote is required")
             assertThat(state.showConfirmation).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
@@ -688,7 +719,7 @@ class AddEditQuoteViewModelTest {
         // Then: Inline validation is shown
         viewModel.uiState.test {
             val state = awaitItem()
-            assertThat(state.quoteTextError).isEqualTo("Quote must be at least 3 characters")
+            assertThat(state.quoteTextError).isEqualTo("Quote is required")
             assertThat(state.showConfirmation).isFalse()
             cancelAndIgnoreRemainingEvents()
         }

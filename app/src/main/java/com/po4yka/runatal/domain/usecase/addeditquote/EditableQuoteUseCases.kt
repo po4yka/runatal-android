@@ -2,6 +2,7 @@ package com.po4yka.runatal.domain.usecase.addeditquote
 
 import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteInputPolicy
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.model.getRunicText
 import com.po4yka.runatal.domain.transliteration.TransliterationFactory
@@ -93,20 +94,9 @@ internal class EvaluateQuoteDraftUseCase @Inject constructor() {
         initialAuthor: String,
         hasAttemptedSave: Boolean
     ): QuoteDraftEvaluation {
-        val rawQuoteTextError = when {
-            textLatin.trim().length < MIN_QUOTE_LENGTH -> {
-                "Quote must be at least $MIN_QUOTE_LENGTH characters"
-            }
+        val rawQuoteTextError = QuoteInputPolicy.quoteTextError(textLatin)
 
-            textLatin.length > MAX_QUOTE_LENGTH -> "Keep quote under $MAX_QUOTE_LENGTH characters"
-            else -> null
-        }
-
-        val rawAuthorError = when {
-            author.isBlank() -> "Author is required"
-            author.length > MAX_AUTHOR_LENGTH -> "Keep author under $MAX_AUTHOR_LENGTH characters"
-            else -> null
-        }
+        val rawAuthorError = QuoteInputPolicy.authorError(author)
 
         val quoteTextError = rawQuoteTextError?.takeIf { hasAttemptedSave || textLatin.isNotBlank() }
         val authorError = rawAuthorError?.takeIf { hasAttemptedSave || author.isNotBlank() }
@@ -127,11 +117,6 @@ internal class EvaluateQuoteDraftUseCase @Inject constructor() {
         )
     }
 
-    private companion object {
-        const val MAX_QUOTE_LENGTH = 280
-        const val MAX_AUTHOR_LENGTH = 60
-        const val MIN_QUOTE_LENGTH = 3
-    }
 }
 
 internal class SaveEditableQuoteUseCase @Inject constructor(
@@ -140,6 +125,8 @@ internal class SaveEditableQuoteUseCase @Inject constructor(
 ) {
 
     suspend operator fun invoke(request: SaveEditableQuoteRequest): SaveEditableQuoteResult {
+        check(QuoteInputPolicy.quoteTextError(request.textLatin) == null) { "Enter valid quote text before saving." }
+        check(QuoteInputPolicy.authorError(request.author) == null) { "Enter a valid author before saving." }
         val trimmedText = request.textLatin.trim()
         val trimmedAuthor = request.author.trim()
         val previews = buildQuotePreviewsUseCase(trimmedText, request.existingQuote)

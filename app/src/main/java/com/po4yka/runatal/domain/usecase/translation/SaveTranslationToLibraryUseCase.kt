@@ -3,6 +3,7 @@ package com.po4yka.runatal.domain.usecase.translation
 import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.domain.repository.TranslationRepository
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteInputPolicy
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.translation.TranslationFidelity
 import com.po4yka.runatal.domain.translation.TranslationMode
@@ -32,7 +33,7 @@ internal class SaveTranslationToLibraryUseCase @Inject constructor(
 
     suspend operator fun invoke(request: SaveTranslationRequest): SaveTranslationResult {
         val input = request.inputText.trim()
-        check(input.isNotEmpty()) { "Enter source text before saving." }
+        check(QuoteInputPolicy.quoteTextError(request.inputText) == null) { "Enter valid source text before saving." }
         val transliterationBundle = buildTransliterationBundleUseCase(input, youngerVariant = request.youngerVariant)
         check(transliterationBundle.errorMessage == null) { "Could not prepare direct renderings." }
         check(transliterationBundle.outputFor(request.selectedScript).isNotBlank()) { "No selected output to save." }

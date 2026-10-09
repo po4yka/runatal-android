@@ -1,5 +1,6 @@
 package com.po4yka.runatal.domain.usecase.translation
 
+import com.po4yka.runatal.domain.model.QuoteInputPolicy
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.model.displayName
 import com.po4yka.runatal.domain.translation.TranslationDerivationKind
@@ -124,7 +125,7 @@ internal class BuildTranslationPresentationUseCase @Inject constructor(
             translateFeatureEnabled = translateFeatureEnabled,
             outputGlyphCount = selectedOutput.glyphCount(),
             inputCharacterCount = input.inputText.length,
-            canSave = input.inputText.trim().isNotEmpty() &&
+            canSave = QuoteInputPolicy.quoteTextError(input.inputText) == null &&
                 !input.isSaving &&
                 errorMessage == null &&
                 canSaveTranslation,

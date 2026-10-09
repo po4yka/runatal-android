@@ -75,4 +75,18 @@ class SaveEditableQuoteUseCaseTest {
         assertThat(failure).isInstanceOf(IllegalStateException::class.java)
         coVerify(exactly = 0) { quotes.saveUserQuote(any()) }
     }
+    @Test
+    fun `blank or overbudget quote and author cannot bypass editor validation at the save boundary`() = runTest {
+        val valid = SaveEditableQuoteRequest(0L, "I", "User", null, 0L, false, "", "")
+        val invalid = listOf(
+            valid.copy(textLatin = " "), valid.copy(textLatin = "a".repeat(281)),
+            valid.copy(author = " "), valid.copy(author = "a".repeat(61))
+        )
+        invalid.forEach { request ->
+            val failure = runCatching { useCase(request) }.exceptionOrNull()
+            assertThat(failure).isInstanceOf(IllegalStateException::class.java)
+        }
+        coVerify(exactly = 0) { quotes.saveUserQuote(any()) }
+        coVerify(exactly = 0) { quotes.updateUserQuoteContent(any(), any(), any()) }
+    }
 }

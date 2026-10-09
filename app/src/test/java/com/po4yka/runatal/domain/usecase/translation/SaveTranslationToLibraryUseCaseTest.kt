@@ -190,6 +190,27 @@ class SaveTranslationToLibraryUseCaseTest {
         assertThat(savedQuote.captured.runicCirth).isEqualTo(factory.transliterate("night", RunicScript.CIRTH))
     }
 
+    @Test
+    fun `direct one and two character sources remain valid saved quotes`() = runTest {
+        listOf("I", "Go").forEach { source ->
+            useCase(request(TranslationMode.TRANSLITERATE).copy(inputText = source))
+            assertThat(savedQuote.captured.textLatin).isEqualTo(source)
+            assertThat(savedQuote.captured.runicElder).isNotEmpty()
+        }
+    }
+
+    @Test
+    fun `blank and overbudget source is rejected before preparing or persisting`() = runTest {
+        listOf("", " \t\n", "a".repeat(281)).forEach { source ->
+            val failure = runCatching {
+                useCase(request(TranslationMode.TRANSLITERATE).copy(inputText = source))
+            }.exceptionOrNull()
+            assertThat(failure).isInstanceOf(IllegalStateException::class.java)
+        }
+        assertNoPersistence()
+        verify(exactly = 0) { historicalService.translate(any(), any(), any(), any()) }
+    }
+
     private fun request(mode: TranslationMode) = SaveTranslationRequest(
         inputText = " night ", translationMode = mode, selectedScript = RunicScript.YOUNGER_FUTHARK,
         fidelity = TranslationFidelity.STRICT,

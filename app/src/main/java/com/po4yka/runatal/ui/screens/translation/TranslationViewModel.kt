@@ -9,6 +9,7 @@ import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.domain.repository.TranslationRepository
 import com.po4yka.runatal.di.DefaultDispatcher
+import com.po4yka.runatal.domain.model.QuoteInputPolicy
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.model.displayName
 import com.po4yka.runatal.domain.transliteration.TransliterationFactory
@@ -121,7 +122,6 @@ internal class TranslationViewModel @Inject constructor(
     /** @suppress */
     companion object {
         private const val TAG = "TranslationViewModel"
-        private const val MAX_INPUT_LENGTH = 280
         private const val TRANSLATE_INPUT_DEBOUNCE_MS = 150L
     }
 
@@ -219,7 +219,7 @@ internal class TranslationViewModel @Inject constructor(
      * Updates the source text with the Figma-defined 280 character cap.
      */
     fun updateInputText(text: String) {
-        _inputText.value = text.take(MAX_INPUT_LENGTH)
+        _inputText.value = text.take(QuoteInputPolicy.MAX_QUOTE_LENGTH)
     }
 
     /**
