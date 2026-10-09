@@ -72,7 +72,8 @@ class YoungerFutharkMigrationTest {
                 RunatalDatabase.MIGRATION_11_12,
                 RunatalDatabase.MIGRATION_12_13,
                 RunatalDatabase.MIGRATION_13_14,
-                RunatalDatabase.MIGRATION_14_15)
+                RunatalDatabase.MIGRATION_14_15, RunatalDatabase.MIGRATION_15_16,
+                RunatalDatabase.MIGRATION_16_17, RunatalDatabase.MIGRATION_17_18)
                 .build()
             val migrated = requireNotNull(database)
             val converter = YoungerFutharkTransliterator()
@@ -93,7 +94,11 @@ class YoungerFutharkMigrationTest {
                     )
                     else -> before
                 }
-                assertThat(migrated.quoteDao().getById(before.id)).isEqualTo(expected)
+                // The later rendering-intent migration recognizes only these unambiguous manual records.
+                val currentExpected = if (before.id == 1L || before.id == 15L) {
+                    expected.copy(renderingMode = "TRANSLATE")
+                } else expected
+                assertThat(migrated.quoteDao().getById(before.id)).isEqualTo(currentExpected)
             }
             assertThat(migrated.quoteDao().getAll()).hasSize(quotes.size)
             val record = migrated.translationRecordDao().getBySelection(

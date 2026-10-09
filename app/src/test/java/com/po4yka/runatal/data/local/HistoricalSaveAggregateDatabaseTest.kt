@@ -120,7 +120,7 @@ class HistoricalSaveAggregateDatabaseTest {
         val quote = database.quoteDao().getAll().single()
         assertThat(quote.textLatin).isEqualTo("I hunt")
         assertThat(quote.runicElder).isEqualTo(direct.transliterate("I hunt", RunicScript.ELDER_FUTHARK))
-        assertThat(quote.runicYounger).isEqualTo(direct.transliterate("I hunt", RunicScript.YOUNGER_FUTHARK))
+        assertThat(quote.runicYounger).isEqualTo(direct.transliterate("I hunt", RunicScript.YOUNGER_FUTHARK, YoungerFutharkVariant.SHORT_TWIG))
         assertThat(quote.runicCirth).isEqualTo(direct.transliterate("I hunt", RunicScript.CIRTH))
         val selected = translations.getCachedTranslation(
             quoteId = quote.id, script = RunicScript.YOUNGER_FUTHARK, sourceText = quote.textLatin,
@@ -135,8 +135,9 @@ class HistoricalSaveAggregateDatabaseTest {
         val text = request().inputText.trim()
         assertThat(quote.textLatin).isEqualTo(text)
         assertThat(quote.author).isEqualTo("Runatal")
+        assertThat(quote.renderingYoungerVariant).isEqualTo("SHORT_TWIG")
         assertThat(quote.isUserCreated).isTrue()
-        assertThat(quote.runicYounger).isEqualTo(direct.transliterate(text, RunicScript.YOUNGER_FUTHARK))
+        assertThat(quote.runicYounger).isEqualTo(direct.transliterate(text, RunicScript.YOUNGER_FUTHARK, YoungerFutharkVariant.SHORT_TWIG))
         val expected = RunicScript.entries.map { script ->
             service.translate(text, script, request().fidelity, YoungerFutharkVariant.SHORT_TWIG)
         }.filter { it.resolutionStatus != TranslationResolutionStatus.UNAVAILABLE }
