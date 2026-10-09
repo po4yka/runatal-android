@@ -8,14 +8,16 @@
         "fidelity": "STRICT",
         "derivationKind": "GOLD_EXAMPLE",
         "historicalStage": "OLD_NORSE",
-        "normalizedForm": "úlfr veiðir um nótt",
-        "diplomaticForm": "ulfr uiþir um nutt",
-        "glyphOutput": "ᚢᛚᚠᚱ ᚢᛁᚦᛁᚱ ᚢᛘ ᚾᚢᛏᛏ",
+        "normalizedForm": "úlfrinn veiðir um nótt",
+        "diplomaticForm": "ulfrin uiþir um nutt",
+        "glyphOutput": "ᚢᛚᚠᚱᛁᚾ ᚢᛁᚦᛁᚱ ᚢᛘ ᚾᚢᛏᛏ",
         "requestedVariant": "LONG_BRANCH",
         "resolutionStatus": "RECONSTRUCTED",
         "confidence": 0.97,
         "notes": [
-          "Matched a curated Old Norse example aligned with the translation specification."
+          "Educational comparison using the explicit suffixed-article interpretation: definite nominative singular úlfrinn (Barnes NION I §3.1.9, pp.56–58).",
+          "The reduced diplomatic spelling and rune sequence illustrate the declared Younger rendering profile; no located inscription is supplied.",
+          "This comparison record does not override lexical evidence or the generic syntax and inflection pipeline."
         ],
         "provenance": [
           {
@@ -38,14 +40,37 @@
             "label": "Runor-aligned Younger exemplar",
             "role": "Runic inscription discovery and verification reference",
             "license": "Reference only"
+          },
+          {
+            "sourceId": "barnes_nion",
+            "label": "Barnes: suffixed definite article",
+            "role": "Explicit inflection paradigms and grammatical agreement",
+            "license": "Reference only",
+            "detail": "NION I §3.1.9, pp.56–58: suffixed masculine nominative singular article; article omission may also be grammatical in context."
           }
         ],
         "tokenBreakdown": [
           {
+            "sourceToken": "The",
+            "normalizedToken": "",
+            "diplomaticToken": "",
+            "glyphToken": "",
+            "resolutionStatus": "RECONSTRUCTED",
+            "provenance": [
+              {
+                "sourceId": "barnes_nion",
+                "label": "Barnes: suffixed definite article",
+                "role": "Explicit inflection paradigms and grammatical agreement",
+                "license": "Reference only",
+                "detail": "NION I §3.1.9, pp.56–58: suffixed masculine nominative singular article; article omission may also be grammatical in context."
+              }
+            ]
+          },
+          {
             "sourceToken": "wolf",
-            "normalizedToken": "úlfr",
-            "diplomaticToken": "ulfr",
-            "glyphToken": "ᚢᛚᚠᚱ",
+            "normalizedToken": "úlfrinn",
+            "diplomaticToken": "ulfrin",
+            "glyphToken": "ᚢᛚᚠᚱᛁᚾ",
             "resolutionStatus": "RECONSTRUCTED",
             "provenance": [
               {
@@ -54,6 +79,13 @@
                 "role": "Old Norse headword and normalization reference",
                 "license": "Reference only",
                 "detail": "Curated lemma set for the wolf/night example."
+              },
+              {
+                "sourceId": "barnes_nion",
+                "label": "Barnes: suffixed definite article",
+                "role": "Explicit inflection paradigms and grammatical agreement",
+                "license": "Reference only",
+                "detail": "NION I §3.1.9, pp.56–58: suffixed masculine nominative singular article; article omission may also be grammatical in context."
               }
             ]
           },
