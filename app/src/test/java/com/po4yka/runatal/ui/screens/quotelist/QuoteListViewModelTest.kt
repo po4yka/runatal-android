@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -308,6 +309,7 @@ class QuoteListViewModelTest {
         viewModel = createViewModel()
         advanceUntilIdle()
         viewModel.updateSearchQuery("a")
+        advanceTimeBy(300)
         runCurrent()
         assertThat(started.isCompleted).isTrue()
         viewModel.updateSearchQuery("ab")
@@ -384,6 +386,36 @@ class QuoteListViewModelTest {
             storeJob.cancel()
             directory.deleteRecursively()
         }
+    }
+
+    @Test
+    fun `normally spaced keystrokes debounce disk edits while filtering immediately`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        listOf("w", "wa", "wan", "wand", "wander").forEach { input ->
+            viewModel.updateSearchQuery(input)
+            runCurrent()
+            assertThat(viewModel.uiState.value.searchQuery).isEqualTo(input)
+            advanceTimeBy(100)
+        }
+        coVerify(exactly = 0) { userPreferencesManager.updateQuoteSearchQuery(any(), any()) }
+        advanceTimeBy(300)
+        runCurrent()
+        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery("wander", any()) }
+        assertThat(viewModel.uiState.value.quotes).containsExactly(testQuotes[1])
+    }
+
+    @Test
+    fun `navigation before debounce expires flushes the latest query immediately`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.updateSearchQuery("last search")
+        runCurrent()
+        advanceTimeBy(100)
+        coVerify(exactly = 0) { userPreferencesManager.updateQuoteSearchQuery(any(), any()) }
+        viewModel.viewModelScope.cancel()
+        runCurrent()
+        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery("last search", any()) }
     }
 
     private fun createViewModel(): QuoteListViewModel {

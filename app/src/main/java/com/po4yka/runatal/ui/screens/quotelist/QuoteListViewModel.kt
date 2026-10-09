@@ -28,12 +28,14 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /** ViewModel for the Library screen with tab filtering. */
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
 internal class QuoteListViewModel @Inject constructor(
     private val quoteRepository: QuoteRepository,
@@ -56,6 +58,7 @@ internal class QuoteListViewModel @Inject constructor(
 
     /** @suppress */
     companion object {
+        private const val SEARCH_PERSIST_DELAY_MS = 300L
         private const val TAG = "QuoteListViewModel"
     }
 
@@ -131,7 +134,7 @@ internal class QuoteListViewModel @Inject constructor(
 
     private suspend fun persistSearchUpdates() {
         try {
-            pendingSearchWrite.filterNotNull().collect { persistSearch(it) }
+            pendingSearchWrite.filterNotNull().debounce(SEARCH_PERSIST_DELAY_MS).collect { persistSearch(it) }
         } finally {
             withContext(NonCancellable) {
                 pendingSearchWrite.value?.let { if (it != lastPersistedSearch) persistSearch(it) }
