@@ -131,4 +131,12 @@ data class UserPreferences(
      * Whether pack update notifications are enabled.
      */
     val packUpdateNotifications: Boolean = true
-)
+) {
+    /** Runic size shared by app reading surfaces and widgets. */
+    val runicFontScale: Float
+        get() = fontSize * if (largeRunesEnabled) LARGE_RUNES_SCALE else 1f
+
+    private companion object {
+        const val LARGE_RUNES_SCALE = 1.25f
+    }
+}

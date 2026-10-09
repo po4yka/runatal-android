@@ -40,6 +40,7 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.po4yka.runatal.MainActivity
 import com.po4yka.runatal.data.preferences.WidgetDisplayMode
+import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.data.preferences.WidgetUpdateMode
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.model.displayName
@@ -475,7 +476,7 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                 val updateMode = WidgetUpdateMode.fromPersistedValue(preferences.widgetUpdateMode)
                 val randomRequested = WidgetInteractionState.consumeRandomQuoteRequest(widgetKey)
                 val palette = resolveWidgetPalette(context, preferences)
-                val renderEnvironment = widgetRenderEnvironment(context, palette)
+                val renderEnvironment = widgetRenderEnvironment(context, palette, preferences)
 
                 if (!randomRequested) {
                     val cachedState = WidgetStateCache.get(
@@ -533,7 +534,7 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
                         transliterationFactory = entryPoint.transliterationFactory()
                     )
                     val normalizedRunicText = CirthGlyphCompat.normalizeLegacyPuaGlyphs(runicText)
-                    val textSize = RunatalWidgetMetrics.runicTextSize(sizeClass)
+                    val textSize = RunatalWidgetMetrics.runicTextSize(sizeClass, preferences)
                     val maxWidth = RunatalWidgetMetrics.maxRunicWidthPx(
                         resources = context.resources,
                         widgetWidthDp = widgetWidth,
@@ -658,12 +659,12 @@ internal object RunatalWidgetMetrics {
     private const val TEXT_SIZE_MEDIUM = 14f
     private const val TEXT_SIZE_LARGE = 15f
 
-    fun runicTextSize(sizeClass: WidgetSizeClass): Float {
+    fun runicTextSize(sizeClass: WidgetSizeClass, preferences: UserPreferences): Float {
         return when (sizeClass) {
             WidgetSizeClass.COMPACT -> TEXT_SIZE_COMPACT
             WidgetSizeClass.MEDIUM -> TEXT_SIZE_MEDIUM
             WidgetSizeClass.EXPANDED -> TEXT_SIZE_LARGE
-        }
+        } * preferences.runicFontScale
     }
 
     fun maxRunicWidthPx(

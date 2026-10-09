@@ -3,6 +3,7 @@ package com.po4yka.runatal.ui.widget
 import android.content.res.Resources
 import android.util.DisplayMetrics
 import com.google.common.truth.Truth.assertThat
+import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.data.preferences.WidgetDisplayMode
 import io.mockk.every
 import io.mockk.mockk
@@ -19,9 +20,17 @@ class RunatalWidgetTest {
 
     @Test
     fun `runicTextSize scales by widget class`() {
-        assertThat(RunatalWidgetMetrics.runicTextSize(WidgetSizeClass.COMPACT)).isEqualTo(12f)
-        assertThat(RunatalWidgetMetrics.runicTextSize(WidgetSizeClass.MEDIUM)).isEqualTo(14f)
-        assertThat(RunatalWidgetMetrics.runicTextSize(WidgetSizeClass.EXPANDED)).isEqualTo(15f)
+        assertThat(RunatalWidgetMetrics.runicTextSize(WidgetSizeClass.COMPACT, UserPreferences())).isEqualTo(12f)
+        assertThat(RunatalWidgetMetrics.runicTextSize(WidgetSizeClass.MEDIUM, UserPreferences())).isEqualTo(14f)
+        assertThat(RunatalWidgetMetrics.runicTextSize(WidgetSizeClass.EXPANDED, UserPreferences())).isEqualTo(15f)
+    }
+
+    @Test
+    fun `widget uses the same runic size preferences as app reading surfaces`() {
+        val preferences = UserPreferences(fontSize = 1.5f, largeRunesEnabled = true)
+
+        assertThat(preferences.runicFontScale).isEqualTo(1.875f)
+        assertThat(RunatalWidgetMetrics.runicTextSize(WidgetSizeClass.MEDIUM, preferences)).isEqualTo(26.25f)
     }
 
     @Test

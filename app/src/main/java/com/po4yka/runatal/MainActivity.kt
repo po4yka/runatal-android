@@ -65,7 +65,7 @@ fun RunatalApp() {
         darkTheme = darkTheme,
         dynamicColorEnabled = preferences.dynamicColorEnabled,
         themePack = preferences.themePack,
-        runicFontScale = if (preferences.largeRunesEnabled) 1.25f else 1.0f,
+        runicFontScale = preferences.runicFontScale,
         highContrast = preferences.highContrastEnabled,
         reducedMotion = preferences.reducedMotionEnabled
     ) {
