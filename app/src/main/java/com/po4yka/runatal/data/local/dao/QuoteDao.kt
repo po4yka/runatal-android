@@ -135,9 +135,12 @@ internal interface QuoteDao {
         val current = getById(quote.id) ?: return null
         val sourceMatches = current.textLatin == expectedTextLatin && current.author == expectedAuthor
         return if (current.isUserCreated && sourceMatches) {
+            // An author-only save owns no glyph changes, including after a concurrent A-to-B-to-A edit.
+            val glyphOwner = if (current.textLatin == quote.textLatin) current else quote
             val updated = updateContentColumns(
                 id = quote.id, textLatin = quote.textLatin, author = quote.author,
-                runicElder = quote.runicElder, runicYounger = quote.runicYounger, runicCirth = quote.runicCirth
+                runicElder = glyphOwner.runicElder, runicYounger = glyphOwner.runicYounger,
+                runicCirth = glyphOwner.runicCirth
             )
             check(updated == 1) { "The quote content could not be updated." }
             if (expectedTextLatin != quote.textLatin) {

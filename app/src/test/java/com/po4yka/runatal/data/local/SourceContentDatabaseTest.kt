@@ -202,6 +202,30 @@ class SourceContentDatabaseTest {
         assertThat(cacheCount()).isEqualTo(1)
     }
 
+    @Test
+    fun `an author only save after another editor changes source A to B to A retains current glyph ownership`() = runTest {
+        seedUserAndCache()
+        val stale = checkNotNull(repository.getQuoteById(1L))
+        val changed = repository.updateUserQuoteContent(
+            stale.copy(textLatin = "king", runicElder = "ᚲᛁᛜ", runicYounger = "ᚴᛁᚾᚴ", runicCirth = "\uE088"),
+            stale.textLatin, stale.author
+        )
+        val current = repository.updateUserQuoteContent(
+            changed.copy(textLatin = "wolf", runicElder = "ᚹᛟᛚᚠ", runicYounger = "ᚢᚢᛚᚠ", runicCirth = "\uE090"),
+            changed.textLatin, changed.author
+        )
+        database.translationRecordDao().insertIfSourceMatches(record(glyphs = "current historical output"))
+        val saved = repository.updateUserQuoteContent(stale.copy(author = "Edited author"), "wolf", "User")
+        assertThat(saved.author).isEqualTo("Edited author")
+        assertThat(saved.runicElder).isEqualTo(current.runicElder)
+        assertThat(saved.runicYounger).isEqualTo(current.runicYounger)
+        assertThat(saved.runicCirth).isEqualTo(current.runicCirth)
+        assertThat(saved.createdAt).isEqualTo(current.createdAt)
+        assertThat(saved.renderingMode).isEqualTo(current.renderingMode)
+        assertThat(selected("wolf")?.glyphOutput).isEqualTo("current historical output")
+        assertThat(cacheCount()).isEqualTo(1)
+    }
+
     private suspend fun seedUserAndCache() {
         database.quoteDao().insert(original)
         assertThat(database.translationRecordDao().insertIfSourceMatches(record())).isTrue()
