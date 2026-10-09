@@ -33,6 +33,15 @@ class QuoteShareManager @Inject constructor(
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     @param:MainDispatcher private val mainDispatcher: CoroutineDispatcher
 ) {
+    /** Uses the same complete layout for the in-app preview and exported image. */
+    suspend fun renderQuoteImage(
+        content: QuoteShareContent,
+        template: ShareTemplate,
+        appearance: ShareAppearance
+    ): Bitmap = withContext(ioDispatcher) {
+        imageGenerator.generateQuoteImage(content, template, appearance)
+    }
+
     /** Sharing constants. */
     companion object {
         private const val TAG = "QuoteShareManager"
