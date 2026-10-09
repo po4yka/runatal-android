@@ -62,6 +62,7 @@ class RunatalApplication : Application(), Configuration.Provider {
         applicationScope = CoroutineScope(SupervisorJob() + defaultDispatcher)
         widgetSyncManager = WidgetSyncManager(applicationScope)
         widgetSyncManager.observePreferences(applicationContext, userPreferencesManager.userPreferencesFlow)
+        widgetSyncManager.observeLibrary(applicationContext, quoteRepository.getAllQuotesFlow())
 
         // Seed database on app startup (infrastructure concern, not ViewModel concern)
         applicationScope.launch {

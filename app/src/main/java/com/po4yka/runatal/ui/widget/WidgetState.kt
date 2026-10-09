@@ -15,6 +15,7 @@ enum class WidgetSizeClass {
 
 /** Snapshot of all data needed to render the widget. */
 data class WidgetState(
+    val quoteId: Long = 0,
     val runicText: String = "",
     val runicBitmap: Bitmap? = null,
     val latinText: String = "",
@@ -49,4 +50,11 @@ data class WidgetPalette(
         /** Returns the default dark-theme palette. */
         fun default() = widgetPaletteFromColorScheme(foundationRunicColorScheme(darkTheme = true))
     }
+}
+
+/** Exact quote content required before accepting a previously rendered widget. */
+data class WidgetQuoteContent(val quoteId: Long, val latinText: String, val author: String, val runicText: String) {
+    /** Rejects edited, deleted, or differently rendered quote snapshots. */
+    fun matches(state: WidgetState): Boolean = quoteId == state.quoteId && latinText == state.latinText &&
+        author == state.author && runicText == state.runicText
 }

@@ -62,7 +62,8 @@ class RefreshQuoteActionTest {
                 preferences = com.po4yka.runatal.data.preferences.UserPreferences(),
                 widgetWidth = 300,
                 widgetHeight = 151,
-                renderEnvironment = "test"
+                renderEnvironment = "test",
+                expectedContent = WidgetQuoteContent(0, "Cached", "", "")
             )
         ).isNull()
         assertThat(
@@ -74,6 +75,7 @@ class RefreshQuoteActionTest {
                 widgetWidth = 300,
                 widgetHeight = 151,
                 renderEnvironment = "test",
+                expectedContent = WidgetQuoteContent(0, "Cached", "", ""),
                 palette = WidgetPalette.default(),
                 sizeClass = WidgetSizeClass.MEDIUM
             )

@@ -26,6 +26,8 @@ class WidgetStateCacheTest {
         sizeClass = WidgetSizeClass.COMPACT
     )
 
+    private val expectedContent = WidgetQuoteContent(state.quoteId, state.latinText, state.author, state.runicText)
+
     @After
     fun tearDown() {
         WidgetStateCache.clear()
@@ -41,7 +43,8 @@ class WidgetStateCacheTest {
             preferences = preferences,
             widgetWidth = 300,
             widgetHeight = 151,
-            renderEnvironment = "test"
+            renderEnvironment = "test",
+            expectedContent = expectedContent
         )
 
         assertThat(cached).isEqualTo(state)
@@ -57,7 +60,8 @@ class WidgetStateCacheTest {
             preferences = preferences,
             widgetWidth = 300,
             widgetHeight = 151,
-            renderEnvironment = "test"
+            renderEnvironment = "test",
+            expectedContent = expectedContent
         )
         val differentScript = WidgetStateCache.get(
             widgetKey = "widget",
@@ -65,7 +69,8 @@ class WidgetStateCacheTest {
             preferences = preferences.copy(selectedScript = RunicScript.ELDER_FUTHARK),
             widgetWidth = 300,
             widgetHeight = 151,
-            renderEnvironment = "test"
+            renderEnvironment = "test",
+            expectedContent = expectedContent
         )
 
         assertThat(differentDate).isNull()
@@ -82,7 +87,8 @@ class WidgetStateCacheTest {
             preferences = preferences,
             widgetWidth = 400,
             widgetHeight = 151,
-            renderEnvironment = "test"
+            renderEnvironment = "test",
+            expectedContent = expectedContent
         )
 
         assertThat(resized).isNull()
@@ -93,10 +99,23 @@ class WidgetStateCacheTest {
         WidgetStateCache.put("widget", LocalDate.of(2026, 3, 11), preferences, 300, 151, "dark-1", state)
 
         val changed = WidgetStateCache.get(
-            "widget", LocalDate.of(2026, 3, 11), preferences, 300, 151, "light-2"
+            "widget", LocalDate.of(2026, 3, 11), preferences, 300, 151, "light-2", expectedContent
         )
 
         assertThat(changed).isNull()
+    }
+
+    @Test
+    fun `current source rejects edited author runes and deleted identities`() {
+        WidgetStateCache.put("widget", LocalDate.of(2026, 3, 11), preferences, 300, 151, "test", state)
+        listOf(
+            expectedContent.copy(quoteId = 999), expectedContent.copy(latinText = "Edited"),
+            expectedContent.copy(author = "Different"), expectedContent.copy(runicText = "ᚾ")
+        ).forEach { changed ->
+            assertThat(WidgetStateCache.get(
+                "widget", LocalDate.of(2026, 3, 11), preferences, 300, 151, "test", changed
+            )).isNull()
+        }
     }
 
     @Test
@@ -111,7 +130,8 @@ class WidgetStateCacheTest {
                 preferences = preferences,
                 widgetWidth = 300,
                 widgetHeight = 151,
-                renderEnvironment = "test"
+                renderEnvironment = "test",
+            expectedContent = expectedContent
             )
         ).isNull()
     }

@@ -30,8 +30,11 @@ internal fun widgetRenderEnvironment(
     preferences: UserPreferences
 ): String {
     val resources = context.resources
+    val fontResource = com.po4yka.runatal.util.RunicTextRenderer.getFontResource(
+        preferences.selectedFont, preferences.selectedScript
+    )
     return "$palette|${resources.displayMetrics.densityDpi}|" +
-        "${resources.configuration.fontScale}|${preferences.runicFontScale}"
+        "${resources.configuration.fontScale}|${preferences.runicFontScale}|$fontResource|source-v1"
 }
 
 private fun isDarkTheme(context: Context, preferences: UserPreferences): Boolean {

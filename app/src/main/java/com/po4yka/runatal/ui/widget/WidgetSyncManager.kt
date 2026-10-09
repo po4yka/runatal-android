@@ -7,6 +7,8 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.po4yka.runatal.data.preferences.WidgetUpdateMode
+import com.po4yka.runatal.domain.model.Quote
+import kotlinx.coroutines.sync.withLock
 import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.worker.WidgetUpdateWorker
 import dagger.hilt.android.EntryPointAccessors
@@ -40,6 +42,17 @@ class WidgetSyncManager internal constructor(
         preferences.map { it.widgetPreferences() }.distinctUntilChanged().collect { persisted ->
             refreshRunner.refreshAll(context.applicationContext)
             reschedule(context.applicationContext, WidgetUpdateMode.fromPersistedValue(persisted.widgetUpdateMode))
+        }
+    }
+
+    /** Invalidates both cache layers after committed source changes, including edits and deletions. */
+    fun observeLibrary(context: Context, quotes: Flow<List<Quote>>): Job = scope.launch {
+        quotes.distinctUntilChanged().collect {
+            WidgetContentLock.mutex.withLock {
+                WidgetStateCache.clear()
+                PersistentWidgetStateCache.clear(context.applicationContext)
+            }
+            refreshRunner.refreshAll(context.applicationContext)
         }
     }
 
