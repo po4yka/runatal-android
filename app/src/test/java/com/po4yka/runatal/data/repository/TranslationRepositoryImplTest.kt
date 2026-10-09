@@ -26,6 +26,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
@@ -46,6 +47,11 @@ class TranslationRepositoryImplTest {
         translationBackfillStateDao = mockk(relaxed = true)
         historicalTranslationService = mockk()
         translationEngineFactory = mockk()
+        RunicScript.entries.forEach { script ->
+            every { translationEngineFactory.create(script) } returns mockEngine(
+                script, engineVersionFor(script), "dataset-v1"
+            )
+        }
 
         repository = TranslationRepositoryImpl(
             quoteDao = quoteDao,
@@ -126,7 +132,9 @@ class TranslationRepositoryImplTest {
             translationRecordDao.getLatestAvailableForScript(
                 quoteId = 5L,
                 script = RunicScript.ELDER_FUTHARK.name,
-                unavailableStatus = TranslationResolutionStatus.UNAVAILABLE.name
+                unavailableStatus = TranslationResolutionStatus.UNAVAILABLE.name,
+                engineVersion = "ef-engine-v1",
+                datasetVersion = "dataset-v1"
             )
         } returns insertedEntity.captured
 
@@ -170,7 +178,7 @@ class TranslationRepositoryImplTest {
     @Test
     fun `backfillAllQuotes resumes from saved state and caches only supported strict results`() = runTest {
         val priorState = TranslationBackfillStateEntity(
-            engineVersion = "historical-backfill-v2",
+            engineVersion = currentBackfillVersion(),
             lastProcessedQuoteId = 1L,
             processedCount = 1,
             startedAt = 100L,
@@ -258,6 +266,61 @@ class TranslationRepositoryImplTest {
         assertThat(result.resolutionStatus).isEqualTo(TranslationResolutionStatus.UNAVAILABLE)
         assertThat(result.requestedVariant).isEqualTo(YoungerFutharkVariant.SHORT_TWIG.name)
         assertThat(result.glyphOutput).isEqualTo("night")
+    }
+
+    @Test
+    fun `backfill restarts from the beginning when an engine version changes`() = runTest {
+        assertBackfillRestarts("engine-v2", "dataset-v1")
+    }
+
+    @Test
+    fun `backfill restarts from the beginning when only a dataset version changes`() = runTest {
+        assertBackfillRestarts("yf-engine-v1", "dataset-v2")
+    }
+
+    private suspend fun assertBackfillRestarts(engineVersion: String, datasetVersion: String) {
+        val priorState = TranslationBackfillStateEntity(
+            engineVersion = currentBackfillVersion(),
+            lastProcessedQuoteId = 7L,
+            processedCount = 7,
+            startedAt = 100L,
+            updatedAt = 150L,
+            completedAt = 200L
+        )
+        val engine = mockEngine(RunicScript.YOUNGER_FUTHARK, engineVersion, datasetVersion)
+        every { translationEngineFactory.create(RunicScript.YOUNGER_FUTHARK) } returns engine
+        coEvery { translationBackfillStateDao.getById() } returns priorState
+        coEvery { quoteDao.getAll() } returns listOf(quoteEntity(1L, "old source"))
+        every { historicalTranslationService.translate(any(), any(), any(), any()) } answers {
+            translationResult(
+                script = secondArg(),
+                resolutionStatus = TranslationResolutionStatus.UNAVAILABLE,
+                glyphOutput = ""
+            )
+        }
+        val states = mutableListOf<TranslationBackfillStateEntity>()
+        coEvery { translationBackfillStateDao.upsert(capture(states)) } returns Unit
+
+        repository.backfillAllQuotes()
+
+        assertThat(states.first().lastProcessedQuoteId).isEqualTo(0L)
+        assertThat(states.first().processedCount).isEqualTo(0)
+        assertThat(states.last().lastProcessedQuoteId).isEqualTo(1L)
+        assertThat(states.last().processedCount).isEqualTo(1)
+        assertThat(states.last().engineVersion).contains("YOUNGER_FUTHARK:$engineVersion:$datasetVersion")
+        verify(exactly = RunicScript.entries.size) {
+            historicalTranslationService.translate("old source", any(), TranslationFidelity.STRICT, any())
+        }
+    }
+
+    private fun currentBackfillVersion(): String = RunicScript.entries.joinToString("|") {
+        "${it.name}:${engineVersionFor(it)}:dataset-v1"
+    }
+
+    private fun engineVersionFor(script: RunicScript): String = when (script) {
+        RunicScript.ELDER_FUTHARK -> "ef-engine-v1"
+        RunicScript.YOUNGER_FUTHARK -> "yf-engine-v1"
+        RunicScript.CIRTH -> "cirth-engine-v1"
     }
 
     private fun mockEngine(

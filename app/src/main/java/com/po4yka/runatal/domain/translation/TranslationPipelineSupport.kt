@@ -245,7 +245,8 @@ internal data class TranslationTokenResolution(
     val resolutionStatus: TranslationResolutionStatus,
     val notes: List<String> = emptyList(),
     val unresolvedToken: String? = null,
-    val provenance: List<TranslationProvenanceEntry> = emptyList()
+    val provenance: List<TranslationProvenanceEntry> = emptyList(),
+    val isPunctuation: Boolean = false
 )
 
 internal data class MorphologyHints(
@@ -708,13 +709,16 @@ internal class TranslationEvidenceSynthesizer(
         resolutions: List<TranslationTokenResolution>,
         evidenceRequest: TranslationEvidenceRequest
     ): TranslationResult {
-        val unresolvedTokens = resolutions.mapNotNull { it.unresolvedToken }.distinct()
+        val hasContent = resolutions.any { !it.isPunctuation && it.sourceToken.hasVisibleContent() }
+        val unresolvedTokens = (resolutions.mapNotNull { it.unresolvedToken } +
+            if (hasContent) emptyList() else resolutions.filter { !it.isPunctuation }.map { it.sourceToken }).distinct()
         val provenance = resolutions.flatMap { it.provenance }.distinctBy {
             listOf(it.sourceId, it.referenceId, it.role, it.detail, it.label)
         }
-        val notes = resolutions.flatMap { it.notes }.distinct()
+        val notes = (resolutions.flatMap { it.notes } +
+            if (hasContent) emptyList() else listOf("No visible translatable source content was found.")).distinct()
         val resolutionStatus = when {
-            unresolvedTokens.isNotEmpty() -> TranslationResolutionStatus.UNAVAILABLE
+            !hasContent || unresolvedTokens.isNotEmpty() -> TranslationResolutionStatus.UNAVAILABLE
             resolutions.any { it.resolutionStatus == TranslationResolutionStatus.APPROXIMATED } ->
                 TranslationResolutionStatus.APPROXIMATED
             else -> evidenceRequest.fallbackStatus
@@ -822,3 +826,18 @@ internal val PUNCTUATION_TOKENS = setOf(".", ",", "!", "?", ";", ":")
 private const val ATTESTED_CONFIDENCE = 0.98f
 private const val APPROXIMATION_PENALTY = 0.18f
 private const val MIN_APPROXIMATION_CONFIDENCE = 0.3f
+
+private fun String.hasVisibleContent(): Boolean = codePoints().anyMatch { codePoint ->
+    Character.getType(codePoint) !in invisibleSourceTypes
+}
+
+private val invisibleSourceTypes = setOf(
+    Character.CONTROL.toInt(),
+    Character.FORMAT.toInt(),
+    Character.NON_SPACING_MARK.toInt(),
+    Character.COMBINING_SPACING_MARK.toInt(),
+    Character.ENCLOSING_MARK.toInt(),
+    Character.SPACE_SEPARATOR.toInt(),
+    Character.LINE_SEPARATOR.toInt(),
+    Character.PARAGRAPH_SEPARATOR.toInt()
+)

@@ -62,10 +62,13 @@ internal class TranslationRepositoryImpl @Inject constructor(
         quoteId: Long,
         script: RunicScript
     ): TranslationResult? {
+        val engine = translationEngineFactory.create(script)
         return translationRecordDao.getLatestAvailableForScript(
             quoteId = quoteId,
             script = script.name,
-            unavailableStatus = TranslationResolutionStatus.UNAVAILABLE.name
+            unavailableStatus = TranslationResolutionStatus.UNAVAILABLE.name,
+            engineVersion = engine.engineVersion,
+            datasetVersion = engine.datasetVersion
         )?.toDomain()
     }
 
@@ -123,9 +126,10 @@ internal class TranslationRepositoryImpl @Inject constructor(
     override suspend fun backfillAllQuotes() {
         val now = System.currentTimeMillis()
         val previousState = translationBackfillStateDao.getById()
-        val state = if (previousState == null || previousState.engineVersion != BACKFILL_ENGINE_VERSION) {
+        val version = backfillVersion()
+        val state = if (previousState == null || previousState.engineVersion != version) {
             TranslationBackfillStateEntity(
-                engineVersion = BACKFILL_ENGINE_VERSION,
+                engineVersion = version,
                 startedAt = now,
                 updatedAt = now
             )
@@ -270,7 +274,8 @@ internal class TranslationRepositoryImpl @Inject constructor(
         youngerVariant: YoungerFutharkVariant
     ): String? = if (script == RunicScript.YOUNGER_FUTHARK) youngerVariant.name else null
 
-    private companion object {
-        const val BACKFILL_ENGINE_VERSION = "historical-backfill-v2"
+    private fun backfillVersion(): String = RunicScript.entries.joinToString("|") { script ->
+        val engine = translationEngineFactory.create(script)
+        "${script.name}:${engine.engineVersion}:${engine.datasetVersion}"
     }
 }

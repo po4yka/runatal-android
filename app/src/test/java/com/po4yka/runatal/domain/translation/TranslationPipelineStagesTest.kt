@@ -98,7 +98,7 @@ class TranslationPipelineStagesTest {
                 sourceId = "zoega",
                 citations = listOf("konungr")
             ),
-            token = ParsedEnglishToken("kings", "kings", ParsedEnglishTokenType.WORD)
+            token = ParsedEnglishToken("kings", "kings", ParsedEnglishTokenType.WORD, 0, 5)
         )
         val pastVerb = stage.inflect(
             entry = OldNorseLexiconEntry(
@@ -110,7 +110,7 @@ class TranslationPipelineStagesTest {
                 sourceId = "zoega",
                 citations = listOf("ganga")
             ),
-            token = ParsedEnglishToken("walked", "walked", ParsedEnglishTokenType.WORD)
+            token = ParsedEnglishToken("walked", "walked", ParsedEnglishTokenType.WORD, 0, 6)
         )
         val preposition = stage.inflect(
             entry = OldNorseLexiconEntry(
@@ -122,7 +122,7 @@ class TranslationPipelineStagesTest {
                 sourceId = "zoega",
                 citations = listOf("undir")
             ),
-            token = ParsedEnglishToken("under", "under", ParsedEnglishTokenType.WORD)
+            token = ParsedEnglishToken("under", "under", ParsedEnglishTokenType.WORD, 0, 5)
         )
 
         assertThat(pluralNoun.form).isEqualTo("konungar")
@@ -156,15 +156,15 @@ class TranslationPipelineStagesTest {
         )
 
         val strict = stage.reconstruct(
-            ParsedEnglishToken("signal", "signal", ParsedEnglishTokenType.WORD),
+            ParsedEnglishToken("signal", "signal", ParsedEnglishTokenType.WORD, 0, 6),
             TranslationFidelity.STRICT
         )
         val readableParaphrase = stage.reconstruct(
-            ParsedEnglishToken("signal", "signal", ParsedEnglishTokenType.WORD),
+            ParsedEnglishToken("signal", "signal", ParsedEnglishTokenType.WORD, 0, 6),
             TranslationFidelity.READABLE
         )
         val readablePreservation = stage.reconstruct(
-            ParsedEnglishToken("radar", "radar", ParsedEnglishTokenType.WORD),
+            ParsedEnglishToken("radar", "radar", ParsedEnglishTokenType.WORD, 0, 5),
             TranslationFidelity.READABLE
         )
 

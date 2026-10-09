@@ -134,10 +134,21 @@ class TranslationDaoTest {
             )
         )
 
+        translationRecordDao.insert(
+            record(quoteId = 2L, script = "ELDER_FUTHARK", updatedAt = 500L, glyphOutput = "stale-engine")
+                .copy(engineVersion = "engine-v0")
+        )
+        translationRecordDao.insert(
+            record(quoteId = 2L, script = "ELDER_FUTHARK", updatedAt = 600L, glyphOutput = "stale-dataset")
+                .copy(datasetVersion = "dataset-v0")
+        )
+
         val latest = translationRecordDao.getLatestAvailableForScript(
             quoteId = 2L,
             script = "ELDER_FUTHARK",
-            unavailableStatus = "UNAVAILABLE"
+            unavailableStatus = "UNAVAILABLE",
+            engineVersion = "engine-v1",
+            datasetVersion = "dataset-v1"
         )
 
         assertEquals("newest-available", latest?.glyphOutput)
@@ -154,12 +165,16 @@ class TranslationDaoTest {
         val deleted = translationRecordDao.getLatestAvailableForScript(
             quoteId = 3L,
             script = "ELDER_FUTHARK",
-            unavailableStatus = "UNAVAILABLE"
+            unavailableStatus = "UNAVAILABLE",
+            engineVersion = "engine-v1",
+            datasetVersion = "dataset-v1"
         )
         val preserved = translationRecordDao.getLatestAvailableForScript(
             quoteId = 4L,
             script = "YOUNGER_FUTHARK",
-            unavailableStatus = "UNAVAILABLE"
+            unavailableStatus = "UNAVAILABLE",
+            engineVersion = "engine-v1",
+            datasetVersion = "dataset-v1"
         )
 
         assertNull(deleted)

@@ -15,7 +15,7 @@ internal class YoungerFutharkTranslationEngine @Inject constructor(
 ) : TranslationEngine {
 
     override val script: RunicScript = RunicScript.YOUNGER_FUTHARK
-    override val engineVersion: String = "yf-translation-v3"
+    override val engineVersion: String = "yf-translation-v4"
 
     private val parser = EnglishSyntaxParser()
     private val sourceCatalog = HistoricalSourceCatalog(
@@ -40,6 +40,7 @@ internal class YoungerFutharkTranslationEngine @Inject constructor(
         val resolutions = parsed.tokens.mapNotNull { token ->
             when {
                 token.type == ParsedEnglishTokenType.PUNCTUATION -> token.asPunctuationResolution()
+                token.type == ParsedEnglishTokenType.UNSUPPORTED -> token.asUnsupportedResolution(request.fidelity)
                 token.normalized in grammarRules.removableWords -> null
                 else -> resolveToken(token, request)
             }
@@ -171,7 +172,7 @@ internal class ElderFutharkTranslationEngine @Inject constructor(
 ) : TranslationEngine {
 
     override val script: RunicScript = RunicScript.ELDER_FUTHARK
-    override val engineVersion: String = "ef-translation-v3"
+    override val engineVersion: String = "ef-translation-v4"
 
     private val parser = EnglishSyntaxParser()
     private val sourceCatalog = HistoricalSourceCatalog(
@@ -202,6 +203,7 @@ internal class ElderFutharkTranslationEngine @Inject constructor(
         val resolutions = parsed.tokens.map { token ->
             when {
                 token.type == ParsedEnglishTokenType.PUNCTUATION -> token.asPunctuationResolution()
+                token.type == ParsedEnglishTokenType.UNSUPPORTED -> token.asUnsupportedResolution(request.fidelity)
                 else -> {
                     val output = lexicalStage.reconstruct(token, request.fidelity)
                     if (output.unresolvedToken != null) {
@@ -212,7 +214,7 @@ internal class ElderFutharkTranslationEngine @Inject constructor(
                             glyphToken = "",
                             resolutionStatus = TranslationResolutionStatus.UNAVAILABLE,
                             notes = output.notes,
-                            unresolvedToken = output.unresolvedToken
+                            unresolvedToken = token.raw
                         )
                     } else {
                         val normalized = output.form.orEmpty()
@@ -281,7 +283,7 @@ internal class EreborCirthTranslationEngine @Inject constructor(
 ) : TranslationEngine {
 
     override val script: RunicScript = RunicScript.CIRTH
-    override val engineVersion: String = "cirth-translation-v3"
+    override val engineVersion: String = "cirth-translation-v4"
 
     private val parser = EnglishSyntaxParser()
     private val sourceCatalog = HistoricalSourceCatalog(
@@ -310,6 +312,7 @@ internal class EreborCirthTranslationEngine @Inject constructor(
         val resolutions = parsed.tokens.map { token ->
             when {
                 token.type == ParsedEnglishTokenType.PUNCTUATION -> token.asPunctuationResolution()
+                token.type == ParsedEnglishTokenType.UNSUPPORTED -> token.asUnsupportedResolution(request.fidelity)
                 else -> {
                     val output = tokenizer.renderToken(token.normalized, request.fidelity)
                     if (output.unresolvedToken != null) {
@@ -320,7 +323,7 @@ internal class EreborCirthTranslationEngine @Inject constructor(
                             glyphToken = "",
                             resolutionStatus = TranslationResolutionStatus.UNAVAILABLE,
                             notes = output.notes,
-                            unresolvedToken = output.unresolvedToken
+                            unresolvedToken = token.raw
                         )
                     } else {
                         TranslationTokenResolution(
@@ -396,6 +399,24 @@ private fun ParsedEnglishToken.asPunctuationResolution(): TranslationTokenResolu
         normalizedToken = raw,
         diplomaticToken = raw,
         glyphToken = raw,
-        resolutionStatus = TranslationResolutionStatus.RECONSTRUCTED
+        resolutionStatus = TranslationResolutionStatus.RECONSTRUCTED,
+        isPunctuation = true
+    )
+}
+
+private fun ParsedEnglishToken.asUnsupportedResolution(fidelity: TranslationFidelity): TranslationTokenResolution {
+    val unavailable = fidelity == TranslationFidelity.STRICT
+    return TranslationTokenResolution(
+        sourceToken = raw,
+        normalizedToken = if (unavailable) "" else raw,
+        diplomaticToken = if (unavailable) "" else raw,
+        glyphToken = if (unavailable) "" else raw,
+        resolutionStatus = if (unavailable) {
+            TranslationResolutionStatus.UNAVAILABLE
+        } else {
+            TranslationResolutionStatus.APPROXIMATED
+        },
+        notes = listOf("Unsupported source token '$raw' at offsets $startOffset..$endOffset."),
+        unresolvedToken = if (unavailable) raw else null
     )
 }

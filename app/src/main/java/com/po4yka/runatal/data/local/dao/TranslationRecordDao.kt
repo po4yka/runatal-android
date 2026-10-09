@@ -39,6 +39,8 @@ internal interface TranslationRecordDao {
         WHERE quoteId = :quoteId
             AND script = :script
             AND resolutionStatus != :unavailableStatus
+            AND engineVersion = :engineVersion
+            AND datasetVersion = :datasetVersion
         ORDER BY updatedAt DESC
         LIMIT 1
         """
@@ -46,7 +48,9 @@ internal interface TranslationRecordDao {
     suspend fun getLatestAvailableForScript(
         quoteId: Long,
         script: String,
-        unavailableStatus: String
+        unavailableStatus: String,
+        engineVersion: String,
+        datasetVersion: String
     ): TranslationRecordEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
