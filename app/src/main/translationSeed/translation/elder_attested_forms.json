@@ -1,56 +1,84 @@
 [
   {
-    "id": "ef_tpl_wolf",
+    "id": "ef_gallehus_name_hlewagastiz",
     "script": "ELDER_FUTHARK",
     "fidelity": "STRICT",
     "derivationKind": "PHRASE_TEMPLATE",
     "historicalStage": "PROTO_NORSE",
-    "sourceText": "Wolf",
-    "normalizedForm": "wulfaz",
-    "diplomaticForm": "wulfaz",
+    "sourceText": "Hlewagastiz",
+    "normalizedForm": "hlewagastiz",
+    "diplomaticForm": "hlewagastiR",
     "resolutionStatus": "ATTESTED",
     "notes": [
-      "Matched a curated short Elder Futhark formula for 'wolf'."
+      "Matched the published Gallehus inscription or a documented personal-name form. Capital R in the museum transcription denotes the rune normalized here as z; glyphs represent rune identities rather than a facsimile."
     ],
     "referenceIds": [
-      "ef_ref_wulfaz"
+      "ef_ref_gallehus"
     ],
     "tokenBreakdown": [
       {
-        "sourceToken": "wolf",
-        "normalizedToken": "wulfaz",
-        "diplomaticToken": "wulfaz",
+        "sourceToken": "Hlewagastiz",
+        "normalizedToken": "hlewagastiz",
+        "diplomaticToken": "hlewagastiR",
         "resolutionStatus": "ATTESTED",
         "referenceIds": [
-          "ef_ref_wulfaz"
+          "ef_ref_gallehus"
         ]
       }
     ]
   },
   {
-    "id": "ef_tpl_the_king",
+    "id": "ef_gallehus_name_holtijaz",
     "script": "ELDER_FUTHARK",
     "fidelity": "STRICT",
     "derivationKind": "PHRASE_TEMPLATE",
     "historicalStage": "PROTO_NORSE",
-    "sourceText": "The king",
-    "normalizedForm": "kuningaz",
-    "diplomaticForm": "kuningaz",
+    "sourceText": "Holtijaz",
+    "normalizedForm": "holtijaz",
+    "diplomaticForm": "holtijaR",
     "resolutionStatus": "ATTESTED",
     "notes": [
-      "Matched a curated short Elder Futhark formula for 'the king'."
+      "Matched the published Gallehus inscription or a documented personal-name form. Capital R in the museum transcription denotes the rune normalized here as z; glyphs represent rune identities rather than a facsimile."
     ],
     "referenceIds": [
-      "ef_ref_kuningaz"
+      "ef_ref_gallehus"
     ],
     "tokenBreakdown": [
       {
-        "sourceToken": "king",
-        "normalizedToken": "kuningaz",
-        "diplomaticToken": "kuningaz",
+        "sourceToken": "Holtijaz",
+        "normalizedToken": "holtijaz",
+        "diplomaticToken": "holtijaR",
         "resolutionStatus": "ATTESTED",
         "referenceIds": [
-          "ef_ref_kuningaz"
+          "ef_ref_gallehus"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ef_gallehus_formula",
+    "script": "ELDER_FUTHARK",
+    "fidelity": "STRICT",
+    "derivationKind": "PHRASE_TEMPLATE",
+    "historicalStage": "PROTO_NORSE",
+    "sourceText": "I Hlewagastiz Holtijaz made the horn",
+    "normalizedForm": "ek hlewagastiz holtijaz horna tawido",
+    "diplomaticForm": "ekhlewagastiR : holtijaR : horna : tawido",
+    "resolutionStatus": "ATTESTED",
+    "notes": [
+      "Matched the published Gallehus inscription or a documented personal-name form. Capital R in the museum transcription denotes the rune normalized here as z; glyphs represent rune identities rather than a facsimile."
+    ],
+    "referenceIds": [
+      "ef_ref_gallehus"
+    ],
+    "tokenBreakdown": [
+      {
+        "sourceToken": "I Hlewagastiz Holtijaz made the horn",
+        "normalizedToken": "ek hlewagastiz holtijaz horna tawido",
+        "diplomaticToken": "ekhlewagastiR : holtijaR : horna : tawido",
+        "resolutionStatus": "ATTESTED",
+        "referenceIds": [
+          "ef_ref_gallehus"
         ]
       }
     ]

@@ -14,7 +14,9 @@
         "requestedVariant": "LONG_BRANCH",
         "resolutionStatus": "RECONSTRUCTED",
         "confidence": 0.97,
-        "notes": ["Matched a curated Old Norse example aligned with the translation specification."],
+        "notes": [
+          "Matched a curated Old Norse example aligned with the translation specification."
+        ],
         "provenance": [
           {
             "sourceId": "onp",
@@ -106,77 +108,6 @@
         ]
       },
       {
-        "script": "ELDER_FUTHARK",
-        "fidelity": "STRICT",
-        "derivationKind": "GOLD_EXAMPLE",
-        "historicalStage": "PROTO_NORSE",
-        "normalizedForm": "wulfaz waiþiþi nahts",
-        "diplomaticForm": "wulfaz waiþiþi nahts",
-        "glyphOutput": "ᚹᚢᛚᚠᚨᛉ ᚹᚨᛁᚦᛁᚦᛁ ᚾᚨᚻᛏᛊ",
-        "resolutionStatus": "RECONSTRUCTED",
-        "confidence": 0.9,
-        "notes": ["Matched a curated Proto-Norse reconstruction kept for regression coverage."],
-        "provenance": [
-          {
-            "sourceId": "srd",
-            "referenceId": "ef_ref_wolf_night",
-            "label": "SRD-style Elder exemplar",
-            "role": "Gold examples and runic comparison corpus",
-            "license": "Reference only"
-          }
-        ],
-        "tokenBreakdown": [
-          {
-            "sourceToken": "wolf",
-            "normalizedToken": "wulfaz",
-            "diplomaticToken": "wulfaz",
-            "glyphToken": "ᚹᚢᛚᚠᚨᛉ",
-            "resolutionStatus": "RECONSTRUCTED",
-            "provenance": [
-              {
-                "sourceId": "srd",
-                "referenceId": "ef_ref_wolf_night",
-                "label": "SRD-style Elder exemplar",
-                "role": "Gold examples and runic comparison corpus",
-                "license": "Reference only"
-              }
-            ]
-          },
-          {
-            "sourceToken": "hunts",
-            "normalizedToken": "waiþiþi",
-            "diplomaticToken": "waiþiþi",
-            "glyphToken": "ᚹᚨᛁᚦᛁᚦᛁ",
-            "resolutionStatus": "RECONSTRUCTED",
-            "provenance": [
-              {
-                "sourceId": "srd",
-                "referenceId": "ef_ref_wolf_night",
-                "label": "SRD-style Elder exemplar",
-                "role": "Gold examples and runic comparison corpus",
-                "license": "Reference only"
-              }
-            ]
-          },
-          {
-            "sourceToken": "night",
-            "normalizedToken": "nahts",
-            "diplomaticToken": "nahts",
-            "glyphToken": "ᚾᚨᚻᛏᛊ",
-            "resolutionStatus": "RECONSTRUCTED",
-            "provenance": [
-              {
-                "sourceId": "srd",
-                "referenceId": "ef_ref_wolf_night",
-                "label": "SRD-style Elder exemplar",
-                "role": "Gold examples and runic comparison corpus",
-                "license": "Reference only"
-              }
-            ]
-          }
-        ]
-      },
-      {
         "script": "CIRTH",
         "fidelity": "STRICT",
         "derivationKind": "GOLD_EXAMPLE",
@@ -186,7 +117,9 @@
         "glyphOutput": "    ",
         "resolutionStatus": "APPROXIMATED",
         "confidence": 0.78,
-        "notes": ["Curated Erebor transcription example using Appendix E-style orthography tables."],
+        "notes": [
+          "Curated Erebor transcription example using Appendix E-style orthography tables."
+        ],
         "provenance": [
           {
             "sourceId": "tolkien_appendix_e",

@@ -76,6 +76,13 @@
       "role": "Explicit inflection paradigms and grammatical agreement",
       "license": "Reference only",
       "url": "https://vsnr.org/wp-content/uploads/2021/11/NION-1.pdf"
+    },
+    {
+      "id": "natmus_gallehus",
+      "name": "National Museum of Denmark — Golden Horns",
+      "role": "Published inscription transcription and translation",
+      "license": "Reference only",
+      "url": "https://en.natmus.dk/historical-knowledge/denmark/prehistoric-period-until-1050-ad/the-late-iron-age/the-golden-horns/"
     }
   ]
 }

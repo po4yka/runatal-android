@@ -14,27 +14,6 @@
     "url": "https://www.raa.se/in-english/digital-services/about-runor/"
   },
   {
-    "id": "ef_ref_wulfaz",
-    "sourceId": "srd",
-    "label": "Wulfaz attested-form reference",
-    "detail": "Curated short Elder Futhark formula for 'wolf'.",
-    "url": "https://www.runesdb.eu/en/"
-  },
-  {
-    "id": "ef_ref_wolf_night",
-    "sourceId": "srd",
-    "label": "SRD-style Elder exemplar",
-    "detail": "Curated Proto-Norse reconstruction for 'The wolf hunts at night'.",
-    "url": "https://www.uu.se/en/department/scandinavian-languages/research/research-projects/scandinavian-runic-text-database"
-  },
-  {
-    "id": "ef_ref_kuningaz",
-    "sourceId": "srd",
-    "label": "Kuningaz attested-form reference",
-    "detail": "Curated short Elder Futhark formula for 'the king'.",
-    "url": "https://www.runesdb.eu/en/"
-  },
-  {
     "id": "cirth_ref_wolf_night",
     "sourceId": "tolkien_appendix_e",
     "label": "Appendix E wolf-night example",
@@ -47,5 +26,21 @@
     "label": "Appendix E under-mountain example",
     "detail": "Curated Erebor transcription example for 'Under the mountain'.",
     "url": "https://tolkiengateway.net/wiki/Angerthas_Erebor"
+  },
+  {
+    "id": "ef_ref_gallehus",
+    "sourceId": "natmus_gallehus",
+    "label": "Gallehus short golden horn inscription",
+    "detail": "Published c.400 AD inscription; the original was lost in 1802 and is documented by historical drawings. Proper names are retained without resolving the disputed meaning of Holtijaz.",
+    "url": "https://en.natmus.dk/historical-knowledge/denmark/prehistoric-period-until-1050-ad/the-late-iron-age/the-golden-horns/",
+    "attestation": {
+      "locator": "Gallehus short gold horn, found 1734; National Museum: The Golden Horns, inscription paragraph",
+      "diplomaticText": "ekhlewagastiR : holtijaR : horna : tawido",
+      "namedForms": [
+        "hlewagastiR",
+        "holtijaR"
+      ],
+      "historicalStage": "PROTO_NORSE"
+    }
   }
 ]

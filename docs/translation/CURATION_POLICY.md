@@ -79,6 +79,11 @@ explicitly interpreted as position with dative; directional government must not 
 Younger gold examples and templates do not override these requirements. They are comparison records,
 not runtime exceptions. Elder and Erebor retain their documented gold/template selection precedence.
 
+Elder strict corpus references must include `attestation.locator`, `diplomaticText`, and `historicalStage`,
+with a located source URL. A named fragment must be listed in `namedForms` and occur in the published text.
+The runtime checks these proofs before admitting gold or template output; a homepage, arbitrary regression
+fixture, or `ATTESTED` status alone is insufficient. Preserve ambiguous names instead of inventing their meaning.
+
 If the applicable engine's requirements are not met, `STRICT` returns `UNAVAILABLE` with source diagnostics.
 Readable/decorative fallback outside supported grammar must be `APPROXIMATED`, even when its individual
 lexical entries are cited.

@@ -8,6 +8,8 @@ import com.po4yka.runatal.domain.transliteration.YoungerFutharkAlphabet
 internal class TranslationGoldExampleResolver(
     private val runicCorpusStore: RunicCorpusStore
 ) {
+    private val elderAttestation = ElderAttestationPolicy(runicCorpusStore)
+
     fun resolve(
         request: TranslationRequest,
         engineVersion: String
@@ -21,7 +23,7 @@ internal class TranslationGoldExampleResolver(
                 it.fidelity == request.fidelity.name &&
                 (request.script != RunicScript.YOUNGER_FUTHARK ||
                     it.requestedVariant == null ||
-                    it.requestedVariant == request.youngerVariant.name)
+                    it.requestedVariant == request.youngerVariant.name) && isEligible(request, it)
         } ?: return null
 
         return TranslationResult(
@@ -46,6 +48,14 @@ internal class TranslationGoldExampleResolver(
             engineVersion = engineVersion,
             datasetVersion = runicCorpusStore.datasetManifest().version
         )
+    }
+
+    private fun isEligible(request: TranslationRequest, result: TranslationGoldExampleResult): Boolean {
+        if (request.script != RunicScript.ELDER_FUTHARK || request.fidelity != TranslationFidelity.STRICT) return true
+        return elderAttestation.allows(
+            result.normalizedForm, result.diplomaticForm, result.resolutionStatus,
+            result.historicalStage, result.provenance.mapNotNull { it.referenceId }
+        ) && result.glyphOutput == elderAttestation.render(result.diplomaticForm)
     }
 }
 
@@ -147,12 +157,20 @@ internal class RunicPhraseTemplateResolver(
         renderer: ElderRuneRenderer
     ): TranslationResult? {
         val template = findTemplate(request, runicCorpusStore.elderAttestedForms()) ?: return null
+        val policy = ElderAttestationPolicy(runicCorpusStore)
+        if (request.fidelity == TranslationFidelity.STRICT && !policy.allows(
+                template.normalizedForm, template.diplomaticForm, template.resolutionStatus,
+                template.historicalStage, template.referenceIds
+            )) return null
         return template.toTranslationResult(
             request = request,
             script = RunicScript.ELDER_FUTHARK,
             datasetVersion = runicCorpusStore.datasetManifest().version,
             engineVersion = "ef-template-v3"
-        ) { token -> renderer.render(token) }
+        ) { token ->
+            if (template.resolutionStatus == TranslationResolutionStatus.ATTESTED.name) policy.render(token)
+            else renderer.render(token)
+        }
     }
 
     private fun findTemplate(
@@ -202,7 +220,6 @@ internal class RunicPhraseTemplateResolver(
                 provenance = tokenProvenance
             )
         }
-        val diplomaticTokens = breakdown.map { it.diplomaticToken }
         return TranslationResult(
             sourceText = request.sourceText,
             script = script,
@@ -211,7 +228,7 @@ internal class RunicPhraseTemplateResolver(
             historicalStage = HistoricalStage.valueOf(historicalStage),
             normalizedForm = normalizedForm,
             diplomaticForm = diplomaticForm,
-            glyphOutput = stitchTokens(diplomaticTokens.map(glyphRenderer)),
+            glyphOutput = glyphRenderer(diplomaticForm),
             requestedVariant = if (script == RunicScript.YOUNGER_FUTHARK) request.youngerVariant.name else null,
             resolutionStatus = TranslationResolutionStatus.valueOf(resolutionStatus),
             confidence = confidenceFor(TranslationResolutionStatus.valueOf(resolutionStatus)),

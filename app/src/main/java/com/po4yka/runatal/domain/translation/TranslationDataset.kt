@@ -186,7 +186,16 @@ internal data class RunicCorpusReferenceEntry(
     val sourceId: String,
     val label: String,
     val detail: String,
-    val url: String? = null
+    val url: String? = null,
+    val attestation: InscriptionAttestation? = null
+)
+
+@Serializable
+internal data class InscriptionAttestation(
+    val locator: String,
+    val diplomaticText: String,
+    val historicalStage: String,
+    val namedForms: List<String> = emptyList()
 )
 
 @Serializable

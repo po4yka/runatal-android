@@ -61,16 +61,16 @@ class HistoricalTranslationServiceTest {
     @Test
     fun `strict elder translation uses curated attested short formula when available`() {
         val result = service.translate(
-            text = "The king",
+            text = "Hlewagastiz",
             script = RunicScript.ELDER_FUTHARK,
             fidelity = TranslationFidelity.STRICT
         )
 
         assertThat(result.derivationKind).isEqualTo(TranslationDerivationKind.PHRASE_TEMPLATE)
         assertThat(result.resolutionStatus).isEqualTo(TranslationResolutionStatus.ATTESTED)
-        assertThat(result.normalizedForm).isEqualTo("kuningaz")
-        assertThat(result.glyphOutput).isEqualTo("ᚲᚢᚾᛁᛜᚨᛉ")
-        assertThat(result.provenance.single().referenceId).isEqualTo("ef_ref_kuningaz")
+        assertThat(result.normalizedForm).isEqualTo("hlewagastiz")
+        assertThat(result.glyphOutput).isEqualTo("ᚻᛚᛖᚹᚨᚷᚨᛊᛏᛁᛉ")
+        assertThat(result.provenance.single().referenceId).isEqualTo("ef_ref_gallehus")
     }
 
     @Test

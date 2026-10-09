@@ -141,11 +141,15 @@ class TranslationSourcePreservationTest {
         val source = "The wolf hunts at night"
         RunicScript.entries.forEach { script ->
             val original = service.translate(source, script, TranslationFidelity.STRICT)
-            assertThat(original.derivationKind).isEqualTo(
-                if (script == RunicScript.YOUNGER_FUTHARK) TranslationDerivationKind.TOKEN_COMPOSED
-                else TranslationDerivationKind.GOLD_EXAMPLE
-            )
-            assertThat(original.glyphOutput).isNotEmpty()
+            if (script == RunicScript.ELDER_FUTHARK) {
+                assertThat(original.resolutionStatus).isEqualTo(TranslationResolutionStatus.UNAVAILABLE)
+            } else {
+                assertThat(original.derivationKind).isEqualTo(
+                    if (script == RunicScript.YOUNGER_FUTHARK) TranslationDerivationKind.TOKEN_COMPOSED
+                    else TranslationDerivationKind.GOLD_EXAMPLE
+                )
+                assertThat(original.glyphOutput).isNotEmpty()
+            }
             listOf(" 2", " 😀").forEach { suffix ->
                 val altered = service.translate(source + suffix, script, TranslationFidelity.STRICT)
                 assertThat(altered.resolutionStatus).isEqualTo(TranslationResolutionStatus.UNAVAILABLE)

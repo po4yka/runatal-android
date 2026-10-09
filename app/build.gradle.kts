@@ -307,6 +307,16 @@ abstract class ValidateTranslationCurationTask : DefaultTask() {
             }
         }
 
+        corpusRefs.forEach { reference ->
+            val attestation = reference["attestation"] as? Map<*, *> ?: return@forEach
+            check(!(reference["url"] as? String).isNullOrBlank()) { "Attestation requires a located source URL." }
+            check(!(attestation["locator"] as? String).isNullOrBlank()) { "Attestation requires an object locator." }
+            check(!(attestation["diplomaticText"] as? String).isNullOrBlank()) {
+                "Attestation requires a published diplomatic transcription."
+            }
+            check(attestation["historicalStage"] == "PROTO_NORSE") { "Unsupported attested historical stage." }
+        }
+
         val corpusRefIds = corpusRefs.map { it["id"] as String }.toSet()
 
         fun validateTemplateRows(fileName: String, rows: List<Map<String, Any?>>) {

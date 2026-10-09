@@ -55,7 +55,7 @@ The engines do not use one generic fallback path. They use precedence rules:
 - Younger Futhark source-span scanner -> lexicon-backed AST -> grammatical role assignment -> explicit cited forms -> diplomatic spelling and glyph rendering
   - unsupported syntax, agreement, government, or forms: `STRICT` returns `UNAVAILABLE`
   - `READABLE`/`DECORATIVE` can fall back to an explicitly `APPROXIMATED` lexical or phonological rendering
-- Elder Futhark gold example -> curated attested short form/template -> readable/decorative token composition -> strict unavailable
+- Elder Futhark eligible attested gold example -> located attested form/template -> readable/decorative token composition -> strict unavailable
 - Erebor gold example -> curated phrase mapping -> sequence-table transcription -> readable character fallback -> strict unavailable
 
 Younger gold examples and phrase templates remain dataset comparison records; they do not bypass the grammar pipeline.
@@ -90,6 +90,13 @@ The source scanner preserves raw non-whitespace spans and original offsets, norm
 and recognizes internal smart apostrophes. Numbers, identifiers, and unsupported Unicode spans cannot disappear:
 `STRICT` rejects them, while approximation modes preserve them explicitly. Empty, punctuation-only, or
 invisible-only input never produces a successful translation.
+
+Elder `STRICT` gold and template selection requires a located published inscription, matching historical stage,
+and a normalized/diplomatic form documented by that source. Gold glyphs must also match the attested renderer.
+The current positive corpus uses the National Museum of Denmark's Gallehus inscription and its documented
+personal names. Its capital `R` transcription marker maps to the Elder rune normalized as `z`; output represents
+rune identities rather than a facsimile. Unverified wolf/king reconstructions remain explicit approximation data,
+and the old wolf-night regression record cannot authorize `STRICT` output.
 
 ## Persistence
 
