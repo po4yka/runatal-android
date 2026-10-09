@@ -84,7 +84,7 @@ internal class QuoteRepositoryImpl @Inject constructor(
     }
 
     override suspend fun toggleFavorite(quoteId: Long, isFavorite: Boolean) {
-        quoteDao.updateFavoriteStatus(quoteId, isFavorite)
+        storageWrite { quoteDao.updateFavoriteStatus(quoteId, isFavorite) }
     }
 
     override suspend fun saveUserQuote(quote: Quote): Long {

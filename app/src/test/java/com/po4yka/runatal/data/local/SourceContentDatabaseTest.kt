@@ -3,6 +3,7 @@ package com.po4yka.runatal.data.local
 import android.app.Application
 import android.database.sqlite.SQLiteException
 import androidx.room3.Room
+import androidx.room3.useWriterConnection
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.sqlite.execSQL
 import com.google.common.truth.Truth.assertThat
@@ -178,6 +179,26 @@ class SourceContentDatabaseTest {
         assertThat(failure?.cause).isInstanceOf(SQLiteException::class.java)
         assertThat(database.quoteDao().getById(1L)).isEqualTo(original)
         assertThat(selected("wolf")?.glyphOutput).isEqualTo("old output")
+        assertThat(cacheCount()).isEqualTo(1)
+    }
+
+    @Test
+    fun `a physical favorite write failure is recoverable IO and cannot change quote or cache data`() = runTest {
+        seedUserAndCache()
+        database.useWriterConnection { connection ->
+            connection.usePrepared("CREATE TRIGGER fail_favorite BEFORE UPDATE OF isFavorite ON quotes " +
+                "BEGIN SELECT RAISE(ABORT, 'favorite write failed'); END") { it.step() }
+        }
+        val failure = runCatching { repository.toggleFavorite(1L, true) }.exceptionOrNull()
+        assertThat(failure).isInstanceOf(IOException::class.java)
+        assertThat(failure?.cause).isInstanceOf(SQLiteException::class.java)
+        assertThat(database.quoteDao().getById(1L)).isEqualTo(original)
+        assertThat(cacheCount()).isEqualTo(1)
+        database.useWriterConnection { connection ->
+            connection.usePrepared("DROP TRIGGER fail_favorite") { it.step() }
+        }
+        repository.toggleFavorite(1L, true)
+        assertThat(database.quoteDao().getById(1L)?.isFavorite).isTrue()
         assertThat(cacheCount()).isEqualTo(1)
     }
 
