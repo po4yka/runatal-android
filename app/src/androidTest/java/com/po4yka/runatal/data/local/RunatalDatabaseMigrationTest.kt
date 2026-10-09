@@ -5,6 +5,7 @@ import androidx.room3.testing.MigrationTestHelper
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.sqlite.execSQL
+import com.po4yka.runatal.data.seed.QuoteSeedData
 import kotlinx.coroutines.test.runTest
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -29,6 +30,37 @@ class RunatalDatabaseMigrationTest {
     @Before
     fun setUp() {
         InstrumentationRegistry.getInstrumentation().targetContext.deleteDatabase(TEST_DB)
+    }
+
+    @Test
+    fun migrate7To8_preservesUserQuotesAndCanonicalIdentity() = runTest {
+        val legacyQuotes = QuoteSeedData.getLegacyQuotes()
+        helper.createDatabase(7).use { connection ->
+            legacyQuotes.take(2).forEachIndexed { index, quote ->
+                connection.prepare(
+                    "INSERT INTO quotes (id, textLatin, author, isUserCreated, isFavorite, createdAt) " +
+                        "VALUES (?, ?, ?, ?, 1, 42)"
+                ).use { statement ->
+                    statement.bindLong(1, quote.id)
+                    statement.bindText(2, quote.textLatin)
+                    statement.bindText(3, quote.author)
+                    statement.bindLong(4, if (index == 0) 1L else 0L)
+                    statement.step()
+                }
+            }
+        }
+
+        helper.runMigrationsAndValidate(8, listOf(RunatalDatabase.MIGRATION_7_8)).use { connection ->
+            assertNoUnexpectedTables(connection)
+            connection.prepare("SELECT canonicalKey, isFavorite FROM quotes ORDER BY id").use { statement ->
+                assertTrue(statement.step())
+                assertTrue(statement.isNull(0))
+                assertEquals(1L, statement.getLong(1))
+                assertTrue(statement.step())
+                assertEquals(legacyQuotes[1].canonicalKey, statement.getText(0))
+                assertEquals(1L, statement.getLong(1))
+            }
+        }
     }
 
     @Test
@@ -185,6 +217,7 @@ class RunatalDatabaseMigrationTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val database = Room.databaseBuilder(context, RunatalDatabase::class.java, TEST_DB)
             .setDriver(AndroidSQLiteDriver())
+            .addMigrations(RunatalDatabase.MIGRATION_7_8)
             .build()
         try {
             val quote = requireNotNull(database.quoteDao().getById(1))

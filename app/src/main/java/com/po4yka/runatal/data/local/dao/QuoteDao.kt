@@ -6,6 +6,7 @@ import androidx.room3.Insert
 import androidx.room3.OnConflictStrategy
 import androidx.room3.Query
 import androidx.room3.Update
+import androidx.room3.Transaction
 import com.po4yka.runatal.data.local.entity.QuoteEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -14,6 +15,25 @@ import kotlinx.coroutines.flow.Flow
  */
 @Dao
 interface QuoteDao {
+
+    /** Seeds only missing canonical identities without replacing existing quote rows. */
+    @Transaction
+    suspend fun seedCanonicalQuotes(quotes: List<QuoteEntity>) {
+        require(quotes.all { it.id == 0L && !it.isUserCreated && it.canonicalKey != null })
+        val existingKeys = getCanonicalKeys().toSet()
+        val missingQuotes = quotes.filter { it.canonicalKey !in existingKeys }
+        if (missingQuotes.isNotEmpty()) {
+            insertCanonicalQuotes(missingQuotes)
+        }
+    }
+
+    /** Gets persisted canonical identities, independently of user rows. */
+    @Query("SELECT canonicalKey FROM quotes WHERE canonicalKey IS NOT NULL")
+    suspend fun getCanonicalKeys(): List<String>
+
+    /** Inserts canonical rows without overwriting quotes on any identity conflict. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertCanonicalQuotes(quotes: List<QuoteEntity>)
 
     /**
      * Get a random quote from the database.

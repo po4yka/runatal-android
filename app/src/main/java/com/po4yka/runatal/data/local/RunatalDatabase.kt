@@ -18,6 +18,7 @@ import com.po4yka.runatal.data.local.entity.QuotePackEntity
 import com.po4yka.runatal.data.local.entity.RuneReferenceEntity
 import com.po4yka.runatal.data.local.entity.TranslationBackfillStateEntity
 import com.po4yka.runatal.data.local.entity.TranslationRecordEntity
+import com.po4yka.runatal.data.seed.QuoteSeedData
 
 /**
  * Room database for Runic Quotes.
@@ -32,7 +33,7 @@ import com.po4yka.runatal.data.local.entity.TranslationRecordEntity
         TranslationRecordEntity::class,
         TranslationBackfillStateEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 internal abstract class RunatalDatabase : RoomDatabase() {
@@ -381,6 +382,28 @@ internal abstract class RunatalDatabase : RoomDatabase() {
                 connection.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_translation_records_script` ON `translation_records` (`script`)"
                 )
+            }
+        }
+
+        /** Adds stable canonical identities while preserving legacy IDs and user-owned state. */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override suspend fun migrate(connection: SQLiteConnection) {
+                connection.execSQL("ALTER TABLE quotes ADD COLUMN canonicalKey TEXT")
+                connection.execSQL(
+                    "CREATE UNIQUE INDEX index_quotes_canonicalKey ON quotes (canonicalKey)"
+                )
+                QuoteSeedData.getLegacyQuotes().forEach { quote ->
+                    connection.prepare(
+                        "UPDATE quotes SET canonicalKey = ? WHERE id = ? " +
+                            "AND textLatin = ? AND author = ? AND isUserCreated = 0"
+                    ).use { statement ->
+                        statement.bindText(1, requireNotNull(quote.canonicalKey))
+                        statement.bindLong(2, quote.id)
+                        statement.bindText(3, quote.textLatin)
+                        statement.bindText(4, quote.author)
+                        statement.step()
+                    }
+                }
             }
         }
     }

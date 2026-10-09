@@ -76,6 +76,7 @@ class QuoteRepositoryImplTest {
         quoteDao = mockk()
         timeProvider = FakeTimeProvider(dayOfYear = 1)
         repository = QuoteRepositoryImpl(quoteDao, timeProvider)
+        coEvery { quoteDao.seedCanonicalQuotes(any()) } returns Unit
     }
 
     @After
@@ -86,43 +87,32 @@ class QuoteRepositoryImplTest {
     // ==================== Seed Logic Tests ====================
 
     @Test
-    fun `seedIfNeeded inserts quotes when database is empty`() = runTest {
-        // Given: Empty database
-        coEvery { quoteDao.getCount() } returns 0
-        coEvery { quoteDao.insertAll(any()) } returns Unit
-
-        // When: Seeding
+    fun `seedIfNeeded delegates canonical identities with database assigned ids`() = runTest {
         repository.seedIfNeeded()
 
-        // Then: Initial quotes are inserted
-        coVerify(exactly = 1) { quoteDao.insertAll(any()) }
-    }
-
-    @Test
-    fun `seedIfNeeded does nothing when database already has quotes`() = runTest {
-        // Given: Database has quotes
-        coEvery { quoteDao.getCount() } returns 5
-
-        // When: Seeding
-        repository.seedIfNeeded()
-
-        // Then: No insertion happens
+        coVerify {
+            quoteDao.seedCanonicalQuotes(match { quotes ->
+                quotes.size == 5 &&
+                    quotes.all { it.id == 0L && !it.isUserCreated && it.canonicalKey != null } &&
+                    quotes.map { it.canonicalKey }.distinct().size == quotes.size
+            })
+        }
         coVerify(exactly = 0) { quoteDao.insertAll(any()) }
     }
 
     @Test
-    fun `seedIfNeeded only seeds once`() = runTest {
-        // Given: Empty database
-        coEvery { quoteDao.getCount() } returns 0
-        coEvery { quoteDao.insertAll(any()) } returns Unit
-
-        // When: Seeding multiple times
-        repository.seedIfNeeded()
-        repository.seedIfNeeded()
+    fun `seedIfNeeded does not use total quote count to skip canonical quotes`() = runTest {
         repository.seedIfNeeded()
 
-        // Then: Only inserted once
-        coVerify(exactly = 1) { quoteDao.insertAll(any()) }
+        coVerify(exactly = 1) { quoteDao.seedCanonicalQuotes(any()) }
+        coVerify(exactly = 0) { quoteDao.getCount() }
+    }
+
+    @Test
+    fun `seedIfNeeded delegates repeated calls to persisted transactional identity check`() = runTest {
+        repeat(3) { repository.seedIfNeeded() }
+
+        coVerify(exactly = 3) { quoteDao.seedCanonicalQuotes(any()) }
     }
 
     // ==================== Quote of the Day Tests ====================
@@ -161,7 +151,7 @@ class QuoteRepositoryImplTest {
     fun `quoteOfTheDay returns null when no quotes available`() = runTest {
         // Given: Empty database (even after seeding attempt)
         coEvery { quoteDao.getCount() } returns 0
-        coEvery { quoteDao.insertAll(any()) } returns Unit
+        coEvery { quoteDao.seedCanonicalQuotes(any()) } returns Unit
         coEvery { quoteDao.getAll() } returns emptyList()
 
         // When: Getting quote of the day
@@ -175,14 +165,14 @@ class QuoteRepositoryImplTest {
     fun `quoteOfTheDay seeds database if needed`() = runTest {
         // Given: Initially empty database, then has quotes after seeding
         coEvery { quoteDao.getCount() } returns 0 andThen 5
-        coEvery { quoteDao.insertAll(any()) } returns Unit
+        coEvery { quoteDao.seedCanonicalQuotes(any()) } returns Unit
         coEvery { quoteDao.getAll() } returns testQuotes
 
         // When: Getting quote of the day
         val quote = repository.quoteOfTheDay()
 
         // Then: Seeding happened and quote returned
-        coVerify { quoteDao.insertAll(any()) }
+        coVerify { quoteDao.seedCanonicalQuotes(any()) }
         assertThat(quote).isNotNull()
     }
 
@@ -230,7 +220,7 @@ class QuoteRepositoryImplTest {
     fun `randomQuote returns null when DAO returns null`() = runTest {
         // Given: DAO returns null (even after seeding attempt)
         coEvery { quoteDao.getCount() } returns 0
-        coEvery { quoteDao.insertAll(any()) } returns Unit
+        coEvery { quoteDao.seedCanonicalQuotes(any()) } returns Unit
         coEvery { quoteDao.getRandom() } returns null
 
         // When: Getting random quote
@@ -244,14 +234,14 @@ class QuoteRepositoryImplTest {
     fun `randomQuote seeds if needed`() = runTest {
         // Given: Initially empty database
         coEvery { quoteDao.getCount() } returns 0 andThen 5
-        coEvery { quoteDao.insertAll(any()) } returns Unit
+        coEvery { quoteDao.seedCanonicalQuotes(any()) } returns Unit
         coEvery { quoteDao.getRandom() } returns testQuotes[0]
 
         // When: Getting random quote
         val quote = repository.randomQuote()
 
         // Then: Seeding happened
-        coVerify { quoteDao.insertAll(any()) }
+        coVerify { quoteDao.seedCanonicalQuotes(any()) }
         assertThat(quote).isNotNull()
     }
 
@@ -557,10 +547,10 @@ class QuoteRepositoryImplTest {
     }
 
     @Test
-    fun `isSeeded flag prevents multiple seeding calls`() = runTest {
+    fun `daily and random operations use persisted canonical seed check`() = runTest {
         // Given: Empty database initially
         coEvery { quoteDao.getCount() } returns 0 andThen 5
-        coEvery { quoteDao.insertAll(any()) } returns Unit
+        coEvery { quoteDao.seedCanonicalQuotes(any()) } returns Unit
         coEvery { quoteDao.getAll() } returns testQuotes
         coEvery { quoteDao.getRandom() } returns testQuotes[0]
 
@@ -569,8 +559,8 @@ class QuoteRepositoryImplTest {
         repository.randomQuote()
         repository.quoteOfTheDay()
 
-        // Then: insertAll is called only once due to isSeeded flag
-        coVerify(exactly = 1) { quoteDao.insertAll(any()) }
+        // Each operation checks canonical identity inside the DAO transaction.
+        coVerify(exactly = 3) { quoteDao.seedCanonicalQuotes(any()) }
     }
 
     @Test

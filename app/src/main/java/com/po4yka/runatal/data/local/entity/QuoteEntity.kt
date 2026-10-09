@@ -15,13 +15,15 @@ import androidx.room3.PrimaryKey
  * @property runicCirth The quote transliterated to Cirth/Angerthas (optional)
  * @property isUserCreated True if this quote was created by the user
  * @property isFavorite True if this quote is marked as favorite
+ * @property canonicalKey Stable identity for canonical quotes; null for user-created quotes
  * @property createdAt Timestamp when the quote was created (epoch milliseconds)
  */
 @Entity(
     tableName = "quotes",
     indices = [
         Index(value = ["isUserCreated"]),
-        Index(value = ["isFavorite"])
+        Index(value = ["isFavorite"]),
+        Index(value = ["canonicalKey"], unique = true)
     ]
 )
 data class QuoteEntity(
@@ -33,5 +35,6 @@ data class QuoteEntity(
     val runicCirth: String? = null,
     val isUserCreated: Boolean = false,
     val isFavorite: Boolean = false,
-    val createdAt: Long = 0L
+    val createdAt: Long = 0L,
+    val canonicalKey: String? = null
 )
