@@ -1,6 +1,8 @@
 package com.po4yka.runatal.ui.screens.packs
 
 import android.util.Log
+import android.database.SQLException
+import java.io.IOException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runatal.data.repository.QuotePackRepository
@@ -16,7 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.IOException
+import kotlinx.coroutines.CancellationException
 
 /**
  * ViewModel for pack detail screen with library toggle support.
@@ -64,12 +66,14 @@ class PackDetailViewModel @AssistedInject constructor(
                 } else {
                     _uiState.value = PackDetailUiState.Error("Pack not found")
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: IOException) {
-                Log.e(TAG, "IO error loading pack", e)
-                _uiState.value = PackDetailUiState.Error("Failed to load pack: ${e.message}")
+                showLoadError(e)
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state loading pack", e)
-                _uiState.value = PackDetailUiState.Error("Invalid state: ${e.message}")
+                showLoadError(e)
+            } catch (e: SQLException) {
+                showLoadError(e)
             }
         }
     }
@@ -81,13 +85,12 @@ class PackDetailViewModel @AssistedInject constructor(
         val current = (_uiState.value as? PackDetailUiState.Success)?.pack ?: return
         viewModelScope.launch {
             try {
-                val updated = current.copy(isInLibrary = !current.isInLibrary)
-                quotePackRepository.updatePack(updated)
+                val updated = quotePackRepository.toggleLibrary(current.id)
                 _uiState.update { PackDetailUiState.Success(updated) }
                 _events.send(
                     PackDetailEvent.ShowMessage(
                         message = if (updated.isInLibrary) {
-                            "${updated.quoteCount} quotes added to library"
+                            "${updated.quoteCount} pack quotes available in library"
                         } else {
                             "${updated.name} removed from library"
                         },
@@ -95,21 +98,33 @@ class PackDetailViewModel @AssistedInject constructor(
                         action = if (updated.isInLibrary) PackDetailEventAction.VIEW_LIBRARY else null
                     )
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: IOException) {
-                Log.e(TAG, "IO error toggling library status", e)
-                _events.send(PackDetailEvent.ShowMessage("Failed to update pack: ${e.message}"))
+                showUpdateError(e)
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state toggling library status", e)
-                _events.send(PackDetailEvent.ShowMessage("Invalid state: ${e.message}"))
+                showUpdateError(e)
+            } catch (e: SQLException) {
+                showUpdateError(e)
             }
         }
+    }
+
+    private fun showLoadError(error: Exception) {
+        Log.e(TAG, "Error loading pack", error)
+        _uiState.value = PackDetailUiState.Error("Failed to load pack: ${error.message}")
+    }
+
+    private suspend fun showUpdateError(error: Exception) {
+        Log.e(TAG, "Error toggling library status", error)
+        _events.send(PackDetailEvent.ShowMessage("Failed to update pack: ${error.message}"))
     }
 
     /**
      * Retries loading the pack after an error.
      */
     fun retry() {
-        if (packId != 0L) {
+        if (packId > 0L) {
             loadPack()
         }
     }

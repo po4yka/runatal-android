@@ -40,7 +40,7 @@ class PackDetailViewModelTest {
 
         coEvery { quotePackRepository.seedIfNeeded() } returns Unit
         coEvery { quotePackRepository.getPackById(7L) } returns testPack
-        coEvery { quotePackRepository.updatePack(any()) } returns Unit
+        coEvery { quotePackRepository.toggleLibrary(any()) } returns testPack.copy(isInLibrary = true)
     }
 
     @After
@@ -83,7 +83,7 @@ class PackDetailViewModelTest {
 
             assertThat(awaitItem()).isEqualTo(
                 PackDetailEvent.ShowMessage(
-                    message = "12 quotes added to library",
+                    message = "12 pack quotes available in library",
                     actionLabel = "View library",
                     action = PackDetailEventAction.VIEW_LIBRARY
                 )
@@ -96,8 +96,19 @@ class PackDetailViewModelTest {
     }
 
     @Test
+    fun `toggle returns committed state even when current screen membership is stale`() = runTest {
+        coEvery { quotePackRepository.toggleLibrary(7L) } returns testPack.copy(isInLibrary = false)
+        val viewModel = PackDetailViewModel(quotePackRepository, packId = 7L)
+        advanceUntilIdle()
+        viewModel.toggleLibrary()
+        advanceUntilIdle()
+        assertThat((viewModel.uiState.value as PackDetailUiState.Success).pack.isInLibrary).isFalse()
+        coVerify { quotePackRepository.toggleLibrary(7L) }
+    }
+
+    @Test
     fun `toggleLibrary emits message event when update fails`() = runTest {
-        coEvery { quotePackRepository.updatePack(any()) } throws IOException("disk")
+        coEvery { quotePackRepository.toggleLibrary(any()) } throws IOException("disk")
         val viewModel = PackDetailViewModel(
             quotePackRepository = quotePackRepository,
             packId = 7L

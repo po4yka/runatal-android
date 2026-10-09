@@ -55,6 +55,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.po4yka.runatal.domain.model.QuotePackContentCatalog
 import com.po4yka.runatal.domain.model.QuotePack
 import com.po4yka.runatal.ui.components.RunicBadge
 import com.po4yka.runatal.ui.components.ErrorState
@@ -261,7 +262,7 @@ private fun PackListCard(
         ),
         label = "packCardOffset"
     )
-    val sourceLabel = PackPresentationCatalog.sourceLabel(pack)
+    val sourceLabel = QuotePackContentCatalog.sourceLabel(pack)
 
     RunicInfoCard(
         modifier = Modifier

@@ -52,6 +52,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.po4yka.runatal.domain.model.PackContentQuote
+import com.po4yka.runatal.domain.model.QuotePackContentCatalog
 import com.po4yka.runatal.domain.model.QuotePack
 import com.po4yka.runatal.ui.components.RunicBadge
 import com.po4yka.runatal.ui.components.RunicChoiceChip
@@ -153,9 +155,9 @@ private fun PackDetailContent(
     pack: QuotePack,
     onToggleLibrary: () -> Unit
 ) {
-    val previewQuotes = PackPresentationCatalog.previewQuotes(pack)
-    val sourceLabel = PackPresentationCatalog.sourceLabel(pack)
-    val readTimeLabel = PackPresentationCatalog.readTimeLabel(pack)
+    val previewQuotes = QuotePackContentCatalog.previewQuotes(pack)
+    val sourceLabel = QuotePackContentCatalog.sourceLabel(pack)
+    val readTimeLabel = QuotePackContentCatalog.readTimeLabel(pack)
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -363,7 +365,7 @@ private fun PackHeroCard(
 }
 
 @Composable
-private fun PackQuoteCard(quote: PackPreviewQuote) {
+private fun PackQuoteCard(quote: PackContentQuote) {
     RunicInfoCard(
         containerColor = if (quote.isHighlighted) {
             MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)

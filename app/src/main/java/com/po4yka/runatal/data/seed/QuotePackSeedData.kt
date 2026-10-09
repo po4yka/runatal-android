@@ -1,6 +1,8 @@
 package com.po4yka.runatal.data.seed
 
 import com.po4yka.runatal.data.local.entity.QuotePackEntity
+import com.po4yka.runatal.data.local.entity.QuoteEntity
+import com.po4yka.runatal.domain.model.QuotePackContentCatalog
 
 /**
  * Seed data for curated quote packs.
@@ -12,18 +14,18 @@ internal object QuotePackSeedData {
         QuotePackEntity(
             id = 1,
             name = "Hávamál Selections",
-            description = "Verses from the Words of the High One — Odin's counsel " +
+            description = "Modern paraphrases inspired by Hávamál's counsel " +
                 "on wisdom, hospitality, and caution.",
             coverRune = "\u16BA",
-            quoteCount = 24,
+            quoteCount = 0,
             isInLibrary = false
         ),
         QuotePackEntity(
             id = 2,
             name = "Elder Voices",
-            description = "Core teachings drawn from Elder Futhark lore and early rune traditions.",
+            description = "Original reflections inspired by Elder Futhark rune themes.",
             coverRune = "\u16A0",
-            quoteCount = 18,
+            quoteCount = 0,
             isInLibrary = true
         ),
         QuotePackEntity(
@@ -31,15 +33,15 @@ internal object QuotePackSeedData {
             name = "Path of the Wanderer",
             description = "Journeys, discovery, and the lessons found on unfamiliar roads.",
             coverRune = "\u16B1",
-            quoteCount = 12,
+            quoteCount = 0,
             isInLibrary = false
         ),
         QuotePackEntity(
             id = 4,
             name = "Hearthfire Wisdom",
-            description = "Home, kinship, generosity, and the warmth of shared meals.",
+            description = "Original reflections on home, kinship, generosity, and shared meals.",
             coverRune = "\u16B2",
-            quoteCount = 15,
+            quoteCount = 0,
             isInLibrary = false
         ),
         QuotePackEntity(
@@ -47,7 +49,7 @@ internal object QuotePackSeedData {
             name = "Seasonal Runes",
             description = "Quotes aligned to solstices, equinoxes, and the turning year.",
             coverRune = "\u16CA",
-            quoteCount = 8,
+            quoteCount = 0,
             isInLibrary = true
         ),
         QuotePackEntity(
@@ -55,8 +57,19 @@ internal object QuotePackSeedData {
             name = "Warrior's Counsel",
             description = "Strength, resolve, and endurance for the path ahead.",
             coverRune = "\u16CF",
-            quoteCount = 16,
+            quoteCount = 0,
             isInLibrary = false
         )
-    )
+    ).map { pack -> pack.copy(quoteCount = getPackQuotes(pack.id).size) }
+
+    fun getPackQuotes(packId: Long): List<QuoteEntity> {
+        val content = QuotePackContentCatalog.content(packId) ?: return emptyList()
+        return content.quotes.mapIndexed { index, quote ->
+            QuoteEntity(
+                textLatin = quote.text,
+                author = "${content.sourceLabel} · ${quote.label}",
+                canonicalKey = "pack:$packId:$index"
+            )
+        }
+    }
 }

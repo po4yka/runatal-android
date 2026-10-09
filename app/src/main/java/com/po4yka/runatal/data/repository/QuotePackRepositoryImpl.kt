@@ -6,7 +6,6 @@ import com.po4yka.runatal.data.seed.QuotePackSeedData
 import com.po4yka.runatal.domain.model.QuotePack
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.text.Normalizer
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -27,19 +26,10 @@ class QuotePackRepositoryImpl @Inject constructor(
         }
 
         val canonicalPacks = QuotePackSeedData.getInitialPacks()
-        val existingPacks = quotePackDao.getAll()
-
-        val syncedPacks = canonicalPacks.map { canonical ->
-            val existing = existingPacks.firstOrNull { existing ->
-                existing.id == canonical.id ||
-                    existing.coverRune == canonical.coverRune ||
-                    normalizeName(existing.name) == normalizeName(canonical.name)
-            }
-
-            canonical.copy(isInLibrary = existing?.isInLibrary ?: canonical.isInLibrary)
-        }
-
-        quotePackDao.insertAll(syncedPacks)
+        quotePackDao.seedCanonicalPacks(
+            canonicalPacks,
+            canonicalPacks.associate { it.id to QuotePackSeedData.getPackQuotes(it.id) }
+        )
         isSeeded = true
     }
 
@@ -65,21 +55,11 @@ class QuotePackRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun insertPack(pack: QuotePack): Long {
-        return quotePackDao.insert(pack.toEntity())
-    }
+    override suspend fun toggleLibrary(packId: Long): QuotePack =
+        quotePackDao.toggleLibrary(packId, QuotePackSeedData.getPackQuotes(packId)).toDomain()
 
-    override suspend fun insertAllPacks(packs: List<QuotePack>) {
-        quotePackDao.insertAll(packs.map { it.toEntity() })
-    }
-
-    override suspend fun updatePack(pack: QuotePack) {
-        quotePackDao.update(pack.toEntity())
-    }
-
-    override suspend fun deletePack(pack: QuotePack) {
-        quotePackDao.delete(pack.toEntity())
-    }
+    override suspend fun setLibraryMembership(packId: Long, isInLibrary: Boolean): QuotePack =
+        quotePackDao.setLibraryMembership(packId, isInLibrary, QuotePackSeedData.getPackQuotes(packId)).toDomain()
 
     private fun QuotePackEntity.toDomain() = QuotePack(
         id = id,
@@ -89,20 +69,4 @@ class QuotePackRepositoryImpl @Inject constructor(
         quoteCount = quoteCount,
         isInLibrary = isInLibrary
     )
-
-    private fun QuotePack.toEntity() = QuotePackEntity(
-        id = id,
-        name = name,
-        description = description,
-        coverRune = coverRune,
-        quoteCount = quoteCount,
-        isInLibrary = isInLibrary
-    )
-
-    private fun normalizeName(value: String): String {
-        return Normalizer.normalize(value, Normalizer.Form.NFD)
-            .replace("\\p{Mn}+".toRegex(), "")
-            .replace("[^a-zA-Z0-9]+".toRegex(), "")
-            .lowercase()
-    }
 }

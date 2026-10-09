@@ -1,21 +1,24 @@
 package com.po4yka.runatal.ui.screens.packs
 
 import android.util.Log
+import android.database.SQLException
+import java.io.IOException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runatal.data.repository.QuotePackRepository
+import com.po4yka.runatal.domain.model.QuotePackContentCatalog
 import com.po4yka.runatal.domain.model.QuotePack
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.IOException
 import java.text.Normalizer
 import javax.inject.Inject
 
@@ -39,47 +42,52 @@ class PacksViewModel @Inject constructor(
         private const val TAG = "PacksViewModel"
     }
 
+    private var loadJob: Job? = null
+
     init {
-        viewModelScope.launch {
-            quotePackRepository.seedIfNeeded()
-            loadPacks()
-        }
+        loadPacks()
     }
 
     private fun loadPacks() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
-            combine(
-                quotePackRepository.getAllPacksFlow(),
-                _searchQuery
-            ) { allPacks, query ->
-                val filtered = if (query.isBlank()) {
-                    allPacks
-                } else {
-                    val q = normalize(query)
-                    allPacks.filter { pack ->
-                        val source = PackPresentationCatalog.sourceLabel(pack)
-                        normalize(pack.name).contains(q) ||
-                            normalize(pack.description).contains(q) ||
-                            normalize(source).contains(q)
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            try {
+                quotePackRepository.seedIfNeeded()
+                combine(
+                    quotePackRepository.getAllPacksFlow(),
+                    _searchQuery
+                ) { allPacks, query ->
+                    val filtered = if (query.isBlank()) {
+                        allPacks
+                    } else {
+                        val q = normalize(query)
+                        allPacks.filter { pack ->
+                            val source = QuotePackContentCatalog.sourceLabel(pack)
+                            normalize(pack.name).contains(q) ||
+                                normalize(pack.description).contains(q) ||
+                                normalize(source).contains(q)
+                        }
                     }
-                }
 
-                PacksUiState(
-                    packs = filtered,
-                    totalCount = allPacks.size,
-                    libraryCount = allPacks.count { it.isInLibrary },
-                    searchQuery = query,
-                    isLoading = false
-                )
-            }.catch { e ->
-                Log.e(TAG, "Error loading packs", e)
-                _uiState.update {
-                    it.copy(isLoading = false, errorMessage = "Failed to load packs: ${e.message}")
+                    PacksUiState(
+                        packs = filtered,
+                        totalCount = allPacks.size,
+                        libraryCount = allPacks.count { it.isInLibrary },
+                        searchQuery = query,
+                        isLoading = false
+                    )
+                }.collect { newState ->
+                    _uiState.value = newState
                 }
-            }.collect { newState ->
-                _uiState.value = newState
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: IOException) {
+                showLoadError(e)
+            } catch (e: IllegalStateException) {
+                showLoadError(e)
+            } catch (e: SQLException) {
+                showLoadError(e)
             }
         }
     }
@@ -97,13 +105,15 @@ class PacksViewModel @Inject constructor(
     fun toggleLibrary(pack: QuotePack) {
         viewModelScope.launch {
             try {
-                quotePackRepository.updatePack(pack.copy(isInLibrary = !pack.isInLibrary))
+                quotePackRepository.toggleLibrary(pack.id)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: IOException) {
-                Log.e(TAG, "IO error toggling library status", e)
-                _events.send(PacksEvent.ShowMessage("Failed to update pack: ${e.message}"))
+                showUpdateError(e)
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state toggling library status", e)
-                _events.send(PacksEvent.ShowMessage("Invalid state: ${e.message}"))
+                showUpdateError(e)
+            } catch (e: SQLException) {
+                showUpdateError(e)
             }
         }
     }
@@ -114,6 +124,18 @@ class PacksViewModel @Inject constructor(
     fun retry() {
         _uiState.update { it.copy(errorMessage = null) }
         loadPacks()
+    }
+
+    private fun showLoadError(error: Exception) {
+        Log.e(TAG, "Error loading packs", error)
+        _uiState.update {
+            it.copy(isLoading = false, errorMessage = "Failed to load packs: ${error.message}")
+        }
+    }
+
+    private suspend fun showUpdateError(error: Exception) {
+        Log.e(TAG, "Error toggling library status", error)
+        _events.send(PacksEvent.ShowMessage("Failed to update pack: ${error.message}"))
     }
 
     private fun normalize(value: String): String {
