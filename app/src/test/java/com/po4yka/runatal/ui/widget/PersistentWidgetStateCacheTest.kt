@@ -9,10 +9,13 @@ import java.time.LocalDate
 import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
+import android.app.Application
+import org.robolectric.annotation.Config
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 
 @RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
 class PersistentWidgetStateCacheTest {
 
     private val context = RuntimeEnvironment.getApplication()

@@ -6,9 +6,12 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
+import android.app.Application
+import org.robolectric.annotation.Config
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
 class BitmapCacheTest {
     @After
     fun tearDown() {

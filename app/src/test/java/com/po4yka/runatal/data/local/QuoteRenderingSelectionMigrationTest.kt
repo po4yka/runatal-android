@@ -7,11 +7,12 @@ import com.po4yka.runatal.data.local.migration.QuoteRenderingSelectionMigration
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import android.app.Application
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.SQLiteMode
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(application = Application::class, sdk = [34])
 @SQLiteMode(SQLiteMode.Mode.NATIVE)
 class QuoteRenderingSelectionMigrationTest {
     @Test

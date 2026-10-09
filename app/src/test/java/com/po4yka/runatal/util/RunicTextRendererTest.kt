@@ -4,10 +4,13 @@ import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.domain.model.RunicScript
 import org.junit.Test
 import org.junit.runner.RunWith
+import android.app.Application
+import org.robolectric.annotation.Config
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 
 @RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
 class RunicTextRendererTest {
 
     @Test
