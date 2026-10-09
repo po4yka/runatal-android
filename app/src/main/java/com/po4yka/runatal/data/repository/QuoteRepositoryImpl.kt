@@ -21,6 +21,8 @@ internal class QuoteRepositoryImpl @Inject constructor(
     private val timeProvider: TimeProvider
 ) : QuoteRepository {
 
+    override fun observeQuoteChanges(): Flow<Unit> = quoteDao.observeQuoteIdentities().map { Unit }
+
     override suspend fun seedIfNeeded() {
         quoteDao.seedCanonicalQuotes(QuoteSeedData.getCanonicalQuotes())
     }

@@ -222,7 +222,8 @@ class RunatalDatabaseMigrationTest {
                     RunatalDatabase.MIGRATION_10_11,
                     RunatalDatabase.MIGRATION_11_12,
                     RunatalDatabase.MIGRATION_12_13,
-                    RunatalDatabase.MIGRATION_13_14
+                    RunatalDatabase.MIGRATION_13_14,
+                    RunatalDatabase.MIGRATION_14_15
             )
             .build()
         try {

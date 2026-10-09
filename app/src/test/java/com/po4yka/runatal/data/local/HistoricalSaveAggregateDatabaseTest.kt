@@ -73,7 +73,7 @@ class HistoricalSaveAggregateDatabaseTest {
         )
         service = HistoricalTranslationService(engines)
         translations = TranslationRepositoryImpl(
-            database.quoteDao(), database.translationRecordDao(), database.translationBackfillStateDao(),
+            database.quoteDao(), database.translationRecordDao(), database.translationBackfillCompletionDao(),
             service, engines
         )
         save = SaveTranslationToLibraryUseCase(

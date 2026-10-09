@@ -55,7 +55,7 @@ class TranslationCacheKeyMigrationTest {
 
         database = Room.databaseBuilder(context, RunatalDatabase::class.java, databaseName)
             .setDriver(AndroidSQLiteDriver())
-            .addMigrations(RunatalDatabase.MIGRATION_9_10, RunatalDatabase.MIGRATION_10_11, RunatalDatabase.MIGRATION_11_12, RunatalDatabase.MIGRATION_12_13, RunatalDatabase.MIGRATION_13_14)
+            .addMigrations(RunatalDatabase.MIGRATION_9_10, RunatalDatabase.MIGRATION_10_11, RunatalDatabase.MIGRATION_11_12, RunatalDatabase.MIGRATION_12_13, RunatalDatabase.MIGRATION_13_14, RunatalDatabase.MIGRATION_14_15)
             .build()
         val migrated = requireNotNull(database)
         val expected = legacy.filter { it.record.id !in setOf(1L, 2L, 4L, 8L) }.map { it.record }

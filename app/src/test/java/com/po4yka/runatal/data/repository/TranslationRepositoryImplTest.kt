@@ -2,10 +2,10 @@ package com.po4yka.runatal.data.repository
 
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.data.local.dao.QuoteDao
-import com.po4yka.runatal.data.local.dao.TranslationBackfillStateDao
+import com.po4yka.runatal.data.local.dao.TranslationBackfillCompletionDao
 import com.po4yka.runatal.data.local.dao.TranslationRecordDao
 import com.po4yka.runatal.data.local.entity.QuoteEntity
-import com.po4yka.runatal.data.local.entity.TranslationBackfillStateEntity
+import com.po4yka.runatal.data.local.entity.TranslationBackfillCompletionEntity
 import com.po4yka.runatal.data.local.entity.TranslationRecordEntity
 import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.domain.model.RunicScript
@@ -35,7 +35,7 @@ class TranslationRepositoryImplTest {
 
     private lateinit var quoteDao: QuoteDao
     private lateinit var translationRecordDao: TranslationRecordDao
-    private lateinit var translationBackfillStateDao: TranslationBackfillStateDao
+    private lateinit var translationBackfillCompletionDao: TranslationBackfillCompletionDao
     private lateinit var historicalTranslationService: HistoricalTranslationService
     private lateinit var translationEngineFactory: TranslationEngineFactory
     private lateinit var repository: TranslationRepositoryImpl
@@ -44,7 +44,7 @@ class TranslationRepositoryImplTest {
     fun setUp() {
         quoteDao = mockk()
         translationRecordDao = mockk(relaxed = true)
-        translationBackfillStateDao = mockk(relaxed = true)
+        translationBackfillCompletionDao = mockk(relaxed = true)
         historicalTranslationService = mockk()
         translationEngineFactory = mockk()
         RunicScript.entries.forEach { script ->
@@ -56,7 +56,7 @@ class TranslationRepositoryImplTest {
         repository = TranslationRepositoryImpl(
             quoteDao = quoteDao,
             translationRecordDao = translationRecordDao,
-            translationBackfillStateDao = translationBackfillStateDao,
+            translationBackfillCompletionDao = translationBackfillCompletionDao,
             historicalTranslationService = historicalTranslationService,
             translationEngineFactory = translationEngineFactory
         )
@@ -207,73 +207,26 @@ class TranslationRepositoryImplTest {
     }
 
     @Test
-    fun `backfillAllQuotes resumes from saved state and caches only supported strict results`() = runTest {
-        val priorState = TranslationBackfillStateEntity(
-            engineVersion = currentBackfillVersion(),
-            lastProcessedQuoteId = 1L,
-            processedCount = 1,
-            startedAt = 100L,
-            updatedAt = 150L
-        )
-        val quoteEntity = quoteEntity(id = 2L, text = "The wolf hunts at night")
-        val elderResult = translationResult(
-            script = RunicScript.ELDER_FUTHARK,
-            historicalStage = HistoricalStage.PROTO_NORSE,
-            glyphOutput = "ᚹᚢᛚᚠᚨᛉ"
-        )
-        val youngerWithoutProvenance = translationResult(
-            script = RunicScript.YOUNGER_FUTHARK,
-            historicalStage = HistoricalStage.OLD_NORSE,
-            provenance = emptyList(),
-            glyphOutput = "ᚢᛚᚠᚱ"
-        )
-        val cirthResult = translationResult(
-            script = RunicScript.CIRTH,
-            historicalStage = HistoricalStage.EREBOR_ENGLISH,
-            glyphOutput = ""
-        )
-
-        coEvery { translationBackfillStateDao.getById() } returns priorState
-        coEvery { quoteDao.getAll() } returns listOf(quoteEntity(id = 1L, text = "old"), quoteEntity)
-        every {
-            historicalTranslationService.translate(
-                text = quoteEntity.textLatin,
-                script = RunicScript.ELDER_FUTHARK,
-                fidelity = TranslationFidelity.STRICT,
-                youngerVariant = YoungerFutharkVariant.DEFAULT
+    fun `backfill uses bounded pending batches and completes unavailable attempts without Cirth`() = runTest {
+        val quote = quoteEntity(1L, "The wolf hunts at night")
+        coEvery { translationBackfillCompletionDao.pendingQuotes(any(), 25) } returnsMany
+            listOf(listOf(quote), emptyList())
+        every { historicalTranslationService.translate(any(), any(), any(), any()) } answers {
+            translationResult(
+                script = secondArg(), resolutionStatus = TranslationResolutionStatus.UNAVAILABLE, glyphOutput = ""
             )
-        } returns elderResult
-        every {
-            historicalTranslationService.translate(
-                text = quoteEntity.textLatin,
-                script = RunicScript.YOUNGER_FUTHARK,
-                fidelity = TranslationFidelity.STRICT,
-                youngerVariant = YoungerFutharkVariant.DEFAULT
-            )
-        } returns youngerWithoutProvenance
-        every {
-            historicalTranslationService.translate(
-                text = quoteEntity.textLatin,
-                script = RunicScript.CIRTH,
-                fidelity = TranslationFidelity.STRICT,
-                youngerVariant = YoungerFutharkVariant.DEFAULT
-            )
-        } returns cirthResult
-
-        val insertedEntities = mutableListOf<TranslationRecordEntity>()
-        val upsertedStates = mutableListOf<TranslationBackfillStateEntity>()
-        coEvery { translationRecordDao.insertIfSourceMatches(capture(insertedEntities)) } returnsMany listOf(true)
-        coEvery { translationBackfillStateDao.upsert(capture(upsertedStates)) } returns Unit
+        }
+        val completions = mutableListOf<TranslationBackfillCompletionEntity>()
+        coEvery { translationBackfillCompletionDao.completeAttempt(capture(completions), any()) } returns true
 
         repository.backfillAllQuotes()
 
-        assertThat(insertedEntities).hasSize(1)
-        assertThat(insertedEntities.single().script).isEqualTo(RunicScript.ELDER_FUTHARK.name)
-        assertThat(insertedEntities.single().quoteId).isEqualTo(2L)
-        assertThat(upsertedStates.first().lastProcessedQuoteId).isEqualTo(1L)
-        assertThat(upsertedStates.last().lastProcessedQuoteId).isEqualTo(2L)
-        assertThat(upsertedStates.last().processedCount).isEqualTo(2)
-        assertThat(upsertedStates.last().completedAt).isNotNull()
+        assertThat(completions.single().quoteId).isEqualTo(1L)
+        assertThat(completions.single().sourceText).isEqualTo(quote.textLatin)
+        coVerify(exactly = 1) { translationBackfillCompletionDao.completeAttempt(any(), emptyList()) }
+        coVerify(exactly = 2) { translationBackfillCompletionDao.pendingQuotes(any(), 25) }
+        verify(exactly = 2) { historicalTranslationService.translate(any(), any(), any(), any()) }
+        verify(exactly = 0) { historicalTranslationService.translate(any(), RunicScript.CIRTH, any(), any()) }
     }
 
     @Test
@@ -300,52 +253,25 @@ class TranslationRepositoryImplTest {
     }
 
     @Test
-    fun `backfill restarts from the beginning when an engine version changes`() = runTest {
+    fun `backfill queries dirty sources with the new engine fingerprint`() = runTest {
         assertBackfillRestarts("engine-v2", "dataset-v1")
     }
 
     @Test
-    fun `backfill restarts from the beginning when only a dataset version changes`() = runTest {
+    fun `backfill queries dirty sources with the new dataset fingerprint`() = runTest {
         assertBackfillRestarts("yf-engine-v1", "dataset-v2")
     }
 
     private suspend fun assertBackfillRestarts(engineVersion: String, datasetVersion: String) {
-        val priorState = TranslationBackfillStateEntity(
-            engineVersion = currentBackfillVersion(),
-            lastProcessedQuoteId = 7L,
-            processedCount = 7,
-            startedAt = 100L,
-            updatedAt = 150L,
-            completedAt = 200L
-        )
-        val engine = mockEngine(RunicScript.YOUNGER_FUTHARK, engineVersion, datasetVersion)
-        every { translationEngineFactory.create(RunicScript.YOUNGER_FUTHARK) } returns engine
-        coEvery { translationBackfillStateDao.getById() } returns priorState
-        coEvery { quoteDao.getAll() } returns listOf(quoteEntity(1L, "old source"))
-        every { historicalTranslationService.translate(any(), any(), any(), any()) } answers {
-            translationResult(
-                script = secondArg(),
-                resolutionStatus = TranslationResolutionStatus.UNAVAILABLE,
-                glyphOutput = ""
-            )
-        }
-        val states = mutableListOf<TranslationBackfillStateEntity>()
-        coEvery { translationBackfillStateDao.upsert(capture(states)) } returns Unit
+        every { translationEngineFactory.create(RunicScript.YOUNGER_FUTHARK) } returns
+            mockEngine(RunicScript.YOUNGER_FUTHARK, engineVersion, datasetVersion)
+        val version = slot<String>()
+        coEvery { translationBackfillCompletionDao.pendingQuotes(capture(version), 25) } returns emptyList()
 
         repository.backfillAllQuotes()
 
-        assertThat(states.first().lastProcessedQuoteId).isEqualTo(0L)
-        assertThat(states.first().processedCount).isEqualTo(0)
-        assertThat(states.last().lastProcessedQuoteId).isEqualTo(1L)
-        assertThat(states.last().processedCount).isEqualTo(1)
-        assertThat(states.last().engineVersion).contains("YOUNGER_FUTHARK:$engineVersion:$datasetVersion")
-        verify(exactly = RunicScript.entries.size) {
-            historicalTranslationService.translate("old source", any(), TranslationFidelity.STRICT, any())
-        }
-    }
-
-    private fun currentBackfillVersion(): String = RunicScript.entries.joinToString("|") {
-        "${it.name}:${engineVersionFor(it)}:dataset-v1"
+        assertThat(version.captured).contains("YOUNGER_FUTHARK:$engineVersion:$datasetVersion")
+        assertThat(version.captured).doesNotContain("CIRTH")
     }
 
     private fun engineVersionFor(script: RunicScript): String = when (script) {

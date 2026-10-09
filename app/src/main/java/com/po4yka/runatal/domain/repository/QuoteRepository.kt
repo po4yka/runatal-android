@@ -15,6 +15,9 @@ interface QuoteRepository {
      */
     suspend fun seedIfNeeded()
 
+    /** Emits after committed quote writes; values must not be deduplicated by consumers. */
+    fun observeQuoteChanges(): Flow<Unit>
+
     /**
      * Gets the quote of the day.
      * This returns a consistent quote for the current day.

@@ -20,6 +20,7 @@ import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -67,7 +68,11 @@ class RunatalApplication : Application(), Configuration.Provider {
         // Seed database on app startup (infrastructure concern, not ViewModel concern)
         applicationScope.launch {
             quoteRepository.seedIfNeeded()
-            scheduleHistoricalTranslationBackfill()
+            if (BuildConfig.ENABLE_EXPERIMENTAL_TRANSLATE) {
+                quoteRepository.observeQuoteChanges().collect {
+                    scheduleHistoricalTranslationBackfill()
+                }
+            }
         }
         applicationScope.launch {
             runCatching {
@@ -89,7 +94,7 @@ class RunatalApplication : Application(), Configuration.Provider {
                 .build()
             WorkManager.getInstance(applicationContext).enqueueUniqueWork(
                 TranslationBackfillWorker.WORK_NAME,
-                ExistingWorkPolicy.KEEP,
+                ExistingWorkPolicy.APPEND_OR_REPLACE,
                 request
             )
         } catch (exception: IllegalStateException) {

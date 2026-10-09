@@ -1,10 +1,10 @@
 package com.po4yka.runatal.data.repository
 
 import com.po4yka.runatal.data.local.dao.QuoteDao
-import com.po4yka.runatal.data.local.dao.TranslationBackfillStateDao
+import com.po4yka.runatal.data.local.dao.TranslationBackfillCompletionDao
 import com.po4yka.runatal.data.local.dao.TranslationRecordDao
 import com.po4yka.runatal.data.local.entity.QuoteEntity
-import com.po4yka.runatal.data.local.entity.TranslationBackfillStateEntity
+import com.po4yka.runatal.data.local.entity.TranslationBackfillCompletionEntity
 import com.po4yka.runatal.data.local.entity.TranslationRecordEntity
 import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.domain.model.RunicScript
@@ -32,7 +32,7 @@ import kotlinx.serialization.json.Json
 internal class TranslationRepositoryImpl @Inject constructor(
     private val quoteDao: QuoteDao,
     private val translationRecordDao: TranslationRecordDao,
-    private val translationBackfillStateDao: TranslationBackfillStateDao,
+    private val translationBackfillCompletionDao: TranslationBackfillCompletionDao,
     private val historicalTranslationService: HistoricalTranslationService,
     private val translationEngineFactory: TranslationEngineFactory
 ) : TranslationRepository {
@@ -132,61 +132,29 @@ internal class TranslationRepositoryImpl @Inject constructor(
     }
 
     override suspend fun backfillQuote(quote: Quote) {
-        cacheTranslations(
-            quoteId = quote.id,
-            results = buildStrictResults(quote.textLatin),
-            isBackfilled = true
-        )
+        completeBackfillAttempt(quote, backfillVersion())
     }
 
     override suspend fun backfillAllQuotes() {
-        val now = System.currentTimeMillis()
-        val previousState = translationBackfillStateDao.getById()
         val version = backfillVersion()
-        val state = if (previousState == null || previousState.engineVersion != version) {
-            TranslationBackfillStateEntity(
-                engineVersion = version,
-                startedAt = now,
-                updatedAt = now
-            )
-        } else {
-            previousState
+        while (true) {
+            val batch = translationBackfillCompletionDao.pendingQuotes(version, BACKFILL_BATCH_SIZE)
+            if (batch.isEmpty()) return
+            batch.forEach { completeBackfillAttempt(it.toDomain(), version) }
         }
-        translationBackfillStateDao.upsert(state)
+    }
 
-        val quotes = quoteDao.getAll()
-            .filter { it.id > state.lastProcessedQuoteId }
-            .sortedBy { it.id }
-
-        var processedCount = state.processedCount
-        var lastProcessedQuoteId = state.lastProcessedQuoteId
-
-        quotes.forEach { quoteEntity ->
-            val quote = quoteEntity.toDomain()
-            cacheTranslations(
-                quoteId = quote.id,
-                results = buildStrictResults(quote.textLatin),
-                isBackfilled = true
-            )
-            processedCount += 1
-            lastProcessedQuoteId = quote.id
-            translationBackfillStateDao.upsert(
-                state.copy(
-                    lastProcessedQuoteId = lastProcessedQuoteId,
-                    processedCount = processedCount,
-                    updatedAt = System.currentTimeMillis()
-                )
+    private suspend fun completeBackfillAttempt(quote: Quote, version: String) {
+        val records = buildStrictResults(quote.textLatin).map { it.toEntity(quote.id, isBackfilled = true) }
+        storageWrite {
+            translationBackfillCompletionDao.completeAttempt(
+                TranslationBackfillCompletionEntity(
+                    quoteId = quote.id, sourceText = quote.textLatin,
+                    versionFingerprint = version, completedAt = System.currentTimeMillis()
+                ),
+                records
             )
         }
-
-        translationBackfillStateDao.upsert(
-            state.copy(
-                lastProcessedQuoteId = lastProcessedQuoteId,
-                processedCount = processedCount,
-                updatedAt = System.currentTimeMillis(),
-                completedAt = System.currentTimeMillis()
-            )
-        )
     }
 
     override suspend fun deleteTranslationsForQuote(quoteId: Long) {
@@ -194,7 +162,7 @@ internal class TranslationRepositoryImpl @Inject constructor(
     }
 
     private fun buildStrictResults(sourceText: String): List<TranslationResult> {
-        return RunicScript.entries.mapNotNull { script ->
+        return BACKFILL_SCRIPTS.map { script ->
             historicalTranslationService.translate(
                 text = sourceText,
                 script = script,
@@ -203,8 +171,7 @@ internal class TranslationRepositoryImpl @Inject constructor(
             )
         }.filter { result ->
             result.resolutionStatus != TranslationResolutionStatus.UNAVAILABLE &&
-                result.provenance.isNotEmpty() &&
-                result.script != RunicScript.CIRTH
+                result.provenance.isNotEmpty()
         }
     }
 
@@ -296,8 +263,12 @@ internal class TranslationRepositoryImpl @Inject constructor(
         youngerVariant: YoungerFutharkVariant
     ): String = if (script == RunicScript.YOUNGER_FUTHARK) youngerVariant.name else ""
 
-    private fun backfillVersion(): String = RunicScript.entries.joinToString("|") { script ->
+    private fun backfillVersion(): String = BACKFILL_SCRIPTS.joinToString("|") { script ->
         val engine = translationEngineFactory.create(script)
         "${script.name}:${engine.engineVersion}:${engine.datasetVersion}"
+    }
+    private companion object {
+        const val BACKFILL_BATCH_SIZE = 25
+        val BACKFILL_SCRIPTS = listOf(RunicScript.ELDER_FUTHARK, RunicScript.YOUNGER_FUTHARK)
     }
 }

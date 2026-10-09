@@ -134,7 +134,10 @@ internal interface QuoteDao {
                 runicElder = quote.runicElder, runicYounger = quote.runicYounger, runicCirth = quote.runicCirth
             )
             check(updated == 1) { "The quote content could not be updated." }
-            if (expectedTextLatin != quote.textLatin) invalidateContentTranslations(quote.id)
+            if (expectedTextLatin != quote.textLatin) {
+                invalidateContentTranslations(quote.id)
+                invalidateBackfillCompletion(quote.id)
+            }
             getById(quote.id)
         } else {
             null
@@ -159,6 +162,14 @@ internal interface QuoteDao {
     /** Invalidates derived rows within the same content-write transaction. */
     @Query("DELETE FROM translation_records WHERE quoteId = :quoteId")
     suspend fun invalidateContentTranslations(quoteId: Long)
+
+    /** Marks a changed source dirty even if the user edits A to B and back to A. */
+    @Query("DELETE FROM translation_backfill_completions WHERE quoteId = :quoteId")
+    suspend fun invalidateBackfillCompletion(quoteId: Long)
+
+    /** Emits every committed quote invalidation, even when identity query values are unchanged. */
+    @Query("SELECT id FROM quotes ORDER BY id")
+    fun observeQuoteIdentities(): Flow<List<Long>>
 
     /**
      * Update an existing quote.

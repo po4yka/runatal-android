@@ -7,6 +7,9 @@ import com.po4yka.runatal.data.local.entity.ReadingDayEntity
 import com.po4yka.runatal.data.local.migration.ElderFutharkSequenceMigration
 import com.po4yka.runatal.data.local.migration.CanonicalQuoteRenderingMigration
 import com.po4yka.runatal.data.local.migration.CirthEncodingMigration
+import com.po4yka.runatal.data.local.dao.TranslationBackfillCompletionDao
+import com.po4yka.runatal.data.local.entity.TranslationBackfillCompletionEntity
+import com.po4yka.runatal.data.local.migration.TranslationBackfillCompletionMigration
 import androidx.room3.RoomDatabase
 import androidx.room3.migration.Migration
 import androidx.sqlite.SQLiteConnection
@@ -41,12 +44,15 @@ import com.po4yka.runatal.data.local.migration.TranslationCacheKeyMigration
         TranslationRecordEntity::class,
         TranslationBackfillStateEntity::class,
         QuoteReadEntity::class,
-        ReadingDayEntity::class
+        ReadingDayEntity::class,
+        TranslationBackfillCompletionEntity::class
     ],
-    version = 14,
+    version = 15,
     exportSchema = true
 )
 internal abstract class RunatalDatabase : RoomDatabase() {
+    /** Discovers and commits completion for exact quote sources. */
+    abstract fun translationBackfillCompletionDao(): TranslationBackfillCompletionDao
 
     /** Persists viewed quotes and reading activity. */
     abstract fun readingHistoryDao(): ReadingHistoryDao
@@ -470,6 +476,13 @@ internal abstract class RunatalDatabase : RoomDatabase() {
         val MIGRATION_13_14 = object : Migration(13, 14) {
             override suspend fun migrate(connection: SQLiteConnection) {
                 CirthEncodingMigration.migrate(connection)
+            }
+        }
+
+        /** Adds per-source completion without dropping the historic global checkpoint. */
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override suspend fun migrate(connection: SQLiteConnection) {
+                TranslationBackfillCompletionMigration.migrate(connection)
             }
         }
     }
