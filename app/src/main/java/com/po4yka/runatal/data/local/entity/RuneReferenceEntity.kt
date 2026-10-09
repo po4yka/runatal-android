@@ -18,7 +18,8 @@ import androidx.room3.PrimaryKey
 @Entity(
     tableName = "rune_references",
     indices = [
-        Index(value = ["script"])
+        Index(value = ["script"]),
+        Index(value = ["canonicalKey"], unique = true)
     ]
 )
 data class RuneReferenceEntity(
@@ -28,5 +29,7 @@ data class RuneReferenceEntity(
     val pronunciation: String,
     val meaning: String,
     val history: String,
-    val script: String
+    val script: String,
+    val canonicalKey: String? = null,
+    val canonicalFingerprint: String? = null
 )

@@ -111,6 +111,19 @@ internal object RuneReferenceSeedData {
                 )
             }
 
+    /** Current canonical metadata; fingerprints version each logical reference independently. */
+    fun getCanonicalReferences(): List<RuneReferenceEntity> =
+        (getElderFutharkRunes() + getYoungerFutharkRunes() + getCirthRunes())
+            .map(RuneReferenceCanonicalIdentity::owned)
+
+    /** Frozen complete tuples from the original seed (7f16ddfa), not guesses based on name or character. */
+    fun getKnownLegacyReferences(): List<RuneReferenceEntity> = listOf(
+        rune("\u16CA", "Sol", "s", "Sun", YOUNGER_FUTHARK,
+            "Retained the solar symbolism of power and light."),
+        rune("\u16D7", "Madr", "m", "Man", YOUNGER_FUTHARK,
+            "Symbolizes humanity and the joy and sorrow of mortal life.")
+    )
+
     private fun rune(
         character: String,
         name: String,

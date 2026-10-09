@@ -87,7 +87,7 @@ class QuoteLifecycleMigrationTest {
         }
         database = Room.databaseBuilder(context, RunatalDatabase::class.java, databaseName)
             .setDriver(AndroidSQLiteDriver()).addMigrations(RunatalDatabase.MIGRATION_16_17,
-                RunatalDatabase.MIGRATION_17_18).build()
+                RunatalDatabase.MIGRATION_17_18, RunatalDatabase.MIGRATION_18_19).build()
         val migrated = requireNotNull(database)
         val retained = requireNotNull(migrated.archivedQuoteDao().getRetainedById(1L))
         assertThat(retained.copy(lifecycleState = "ACTIVE", lifecycleChangedAt = 0L)).isEqualTo(known)

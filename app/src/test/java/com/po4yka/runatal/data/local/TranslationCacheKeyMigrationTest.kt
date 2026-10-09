@@ -61,7 +61,7 @@ class TranslationCacheKeyMigrationTest {
                 RunatalDatabase.MIGRATION_12_13,
                 RunatalDatabase.MIGRATION_13_14,
                 RunatalDatabase.MIGRATION_14_15, RunatalDatabase.MIGRATION_15_16,
-                RunatalDatabase.MIGRATION_16_17, RunatalDatabase.MIGRATION_17_18)
+                RunatalDatabase.MIGRATION_16_17, RunatalDatabase.MIGRATION_17_18, RunatalDatabase.MIGRATION_18_19)
             .build()
         val migrated = requireNotNull(database)
         val expected = legacy.filter { it.record.id !in setOf(1L, 2L, 4L, 8L) }.map { it.record }

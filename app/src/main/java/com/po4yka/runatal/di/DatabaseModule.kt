@@ -55,7 +55,8 @@ internal object DatabaseModule {
                 RunatalDatabase.MIGRATION_14_15,
                 RunatalDatabase.MIGRATION_15_16,
                 RunatalDatabase.MIGRATION_16_17,
-                RunatalDatabase.MIGRATION_17_18
+                RunatalDatabase.MIGRATION_17_18,
+                RunatalDatabase.MIGRATION_18_19
             )
             .build()
     }

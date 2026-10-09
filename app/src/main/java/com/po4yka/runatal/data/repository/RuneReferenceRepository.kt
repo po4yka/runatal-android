@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 interface RuneReferenceRepository {
 
     /**
-     * Seeds the database with rune reference data if empty.
+     * Synchronizes canonical rune identities and unmodified metadata while preserving custom references.
      */
     suspend fun seedIfNeeded()
 

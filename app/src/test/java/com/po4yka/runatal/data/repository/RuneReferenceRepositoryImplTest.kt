@@ -27,25 +27,17 @@ class RuneReferenceRepositoryImplTest {
     }
 
     @Test
-    fun `seedIfNeeded inserts initial rune data only when database is empty`() = runTest {
+    fun `seed synchronizes canonical identities on every call rather than trusting an empty count or memory flag`() = runTest {
         val captured = slot<List<RuneReferenceEntity>>()
-        coEvery { runeReferenceDao.getCount() } returns 0
-        coEvery { runeReferenceDao.insertAll(capture(captured)) } returns Unit
-
+        coEvery { runeReferenceDao.seedCanonicalReferences(capture(captured), any()) } returns Unit
         repository.seedIfNeeded()
         repository.seedIfNeeded()
-
         assertThat(captured.captured).isNotEmpty()
-        coVerify(exactly = 1) { runeReferenceDao.insertAll(any()) }
-    }
-
-    @Test
-    fun `seedIfNeeded skips insertion when dao already has data`() = runTest {
-        coEvery { runeReferenceDao.getCount() } returns 5
-
-        repository.seedIfNeeded()
-
-        coVerify(exactly = 0) { runeReferenceDao.insertAll(any()) }
+        assertThat(captured.captured.all { it.id == 0L && it.canonicalKey != null && it.canonicalFingerprint != null })
+            .isTrue()
+        assertThat(captured.captured.map { it.canonicalKey }.distinct()).hasSize(captured.captured.size)
+        coVerify(exactly = 2) { runeReferenceDao.seedCanonicalReferences(any(), any()) }
+        coVerify(exactly = 0) { runeReferenceDao.getCount() }
     }
 
     @Test

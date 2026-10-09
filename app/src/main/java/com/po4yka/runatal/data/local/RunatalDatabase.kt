@@ -34,6 +34,8 @@ import com.po4yka.runatal.data.seed.QuoteSeedData
 import com.po4yka.runatal.data.local.migration.YoungerFutharkRenderingMigration
 import com.po4yka.runatal.data.local.migration.TranslationCacheKeyMigration
 
+import com.po4yka.runatal.data.local.migration.RuneReferenceCanonicalMigration
+
 /**
  * Room database for Runic Quotes.
  */
@@ -51,7 +53,7 @@ import com.po4yka.runatal.data.local.migration.TranslationCacheKeyMigration
         TranslationBackfillCompletionEntity::class,
         RuneBookmarkEntity::class
     ],
-    version = 18,
+    version = 19,
     exportSchema = true
 )
 internal abstract class RunatalDatabase : RoomDatabase() {
@@ -512,5 +514,12 @@ internal abstract class RunatalDatabase : RoomDatabase() {
             }
         }
 
+
+        /** Canonical reference identities retain IDs and bookmarks while reconciling proven duplicates. */
+        val MIGRATION_18_19 = object : Migration(18, 19) {
+            override suspend fun migrate(connection: SQLiteConnection) {
+                RuneReferenceCanonicalMigration.migrate(connection)
+            }
+        }
     }
 }
