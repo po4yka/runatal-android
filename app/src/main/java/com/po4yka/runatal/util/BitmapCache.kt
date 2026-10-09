@@ -5,7 +5,8 @@ import android.util.LruCache
 
 /**
  * LRU cache for rendered bitmap images.
- * Automatically manages memory and recycles old bitmaps when evicted.
+ * Eviction releases the cache reference. Consumers may still hold the bitmap,
+ * so its memory is reclaimed by Android only after all references are released.
  */
 object BitmapCache {
 
@@ -18,17 +19,6 @@ object BitmapCache {
             return value.byteCount
         }
 
-        override fun entryRemoved(
-            evicted: Boolean,
-            key: String,
-            oldValue: Bitmap,
-            newValue: Bitmap?
-        ) {
-            // Only recycle if being evicted (not replaced)
-            if (evicted && oldValue != newValue && !oldValue.isRecycled) {
-                oldValue.recycle()
-            }
-        }
     }
 
     /**
@@ -70,7 +60,7 @@ object BitmapCache {
     }
 
     /**
-     * Clears all cached bitmaps and recycles them.
+     * Releases all cache references without invalidating consumers' bitmaps.
      */
     fun clear() {
         cache.evictAll()
