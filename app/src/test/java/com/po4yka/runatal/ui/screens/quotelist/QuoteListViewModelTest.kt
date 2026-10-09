@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -248,11 +249,43 @@ class QuoteListViewModelTest {
         }
     }
 
+    @Test
+    fun `library preparation runs on its injected background dispatcher`() = runTest {
+        val background = StandardTestDispatcher(testDispatcher.scheduler, name = "library-background")
+        val resolver = mockk<ResolveQuoteRenderingUseCase>()
+        coEvery { resolver(any(), any()) } coAnswers {
+            assertThat(kotlinx.coroutines.currentCoroutineContext()[kotlin.coroutines.ContinuationInterceptor])
+                .isSameInstanceAs(background)
+            com.po4yka.runatal.domain.model.ResolvedQuoteRendering(
+                "ᚠ", emptyList(), com.po4yka.runatal.domain.translation.TranslationMode.TRANSLITERATE, "Resolved"
+            )
+        }
+        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager, resolver, background)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.quoteItems).hasSize(testQuotes.size)
+        coVerify(exactly = testQuotes.size) { resolver(any(), any()) }
+    }
+
+    @Test
+    fun `a new search cancels a slow previous rendering without reverting the typed query`() = runTest {
+        val resolver = mockk<ResolveQuoteRenderingUseCase>()
+        coEvery { resolver(any(), any()) } coAnswers { kotlinx.coroutines.awaitCancellation() }
+        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager, resolver, testDispatcher)
+        runCurrent()
+        viewModel.updateSearchQuery("No matching source")
+        assertThat(viewModel.uiState.value.searchQuery).isEqualTo("No matching source")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.searchQuery).isEqualTo("No matching source")
+        assertThat(viewModel.uiState.value.quotes).isEmpty()
+        assertThat(viewModel.uiState.value.isLoading).isFalse()
+    }
+
     private fun createViewModel(): QuoteListViewModel {
         return QuoteListViewModel(
             quoteRepository = quoteRepository,
             userPreferencesManager = userPreferencesManager,
-            resolveQuoteRenderingUseCase = ResolveQuoteRenderingUseCase(transliterationFactory, NoOpTranslationRepository)
+            resolveQuoteRenderingUseCase = ResolveQuoteRenderingUseCase(transliterationFactory, NoOpTranslationRepository),
+            preparationDispatcher = testDispatcher
         )
     }
 }

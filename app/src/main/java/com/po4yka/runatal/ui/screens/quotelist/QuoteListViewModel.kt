@@ -22,16 +22,25 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
-import java.util.Locale
+import com.po4yka.runatal.di.DefaultDispatcher
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /** ViewModel for the Library screen with tab filtering. */
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 internal class QuoteListViewModel @Inject constructor(
     private val quoteRepository: QuoteRepository,
     private val userPreferencesManager: UserPreferencesManager,
-    private val resolveQuoteRenderingUseCase: ResolveQuoteRenderingUseCase
+    resolveQuoteRenderingUseCase: ResolveQuoteRenderingUseCase,
+    @param:DefaultDispatcher private val preparationDispatcher: CoroutineDispatcher
 ) : ViewModel() {
+
+    private val preparation = QuoteListPreparation(resolveQuoteRenderingUseCase)
 
     private val _uiState = MutableStateFlow(QuoteListUiState(isLoading = true))
     val uiState: StateFlow<QuoteListUiState> = _uiState.asStateFlow()
@@ -72,45 +81,19 @@ internal class QuoteListViewModel @Inject constructor(
                         )
                     }
                 ) { sourceState, filterState ->
-                    val favoriteQuotes = sourceState.allQuotes.filter { it.isFavorite }
-                    val userQuotes = sourceState.allQuotes.filter { it.isUserCreated }
-                    val baseQuotes = when (filterState.currentFilter) {
-                        QuoteFilter.ALL -> sourceState.allQuotes
-                        QuoteFilter.USER_CREATED -> userQuotes
-                        QuoteFilter.FAVORITES -> favoriteQuotes
+                    sourceState to filterState
+                }.mapLatest { (source, filter) ->
+                    withContext(preparationDispatcher) {
+                        preparation.prepare(source.allQuotes, source.preferences.selectedScript,
+                            source.preferences.selectedFont, filter.currentFilter, filter.searchQuery)
                     }
-
-                    val quoteSearch = filterState.searchQuery.trim().lowercase(Locale.getDefault())
-                    val filteredQuotes = if (quoteSearch.isEmpty()) {
-                        baseQuotes
-                    } else {
-                        baseQuotes.filter { quote ->
-                            quote.textLatin.lowercase(Locale.getDefault()).contains(quoteSearch) ||
-                                quote.author.lowercase(Locale.getDefault()).contains(quoteSearch)
-                        }
-                    }
-                    val quoteItems = filteredQuotes.map { quote ->
-                        val rendering = resolveQuoteRenderingUseCase(quote, sourceState.preferences.selectedScript)
-                        QuoteListItemUiModel(quote, rendering.glyphOutput, rendering)
-                    }
-
-                    QuoteListUiState(
-                        quotes = filteredQuotes,
-                        quoteItems = quoteItems,
-                        currentFilter = filterState.currentFilter,
-                        searchQuery = filterState.searchQuery,
-                        selectedScript = sourceState.preferences.selectedScript,
-                        selectedFont = sourceState.preferences.selectedFont,
-                        isLoading = false,
-                        filterCounts = mapOf(
-                            QuoteFilter.ALL to sourceState.allQuotes.size,
-                            QuoteFilter.FAVORITES to favoriteQuotes.size,
-                            QuoteFilter.USER_CREATED to userQuotes.size
-                        )
-                    )
                 }.collect { newState ->
-                    _uiState.value = newState
+                    if (newState.currentFilter == currentFilter.value && newState.searchQuery == searchQuery.value) {
+                        _uiState.value = newState
+                    }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: IOException) {
                 Log.e(TAG, "IO error loading quotes", e)
                 _uiState.update { it.copy(isLoading = false) }
@@ -126,6 +109,7 @@ internal class QuoteListViewModel @Inject constructor(
     /** Changes the active tab filter and persists it. */
     fun setFilter(filter: QuoteFilter) {
         currentFilter.value = filter
+        _uiState.update { it.copy(currentFilter = filter) }
         viewModelScope.launch {
             userPreferencesManager.updateQuoteListFilter(filter.persistedValue)
         }
@@ -134,6 +118,7 @@ internal class QuoteListViewModel @Inject constructor(
     /** Updates search query and persists it. */
     fun updateSearchQuery(query: String) {
         searchQuery.value = query
+        _uiState.update { it.copy(searchQuery = query) }
         viewModelScope.launch {
             userPreferencesManager.updateQuoteSearchQuery(query)
         }
