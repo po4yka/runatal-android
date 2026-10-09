@@ -1,9 +1,10 @@
 {
-  "version": "2026.03-curated-v2",
-  "generatedAt": "2026-03-12",
+  "version": "2026.10-grammar-v3",
+  "generatedAt": "2026-10-09",
   "generatedBy": "Runatal curated translation pipeline",
   "notes": [
     "Generated from checked-in curated source extracts with stable ids and validation.",
-    "STRICT mode only uses gold examples, phrase templates, attested forms, or cited lexical entries."
+    "STRICT mode only uses gold examples, phrase templates, attested forms, or cited lexical entries.",
+    "Younger STRICT composition requires supported sentence grammar and explicit cited inflection forms; corpus examples confer no syntax exemption."
   ]
 }

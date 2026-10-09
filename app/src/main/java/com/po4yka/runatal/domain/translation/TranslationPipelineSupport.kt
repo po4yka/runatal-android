@@ -142,19 +142,6 @@ internal class RunicPhraseTemplateResolver(
     private val runicCorpusStore: RunicCorpusStore,
     private val sourceCatalog: HistoricalSourceCatalog
 ) {
-    fun resolveYounger(
-        request: TranslationRequest,
-        renderer: YoungerFutharkRenderer
-    ): TranslationResult? {
-        val template = findTemplate(request, runicCorpusStore.youngerPhraseTemplates()) ?: return null
-        return template.toTranslationResult(
-            request = request,
-            script = RunicScript.YOUNGER_FUTHARK,
-            datasetVersion = runicCorpusStore.datasetManifest().version,
-            engineVersion = "yf-template-v3"
-        ) { token -> renderer.render(token, request.youngerVariant) }
-    }
-
     fun resolveElder(
         request: TranslationRequest,
         renderer: ElderRuneRenderer
@@ -250,70 +237,6 @@ internal data class TranslationTokenResolution(
     val isPunctuation: Boolean = false
 )
 
-internal data class MorphologyHints(
-    val isPlural: Boolean,
-    val isPast: Boolean,
-    val isThirdPersonSingular: Boolean
-)
-
-internal data class MorphologyStageOutput(
-    val form: String,
-    val notes: List<String> = emptyList()
-)
-
-internal class OldNorseMorphologyStage(
-    private val lexiconLookup: HistoricalLexiconLookup
-) {
-    fun inflect(entry: OldNorseLexiconEntry, token: ParsedEnglishToken): MorphologyStageOutput {
-        val hints = token.toMorphologyHints()
-        return when (entry.partOfSpeech) {
-            "verb" -> MorphologyStageOutput(
-                form = inflectVerb(entry, hints),
-                notes = listOfNotNull(entry.paradigmId?.let { "Applied verb paradigm $it." })
-            )
-
-            "noun" -> MorphologyStageOutput(
-                form = inflectNoun(entry, hints),
-                notes = listOfNotNull(entry.paradigmId?.let { "Applied noun paradigm $it." })
-            )
-
-            "preposition" -> MorphologyStageOutput(entry.dativePhrase ?: entry.lemma)
-            else -> MorphologyStageOutput(entry.lemma)
-        }
-    }
-
-    private fun inflectVerb(entry: OldNorseLexiconEntry, hints: MorphologyHints): String {
-        val paradigm = entry.paradigmId?.let { lexiconLookup.paradigmTables().verbParadigms[it] }
-        val pastForm = when {
-            !hints.isPast -> null
-            entry.past3sg != null -> entry.past3sg
-            paradigm != null -> entry.lemma.removeSuffix("a") + paradigm.thirdPersonPastSuffix
-            else -> null
-        }
-        val presentForm = when {
-            !hints.isThirdPersonSingular -> null
-            entry.present3sg != null -> entry.present3sg
-            paradigm != null -> entry.lemma.removeSuffix("a") + paradigm.thirdPersonPresentSuffix
-            else -> null
-        }
-
-        return pastForm ?: presentForm ?: entry.lemma
-    }
-
-    private fun inflectNoun(entry: OldNorseLexiconEntry, hints: MorphologyHints): String {
-        val paradigm = entry.paradigmId?.let { lexiconLookup.paradigmTables().nounParadigms[it] }
-        val inflectedForm = when {
-            !hints.isPlural -> null
-            entry.pluralForm != null -> entry.pluralForm
-            paradigm == null || paradigm.pluralSuffix.isBlank() -> null
-            entry.lemma.endsWith("r") -> entry.lemma.dropLast(1) + paradigm.pluralSuffix
-            else -> entry.lemma + paradigm.pluralSuffix
-        }
-
-        return inflectedForm ?: entry.lemma
-    }
-}
-
 internal data class PhonologyStageOutput(
     val form: String,
     val notes: List<String>
@@ -324,9 +247,9 @@ internal class YoungerFutharkPhonologyStage {
         var current = text.lowercase()
         val notes = mutableListOf<String>()
 
+        current = applyDiphthongHandling(current, notes)
         current = applyFrontVowelReduction(current, notes)
         current = applyRoundedVowelReduction(current, notes)
-        current = applyDiphthongHandling(current, notes)
         current = applyVoicingAndDevoicing(current, notes)
         current = applyGeminateSimplification(current, notes)
 
@@ -343,7 +266,7 @@ internal class YoungerFutharkPhonologyStage {
         var current = value
         current = applyRegexRule(
             value = current,
-            regex = Regex("[eéæ]"),
+            regex = Regex("[eéæí]"),
             replacement = "i",
             notes = notes,
             note = "Applied front-vowel reduction group."
@@ -355,6 +278,7 @@ internal class YoungerFutharkPhonologyStage {
             notes = notes,
             note = "Normalized glide-plus-vowel spelling for Younger Futhark."
         )
+        current = applyLiteralRule(current, "á", "a", notes, "Reduced acute a to its runic vowel class.")
         return current
     }
 
@@ -364,7 +288,7 @@ internal class YoungerFutharkPhonologyStage {
     ): String {
         return applyRegexRule(
             value = value,
-            regex = Regex("[oóǫøy]"),
+            regex = Regex("[oóǫøyýú]"),
             replacement = "u",
             notes = notes,
             note = "Applied rounded-vowel reduction group."
@@ -389,6 +313,7 @@ internal class YoungerFutharkPhonologyStage {
         current = applyLiteralRule(current, "g", "k", notes, "Applied voicing-neutralization group.")
         current = applyLiteralRule(current, "d", "t", notes, "Applied devoicing group.")
         current = applyLiteralRule(current, "ð", "þ", notes, "Normalized eth to thorn.")
+        current = applyLiteralRule(current, "v", "u", notes, "Reduced v to its runic vowel class.")
         return current
     }
 
@@ -719,14 +644,6 @@ private fun confidenceFor(
     }
 }
 
-private fun ParsedEnglishToken.toMorphologyHints(): MorphologyHints {
-    return MorphologyHints(
-        isPlural = normalized.endsWith("s") && !normalized.endsWith("'s"),
-        isPast = normalized.endsWith("ed"),
-        isThirdPersonSingular = normalized.endsWith("s") && !normalized.endsWith("ss")
-    )
-}
-
 private fun String.normalizePhraseKey(): String {
     return lowercase()
         .trim()
@@ -735,7 +652,7 @@ private fun String.normalizePhraseKey(): String {
 
 internal fun stitchTokens(tokens: List<String>): String {
     return buildString {
-        tokens.forEachIndexed { index, token ->
+        tokens.filter { it.isNotEmpty() }.forEachIndexed { index, token ->
             if (index > 0 && token !in PUNCTUATION_TOKENS && previousCharacterNeedsSpace(lastOrNull())) {
                 append(' ')
             }

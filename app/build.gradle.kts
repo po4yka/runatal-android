@@ -279,6 +279,34 @@ abstract class ValidateTranslationCurationTask : DefaultTask() {
         validateStrictCitations("old_norse_lexicon.json", oldNorseLexicon)
         validateStrictCitations("proto_norse_lexicon.json", protoNorseLexicon)
 
+        oldNorseLexicon.forEach { row ->
+            val formFields = listOf("nounForms", "adjectiveForms", "presentForms", "pastForms")
+            val hasForms = formFields.any { (row[it] as? Map<*, *>)?.isNotEmpty() == true }
+            if (hasForms) {
+                check(row["inflectionSourceId"] in sourceIds) { "Unknown inflection source in ${row["id"]}." }
+                check((row["inflectionCitations"] as? List<*>)?.any { !it.toString().isBlank() } == true) {
+                    "Missing inflection citations in ${row["id"]}."
+                }
+                formFields.forEach { field ->
+                    val forms = row[field] as? Map<*, *> ?: emptyMap<Any, Any>()
+                    check(forms.values.all { it is String && it.isNotBlank() }) { "Blank forms in ${row["id"]}." }
+                }
+            }
+        }
+        @Suppress("UNCHECKED_CAST")
+        val grammarRules = slurper.parse(baseDir.resolve("grammar_rules.json")) as Map<String, Any?>
+        val government = grammarRules["governedPrepositions"] as? Map<*, *> ?: emptyMap<Any, Any>()
+        government.values.forEach { value ->
+            val rule = value as? Map<*, *> ?: error("Invalid preposition government row.")
+            check(rule["sourceId"] in sourceIds) { "Unknown preposition government source." }
+            check(rule["grammaticalCase"] in setOf("NOMINATIVE", "ACCUSATIVE", "GENITIVE", "DATIVE")) {
+                "Invalid governed case."
+            }
+            check((rule["citations"] as? List<*>)?.any { !it.toString().isBlank() } == true) {
+                "Missing preposition-government citation."
+            }
+        }
+
         val corpusRefIds = corpusRefs.map { it["id"] as String }.toSet()
 
         fun validateTemplateRows(fileName: String, rows: List<Map<String, Any?>>) {

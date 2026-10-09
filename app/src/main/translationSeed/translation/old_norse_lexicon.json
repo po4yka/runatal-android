@@ -7,7 +7,35 @@
     "paradigmId": "strong_masc_a",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["úlfr"]
+    "citations": [
+      "úlfr"
+    ],
+    "gender": "MASCULINE",
+    "englishPluralForms": [
+      "wolves"
+    ],
+    "nounForms": {
+      "NOMINATIVE_SINGULAR": "úlfr",
+      "ACCUSATIVE_SINGULAR": "úlf",
+      "GENITIVE_SINGULAR": "úlfs",
+      "DATIVE_SINGULAR": "úlfi",
+      "NOMINATIVE_PLURAL": "úlfar",
+      "ACCUSATIVE_PLURAL": "úlfa",
+      "GENITIVE_PLURAL": "úlfa",
+      "DATIVE_PLURAL": "úlfum",
+      "DEFINITE_NOMINATIVE_SINGULAR": "úlfrinn",
+      "DEFINITE_ACCUSATIVE_SINGULAR": "úlfinn",
+      "DEFINITE_GENITIVE_SINGULAR": "úlfsins",
+      "DEFINITE_DATIVE_SINGULAR": "úlfinum",
+      "DEFINITE_NOMINATIVE_PLURAL": "úlfarnir",
+      "DEFINITE_ACCUSATIVE_PLURAL": "úlfana",
+      "DEFINITE_GENITIVE_PLURAL": "úlfanna",
+      "DEFINITE_DATIVE_PLURAL": "úlfunum"
+    },
+    "inflectionSourceId": "barnes_nion",
+    "inflectionCitations": [
+      "NION I pp.29–30, 40, 47, 49, 51–52: noun declension and mutation; pp.56–57: suffixed definite article; Zoega s.v. úlfr"
+    ]
   },
   {
     "id": "on_veida",
@@ -19,7 +47,59 @@
     "past3sg": "veiddi",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["veiða"]
+    "citations": [
+      "veiða"
+    ],
+    "presentForms": {
+      "1_SINGULAR": "veiði",
+      "2_SINGULAR": "veiðir",
+      "3_SINGULAR": "veiðir",
+      "1_PLURAL": "veiðum",
+      "2_PLURAL": "veiðið",
+      "3_PLURAL": "veiða"
+    },
+    "pastForms": {
+      "1_SINGULAR": "veidda",
+      "2_SINGULAR": "veiddir",
+      "3_SINGULAR": "veiddi",
+      "1_PLURAL": "veiddum",
+      "2_PLURAL": "veidduð",
+      "3_PLURAL": "veiddu"
+    },
+    "inflectionSourceId": "barnes_nion",
+    "inflectionCitations": [
+      "NION I pp.138,151,174: weak type 3 personal endings; Zoega s.v. veiða (-dda,-ddr); Cleasby-Vigfusson p.690 s.v. veiða e-n/e-t: accusative object."
+    ],
+    "objectCase": "ACCUSATIVE",
+    "englishVerbForms": {
+      "hunt": {
+        "tense": "PRESENT",
+        "agreements": [
+          "1_SINGULAR",
+          "2_SINGULAR",
+          "1_PLURAL",
+          "2_PLURAL",
+          "3_PLURAL"
+        ]
+      },
+      "hunts": {
+        "tense": "PRESENT",
+        "agreements": [
+          "3_SINGULAR"
+        ]
+      },
+      "hunted": {
+        "tense": "PAST",
+        "agreements": [
+          "1_SINGULAR",
+          "2_SINGULAR",
+          "3_SINGULAR",
+          "1_PLURAL",
+          "2_PLURAL",
+          "3_PLURAL"
+        ]
+      }
+    }
   },
   {
     "id": "on_nott",
@@ -29,7 +109,25 @@
     "paradigmId": "strong_fem_t",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["nótt"]
+    "citations": [
+      "nótt"
+    ],
+    "gender": "FEMININE",
+    "englishPluralForms": [
+      "nights"
+    ],
+    "nounForms": {
+      "NOMINATIVE_SINGULAR": "nótt",
+      "ACCUSATIVE_SINGULAR": "nótt",
+      "GENITIVE_SINGULAR": "nætr",
+      "NOMINATIVE_PLURAL": "nætr",
+      "ACCUSATIVE_PLURAL": "nætr",
+      "DATIVE_PLURAL": "nóttum"
+    },
+    "inflectionSourceId": "zoega",
+    "inflectionCitations": [
+      "Zoega s.v. nótt (gen. nætr, pl. nætr); s.v. um: um nótt, um nætr, um nóttum."
+    ]
   },
   {
     "id": "on_konungr",
@@ -39,7 +137,35 @@
     "paradigmId": "strong_masc_r",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["konungr"]
+    "citations": [
+      "konungr"
+    ],
+    "gender": "MASCULINE",
+    "englishPluralForms": [
+      "kings"
+    ],
+    "nounForms": {
+      "NOMINATIVE_SINGULAR": "konungr",
+      "ACCUSATIVE_SINGULAR": "konung",
+      "GENITIVE_SINGULAR": "konungs",
+      "DATIVE_SINGULAR": "konungi",
+      "NOMINATIVE_PLURAL": "konungar",
+      "ACCUSATIVE_PLURAL": "konunga",
+      "GENITIVE_PLURAL": "konunga",
+      "DATIVE_PLURAL": "konungum",
+      "DEFINITE_NOMINATIVE_SINGULAR": "konungrinn",
+      "DEFINITE_ACCUSATIVE_SINGULAR": "konunginn",
+      "DEFINITE_GENITIVE_SINGULAR": "konungsins",
+      "DEFINITE_DATIVE_SINGULAR": "konunginum",
+      "DEFINITE_NOMINATIVE_PLURAL": "konungarnir",
+      "DEFINITE_ACCUSATIVE_PLURAL": "konungana",
+      "DEFINITE_GENITIVE_PLURAL": "konunganna",
+      "DEFINITE_DATIVE_PLURAL": "konungunum"
+    },
+    "inflectionSourceId": "barnes_nion",
+    "inflectionCitations": [
+      "NION I pp.29–30, 40, 47, 49, 51–52: noun declension and mutation; pp.56–57: suffixed definite article; Zoega s.v. konungr"
+    ]
   },
   {
     "id": "on_fjall",
@@ -49,7 +175,35 @@
     "paradigmId": "neuter_regular",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["fjall"]
+    "citations": [
+      "fjall"
+    ],
+    "gender": "NEUTER",
+    "englishPluralForms": [
+      "mountains"
+    ],
+    "nounForms": {
+      "NOMINATIVE_SINGULAR": "fjall",
+      "ACCUSATIVE_SINGULAR": "fjall",
+      "GENITIVE_SINGULAR": "fjalls",
+      "DATIVE_SINGULAR": "fjalli",
+      "NOMINATIVE_PLURAL": "fjǫll",
+      "ACCUSATIVE_PLURAL": "fjǫll",
+      "GENITIVE_PLURAL": "fjalla",
+      "DATIVE_PLURAL": "fjǫllum",
+      "DEFINITE_NOMINATIVE_SINGULAR": "fjallit",
+      "DEFINITE_ACCUSATIVE_SINGULAR": "fjallit",
+      "DEFINITE_GENITIVE_SINGULAR": "fjallsins",
+      "DEFINITE_DATIVE_SINGULAR": "fjallinu",
+      "DEFINITE_NOMINATIVE_PLURAL": "fjǫllin",
+      "DEFINITE_ACCUSATIVE_PLURAL": "fjǫllin",
+      "DEFINITE_GENITIVE_PLURAL": "fjallanna",
+      "DEFINITE_DATIVE_PLURAL": "fjǫllunum"
+    },
+    "inflectionSourceId": "barnes_nion",
+    "inflectionCitations": [
+      "NION I pp.29–30, 40, 47, 49, 51–52: noun declension and mutation; pp.56–57: suffixed definite article; Zoega s.v. fjall"
+    ]
   },
   {
     "id": "on_ferd",
@@ -59,7 +213,35 @@
     "paradigmId": "strong_fem_eth",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["ferð"]
+    "citations": [
+      "ferð"
+    ],
+    "gender": "FEMININE",
+    "englishPluralForms": [
+      "journeys"
+    ],
+    "nounForms": {
+      "NOMINATIVE_SINGULAR": "ferð",
+      "ACCUSATIVE_SINGULAR": "ferð",
+      "GENITIVE_SINGULAR": "ferðar",
+      "DATIVE_SINGULAR": "ferð",
+      "NOMINATIVE_PLURAL": "ferðir",
+      "ACCUSATIVE_PLURAL": "ferðir",
+      "GENITIVE_PLURAL": "ferða",
+      "DATIVE_PLURAL": "ferðum",
+      "DEFINITE_NOMINATIVE_SINGULAR": "ferðin",
+      "DEFINITE_ACCUSATIVE_SINGULAR": "ferðina",
+      "DEFINITE_GENITIVE_SINGULAR": "ferðarinnar",
+      "DEFINITE_DATIVE_SINGULAR": "ferðinni",
+      "DEFINITE_NOMINATIVE_PLURAL": "ferðirnar",
+      "DEFINITE_ACCUSATIVE_PLURAL": "ferðirnar",
+      "DEFINITE_GENITIVE_PLURAL": "ferðanna",
+      "DEFINITE_DATIVE_PLURAL": "ferðunum"
+    },
+    "inflectionSourceId": "barnes_nion",
+    "inflectionCitations": [
+      "NION I pp.29–30, 40, 47, 49, 51–52: noun declension and mutation; pp.56–57: suffixed definite article; Zoega s.v. ferð"
+    ]
   },
   {
     "id": "on_spor",
@@ -69,7 +251,13 @@
     "paradigmId": "neuter_regular",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["spor"]
+    "citations": [
+      "spor"
+    ],
+    "gender": "NEUTER",
+    "englishPluralForms": [
+      "steps"
+    ]
   },
   {
     "id": "on_mikill",
@@ -78,7 +266,39 @@
     "lemma": "mikill",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["mikill"]
+    "citations": [
+      "mikill"
+    ],
+    "adjectiveForms": {
+      "NOMINATIVE_SINGULAR_MASCULINE": "mikill",
+      "NOMINATIVE_SINGULAR_FEMININE": "mikil",
+      "NOMINATIVE_SINGULAR_NEUTER": "mikit",
+      "ACCUSATIVE_SINGULAR_MASCULINE": "mikinn",
+      "ACCUSATIVE_SINGULAR_FEMININE": "mikla",
+      "ACCUSATIVE_SINGULAR_NEUTER": "mikit",
+      "GENITIVE_SINGULAR_MASCULINE": "mikils",
+      "GENITIVE_SINGULAR_FEMININE": "mikillar",
+      "GENITIVE_SINGULAR_NEUTER": "mikils",
+      "DATIVE_SINGULAR_MASCULINE": "miklum",
+      "DATIVE_SINGULAR_FEMININE": "mikilli",
+      "DATIVE_SINGULAR_NEUTER": "miklu",
+      "NOMINATIVE_PLURAL_MASCULINE": "miklir",
+      "NOMINATIVE_PLURAL_FEMININE": "miklar",
+      "NOMINATIVE_PLURAL_NEUTER": "mikil",
+      "ACCUSATIVE_PLURAL_MASCULINE": "mikla",
+      "ACCUSATIVE_PLURAL_FEMININE": "miklar",
+      "ACCUSATIVE_PLURAL_NEUTER": "mikil",
+      "GENITIVE_PLURAL_MASCULINE": "mikilla",
+      "GENITIVE_PLURAL_FEMININE": "mikilla",
+      "GENITIVE_PLURAL_NEUTER": "mikilla",
+      "DATIVE_PLURAL_MASCULINE": "miklum",
+      "DATIVE_PLURAL_FEMININE": "miklum",
+      "DATIVE_PLURAL_NEUTER": "miklum"
+    },
+    "inflectionSourceId": "barnes_nion",
+    "inflectionCitations": [
+      "NION I p.107, paradigm 9: mikill strong declension; agreement pp.69–70."
+    ]
   },
   {
     "id": "on_verk",
@@ -88,7 +308,35 @@
     "paradigmId": "neuter_regular",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["verk"]
+    "citations": [
+      "verk"
+    ],
+    "gender": "NEUTER",
+    "englishPluralForms": [
+      "works"
+    ],
+    "nounForms": {
+      "NOMINATIVE_SINGULAR": "verk",
+      "ACCUSATIVE_SINGULAR": "verk",
+      "GENITIVE_SINGULAR": "verks",
+      "DATIVE_SINGULAR": "verki",
+      "NOMINATIVE_PLURAL": "verk",
+      "ACCUSATIVE_PLURAL": "verk",
+      "GENITIVE_PLURAL": "verka",
+      "DATIVE_PLURAL": "verkum",
+      "DEFINITE_NOMINATIVE_SINGULAR": "verkit",
+      "DEFINITE_ACCUSATIVE_SINGULAR": "verkit",
+      "DEFINITE_GENITIVE_SINGULAR": "verksins",
+      "DEFINITE_DATIVE_SINGULAR": "verkinu",
+      "DEFINITE_NOMINATIVE_PLURAL": "verkin",
+      "DEFINITE_ACCUSATIVE_PLURAL": "verkin",
+      "DEFINITE_GENITIVE_PLURAL": "verkanna",
+      "DEFINITE_DATIVE_PLURAL": "verkunum"
+    },
+    "inflectionSourceId": "barnes_nion",
+    "inflectionCitations": [
+      "NION I pp.29–30, 40, 47, 49, 51–52: noun declension and mutation; pp.56–57: suffixed definite article; Zoega s.v. verk"
+    ]
   },
   {
     "id": "on_elska",
@@ -100,7 +348,9 @@
     "past3sg": "elskaði",
     "strictEligible": false,
     "sourceId": "internal_heuristics",
-    "citations": ["Modernized approximation"]
+    "citations": [
+      "Modernized approximation"
+    ]
   },
   {
     "id": "on_gera",
@@ -112,7 +362,48 @@
     "past3sg": "gerði",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["gera"]
+    "citations": [
+      "gera"
+    ],
+    "presentForms": {
+      "3_SINGULAR": "gerir"
+    },
+    "pastForms": {
+      "3_SINGULAR": "gerði"
+    },
+    "inflectionSourceId": "zoega",
+    "inflectionCitations": [
+      "Zoega s.v. gera: curated cited principal parts."
+    ],
+    "englishVerbForms": {
+      "do": {
+        "tense": "PRESENT",
+        "agreements": [
+          "1_SINGULAR",
+          "2_SINGULAR",
+          "1_PLURAL",
+          "2_PLURAL",
+          "3_PLURAL"
+        ]
+      },
+      "does": {
+        "tense": "PRESENT",
+        "agreements": [
+          "3_SINGULAR"
+        ]
+      },
+      "did": {
+        "tense": "PAST",
+        "agreements": [
+          "1_SINGULAR",
+          "2_SINGULAR",
+          "3_SINGULAR",
+          "1_PLURAL",
+          "2_PLURAL",
+          "3_PLURAL"
+        ]
+      }
+    }
   },
   {
     "id": "on_reika",
@@ -124,7 +415,9 @@
     "past3sg": "reikaði",
     "strictEligible": false,
     "sourceId": "internal_heuristics",
-    "citations": ["Curated approximation"]
+    "citations": [
+      "Curated approximation"
+    ]
   },
   {
     "id": "on_villr",
@@ -133,7 +426,9 @@
     "lemma": "villr",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["villr"]
+    "citations": [
+      "villr"
+    ]
   },
   {
     "id": "on_naud",
@@ -143,7 +438,13 @@
     "paradigmId": "strong_fem_eth",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["nauð"]
+    "citations": [
+      "nauð"
+    ],
+    "gender": "FEMININE",
+    "englishPluralForms": [
+      "difficulties"
+    ]
   },
   {
     "id": "on_vera",
@@ -155,7 +456,68 @@
     "past3sg": "var",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["vera"]
+    "citations": [
+      "vera"
+    ],
+    "presentForms": {
+      "1_SINGULAR": "em",
+      "2_SINGULAR": "ert",
+      "3_SINGULAR": "er",
+      "1_PLURAL": "erum",
+      "2_PLURAL": "eruð",
+      "3_PLURAL": "eru"
+    },
+    "pastForms": {
+      "1_SINGULAR": "var",
+      "2_SINGULAR": "vart",
+      "3_SINGULAR": "var",
+      "1_PLURAL": "várum",
+      "2_PLURAL": "váruð",
+      "3_PLURAL": "váru"
+    },
+    "inflectionSourceId": "barnes_nion",
+    "inflectionCitations": [
+      "NION I p.175: complete indicative paradigm of vera."
+    ],
+    "englishVerbForms": {
+      "am": {
+        "tense": "PRESENT",
+        "agreements": [
+          "1_SINGULAR"
+        ]
+      },
+      "is": {
+        "tense": "PRESENT",
+        "agreements": [
+          "3_SINGULAR"
+        ]
+      },
+      "are": {
+        "tense": "PRESENT",
+        "agreements": [
+          "2_SINGULAR",
+          "1_PLURAL",
+          "2_PLURAL",
+          "3_PLURAL"
+        ]
+      },
+      "was": {
+        "tense": "PAST",
+        "agreements": [
+          "1_SINGULAR",
+          "3_SINGULAR"
+        ]
+      },
+      "were": {
+        "tense": "PAST",
+        "agreements": [
+          "2_SINGULAR",
+          "1_PLURAL",
+          "2_PLURAL",
+          "3_PLURAL"
+        ]
+      }
+    }
   },
   {
     "id": "on_thegar",
@@ -164,7 +526,9 @@
     "lemma": "þegar",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["þegar"]
+    "citations": [
+      "þegar"
+    ]
   },
   {
     "id": "on_taka",
@@ -176,7 +540,48 @@
     "past3sg": "tók",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["taka"]
+    "citations": [
+      "taka"
+    ],
+    "presentForms": {
+      "3_SINGULAR": "tekr"
+    },
+    "pastForms": {
+      "3_SINGULAR": "tók"
+    },
+    "inflectionSourceId": "zoega",
+    "inflectionCitations": [
+      "Zoega s.v. taka: curated cited principal parts."
+    ],
+    "englishVerbForms": {
+      "take": {
+        "tense": "PRESENT",
+        "agreements": [
+          "1_SINGULAR",
+          "2_SINGULAR",
+          "1_PLURAL",
+          "2_PLURAL",
+          "3_PLURAL"
+        ]
+      },
+      "takes": {
+        "tense": "PRESENT",
+        "agreements": [
+          "3_SINGULAR"
+        ]
+      },
+      "took": {
+        "tense": "PAST",
+        "agreements": [
+          "1_SINGULAR",
+          "2_SINGULAR",
+          "3_SINGULAR",
+          "1_PLURAL",
+          "2_PLURAL",
+          "3_PLURAL"
+        ]
+      }
+    }
   },
   {
     "id": "on_einn",
@@ -185,7 +590,9 @@
     "lemma": "einn",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["einn"]
+    "citations": [
+      "einn"
+    ]
   },
   {
     "id": "on_undir",
@@ -195,7 +602,9 @@
     "dativePhrase": "undir",
     "strictEligible": true,
     "sourceId": "cleasby_vigfusson",
-    "citations": ["undir"]
+    "citations": [
+      "undir"
+    ]
   },
   {
     "id": "on_med",
@@ -205,7 +614,9 @@
     "dativePhrase": "með",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["með"]
+    "citations": [
+      "með"
+    ]
   },
   {
     "id": "on_af",
@@ -215,7 +626,9 @@
     "dativePhrase": "af",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["af"]
+    "citations": [
+      "af"
+    ]
   },
   {
     "id": "on_til",
@@ -225,7 +638,9 @@
     "dativePhrase": "til",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["til"]
+    "citations": [
+      "til"
+    ]
   },
   {
     "id": "on_i",
@@ -235,7 +650,9 @@
     "dativePhrase": "í",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["í"]
+    "citations": [
+      "í"
+    ]
   },
   {
     "id": "on_um",
@@ -245,7 +662,9 @@
     "dativePhrase": "um",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["um"]
+    "citations": [
+      "um"
+    ]
   },
   {
     "id": "on_ganga",
@@ -257,6 +676,47 @@
     "past3sg": "gekk",
     "strictEligible": true,
     "sourceId": "zoega",
-    "citations": ["ganga"]
+    "citations": [
+      "ganga"
+    ],
+    "presentForms": {
+      "3_SINGULAR": "gengr"
+    },
+    "pastForms": {
+      "3_SINGULAR": "gekk"
+    },
+    "inflectionSourceId": "zoega",
+    "inflectionCitations": [
+      "Zoega s.v. ganga: curated cited principal parts."
+    ],
+    "englishVerbForms": {
+      "walk": {
+        "tense": "PRESENT",
+        "agreements": [
+          "1_SINGULAR",
+          "2_SINGULAR",
+          "1_PLURAL",
+          "2_PLURAL",
+          "3_PLURAL"
+        ]
+      },
+      "walks": {
+        "tense": "PRESENT",
+        "agreements": [
+          "3_SINGULAR"
+        ]
+      },
+      "walked": {
+        "tense": "PAST",
+        "agreements": [
+          "1_SINGULAR",
+          "2_SINGULAR",
+          "3_SINGULAR",
+          "1_PLURAL",
+          "2_PLURAL",
+          "3_PLURAL"
+        ]
+      }
+    }
   }
 ]

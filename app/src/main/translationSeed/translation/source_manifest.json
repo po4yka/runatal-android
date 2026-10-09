@@ -69,6 +69,13 @@
       "role": "Offline fallback logic and generated educational notes",
       "license": "Project-owned",
       "url": "https://github.com/po4yka/runatal-android"
+    },
+    {
+      "id": "barnes_nion",
+      "name": "Michael Barnes: A New Introduction to Old Norse I",
+      "role": "Explicit inflection paradigms and grammatical agreement",
+      "license": "Reference only",
+      "url": "https://vsnr.org/wp-content/uploads/2021/11/NION-1.pdf"
     }
   ]
 }

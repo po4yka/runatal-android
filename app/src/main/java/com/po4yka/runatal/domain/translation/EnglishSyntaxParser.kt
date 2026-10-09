@@ -14,26 +14,7 @@ internal class EnglishSyntaxParser {
             .replace(Regex("[\\s\\p{Z}]+"), " ")
         val tokens = scanTokens(text)
 
-        val firstVerbIndex = tokens.indexOfFirst { token ->
-            token.type == ParsedEnglishTokenType.WORD &&
-                (token.normalized.endsWith("s") || token.normalized.endsWith("ed"))
-        }
-        val firstPrepositionIndex = tokens.indexOfFirst { token ->
-            token.normalized in CommonPrepositions
-        }
-
-        return ParsedEnglishText(
-            originalText = text,
-            normalizedText = normalized,
-            tokens = tokens,
-            subjectTokens = tokens.sliceSafe(0, if (firstVerbIndex >= 0) firstVerbIndex else tokens.size),
-            verbTokens = if (firstVerbIndex >= 0) listOf(tokens[firstVerbIndex]) else emptyList(),
-            modifierTokens = if (firstPrepositionIndex >= 0) {
-                tokens.drop(firstPrepositionIndex)
-            } else {
-                emptyList()
-            }
-        )
+        return ParsedEnglishText(originalText = text, normalizedText = normalized, tokens = tokens)
     }
 
     private fun scanTokens(text: String): List<ParsedEnglishToken> {
@@ -112,17 +93,13 @@ internal class EnglishSyntaxParser {
             Character.COMBINING_SPACING_MARK.toInt(),
             Character.ENCLOSING_MARK.toInt()
         )
-        val CommonPrepositions = setOf("at", "in", "on", "under", "with", "for", "from", "to", "of")
     }
 }
 
 internal data class ParsedEnglishText(
     val originalText: String,
     val normalizedText: String,
-    val tokens: List<ParsedEnglishToken>,
-    val subjectTokens: List<ParsedEnglishToken>,
-    val verbTokens: List<ParsedEnglishToken>,
-    val modifierTokens: List<ParsedEnglishToken>
+    val tokens: List<ParsedEnglishToken>
 )
 
 internal data class ParsedEnglishToken(
@@ -137,13 +114,6 @@ internal enum class ParsedEnglishTokenType {
     WORD,
     PUNCTUATION,
     UNSUPPORTED
-}
-
-private fun <T> List<T>.sliceSafe(startIndex: Int, endExclusive: Int): List<T> {
-    if (isEmpty() || startIndex >= size || startIndex >= endExclusive) {
-        return emptyList()
-    }
-    return subList(startIndex.coerceAtLeast(0), endExclusive.coerceAtMost(size))
 }
 
 private fun Int.isSourceWhitespace(): Boolean = Character.isWhitespace(this) || Character.isSpaceChar(this)
