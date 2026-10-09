@@ -11,6 +11,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.po4yka.runatal.data.translation.AssetTranslationDatasetProvider
+import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.di.DefaultDispatcher
 import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.ui.widget.WidgetSyncManager
@@ -43,6 +44,9 @@ class RunatalApplication : Application(), Configuration.Provider {
     @Inject
     internal lateinit var translationDatasetProvider: AssetTranslationDatasetProvider
 
+    @Inject
+    lateinit var userPreferencesManager: UserPreferencesManager
+
     private lateinit var applicationScope: CoroutineScope
 
     lateinit var widgetSyncManager: WidgetSyncManager
@@ -57,6 +61,7 @@ class RunatalApplication : Application(), Configuration.Provider {
         super.onCreate()
         applicationScope = CoroutineScope(SupervisorJob() + defaultDispatcher)
         widgetSyncManager = WidgetSyncManager(applicationScope)
+        widgetSyncManager.observePreferences(applicationContext, userPreferencesManager.userPreferencesFlow)
 
         // Seed database on app startup (infrastructure concern, not ViewModel concern)
         applicationScope.launch {

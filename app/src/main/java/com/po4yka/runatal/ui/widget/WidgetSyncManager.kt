@@ -7,6 +7,7 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.po4yka.runatal.data.preferences.WidgetUpdateMode
+import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.worker.WidgetUpdateWorker
 import dagger.hilt.android.EntryPointAccessors
 import java.time.Clock
@@ -15,6 +16,10 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -29,6 +34,14 @@ class WidgetSyncManager internal constructor(
     private val updateModeReader: WidgetUpdateModeReader = HiltWidgetUpdateModeReader,
     private val clock: Clock = Clock.systemDefaultZone()
 ) {
+
+    /** Refreshes only after widget-affecting preference writes have been committed. */
+    fun observePreferences(context: Context, preferences: Flow<UserPreferences>): Job = scope.launch {
+        preferences.map { it.widgetPreferences() }.distinctUntilChanged().collect { persisted ->
+            refreshRunner.refreshAll(context.applicationContext)
+            reschedule(context.applicationContext, WidgetUpdateMode.fromPersistedValue(persisted.widgetUpdateMode))
+        }
+    }
 
     /** Triggers an asynchronous refresh of all widget instances. */
     fun refreshAllAsync(context: Context) {
@@ -58,6 +71,11 @@ class WidgetSyncManager internal constructor(
     private suspend fun reschedule(context: Context) {
         val appContext = context.applicationContext
         val updateMode = updateModeReader.read(appContext)
+        reschedule(appContext, updateMode)
+    }
+
+    private fun reschedule(context: Context, updateMode: WidgetUpdateMode) {
+        val appContext = context.applicationContext
 
         if (updateMode == WidgetUpdateMode.MANUAL) {
             workScheduler.cancel(appContext)
@@ -101,6 +119,19 @@ class WidgetSyncManager internal constructor(
         return if (delay.isNegative || delay.isZero) Duration.ofMinutes(1) else delay
     }
 }
+
+private fun UserPreferences.widgetPreferences() = UserPreferences(
+    selectedScript = selectedScript,
+    selectedFont = selectedFont,
+    widgetUpdateMode = widgetUpdateMode,
+    widgetDisplayMode = widgetDisplayMode,
+    themeMode = themeMode,
+    themePack = themePack,
+    dynamicColorEnabled = dynamicColorEnabled,
+    highContrastEnabled = highContrastEnabled,
+    largeRunesEnabled = largeRunesEnabled,
+    fontSize = fontSize
+)
 
 internal interface WidgetWorkScheduler {
     fun enqueuePeriodicRefresh(context: Context, intervalHours: Long, initialDelay: Duration)

@@ -3,6 +3,7 @@ package com.po4yka.runatal.ui.widget
 import android.content.Context
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.data.preferences.WidgetUpdateMode
+import com.po4yka.runatal.data.preferences.UserPreferences
 import io.mockk.every
 import io.mockk.mockk
 import java.time.Clock
@@ -13,7 +14,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -23,6 +26,36 @@ class WidgetSyncManagerTest {
     private val scope = TestScope(dispatcher)
     private val context = mockk<Context>(relaxed = true).also {
         every { it.applicationContext } returns it
+    }
+
+    @Test
+    fun `committed widget preferences refresh once and unrelated writes do not refresh`() = scope.runTest {
+        val preferences = MutableStateFlow(UserPreferences())
+        val observedModes = mutableListOf<String>()
+        val scheduler = RecordingScheduler()
+        val manager = WidgetSyncManager(
+            scope = backgroundScope,
+            refreshRunner = object : WidgetRefreshRunner {
+                override suspend fun refreshAll(context: Context) {
+                    observedModes += preferences.value.widgetUpdateMode
+                }
+
+                override suspend fun refresh(context: Context, glanceId: androidx.glance.GlanceId) = Unit
+            },
+            workScheduler = scheduler,
+            updateModeReader = FixedModeReader(WidgetUpdateMode.DAILY)
+        )
+        val observer = manager.observePreferences(context, preferences)
+        runCurrent()
+
+        preferences.value = preferences.value.copy(widgetUpdateMode = "manual", selectedFont = "babelstone")
+        runCurrent()
+        preferences.value = preferences.value.copy(quoteSearchQuery = "wisdom")
+        runCurrent()
+
+        assertThat(observedModes).containsExactly("daily", "manual").inOrder()
+        assertThat(scheduler.cancelCalls).isEqualTo(1)
+        observer.cancel()
     }
 
     @Test
