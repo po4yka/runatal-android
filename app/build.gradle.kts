@@ -535,7 +535,7 @@ tasks.register<JacocoReport>("jacocoTransliterationCoverageReport") {
     dependsOn("testDebugUnitTest", collectDebugCoverageClasses)
     mustRunAfter("connectedDebugAndroidTest")
     group = "verification"
-    description = "Generates focused coverage for the transliteration domain layer."
+    description = "Generates focused JVM coverage for the transliteration domain layer."
 
     reports {
         xml.required.set(true)
@@ -548,14 +548,14 @@ tasks.register<JacocoReport>("jacocoTransliterationCoverageReport") {
 
     sourceDirectories.setFrom(coverageSourceDirectories)
     classDirectories.setFrom(files(coverageClassTree(transliterationCoverageIncludes)))
-    executionData.setFrom(coverageExecutionData())
+    executionData.setFrom(unitCoverageExecutionData())
 }
 
 tasks.register<JacocoCoverageVerification>("jacocoTransliterationCoverageVerification") {
     dependsOn("jacocoTransliterationCoverageReport", collectDebugCoverageClasses)
     mustRunAfter("connectedDebugAndroidTest")
     group = "verification"
-    description = "Enforces the transliteration line-coverage target."
+    description = "Enforces the transliteration JVM line-coverage target."
 
     violationRules {
         rule {
@@ -569,7 +569,7 @@ tasks.register<JacocoCoverageVerification>("jacocoTransliterationCoverageVerific
 
     sourceDirectories.setFrom(coverageSourceDirectories)
     classDirectories.setFrom(files(coverageClassTree(transliterationCoverageIncludes)))
-    executionData.setFrom(coverageExecutionData())
+    executionData.setFrom(unitCoverageExecutionData())
 }
 
 tasks.register<JacocoReport>("jacocoTranslationCoverageReport") {

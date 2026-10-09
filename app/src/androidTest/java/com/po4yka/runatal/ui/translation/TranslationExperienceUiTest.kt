@@ -31,7 +31,7 @@ class TranslationExperienceUiTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun translationScreen_youngerStrictGoldExampleShowsDerivationAndProvenance() {
+    fun translationScreen_youngerStrictGrammarShowsDerivationAndProvenance() {
         openTranslationScreen()
 
         composeRule.onNodeWithTag("translation_mode_translate").performClick()
@@ -42,11 +42,12 @@ class TranslationExperienceUiTest {
             composeRule.onAllNodesWithTag("translation_meta_section").fetchSemanticsNodes().isNotEmpty()
         }
 
-        assertTrue(composeRule.onAllNodesWithText("Gold example").fetchSemanticsNodes().isNotEmpty())
+        assertTrue(composeRule.onAllNodesWithText("Token composed").fetchSemanticsNodes().isNotEmpty())
+        assertTrue(composeRule.onAllNodesWithText("úlfrinn veiðir um nótt").fetchSemanticsNodes().isNotEmpty())
         assertTrue(composeRule.onAllNodesWithTag("translation_provenance_section").fetchSemanticsNodes().isNotEmpty())
         assertTrue(
             composeRule.onAllNodes(
-                hasText("Runor-aligned Younger exemplar", substring = true) and
+                hasText("Michael Barnes: A New Introduction to Old Norse I", substring = true) and
                     hasAnyAncestor(hasTestTag("translation_provenance_section"))
             ).fetchSemanticsNodes().isNotEmpty()
         )
