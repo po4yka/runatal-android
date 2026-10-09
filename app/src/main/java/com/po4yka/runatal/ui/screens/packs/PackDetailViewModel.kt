@@ -92,7 +92,7 @@ class PackDetailViewModel @AssistedInject constructor(
                         message = if (updated.isInLibrary) {
                             "${updated.quoteCount} pack quotes available in library"
                         } else {
-                            "${updated.name} removed from library"
+                            "${updated.name} removed from library. Saved and previously read quotes are kept."
                         },
                         actionLabel = if (updated.isInLibrary) "View library" else null,
                         action = if (updated.isInLibrary) PackDetailEventAction.VIEW_LIBRARY else null

@@ -62,9 +62,11 @@ interface QuotePackDao {
     @Query("DELETE FROM pack_quotes WHERE packId=:packId")
     suspend fun detachPack(packId: Long)
 
-    /** Deletes only unprotected content owned by the removed pack and no other pack. */
+    /** Removes only unobserved pack-owned content; reading history and manually saved results remain intact. */
     @Query("DELETE FROM quotes WHERE canonicalKey LIKE 'pack:%' AND isFavorite=0 AND isUserCreated=0 " +
         "AND lifecycleState='ACTIVE' " +
+        "AND NOT EXISTS (SELECT 1 FROM quote_reads WHERE quoteId=quotes.id) " +
+        "AND NOT EXISTS (SELECT 1 FROM translation_records WHERE quoteId=quotes.id AND isBackfilled=0) " +
         "AND id IN (SELECT quoteId FROM pack_quotes WHERE packId=:packId) " +
         "AND NOT EXISTS (SELECT 1 FROM pack_quotes WHERE quoteId=quotes.id AND packId<>:packId)")
     suspend fun deleteUnprotectedContent(packId: Long)

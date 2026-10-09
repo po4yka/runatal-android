@@ -234,6 +234,28 @@ class QuotePackContentDatabaseTest {
         }
     }
 
+    @Test
+    fun `removing a pack preserves previously read content identity and its reading history`() = runTest {
+        repository.seedIfNeeded()
+        repository.setLibraryMembership(1L, true)
+        val expected = QuotePackSeedData.getPackQuotes(1L).first()
+        val stored = checkNotNull(database.quotePackDao().findContent(
+            expected.textLatin, expected.author, checkNotNull(expected.canonicalKey)
+        ))
+        database.readingHistoryDao().record(com.po4yka.runatal.data.local.entity.QuoteReadEntity(
+            quoteId = stored.id, epochDay = 1L, script = "ELDER_FUTHARK", readAt = 10L
+        ))
+        repository.setLibraryMembership(1L, false)
+        assertThat(database.quoteDao().getById(stored.id)).isEqualTo(stored)
+        assertThat(database.readingHistoryDao().readings().first().single().quoteId).isEqualTo(stored.id)
+        assertThat(membershipCount(1L)).isEqualTo(0L)
+        repository.setLibraryMembership(1L, true)
+        assertThat(database.quotePackDao().findContent(
+            expected.textLatin, expected.author, checkNotNull(expected.canonicalKey)
+        )?.id).isEqualTo(stored.id)
+        assertThat(database.readingHistoryDao().readings().first()).hasSize(1)
+    }
+
     private suspend fun membershipCount(packId: Long): Long = database.useReaderConnection { connection ->
         connection.usePrepared("SELECT COUNT(*) FROM pack_quotes WHERE packId=?") { statement ->
             statement.bindLong(1, packId)
