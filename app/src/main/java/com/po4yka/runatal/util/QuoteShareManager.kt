@@ -45,6 +45,7 @@ class QuoteShareManager @Inject constructor(
     /** Sharing constants. */
     companion object {
         private const val TAG = "QuoteShareManager"
+        private const val IMAGE_LAYOUT_VERSION = "complete-layout-v2"
         private const val SHARE_DIR = "shared_quotes"
         private const val FILE_EXTENSION = "png"
         private const val MAX_CACHED_FILES = 12
@@ -198,6 +199,9 @@ class QuoteShareManager @Inject constructor(
     ): String {
         val digest = MessageDigest.getInstance("SHA-256")
         val payload = listOf(
+            IMAGE_LAYOUT_VERSION,
+            RunicTextRenderer.getFontResource(content.font, content.script).toString(),
+            content.scriptLabel,
             template.name,
             appearance.name,
             content.script.name,

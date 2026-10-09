@@ -11,6 +11,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import java.io.File
+import java.security.MessageDigest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -51,6 +52,13 @@ class QuoteShareManagerTest {
             Quote(1L, "Runes remember.", "Archivist", null, null, null),
             RunicScript.ELDER_FUTHARK, "noto", rendering("\u16A0\u16A2")
         )
+        // Simulate an existing export from the renderer that clipped long input.
+        val legacyPayload = listOf(ShareTemplate.CARD.name, ShareAppearance.DARK.name, content.script.name,
+            content.font, content.runicText, content.textLatin, content.author).joinToString("\u0000")
+        val legacyKey = MessageDigest.getInstance("SHA-256").digest(legacyPayload.toByteArray())
+            .joinToString("") { "%02x".format(it) }
+        shareDir.mkdirs()
+        File(shareDir, "$legacyKey.png").writeBytes(byteArrayOf(1, 2, 3))
         val firstResult = manager.shareQuoteAsImage(
             content = content,
             template = ShareTemplate.CARD,
@@ -76,7 +84,7 @@ class QuoteShareManagerTest {
         manager.shareQuoteAsImage(content.copy(script = RunicScript.CIRTH))
 
         verify(exactly = 3) { imageGenerator.generateQuoteImage(any(), any(), any()) }
-        assertThat(shareDir.listFiles()?.count { it.extension == "png" }).isEqualTo(3)
+        assertThat(shareDir.listFiles()?.count { it.extension == "png" }).isEqualTo(4)
     }
     private fun rendering(glyphs: String) = ResolvedQuoteRendering(
         glyphs, emptyList(), TranslationMode.TRANSLITERATE, "Transliteration"
