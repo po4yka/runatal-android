@@ -9,6 +9,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
 import androidx.core.content.FileProvider
+import com.po4yka.runatal.domain.model.QuoteShareContent
 import com.po4yka.runatal.BuildConfig
 import com.po4yka.runatal.di.IoDispatcher
 import com.po4yka.runatal.di.MainDispatcher
@@ -46,16 +47,12 @@ class QuoteShareManager @Inject constructor(
     /**
      * Shares a quote as an image.
      *
-     * @param runicText The runic transliteration
-     * @param latinText The Latin text
-     * @param author The quote author
+     * @param content Prepared text, alphabet and font shared with the preview
      * @param template Share template style preset
      * @return true if sharing was initiated successfully
      */
     suspend fun shareQuoteAsImage(
-        runicText: String,
-        latinText: String,
-        author: String,
+        content: QuoteShareContent,
         template: ShareTemplate = ShareTemplate.CARD,
         appearance: ShareAppearance = ShareAppearance.DARK
     ): Boolean = withContext(ioDispatcher) {
@@ -65,14 +62,12 @@ class QuoteShareManager @Inject constructor(
             }
             val imageFile = File(
                 shareDir,
-                "${shareFileKey(runicText, latinText, author, template, appearance)}.$FILE_EXTENSION"
+                "${shareFileKey(content, template, appearance)}.$FILE_EXTENSION"
             )
 
             if (!imageFile.exists() || imageFile.length() == 0L) {
                 val bitmap = imageGenerator.generateQuoteImage(
-                    runicText = runicText,
-                    latinText = latinText,
-                    author = author,
+                    content = content,
                     template = template,
                     appearance = appearance
                 )
@@ -90,7 +85,7 @@ class QuoteShareManager @Inject constructor(
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "image/png"
                 putExtra(Intent.EXTRA_STREAM, imageUri)
-                putExtra(Intent.EXTRA_TEXT, "$latinText\n— $author")
+                putExtra(Intent.EXTRA_TEXT, "${content.textLatin}\n— ${content.author}")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
@@ -188,9 +183,7 @@ class QuoteShareManager @Inject constructor(
     }
 
     private fun shareFileKey(
-        runicText: String,
-        latinText: String,
-        author: String,
+        content: QuoteShareContent,
         template: ShareTemplate,
         appearance: ShareAppearance
     ): String {
@@ -198,9 +191,11 @@ class QuoteShareManager @Inject constructor(
         val payload = listOf(
             template.name,
             appearance.name,
-            runicText,
-            latinText,
-            author
+            content.script.name,
+            content.font,
+            content.runicText,
+            content.textLatin,
+            content.author
         ).joinToString(separator = "\u0000")
         val bytes = digest.digest(payload.toByteArray(Charsets.UTF_8))
         return bytes.joinToString(separator = "") { byte ->

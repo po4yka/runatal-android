@@ -128,7 +128,7 @@ object RunicTextRenderer {
         return bitmap
     }
 
-    private fun loadTypeface(context: Context, fontResource: Int): Typeface {
+    internal fun loadTypeface(context: Context, fontResource: Int): Typeface {
         typefaceCache[fontResource]?.let { return it }
 
         val loaded = try {

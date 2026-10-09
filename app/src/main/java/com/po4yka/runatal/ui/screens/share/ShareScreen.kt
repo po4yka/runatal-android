@@ -53,7 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteShareContent
 import com.po4yka.runatal.ui.components.RunicActionButton
 import com.po4yka.runatal.ui.components.RunicActionButtonStyle
 import com.po4yka.runatal.ui.components.RunicActionIconButton
@@ -122,23 +122,21 @@ internal fun ShareScreen(
             )
 
             is ShareUiState.Success -> ShareContent(
-                quote = state.quote,
+                content = state.content,
                 selectedTemplate = selectedTemplate,
                 selectedAppearance = selectedAppearance,
                 onSelectTemplate = viewModel::selectTemplate,
                 onSelectAppearance = viewModel::selectAppearance,
                 onShareAsText = {
                     quoteShareManager.shareQuoteText(
-                        latinText = state.quote.textLatin,
-                        author = state.quote.author
+                        latinText = state.content.textLatin,
+                        author = state.content.author
                     )
                 },
                 onShareAsImage = {
                     coroutineScope.launch {
                         val didShare = quoteShareManager.shareQuoteAsImage(
-                            runicText = state.quote.sharePreviewRunes(),
-                            latinText = state.quote.textLatin,
-                            author = state.quote.author,
+                            content = state.content,
                             template = selectedTemplate,
                             appearance = selectedAppearance
                         )
@@ -149,8 +147,8 @@ internal fun ShareScreen(
                 },
                 onCopyQuote = {
                     quoteShareManager.copyQuoteToClipboard(
-                        latinText = state.quote.textLatin,
-                        author = state.quote.author
+                        latinText = state.content.textLatin,
+                        author = state.content.author
                     )
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar("Quote copied")
@@ -160,15 +158,6 @@ internal fun ShareScreen(
             )
         }
     }
-}
-
-private fun Quote.sharePreviewRunes(): String {
-    val cachedHistoricalGlyph = listOfNotNull(
-        runicElder,
-        runicYounger,
-        runicCirth
-    ).singleOrNull()
-    return cachedHistoricalGlyph ?: runicElder ?: textLatin
 }
 
 @Composable
@@ -196,7 +185,7 @@ private fun ShareTopBar(
 
 @Composable
 private fun ShareContent(
-    quote: Quote,
+    content: QuoteShareContent,
     selectedTemplate: ShareTemplate,
     selectedAppearance: ShareAppearance,
     onSelectTemplate: (ShareTemplate) -> Unit,
@@ -223,7 +212,7 @@ private fun ShareContent(
         )
 
         SharePreview(
-            quote = quote,
+            content = content,
             selectedTemplate = selectedTemplate,
             palette = palette,
             shareStyle = shareStyle
@@ -310,21 +299,21 @@ private fun AppearanceToggle(
 
 @Composable
 private fun SharePreview(
-    quote: Quote,
+    content: QuoteShareContent,
     selectedTemplate: ShareTemplate,
     palette: RunicSharePalette,
     shareStyle: RunicShareStyleTokens
 ) {
     when (selectedTemplate) {
-        ShareTemplate.CARD -> CardPreview(quote = quote, palette = palette, shareStyle = shareStyle)
-        ShareTemplate.VERSE -> VersePreview(quote = quote, palette = palette, shareStyle = shareStyle)
-        ShareTemplate.LANDSCAPE -> LandscapePreview(quote = quote, palette = palette, shareStyle = shareStyle)
+        ShareTemplate.CARD -> CardPreview(content = content, palette = palette, shareStyle = shareStyle)
+        ShareTemplate.VERSE -> VersePreview(content = content, palette = palette, shareStyle = shareStyle)
+        ShareTemplate.LANDSCAPE -> LandscapePreview(content = content, palette = palette, shareStyle = shareStyle)
     }
 }
 
 @Composable
 private fun CardPreview(
-    quote: Quote,
+    content: QuoteShareContent,
     palette: RunicSharePalette,
     shareStyle: RunicShareStyleTokens
 ) {
@@ -349,12 +338,14 @@ private fun CardPreview(
             DecorativeRule(palette = palette, shareStyle = shareStyle)
 
             RunicText(
-                text = quote.previewRunicText,
+                text = content.runicText,
+                script = content.script,
+                font = content.font,
                 role = RunicTextRole.ShareCard,
                 accessibilityText = buildRunicAccessibilityText(
-                    latinText = quote.textLatin,
-                    author = quote.author,
-                    scriptLabel = quote.previewScriptLabel,
+                    latinText = content.textLatin,
+                    author = content.author,
+                    scriptLabel = content.scriptLabel,
                     prefix = "Share card preview"
                 ),
                 color = palette.primaryText,
@@ -374,7 +365,7 @@ private fun CardPreview(
             }
 
             Text(
-                text = "“${quote.textLatin}”",
+                text = "“${content.textLatin}”",
                 style = RunicTypeRoles.supporting(SupportingTextRole.ShareCardQuote),
                 color = palette.secondaryText,
                 textAlign = TextAlign.Center,
@@ -382,7 +373,7 @@ private fun CardPreview(
             )
 
             Text(
-                text = "— ${quote.author}",
+                text = "— ${content.author}",
                 style = RunicTypeRoles.supporting(SupportingTextRole.ShareAuthor),
                 color = palette.secondaryText,
                 textAlign = TextAlign.Center,
@@ -392,7 +383,7 @@ private fun CardPreview(
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
-                text = "Runatal · ${quote.previewScriptLabel}",
+                text = "Runatal · ${content.scriptLabel}",
                 style = RunicTypeRoles.supporting(SupportingTextRole.ShareMeta),
                 color = palette.tertiaryText,
                 textAlign = TextAlign.Center,
@@ -404,7 +395,7 @@ private fun CardPreview(
 
 @Composable
 private fun VersePreview(
-    quote: Quote,
+    content: QuoteShareContent,
     palette: RunicSharePalette,
     shareStyle: RunicShareStyleTokens
 ) {
@@ -429,7 +420,7 @@ private fun VersePreview(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "“${quote.textLatin}”",
+                text = "“${content.textLatin}”",
                 style = RunicTypeRoles.supporting(SupportingTextRole.ShareVerseQuote),
                 color = palette.primaryText,
                 textAlign = TextAlign.Center
@@ -442,12 +433,14 @@ private fun VersePreview(
             Spacer(modifier = Modifier.height(18.dp))
 
             RunicText(
-                text = quote.previewRunicText,
+                text = content.runicText,
+                script = content.script,
+                font = content.font,
                 role = RunicTextRole.ShareVerse,
                 accessibilityText = buildRunicAccessibilityText(
-                    latinText = quote.textLatin,
-                    author = quote.author,
-                    scriptLabel = quote.previewScriptLabel,
+                    latinText = content.textLatin,
+                    author = content.author,
+                    scriptLabel = content.scriptLabel,
                     prefix = "Share verse preview"
                 ),
                 color = palette.tertiaryText,
@@ -460,7 +453,7 @@ private fun VersePreview(
             Spacer(modifier = Modifier.height(18.dp))
 
             Text(
-                text = quote.author,
+                text = content.author,
                 style = RunicTypeRoles.supporting(SupportingTextRole.ShareAuthor),
                 color = palette.secondaryText,
                 textAlign = TextAlign.Center
@@ -480,7 +473,7 @@ private fun VersePreview(
 
 @Composable
 private fun LandscapePreview(
-    quote: Quote,
+    content: QuoteShareContent,
     palette: RunicSharePalette,
     shareStyle: RunicShareStyleTokens
 ) {
@@ -500,7 +493,7 @@ private fun LandscapePreview(
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Text(
-                text = "ᚱ  Runatal · ${quote.previewScriptLabel}",
+                text = "ᚱ  Runatal · ${content.scriptLabel}",
                 style = RunicTypeRoles.supporting(SupportingTextRole.ShareMeta),
                 color = palette.tertiaryText
             )
@@ -508,7 +501,7 @@ private fun LandscapePreview(
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
-                text = "“${quote.textLatin}”",
+                text = "“${content.textLatin}”",
                 style = RunicTypeRoles.supporting(SupportingTextRole.ShareLandscapeQuote),
                 color = palette.primaryText,
                 textAlign = TextAlign.Center,
@@ -517,17 +510,19 @@ private fun LandscapePreview(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            AuthorRule(author = quote.author, palette = palette, shareStyle = shareStyle)
+            AuthorRule(author = content.author, palette = palette, shareStyle = shareStyle)
 
             Spacer(modifier = Modifier.height(8.dp))
 
             RunicText(
-                text = quote.previewRunicText,
+                text = content.runicText,
+                script = content.script,
+                font = content.font,
                 role = RunicTextRole.ShareLandscape,
                 accessibilityText = buildRunicAccessibilityText(
-                    latinText = quote.textLatin,
-                    author = quote.author,
-                    scriptLabel = quote.previewScriptLabel,
+                    latinText = content.textLatin,
+                    author = content.author,
+                    scriptLabel = content.scriptLabel,
                     prefix = "Share landscape preview"
                 ),
                 color = palette.tertiaryText,
@@ -910,17 +905,6 @@ private val ShareTemplate.helperText: String?
         ShareTemplate.CARD -> null
         ShareTemplate.VERSE -> null
         ShareTemplate.LANDSCAPE -> "16:9 · Ideal for social media headers and banners"
-    }
-
-private val Quote.previewRunicText: String
-    get() = runicElder ?: runicYounger ?: runicCirth ?: textLatin
-
-private val Quote.previewScriptLabel: String
-    get() = when {
-        runicElder != null -> "Elder Futhark"
-        runicYounger != null -> "Younger Futhark"
-        runicCirth != null -> "Cirth"
-        else -> "Runic"
     }
 
 @Composable

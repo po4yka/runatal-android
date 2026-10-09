@@ -4,9 +4,11 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runatal.domain.model.Quote
-import com.po4yka.runatal.domain.model.RunicScript
+import com.po4yka.runatal.domain.model.QuoteShareContent
+import com.po4yka.runatal.data.preferences.UserPreferencesManager
+import com.po4yka.runatal.domain.usecase.quote.BuildQuotePresentationUseCase
+import kotlinx.coroutines.flow.first
 import com.po4yka.runatal.domain.repository.QuoteRepository
-import com.po4yka.runatal.domain.repository.TranslationRepository
 import com.po4yka.runatal.util.ShareAppearance
 import com.po4yka.runatal.util.ShareTemplate
 import dagger.assisted.Assisted
@@ -27,7 +29,8 @@ import java.io.IOException
 internal class ShareViewModel @AssistedInject constructor(
     private val quoteRepository: QuoteRepository,
     @Assisted private val quoteId: Long,
-    private val translationRepository: TranslationRepository
+    private val buildQuotePresentationUseCase: BuildQuotePresentationUseCase,
+    private val userPreferencesManager: UserPreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ShareUiState>(ShareUiState.Loading)
@@ -96,30 +99,12 @@ internal class ShareViewModel @AssistedInject constructor(
         }
     }
 
-    private suspend fun resolveShareQuote(quote: Quote): Quote {
-        val elderTranslation = translationRepository.getLatestAvailableTranslation(
-            quoteId = quote.id,
-            script = RunicScript.ELDER_FUTHARK
-        )
-        val youngerTranslation = translationRepository.getLatestAvailableTranslation(
-            quoteId = quote.id,
-            script = RunicScript.YOUNGER_FUTHARK
-        )
-        val cirthTranslation = translationRepository.getLatestAvailableTranslation(
-            quoteId = quote.id,
-            script = RunicScript.CIRTH
-        )
-
-        if (elderTranslation == null && youngerTranslation == null && cirthTranslation == null) {
-            return quote
-        }
-
-        return quote.copy(
-            runicElder = elderTranslation?.glyphOutput ?: quote.runicElder,
-            runicYounger = youngerTranslation?.glyphOutput ?: quote.runicYounger,
-            runicCirth = cirthTranslation?.glyphOutput ?: quote.runicCirth
-        )
+    private suspend fun resolveShareQuote(quote: Quote): QuoteShareContent {
+        val preferences = userPreferencesManager.userPreferencesFlow.first()
+        val presentation = buildQuotePresentationUseCase(quote, preferences.selectedScript, emptyList())
+        return QuoteShareContent(quote, preferences.selectedScript, preferences.selectedFont, presentation.runicText)
     }
+
 }
 
 /**
@@ -130,7 +115,7 @@ sealed interface ShareUiState {
     data object Loading : ShareUiState
 
     /** Quote loaded successfully. */
-    data class Success(val quote: Quote) : ShareUiState
+    data class Success(val content: QuoteShareContent) : ShareUiState
 
     /** An error occurred while loading the quote. */
     data class Error(val message: String) : ShareUiState

@@ -1,5 +1,8 @@
 package com.po4yka.runatal.util
 
+import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteShareContent
+import com.po4yka.runatal.domain.model.RunicScript
 import android.graphics.Bitmap
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
@@ -31,7 +34,7 @@ class QuoteShareManagerTest {
     fun `shareQuoteAsImage reuses cached file for identical content`() = runTest {
         val imageGenerator = mockk<QuoteImageGenerator>()
         every {
-            imageGenerator.generateQuoteImage(any(), any(), any(), any(), any())
+            imageGenerator.generateQuoteImage(any(), any(), any())
         } returns Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888)
 
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
@@ -42,17 +45,17 @@ class QuoteShareManagerTest {
             mainDispatcher = dispatcher
         )
 
+        val content = QuoteShareContent(
+            Quote(1L, "Runes remember.", "Archivist", null, null, null),
+            RunicScript.ELDER_FUTHARK, "noto", "\u16A0\u16A2"
+        )
         val firstResult = manager.shareQuoteAsImage(
-            runicText = "\u16A0\u16A2",
-            latinText = "Runes remember.",
-            author = "Archivist",
+            content = content,
             template = ShareTemplate.CARD,
             appearance = ShareAppearance.DARK
         )
         val secondResult = manager.shareQuoteAsImage(
-            runicText = "\u16A0\u16A2",
-            latinText = "Runes remember.",
-            author = "Archivist",
+            content = content,
             template = ShareTemplate.CARD,
             appearance = ShareAppearance.DARK
         )
@@ -61,12 +64,16 @@ class QuoteShareManagerTest {
         assertThat(secondResult).isTrue()
         verify(exactly = 1) {
             imageGenerator.generateQuoteImage(
-                "\u16A0\u16A2",
-                "Runes remember.",
-                "Archivist",
+                content,
                 ShareTemplate.CARD,
                 ShareAppearance.DARK
             )
         }
+
+        manager.shareQuoteAsImage(content.copy(font = "babelstone"))
+        manager.shareQuoteAsImage(content.copy(script = RunicScript.CIRTH))
+
+        verify(exactly = 3) { imageGenerator.generateQuoteImage(any(), any(), any()) }
+        assertThat(shareDir.listFiles()?.count { it.extension == "png" }).isEqualTo(3)
     }
 }

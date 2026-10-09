@@ -5,6 +5,16 @@ import com.po4yka.runatal.domain.repository.NoOpTranslationRepository
 import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.domain.repository.TranslationRepository
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteShareContent
+import com.po4yka.runatal.data.preferences.UserPreferences
+import com.po4yka.runatal.data.preferences.UserPreferencesManager
+import com.po4yka.runatal.domain.usecase.quote.BuildQuotePresentationUseCase
+import com.po4yka.runatal.domain.transliteration.TransliterationFactory
+import com.po4yka.runatal.domain.transliteration.ElderFutharkTransliterator
+import com.po4yka.runatal.domain.transliteration.YoungerFutharkTransliterator
+import com.po4yka.runatal.domain.transliteration.CirthTransliterator
+import io.mockk.every
+import kotlinx.coroutines.flow.flowOf
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.translation.HistoricalStage
 import com.po4yka.runatal.domain.translation.TranslationDerivationKind
@@ -56,12 +66,19 @@ class ShareViewModelTest {
 
     private fun createViewModel(
         quoteId: Long = 0L,
-        translationRepository: TranslationRepository = NoOpTranslationRepository
+        translationRepository: TranslationRepository = NoOpTranslationRepository,
+        script: RunicScript = RunicScript.DEFAULT
     ): ShareViewModel {
+        val preferences = mockk<UserPreferencesManager>()
+        every { preferences.userPreferencesFlow } returns flowOf(UserPreferences(selectedScript = script))
         return ShareViewModel(
             quoteRepository = quoteRepository,
             quoteId = quoteId,
-            translationRepository = translationRepository
+            buildQuotePresentationUseCase = BuildQuotePresentationUseCase(
+                TransliterationFactory(ElderFutharkTransliterator(), YoungerFutharkTransliterator(), CirthTransliterator()),
+                translationRepository
+            ),
+            userPreferencesManager = preferences
         )
     }
 
@@ -71,7 +88,23 @@ class ShareViewModelTest {
         val viewModel = createViewModel(quoteId = 7L)
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value).isEqualTo(ShareUiState.Success(testQuote))
+        assertThat(viewModel.uiState.value).isEqualTo(
+            ShareUiState.Success(QuoteShareContent(testQuote, RunicScript.DEFAULT, "noto", testQuote.runicElder.orEmpty()))
+        )
+    }
+
+    @Test
+    fun `share prepares the selected script even when other cached fields exist`() = runTest {
+        coEvery { quoteRepository.getQuoteById(7L) } returns testQuote
+        val viewModel = createViewModel(quoteId = 7L, script = RunicScript.CIRTH)
+
+        advanceUntilIdle()
+
+        val content = (viewModel.uiState.value as ShareUiState.Success).content
+        assertThat(content.script).isEqualTo(RunicScript.CIRTH)
+        assertThat(content.scriptLabel).isEqualTo("Cirth")
+        assertThat(content.runicText).isEqualTo(testQuote.runicCirth)
+        assertThat(content.font).isEqualTo("noto")
     }
 
     @Test
@@ -157,13 +190,7 @@ class ShareViewModelTest {
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value).isEqualTo(
-            ShareUiState.Success(
-                testQuote.copy(
-                    runicElder = "cached elder",
-                    runicYounger = testQuote.runicYounger,
-                    runicCirth = "cached cirth"
-                )
-            )
+            ShareUiState.Success(QuoteShareContent(testQuote, RunicScript.DEFAULT, "noto", "cached elder"))
         )
     }
 
@@ -177,6 +204,8 @@ class ShareViewModelTest {
         viewModel.retry()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value).isEqualTo(ShareUiState.Success(testQuote))
+        assertThat(viewModel.uiState.value).isEqualTo(
+            ShareUiState.Success(QuoteShareContent(testQuote, RunicScript.DEFAULT, "noto", testQuote.runicElder.orEmpty()))
+        )
     }
 }

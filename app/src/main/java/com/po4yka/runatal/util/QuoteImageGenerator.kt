@@ -2,6 +2,9 @@
 
 package com.po4yka.runatal.util
 
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
+import com.po4yka.runatal.domain.model.QuoteShareContent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.core.graphics.createBitmap
@@ -19,7 +22,9 @@ import javax.inject.Singleton
  */
 @Singleton
 @Suppress("TooManyFunctions")
-class QuoteImageGenerator @Inject constructor() {
+class QuoteImageGenerator @Inject constructor(
+    @param:ApplicationContext private val context: Context
+) {
 
     private data class SharePalette(
         val background: Int,
@@ -45,32 +50,33 @@ class QuoteImageGenerator @Inject constructor() {
      * Generates a shareable bitmap for the selected template and appearance.
      */
     fun generateQuoteImage(
-        runicText: String,
-        latinText: String,
-        author: String,
+        content: QuoteShareContent,
         template: ShareTemplate = ShareTemplate.CARD,
         appearance: ShareAppearance = ShareAppearance.DARK
     ): Bitmap {
-        val normalizedRunicText = CirthGlyphCompat.normalizeLegacyPuaGlyphs(runicText)
+        val normalizedRunicText = CirthGlyphCompat.normalizeLegacyPuaGlyphs(content.runicText)
         return when (template) {
             ShareTemplate.CARD -> generateCardImage(
                 runicText = normalizedRunicText,
-                latinText = latinText,
-                author = author,
+                latinText = content.textLatin,
+                author = content.author,
+                content = content,
                 palette = paletteFor(appearance)
             )
 
             ShareTemplate.VERSE -> generateVerseImage(
                 runicText = normalizedRunicText,
-                latinText = latinText,
-                author = author,
+                latinText = content.textLatin,
+                author = content.author,
+                content = content,
                 palette = paletteFor(appearance)
             )
 
             ShareTemplate.LANDSCAPE -> generateLandscapeImage(
                 runicText = normalizedRunicText,
-                latinText = latinText,
-                author = author,
+                latinText = content.textLatin,
+                author = content.author,
+                content = content,
                 palette = paletteFor(appearance)
             )
         }
@@ -80,6 +86,7 @@ class QuoteImageGenerator @Inject constructor() {
         runicText: String,
         latinText: String,
         author: String,
+        content: QuoteShareContent,
         palette: SharePalette
     ): Bitmap {
         val bitmap = createBitmap(PORTRAIT_WIDTH, PORTRAIT_HEIGHT)
@@ -98,7 +105,7 @@ class QuoteImageGenerator @Inject constructor() {
         val runicPaint = paint(
             color = palette.primaryText,
             textSize = 60f,
-            typeface = Typeface.MONOSPACE,
+            typeface = runicTypeface(content),
             textAlign = Paint.Align.CENTER,
             letterSpacing = 0.12f
         )
@@ -135,7 +142,7 @@ class QuoteImageGenerator @Inject constructor() {
             letterSpacing = 0.08f
         )
         canvas.drawText(
-            "Runatal · Elder Futhark",
+            "Runatal · ${content.scriptLabel}",
             centerX,
             cardRect.bottom - 56f,
             footerPaint
@@ -148,6 +155,7 @@ class QuoteImageGenerator @Inject constructor() {
         runicText: String,
         latinText: String,
         author: String,
+        content: QuoteShareContent,
         palette: SharePalette
     ): Bitmap {
         val bitmap = createBitmap(PORTRAIT_WIDTH, PORTRAIT_HEIGHT)
@@ -179,7 +187,7 @@ class QuoteImageGenerator @Inject constructor() {
         val runicPaint = paint(
             color = palette.tertiaryText,
             textSize = 26f,
-            typeface = Typeface.MONOSPACE,
+            typeface = runicTypeface(content),
             textAlign = Paint.Align.CENTER,
             letterSpacing = 0.08f
         )
@@ -211,6 +219,7 @@ class QuoteImageGenerator @Inject constructor() {
         runicText: String,
         latinText: String,
         author: String,
+        content: QuoteShareContent,
         palette: SharePalette
     ): Bitmap {
         val bitmap = createBitmap(LANDSCAPE_WIDTH, LANDSCAPE_HEIGHT)
@@ -227,7 +236,7 @@ class QuoteImageGenerator @Inject constructor() {
             letterSpacing = 0.06f
         )
         canvas.drawText(
-            "ᚱ  Runatal · Elder Futhark",
+            "ᚱ  Runatal · ${content.scriptLabel}",
             cardRect.left + 38f,
             cardRect.top + 46f,
             brandPaint
@@ -252,7 +261,7 @@ class QuoteImageGenerator @Inject constructor() {
         val runicPaint = paint(
             color = palette.tertiaryText,
             textSize = 20f,
-            typeface = Typeface.MONOSPACE,
+            typeface = runicTypeface(content),
             textAlign = Paint.Align.CENTER,
             letterSpacing = 0.06f
         )
@@ -265,6 +274,10 @@ class QuoteImageGenerator @Inject constructor() {
 
         return bitmap
     }
+
+    private fun runicTypeface(content: QuoteShareContent): Typeface = RunicTextRenderer.loadTypeface(
+        context, RunicTextRenderer.getFontResource(content.font)
+    )
 
     private fun drawRoundedPanel(
         canvas: Canvas,
