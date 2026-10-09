@@ -1,5 +1,6 @@
 package com.po4yka.runatal.domain.usecase.quote
 
+import com.po4yka.runatal.domain.repository.ReadingHistoryRepository
 import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.domain.repository.TranslationRepository
 import com.po4yka.runatal.domain.model.Quote
@@ -7,6 +8,7 @@ import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.model.getRunicText
 import com.po4yka.runatal.domain.transliteration.TransliterationFactory
 import com.po4yka.runatal.domain.transliteration.WordTransliterationPair
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 internal data class QuotePresentation(
@@ -91,7 +93,8 @@ internal class BuildQuotePresentationUseCase @Inject constructor(
 
 internal class LoadQuoteSurfaceUseCase @Inject constructor(
     private val quoteRepository: QuoteRepository,
-    private val buildQuotePresentationUseCase: BuildQuotePresentationUseCase
+    private val buildQuotePresentationUseCase: BuildQuotePresentationUseCase,
+    private val readingHistoryRepository: ReadingHistoryRepository
 ) {
 
     suspend operator fun invoke(
@@ -103,9 +106,10 @@ internal class LoadQuoteSurfaceUseCase @Inject constructor(
             QuoteSurfaceSource.RANDOM -> quoteRepository.randomQuote()
         } ?: return null
 
-        val recentQuoteCandidates = quoteRepository.getAllQuotes()
-            .filter { it.id != quote.id }
-            .take(RECENT_QUOTES_LIMIT)
+        readingHistoryRepository.recordRead(quote.id, selectedScript)
+        val recentQuoteCandidates = readingHistoryRepository.readings().first()
+            .map { it.quote }.distinctBy { it.id }
+            .filter { it.id != quote.id }.take(RECENT_QUOTES_LIMIT)
 
         return LoadedQuoteSurface(
             quote = quote,

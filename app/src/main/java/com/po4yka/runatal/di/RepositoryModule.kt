@@ -14,6 +14,8 @@ import com.po4yka.runatal.domain.repository.TranslationRepository
 import com.po4yka.runatal.domain.translation.EreborOrthographyStore
 import com.po4yka.runatal.domain.translation.HistoricalLexiconStore
 import com.po4yka.runatal.domain.translation.RunicCorpusStore
+import com.po4yka.runatal.domain.repository.ReadingHistoryRepository
+import com.po4yka.runatal.data.repository.ReadingHistoryRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -82,4 +84,8 @@ internal abstract class RepositoryModule {
     abstract fun bindEreborOrthographyStore(
         impl: AssetTranslationDatasetProvider
     ): EreborOrthographyStore
+    /** Binds persistent reading history and activity. */
+    @Binds
+    abstract fun bindReadingHistoryRepository(impl: ReadingHistoryRepositoryImpl): ReadingHistoryRepository
+
 }

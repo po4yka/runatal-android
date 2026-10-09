@@ -1,6 +1,9 @@
 package com.po4yka.runatal.data.local
 
 import androidx.room3.Database
+import com.po4yka.runatal.data.local.dao.ReadingHistoryDao
+import com.po4yka.runatal.data.local.entity.QuoteReadEntity
+import com.po4yka.runatal.data.local.entity.ReadingDayEntity
 import androidx.room3.RoomDatabase
 import androidx.room3.migration.Migration
 import androidx.sqlite.SQLiteConnection
@@ -33,12 +36,17 @@ import com.po4yka.runatal.data.local.migration.TranslationCacheKeyMigration
         ArchivedQuoteEntity::class,
         RuneReferenceEntity::class,
         TranslationRecordEntity::class,
-        TranslationBackfillStateEntity::class
+        TranslationBackfillStateEntity::class,
+        QuoteReadEntity::class,
+        ReadingDayEntity::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = true
 )
 internal abstract class RunatalDatabase : RoomDatabase() {
+
+    /** Persists viewed quotes and reading activity. */
+    abstract fun readingHistoryDao(): ReadingHistoryDao
 
     /**
      * Provides access to the QuoteDao.
@@ -420,6 +428,24 @@ internal abstract class RunatalDatabase : RoomDatabase() {
         val MIGRATION_9_10 = object : Migration(9, 10) {
             override suspend fun migrate(connection: SQLiteConnection) {
                 TranslationCacheKeyMigration.migrate(connection)
+            }
+        }
+
+        /** Adds real reading activity without changing existing quote data. */
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override suspend fun migrate(connection: SQLiteConnection) {
+                connection.execSQL("CREATE TABLE IF NOT EXISTS reading_days (epochDay INTEGER NOT NULL PRIMARY KEY)")
+                connection.execSQL(
+                    "CREATE TABLE IF NOT EXISTS quote_reads (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, quoteId INTEGER NOT NULL, " +
+                        "epochDay INTEGER NOT NULL, script TEXT NOT NULL, readAt INTEGER NOT NULL, " +
+                        "FOREIGN KEY(quoteId) REFERENCES quotes(id) ON DELETE CASCADE)"
+                )
+                connection.execSQL("CREATE INDEX index_quote_reads_quoteId ON quote_reads(quoteId)")
+                connection.execSQL(
+                    "CREATE UNIQUE INDEX index_quote_reads_quoteId_epochDay_script " +
+                        "ON quote_reads(quoteId, epochDay, script)"
+                )
             }
         }
     }

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.domain.repository.NoOpTranslationRepository
+import com.po4yka.runatal.domain.repository.ReadingHistoryRepository
 import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.domain.repository.TranslationRepository
 import com.po4yka.runatal.domain.model.Quote
@@ -45,6 +46,7 @@ internal class QuoteViewModel @Inject constructor(
         quoteRepository: QuoteRepository,
         userPreferencesManager: UserPreferencesManager,
         transliterationFactory: TransliterationFactory,
+        readingHistoryRepository: ReadingHistoryRepository,
         translationRepository: TranslationRepository = NoOpTranslationRepository
     ) : this(
         quoteRepository = quoteRepository,
@@ -54,7 +56,8 @@ internal class QuoteViewModel @Inject constructor(
             buildQuotePresentationUseCase = BuildQuotePresentationUseCase(
                 transliterationFactory = transliterationFactory,
                 translationRepository = translationRepository
-            )
+            ),
+            readingHistoryRepository = readingHistoryRepository
         ),
         buildQuotePresentationUseCase = BuildQuotePresentationUseCase(
             transliterationFactory = transliterationFactory,

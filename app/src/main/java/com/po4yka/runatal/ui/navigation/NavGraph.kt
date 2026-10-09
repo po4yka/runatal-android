@@ -62,6 +62,7 @@ import com.po4yka.runatal.ui.screens.notificationsettings.NotificationSettingsSc
 import com.po4yka.runatal.ui.screens.onboarding.OnboardingScreen
 import com.po4yka.runatal.ui.screens.packs.PackDetailScreen
 import com.po4yka.runatal.ui.screens.packs.PacksScreen
+import com.po4yka.runatal.ui.screens.history.ReadingHistoryScreen
 import com.po4yka.runatal.ui.screens.profile.ProfileScreen
 import com.po4yka.runatal.ui.screens.quote.QuoteScreen
 import com.po4yka.runatal.ui.screens.quotelist.QuoteListScreen
@@ -317,6 +318,7 @@ private fun EntryProviderScope<NavKey>.TopLevelEntries(
 ) {
     entry<QuoteRoute> {
         QuoteScreen(
+            onNavigateToHistory = { backStack.add(ReadingHistoryRoute) },
             onNavigateToShare = { quoteId ->
                 backStack.add(ShareRoute(quoteId = quoteId))
             },
@@ -430,9 +432,16 @@ private fun EntryProviderScope<NavKey>.DetailEntries(
             onNavigateToReferences = { backStack.add(ReferencesRoute) }
         )
     }
+    entry<ReadingHistoryRoute> {
+        ReadingHistoryScreen(
+            onNavigateBack = { backStack.removeLastOrNull() },
+            onShareQuote = { backStack.add(ShareRoute(it)) }
+        )
+    }
     entry<ProfileRoute> {
         ProfileScreen(
-            onNavigateBack = { backStack.removeLastOrNull() }
+            onNavigateBack = { backStack.removeLastOrNull() },
+            onNavigateToHistory = { backStack.add(ReadingHistoryRoute) }
         )
     }
     entry<NotificationSettingsRoute> {

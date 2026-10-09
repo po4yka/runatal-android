@@ -254,11 +254,14 @@ class QuoteViewModelTest {
     private fun createViewModel(
         translationRepository: TranslationRepository = NoOpTranslationRepository
     ): QuoteViewModel {
+        val history = mockk<com.po4yka.runatal.domain.repository.ReadingHistoryRepository>(relaxed = true)
+        every { history.readings() } returns kotlinx.coroutines.flow.flowOf(emptyList())
         return QuoteViewModel(
             quoteRepository = quoteRepository,
             userPreferencesManager = userPreferencesManager,
             transliterationFactory = transliterationFactory,
-            translationRepository = translationRepository
+            translationRepository = translationRepository,
+            readingHistoryRepository = history
         )
     }
 }

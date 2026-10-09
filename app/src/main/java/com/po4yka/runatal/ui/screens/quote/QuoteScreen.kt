@@ -408,11 +408,11 @@ private fun TodayContent(
                             )
                         }
 
-                        HistoryLink(onClick = onNavigateToHistory)
                     }
                 }
             }
 
+            HistoryLink(onClick = onNavigateToHistory)
             Spacer(modifier = Modifier.height(24.dp))
         }
 

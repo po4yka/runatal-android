@@ -66,7 +66,7 @@ class YoungerFutharkMigrationTest {
             }
             database = Room.databaseBuilder(context, RunatalDatabase::class.java, databaseName)
                 .setDriver(AndroidSQLiteDriver())
-                .addMigrations(RunatalDatabase.MIGRATION_8_9, RunatalDatabase.MIGRATION_9_10)
+                .addMigrations(RunatalDatabase.MIGRATION_8_9, RunatalDatabase.MIGRATION_9_10, RunatalDatabase.MIGRATION_10_11)
                 .build()
             val migrated = requireNotNull(database)
             val converter = YoungerFutharkTransliterator()

@@ -3,6 +3,7 @@ package com.po4yka.runatal.di
 import android.content.Context
 import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
+import com.po4yka.runatal.data.local.dao.ReadingHistoryDao
 import com.po4yka.runatal.data.local.RunatalDatabase
 import com.po4yka.runatal.data.local.dao.ArchivedQuoteDao
 import com.po4yka.runatal.data.local.dao.QuoteDao
@@ -45,7 +46,8 @@ internal object DatabaseModule {
                 RunatalDatabase.MIGRATION_6_7,
                 RunatalDatabase.MIGRATION_7_8,
                 RunatalDatabase.MIGRATION_8_9,
-                RunatalDatabase.MIGRATION_9_10
+                RunatalDatabase.MIGRATION_9_10,
+                RunatalDatabase.MIGRATION_10_11
             )
             .build()
     }
@@ -91,4 +93,8 @@ internal object DatabaseModule {
     fun provideTranslationBackfillStateDao(database: RunatalDatabase): TranslationBackfillStateDao {
         return database.translationBackfillStateDao()
     }
+    /** Provides the transactional reading history DAO. */
+    @Provides
+    fun provideReadingHistoryDao(database: RunatalDatabase): ReadingHistoryDao = database.readingHistoryDao()
+
 }

@@ -218,7 +218,8 @@ class RunatalDatabaseMigrationTest {
         val database = Room.databaseBuilder(context, RunatalDatabase::class.java, TEST_DB)
             .setDriver(AndroidSQLiteDriver())
             .addMigrations(
-                RunatalDatabase.MIGRATION_7_8, RunatalDatabase.MIGRATION_8_9, RunatalDatabase.MIGRATION_9_10
+                RunatalDatabase.MIGRATION_7_8, RunatalDatabase.MIGRATION_8_9, RunatalDatabase.MIGRATION_9_10,
+                    RunatalDatabase.MIGRATION_10_11
             )
             .build()
         try {

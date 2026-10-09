@@ -26,6 +26,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.po4yka.runatal.MainActivity
 import com.po4yka.runatal.ui.dismissOnboardingIfNeeded
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -35,6 +36,21 @@ class CoreFlowsUiTest {
 
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
+
+    @Test
+    fun todayScreen_opensActualReadingHistory() {
+        dismissOnboardingIfNeeded(composeRule)
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodesWithText("View full quote history").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("View full quote history").performScrollTo().performClick()
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodesWithText("reading days", substring = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        val summary = composeRule.onNodeWithText("reading days", substring = true).fetchSemanticsNode()
+            .config[SemanticsProperties.Text].joinToString { it.text }
+        assertTrue(summary, Regex("[1-9][0-9]* reading days").containsMatchIn(summary))
+    }
 
     @Test
     fun todayScreen_canOpenShareAndCopyQuote() {
