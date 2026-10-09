@@ -278,6 +278,23 @@ class QuoteViewModelTest {
         assertThat((viewModel.uiState.value as QuoteUiState.Success).quote.id).isEqualTo(2L)
     }
 
+    @Test
+    fun `visible calendar rollover reloads once and unchanged dates retain the current quote`() = runTest {
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote
+        viewModel = createViewModel()
+        val firstDay = java.time.LocalDate.of(2026, 12, 31)
+        viewModel.refreshCalendarDay(firstDay)
+        advanceUntilIdle()
+        viewModel.refreshCalendarDay(firstDay)
+        advanceUntilIdle()
+        coVerify(exactly = 1) { quoteRepository.quoteOfTheDay() }
+        coEvery { quoteRepository.quoteOfTheDay() } returns testQuote.copy(id = 2L)
+        viewModel.refreshCalendarDay(firstDay.plusDays(1))
+        advanceUntilIdle()
+        assertThat((viewModel.uiState.value as QuoteUiState.Success).quote.id).isEqualTo(2L)
+        coVerify(exactly = 2) { quoteRepository.quoteOfTheDay() }
+    }
+
     private fun createViewModel(
         translationRepository: TranslationRepository = NoOpTranslationRepository
     ): QuoteViewModel {

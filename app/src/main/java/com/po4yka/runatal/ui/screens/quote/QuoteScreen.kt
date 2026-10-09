@@ -98,6 +98,11 @@ import com.po4yka.runatal.ui.theme.RunicTextRole
 import com.po4yka.runatal.ui.theme.RunicTypeRoles
 import com.po4yka.runatal.ui.theme.SupportingTextRole
 import com.po4yka.runatal.util.rememberHapticFeedback
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -117,6 +122,17 @@ internal fun QuoteScreen(
     viewModel: QuoteViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var calendarDay by remember { mutableStateOf(LocalDate.now()) }
+    LaunchedEffect(lifecycleOwner, viewModel) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (isActive) {
+                calendarDay = LocalDate.now()
+                viewModel.refreshCalendarDay(calendarDay)
+                delay(java.time.Duration.ofMinutes(1).toMillis())
+            }
+        }
+    }
     val haptics = rememberHapticFeedback()
 
     Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0)) { paddingValues ->
@@ -132,6 +148,7 @@ internal fun QuoteScreen(
 
                 is QuoteUiState.Success -> TodayContent(
                     state = state,
+                    calendarDay = calendarDay,
                     onToggleFavorite = {
                         haptics.lightToggle()
                         viewModel.toggleFavorite()
@@ -190,6 +207,7 @@ internal fun QuoteScreen(
 @Composable
 private fun TodayContent(
     state: QuoteUiState.Success,
+    calendarDay: LocalDate,
     onToggleFavorite: () -> Unit,
     onShare: () -> Unit,
     onNewQuote: () -> Unit,
@@ -211,8 +229,8 @@ private fun TodayContent(
         derivedStateOf { (scrollState.value / 140f).coerceIn(0f, 1f) }
     }
 
-    val todayDate = remember {
-        LocalDate.now().format(
+    val todayDate = remember(calendarDay) {
+        calendarDay.format(
             DateTimeFormatter.ofPattern("EEEE, MMMM d", Locale.ENGLISH)
         )
     }

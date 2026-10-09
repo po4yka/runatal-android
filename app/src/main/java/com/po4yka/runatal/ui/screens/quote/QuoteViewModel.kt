@@ -69,6 +69,7 @@ internal class QuoteViewModel @Inject constructor(
     val uiState: StateFlow<QuoteUiState> = _uiState.asStateFlow()
     private val localWordByWordOverride = MutableStateFlow<Boolean?>(null)
     private var currentQuote: Quote? = null
+    private var displayedDay: java.time.LocalDate? = null
     private var recentQuoteCandidates: List<Quote> = emptyList()
     private var latestPreferences: UserPreferences = UserPreferences()
 
@@ -168,6 +169,13 @@ internal class QuoteViewModel @Inject constructor(
                 _uiState.update { QuoteUiState.Error(e.message ?: "Invalid state") }
             }
         }
+    }
+
+    /** Refreshes once when the visible screen observes a new local calendar date. */
+    fun refreshCalendarDay(day: java.time.LocalDate) {
+        val previous = displayedDay
+        displayedDay = day
+        if (previous != null && previous != day) refreshQuote()
     }
 
     /**
