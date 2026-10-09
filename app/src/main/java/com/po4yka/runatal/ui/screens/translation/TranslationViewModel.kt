@@ -311,7 +311,8 @@ internal class TranslationViewModel @Inject constructor(
                             inputText = state.inputText,
                             translationMode = state.translationMode,
                             fidelity = state.selectedFidelity,
-                            youngerVariant = state.selectedYoungerVariant
+                            youngerVariant = state.selectedYoungerVariant,
+                            selectedScript = state.selectedScript
                         )
                     )
                 }

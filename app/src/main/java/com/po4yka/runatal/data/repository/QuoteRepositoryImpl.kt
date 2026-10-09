@@ -16,7 +16,7 @@ import javax.inject.Singleton
  * Maps data layer entities to domain models to maintain separation of concerns.
  */
 @Singleton
-class QuoteRepositoryImpl @Inject constructor(
+internal class QuoteRepositoryImpl @Inject constructor(
     private val quoteDao: QuoteDao,
     private val timeProvider: TimeProvider
 ) : QuoteRepository {

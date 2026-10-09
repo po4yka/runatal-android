@@ -45,9 +45,13 @@ class SaveTranslationToLibraryUseCaseTest {
     @Before
     fun setUp() {
         coEvery { quotes.saveUserQuote(capture(savedQuote)) } returns 17L
+        coEvery { translations.saveUserQuoteWithTranslations(capture(savedQuote), any()) } returns 17L
         every { historicalService.translate(any(), any(), any(), any()) } answers {
             TranslationResult(
                 sourceText = firstArg(), script = secondArg(), fidelity = thirdArg(),
+                requestedVariant = if (secondArg<RunicScript>() == RunicScript.YOUNGER_FUTHARK) {
+                    arg<YoungerFutharkVariant>(3).name
+                } else { null },
                 derivationKind = TranslationDerivationKind.TOKEN_COMPOSED,
                 historicalStage = HistoricalStage.OLD_NORSE,
                 normalizedForm = "nótt", diplomaticForm = "nutt", glyphOutput = "ᚾᚢᛏᛏ",
@@ -60,12 +64,14 @@ class SaveTranslationToLibraryUseCaseTest {
     @Test
     fun `translate saves canonical direct renderings and stores historical results exclusively in cache`() = runTest {
         val cached = slot<List<TranslationResult>>()
-        coEvery { translations.cacheTranslations(17L, capture(cached), false) } returns Unit
+        coEvery { translations.saveUserQuoteWithTranslations(capture(savedQuote), capture(cached)) } returns 17L
 
         useCase(request(TranslationMode.TRANSLATE))
 
         assertDirectQuote()
         assertThat(savedQuote.captured.runicYounger).isEqualTo("ᚾᛁᚴᚼᛏ")
+        coVerify(exactly = 0) { quotes.saveUserQuote(any()) }
+        coVerify(exactly = 0) { translations.cacheTranslations(any(), any(), any()) }
         assertThat(cached.captured).hasSize(3)
         assertThat(cached.captured.map { it.glyphOutput }).containsExactly("ᚾᚢᛏᛏ", "ᚾᚢᛏᛏ", "ᚾᚢᛏᛏ")
     }
@@ -76,17 +82,98 @@ class SaveTranslationToLibraryUseCaseTest {
 
         assertDirectQuote()
         verify(exactly = 0) { historicalService.translate(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { translations.saveUserQuoteWithTranslations(any(), any()) }
         coVerify(exactly = 0) { translations.cacheTranslations(any(), any(), any()) }
     }
 
     @Test
-    fun `historical cache failure leaves saved quote fields as canonical direct text`() = runTest {
-        coEvery { translations.cacheTranslations(any(), any(), any()) } throws IOException("cache write failed")
+    fun `historical write failure cannot create a quote through a separate nontransactional path`() = runTest {
+        coEvery { translations.saveUserQuoteWithTranslations(any(), any()) } throws IOException("write failed")
 
         val failure = runCatching { useCase(request(TranslationMode.TRANSLATE)) }.exceptionOrNull()
 
         assertThat(failure).isInstanceOf(IOException::class.java)
-        assertDirectQuote()
+        coVerify(exactly = 0) { quotes.saveUserQuote(any()) }
+        coVerify(exactly = 0) { translations.cacheTranslations(any(), any(), any()) }
+    }
+
+    @Test
+    fun `bundle preparation failure is rejected before any persistence`() = runTest {
+        every { historicalService.translate(any(), any(), any(), any()) } throws
+            IllegalStateException("dataset failure")
+
+        val failure = runCatching { useCase(request(TranslationMode.TRANSLATE)) }.exceptionOrNull()
+
+        assertThat(failure).isInstanceOf(IllegalStateException::class.java)
+        assertNoPersistence()
+    }
+
+    @Test
+    fun `direct rendering preparation error cannot persist empty quote fields`() = runTest {
+        val broken = mockk<BuildTransliterationBundleUseCase>()
+        coEvery { broken(any(), any()) } returns TransliterationBundle(errorMessage = "rendering failure")
+        val brokenSave = SaveTranslationToLibraryUseCase(
+            quotes, translations, broken, BuildHistoricalTranslationBundleUseCase(historicalService)
+        )
+
+        val failure = runCatching { brokenSave(request(TranslationMode.TRANSLITERATE)) }.exceptionOrNull()
+
+        assertThat(failure).isInstanceOf(IllegalStateException::class.java)
+        assertNoPersistence()
+    }
+
+    @Test
+    fun `selected unavailable output cannot save successes from the other scripts`() = runTest {
+        every {
+            historicalService.translate(any(), RunicScript.YOUNGER_FUTHARK, any(), any())
+        } answers {
+            prepared(firstArg(), RunicScript.YOUNGER_FUTHARK, thirdArg(), arg(3)).copy(
+                glyphOutput = "", resolutionStatus = TranslationResolutionStatus.UNAVAILABLE,
+                confidence = 0f, unresolvedTokens = listOf("night")
+            )
+        }
+
+        val failure = runCatching { useCase(request(TranslationMode.TRANSLATE)) }.exceptionOrNull()
+
+        assertThat(failure).isInstanceOf(IllegalStateException::class.java)
+        assertNoPersistence()
+    }
+
+    @Test
+    fun `mismatched selected source script fidelity or variant is rejected before writing`() = runTest {
+        val malformed: List<(TranslationResult) -> TranslationResult> = listOf(
+            { it.copy(sourceText = "another source") },
+            { it.copy(script = RunicScript.CIRTH) },
+            { it.copy(fidelity = TranslationFidelity.DECORATIVE) },
+            { it.copy(requestedVariant = YoungerFutharkVariant.LONG_BRANCH.name) }
+        )
+        malformed.forEach { alter ->
+            every {
+                historicalService.translate(any(), RunicScript.YOUNGER_FUTHARK, any(), any())
+            } answers { alter(prepared(firstArg(), secondArg(), thirdArg(), arg(3))) }
+
+            val failure = runCatching { useCase(request(TranslationMode.TRANSLATE)) }.exceptionOrNull()
+
+            assertThat(failure).isInstanceOf(IllegalStateException::class.java)
+        }
+        assertNoPersistence()
+    }
+
+    private fun prepared(
+        text: String, script: RunicScript, fidelity: TranslationFidelity, variant: YoungerFutharkVariant
+    ) = TranslationResult(
+        sourceText = text, script = script, fidelity = fidelity,
+        requestedVariant = if (script == RunicScript.YOUNGER_FUTHARK) variant.name else null,
+        derivationKind = TranslationDerivationKind.TOKEN_COMPOSED, historicalStage = HistoricalStage.OLD_NORSE,
+        normalizedForm = "nótt", diplomaticForm = "nutt", glyphOutput = "ᚾᚢᛏᛏ",
+        resolutionStatus = TranslationResolutionStatus.RECONSTRUCTED, confidence = 0.9f,
+        engineVersion = "historical-test", datasetVersion = "dataset-test"
+    )
+
+    private fun assertNoPersistence() {
+        coVerify(exactly = 0) { quotes.saveUserQuote(any()) }
+        coVerify(exactly = 0) { translations.saveUserQuoteWithTranslations(any(), any()) }
+        coVerify(exactly = 0) { translations.cacheTranslations(any(), any(), any()) }
     }
 
     private fun assertDirectQuote() {
@@ -99,7 +186,8 @@ class SaveTranslationToLibraryUseCaseTest {
     }
 
     private fun request(mode: TranslationMode) = SaveTranslationRequest(
-        inputText = " night ", translationMode = mode, fidelity = TranslationFidelity.STRICT,
+        inputText = " night ", translationMode = mode, selectedScript = RunicScript.YOUNGER_FUTHARK,
+        fidelity = TranslationFidelity.STRICT,
         youngerVariant = YoungerFutharkVariant.SHORT_TWIG
     )
 }

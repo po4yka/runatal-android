@@ -6,12 +6,15 @@ import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.translation.TranslationFidelity
 import com.po4yka.runatal.domain.translation.TranslationMode
+import com.po4yka.runatal.domain.translation.TranslationResolutionStatus
+import com.po4yka.runatal.domain.translation.TranslationResult
 import com.po4yka.runatal.domain.translation.YoungerFutharkVariant
 import javax.inject.Inject
 
 internal data class SaveTranslationRequest(
     val inputText: String,
     val translationMode: TranslationMode,
+    val selectedScript: RunicScript,
     val fidelity: TranslationFidelity,
     val youngerVariant: YoungerFutharkVariant
 )
@@ -29,7 +32,10 @@ internal class SaveTranslationToLibraryUseCase @Inject constructor(
 
     suspend operator fun invoke(request: SaveTranslationRequest): SaveTranslationResult {
         val input = request.inputText.trim()
+        check(input.isNotEmpty()) { "Enter source text before saving." }
         val transliterationBundle = buildTransliterationBundleUseCase(input)
+        check(transliterationBundle.errorMessage == null) { "Could not prepare direct renderings." }
+        check(transliterationBundle.outputFor(request.selectedScript).isNotBlank()) { "No selected output to save." }
         val historicalBundle = if (request.translationMode == TranslationMode.TRANSLATE) {
             buildHistoricalTranslationBundleUseCase(
                 inputText = input,
@@ -52,17 +58,42 @@ internal class SaveTranslationToLibraryUseCase @Inject constructor(
             createdAt = System.currentTimeMillis()
         )
 
-        val quoteId = quoteRepository.saveUserQuote(quote)
         return if (request.translationMode == TranslationMode.TRANSLATE) {
-            translationRepository.cacheTranslations(
-                quoteId = quoteId,
-                results = historicalBundle.results(),
-                isBackfilled = false
-            )
+            val records = validatedHistoricalResults(input, request, historicalBundle)
+            translationRepository.saveUserQuoteWithTranslations(quote, records)
             SaveTranslationResult(message = "Saved translation to library")
         } else {
+            quoteRepository.saveUserQuote(quote)
             SaveTranslationResult(message = "Saved to library")
         }
+    }
+
+    private fun validatedHistoricalResults(
+        input: String,
+        request: SaveTranslationRequest,
+        bundle: HistoricalTranslationBundle
+    ): List<TranslationResult> {
+        check(bundle.errorMessage == null) { "Could not prepare historical translations." }
+        val results = RunicScript.entries.map { script ->
+            val result = checkNotNull(bundle.resultFor(script)) { "Missing prepared translation for $script." }
+            val expectedVariant = if (script == RunicScript.YOUNGER_FUTHARK) request.youngerVariant.name else null
+            check(result.sourceText == input && result.script == script && result.fidelity == request.fidelity &&
+                result.requestedVariant == expectedVariant) {
+                "Prepared translation does not match the save selection."
+            }
+            check(result.confidence.isFinite() && result.confidence in 0f..1f) { "Invalid translation confidence." }
+            if (result.resolutionStatus != TranslationResolutionStatus.UNAVAILABLE) {
+                check(result.glyphOutput.isNotBlank() && result.unresolvedTokens.isEmpty()) {
+                    "Prepared translation is incomplete."
+                }
+            }
+            result
+        }
+        val selected = results.first { it.script == request.selectedScript }
+        check(selected.resolutionStatus != TranslationResolutionStatus.UNAVAILABLE) {
+            "The selected historical translation is unavailable."
+        }
+        return results.filter { it.resolutionStatus != TranslationResolutionStatus.UNAVAILABLE }
     }
 
     private companion object {

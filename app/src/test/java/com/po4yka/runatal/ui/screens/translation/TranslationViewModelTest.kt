@@ -418,7 +418,7 @@ class TranslationViewModelTest {
         advanceUntilIdle()
 
         coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
-        coVerify(exactly = 0) { translationRepository.cacheTranslations(any(), any(), any()) }
+        coVerify(exactly = 0) { translationRepository.saveUserQuoteWithTranslations(any(), any()) }
         assertThat(viewModel.uiState.value.selectedScript).isEqualTo(RunicScript.YOUNGER_FUTHARK)
         collector.cancel()
     }
@@ -466,7 +466,7 @@ class TranslationViewModelTest {
         advanceTimeBy(149)
         runCurrent()
         coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
-        coVerify(exactly = 0) { translationRepository.cacheTranslations(any(), any(), any()) }
+        coVerify(exactly = 0) { translationRepository.saveUserQuoteWithTranslations(any(), any()) }
 
         advanceTimeBy(1)
         advanceUntilIdle()
@@ -569,7 +569,6 @@ class TranslationViewModelTest {
 
     @Test
     fun `saveToLibrary caches structured translations in translate mode`() = runTest {
-        coEvery { quoteRepository.saveUserQuote(any()) } returns 34L
         val cachedResults = slot<List<TranslationResult>>()
         every {
             historicalTranslationService.translate(any(), any(), any(), any())
@@ -578,6 +577,9 @@ class TranslationViewModelTest {
                 sourceText = firstArg(),
                 script = secondArg(),
                 fidelity = thirdArg(),
+                requestedVariant = if (secondArg<RunicScript>() == RunicScript.YOUNGER_FUTHARK) {
+                    arg<YoungerFutharkVariant>(3).name
+                } else null,
                 derivationKind = TranslationDerivationKind.TOKEN_COMPOSED,
                 historicalStage = when (secondArg<RunicScript>()) {
                     RunicScript.YOUNGER_FUTHARK -> HistoricalStage.OLD_NORSE
@@ -602,12 +604,8 @@ class TranslationViewModelTest {
             )
         }
         coEvery {
-            translationRepository.cacheTranslations(
-                quoteId = 34L,
-                results = capture(cachedResults),
-                isBackfilled = false
-            )
-        } returns Unit
+            translationRepository.saveUserQuoteWithTranslations(any(), capture(cachedResults))
+        } returns 34L
 
         val collector = launch { viewModel.uiState.collect { } }
         viewModel.selectMode(TranslationMode.TRANSLATE)
@@ -666,7 +664,7 @@ class TranslationViewModelTest {
         advanceUntilIdle()
 
         coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
-        coVerify(exactly = 0) { translationRepository.cacheTranslations(any(), any(), any()) }
+        coVerify(exactly = 0) { translationRepository.saveUserQuoteWithTranslations(any(), any()) }
         collector.cancel()
     }
 

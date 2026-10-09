@@ -8,13 +8,14 @@ import androidx.room3.Query
 import androidx.room3.Update
 import androidx.room3.Transaction
 import com.po4yka.runatal.data.local.entity.QuoteEntity
+import com.po4yka.runatal.data.local.entity.TranslationRecordEntity
 import kotlinx.coroutines.flow.Flow
 
 /**
  * Data Access Object for Quote operations.
  */
 @Dao
-interface QuoteDao {
+internal interface QuoteDao {
 
     /** Seeds only missing canonical identities without replacing existing quote rows. */
     @Transaction
@@ -100,6 +101,23 @@ interface QuoteDao {
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(quote: QuoteEntity): Long
+
+    /** Commits a new library quote and all its prepared historical records as one aggregate. */
+    @Transaction
+    suspend fun insertUserQuoteWithTranslations(
+        quote: QuoteEntity,
+        records: List<TranslationRecordEntity>
+    ): Long {
+        require(quote.id == 0L && quote.isUserCreated)
+        require(records.isNotEmpty() && records.all { it.id == 0L && it.sourceText == quote.textLatin })
+        val quoteId = insert(quote)
+        insertAggregateTranslations(records.map { it.copy(quoteId = quoteId) })
+        return quoteId
+    }
+
+    /** New aggregate identities have no existing cache rows; duplicate selections abort the aggregate. */
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertAggregateTranslations(records: List<TranslationRecordEntity>)
 
     /** Applies a user-content change and its cache invalidation as one transaction. */
     @Transaction

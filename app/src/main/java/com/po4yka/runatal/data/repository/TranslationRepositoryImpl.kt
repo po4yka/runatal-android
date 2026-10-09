@@ -76,6 +76,16 @@ internal class TranslationRepositoryImpl @Inject constructor(
         )?.toDomain()
     }
 
+    override suspend fun saveUserQuoteWithTranslations(quote: Quote, results: List<TranslationResult>): Long {
+        require(quote.id == 0L && results.isNotEmpty())
+        require(results.all { result ->
+            result.sourceText == quote.textLatin &&
+                result.resolutionStatus != TranslationResolutionStatus.UNAVAILABLE && result.glyphOutput.isNotBlank()
+        })
+        val records = results.map { it.toEntity(quoteId = 0L, isBackfilled = false) }
+        return storageWrite { quoteDao.insertUserQuoteWithTranslations(quote.toEntity(), records) }
+    }
+
     override suspend fun cacheTranslation(
         quoteId: Long,
         result: TranslationResult,
@@ -262,6 +272,12 @@ internal class TranslationRepositoryImpl @Inject constructor(
             updatedAt = updatedAt
         )
     }
+
+    private fun Quote.toEntity() = QuoteEntity(
+        textLatin = textLatin, author = author, runicElder = runicElder,
+        runicYounger = runicYounger, runicCirth = runicCirth,
+        isUserCreated = true, isFavorite = isFavorite, createdAt = createdAt
+    )
 
     private fun QuoteEntity.toDomain() = Quote(
         id = id,

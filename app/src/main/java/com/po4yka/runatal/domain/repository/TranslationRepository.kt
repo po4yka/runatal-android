@@ -28,6 +28,9 @@ internal interface TranslationRepository {
         sourceText: String
     ): TranslationResult?
 
+    /** Creates the user quote and its prepared historical records atomically. */
+    suspend fun saveUserQuoteWithTranslations(quote: Quote, results: List<TranslationResult>): Long
+
     suspend fun cacheTranslation(
         quoteId: Long,
         result: TranslationResult,
@@ -67,6 +70,10 @@ internal object NoOpTranslationRepository : TranslationRepository {
         fidelity: TranslationFidelity,
         youngerVariant: YoungerFutharkVariant
     ): TranslationResult? = null
+
+    override suspend fun saveUserQuoteWithTranslations(quote: Quote, results: List<TranslationResult>): Long {
+        error("Historical library saving requires a persistent translation repository.")
+    }
 
     override suspend fun cacheTranslation(
         quoteId: Long,
