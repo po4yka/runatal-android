@@ -58,6 +58,7 @@ import com.po4yka.runatal.ui.theme.RunicExpressiveTheme
 fun ProfileScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToHistory: () -> Unit,
+    onNavigateToSavedRunes: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -128,7 +129,7 @@ fun ProfileScreen(
                 icon = Icons.Default.BookmarkBorder,
                 title = "Saved Runes",
                 subtitle = "Your bookmarked runes",
-                onClick = {}
+                onClick = onNavigateToSavedRunes
             )
         }
     }

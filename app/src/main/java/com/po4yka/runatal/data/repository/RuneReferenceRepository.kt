@@ -33,4 +33,11 @@ interface RuneReferenceRepository {
      * Inserts multiple rune references.
      */
     suspend fun insertAllRunes(runes: List<RuneReference>)
+    /** Persisted bookmarked runes. */
+    fun getBookmarkedRunesFlow(): Flow<List<RuneReference>>
+    /** Live bookmark state for a reference. */
+    fun observeBookmark(id: Long): Flow<Boolean>
+    /** Atomically toggles a rune bookmark. */
+    suspend fun toggleBookmark(id: Long)
+
 }

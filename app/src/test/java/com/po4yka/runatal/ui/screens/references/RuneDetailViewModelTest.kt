@@ -3,6 +3,8 @@ package com.po4yka.runatal.ui.screens.references
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.data.repository.RuneReferenceRepository
 import com.po4yka.runatal.domain.model.RuneReference
+import io.mockk.every
+import kotlinx.coroutines.flow.flowOf
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -38,6 +40,7 @@ class RuneDetailViewModelTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         runeReferenceRepository = mockk()
+        every { runeReferenceRepository.observeBookmark(any()) } returns flowOf(false)
     }
 
     @After

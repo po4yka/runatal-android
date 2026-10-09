@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import java.io.IOException
 
 /**
@@ -23,6 +26,10 @@ class RuneDetailViewModel @AssistedInject constructor(
     private val runeReferenceRepository: RuneReferenceRepository,
     @Assisted private val runeId: Long
 ) : ViewModel() {
+
+    private var loadingJob: Job? = null
+    private val messages = Channel<String>(Channel.BUFFERED)
+    val bookmarkMessages = messages.receiveAsFlow()
 
     private val _uiState = MutableStateFlow<RuneDetailUiState>(RuneDetailUiState.Loading)
     val uiState: StateFlow<RuneDetailUiState> = _uiState.asStateFlow()
@@ -48,12 +55,15 @@ class RuneDetailViewModel @AssistedInject constructor(
     }
 
     private fun loadRune() {
-        viewModelScope.launch {
+        loadingJob?.cancel()
+        loadingJob = viewModelScope.launch {
             _uiState.value = RuneDetailUiState.Loading
             try {
                 val rune = runeReferenceRepository.getRuneById(runeId)
                 if (rune != null) {
-                    _uiState.value = RuneDetailUiState.Success(rune)
+                    runeReferenceRepository.observeBookmark(rune.id).collect { bookmarked ->
+                        _uiState.value = RuneDetailUiState.Success(rune, bookmarked)
+                    }
                 } else {
                     _uiState.value = RuneDetailUiState.Error("Rune not found")
                 }
@@ -63,6 +73,22 @@ class RuneDetailViewModel @AssistedInject constructor(
             } catch (e: IllegalStateException) {
                 Log.e(TAG, "Invalid state loading rune", e)
                 _uiState.value = RuneDetailUiState.Error("Invalid state: ${e.message}")
+            }
+        }
+    }
+
+    /** Atomically toggles the current rune bookmark. */
+    fun toggleBookmark() {
+        if (_uiState.value !is RuneDetailUiState.Success) return
+        viewModelScope.launch {
+            try {
+                runeReferenceRepository.toggleBookmark(runeId)
+            } catch (exception: IOException) {
+                Log.e(TAG, "Could not update rune bookmark", exception)
+                messages.send("Could not update saved rune")
+            } catch (exception: IllegalStateException) {
+                Log.e(TAG, "Rune bookmark state is invalid", exception)
+                messages.send("Rune is no longer available")
             }
         }
     }
@@ -85,7 +111,7 @@ sealed interface RuneDetailUiState {
     data object Loading : RuneDetailUiState
 
     /** Rune loaded successfully. */
-    data class Success(val rune: RuneReference) : RuneDetailUiState
+    data class Success(val rune: RuneReference, val isBookmarked: Boolean = false) : RuneDetailUiState
 
     /** An error occurred while loading the rune. */
     data class Error(val message: String) : RuneDetailUiState

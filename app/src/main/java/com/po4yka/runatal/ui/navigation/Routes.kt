@@ -121,3 +121,7 @@ data object AboutRoute : NavKey
 /** Actual reading activity and previously opened quotes. */
 @Serializable
 data object ReadingHistoryRoute : NavKey
+
+/** Persisted rune bookmarks. */
+@Serializable
+data object SavedRunesRoute : NavKey

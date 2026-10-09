@@ -186,9 +186,14 @@ class TranslationBackfillDatabaseTest {
         createVersion10()
         database = Room.databaseBuilder(context, RunatalDatabase::class.java, databaseName)
             .setDriver(AndroidSQLiteDriver()).addMigrations(
-                RunatalDatabase.MIGRATION_10_11, RunatalDatabase.MIGRATION_11_12,
-                RunatalDatabase.MIGRATION_12_13, RunatalDatabase.MIGRATION_13_14,
-                RunatalDatabase.MIGRATION_14_15, RunatalDatabase.MIGRATION_15_16, RunatalDatabase.MIGRATION_16_17
+                RunatalDatabase.MIGRATION_10_11,
+                RunatalDatabase.MIGRATION_11_12,
+                RunatalDatabase.MIGRATION_12_13,
+                RunatalDatabase.MIGRATION_13_14,
+                RunatalDatabase.MIGRATION_14_15,
+                RunatalDatabase.MIGRATION_15_16,
+                RunatalDatabase.MIGRATION_16_17,
+                RunatalDatabase.MIGRATION_17_18
             ).build()
         val migrated = requireNotNull(database.quoteDao().getById(1L))
         assertThat(migrated.textLatin).isEqualTo(source)

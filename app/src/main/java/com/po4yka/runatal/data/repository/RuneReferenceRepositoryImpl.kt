@@ -18,6 +18,15 @@ class RuneReferenceRepositoryImpl @Inject constructor(
     private val runeReferenceDao: RuneReferenceDao
 ) : RuneReferenceRepository {
 
+    override fun getBookmarkedRunesFlow(): Flow<List<RuneReference>> = runeReferenceDao.getBookmarkedFlow()
+        .map { rows -> rows.map { it.toDomain() } }
+
+    override fun observeBookmark(id: Long): Flow<Boolean> = runeReferenceDao.observeBookmark(id)
+
+    override suspend fun toggleBookmark(id: Long) {
+        storageWrite { runeReferenceDao.toggleBookmark(id) }
+    }
+
     private var isSeeded = false
 
     override suspend fun seedIfNeeded() {

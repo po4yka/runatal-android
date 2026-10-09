@@ -2,6 +2,7 @@ package com.po4yka.runatal.data.local
 
 import com.po4yka.runatal.data.local.migration.QuoteRenderingSelectionMigration
 import com.po4yka.runatal.data.local.migration.QuoteLifecycleMigration
+import com.po4yka.runatal.data.local.entity.RuneBookmarkEntity
 import androidx.room3.Database
 import com.po4yka.runatal.data.local.dao.ReadingHistoryDao
 import com.po4yka.runatal.data.local.entity.QuoteReadEntity
@@ -47,9 +48,10 @@ import com.po4yka.runatal.data.local.migration.TranslationCacheKeyMigration
         TranslationBackfillStateEntity::class,
         QuoteReadEntity::class,
         ReadingDayEntity::class,
-        TranslationBackfillCompletionEntity::class
+        TranslationBackfillCompletionEntity::class,
+        RuneBookmarkEntity::class
     ],
-    version = 17,
+    version = 18,
     exportSchema = true
 )
 internal abstract class RunatalDatabase : RoomDatabase() {
@@ -498,6 +500,15 @@ internal abstract class RunatalDatabase : RoomDatabase() {
         val MIGRATION_16_17 = object : Migration(16, 17) {
             override suspend fun migrate(connection: SQLiteConnection) {
                 QuoteLifecycleMigration.migrate(connection)
+            }
+        }
+
+        /** Adds bookmarks without copying or replacing rune reference rows. */
+        val MIGRATION_17_18 = object : Migration(17, 18) {
+            override suspend fun migrate(connection: SQLiteConnection) {
+                connection.execSQL("CREATE TABLE IF NOT EXISTS rune_bookmarks (" +
+                    "runeId INTEGER NOT NULL PRIMARY KEY, createdAt INTEGER NOT NULL, " +
+                    "FOREIGN KEY(runeId) REFERENCES rune_references(id) ON DELETE CASCADE)")
             }
         }
 
