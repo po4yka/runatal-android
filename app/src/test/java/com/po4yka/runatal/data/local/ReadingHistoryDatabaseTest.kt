@@ -2,6 +2,7 @@ package com.po4yka.runatal.data.local
 
 import android.app.Application
 import androidx.room3.Room
+import androidx.room3.useWriterConnection
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.data.local.entity.QuoteReadEntity
