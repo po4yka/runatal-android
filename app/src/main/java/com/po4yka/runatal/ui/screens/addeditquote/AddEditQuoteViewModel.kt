@@ -43,6 +43,7 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
+    @androidx.annotation.VisibleForTesting
     internal constructor(
         quoteRepository: QuoteRepository,
         userPreferencesManager: UserPreferencesManager,

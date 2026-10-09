@@ -64,6 +64,7 @@ internal class TranslationViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
+    @androidx.annotation.VisibleForTesting
     internal constructor(
         transliterationFactory: TransliterationFactory,
         historicalTranslationService: com.po4yka.runatal.domain.translation.HistoricalTranslationService,
