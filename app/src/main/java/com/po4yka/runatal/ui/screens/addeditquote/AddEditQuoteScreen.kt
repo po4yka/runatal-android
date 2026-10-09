@@ -185,7 +185,7 @@ private fun EditorContent(
     onRequestDelete: () -> Unit
 ) {
     val haptics = rememberHapticFeedback()
-    val saveEnabled = uiState.canSave && !uiState.isSaving
+    val saveEnabled = uiState.canSave && !uiState.isMutating
 
     Scaffold(
         modifier = Modifier.imePadding(),
@@ -224,21 +224,21 @@ private fun EditorContent(
                     haptics.lightToggle()
                     onUpdateScript(script)
                 },
-                enabled = !uiState.isSaving
+                enabled = !uiState.isMutating
             )
 
             QuoteTextField(
                 value = uiState.textLatin,
                 onValueChange = onUpdateText,
                 error = uiState.quoteTextError,
-                enabled = !uiState.isSaving
+                enabled = !uiState.isMutating
             )
 
             AuthorTextField(
                 value = uiState.author,
                 onValueChange = onUpdateAuthor,
                 error = uiState.authorError,
-                enabled = !uiState.isSaving
+                enabled = !uiState.isMutating
             )
 
             SaveButton(
@@ -252,7 +252,7 @@ private fun EditorContent(
 
             if (uiState.isEditing) {
                 DeleteQuoteButton(
-                    enabled = !uiState.isDeleting,
+                    enabled = !uiState.isMutating,
                     onDelete = {
                         haptics.mediumAction()
                         onRequestDelete()

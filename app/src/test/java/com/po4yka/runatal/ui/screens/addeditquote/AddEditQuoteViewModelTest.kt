@@ -17,6 +17,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -92,6 +93,59 @@ class AddEditQuoteViewModelTest {
     }
 
     // ==================== Initialization Tests - New Quote ====================
+
+    @Test
+    fun `save is claimed synchronously and excludes duplicate save and delete`() = runTest {
+        val complete = CompletableDeferred<Unit>()
+        coEvery { quoteRepository.getQuoteById(1L) } returns testQuote
+        coEvery { quoteRepository.saveUserQuote(any()) } coAnswers {
+            complete.await()
+            1L
+        }
+        viewModel = AddEditQuoteViewModel(
+            quoteRepository, userPreferencesManager, transliterationFactory, 1L
+        )
+        advanceUntilIdle()
+        viewModel.updateTextLatin("Changed quote")
+
+        viewModel.saveQuote()
+        viewModel.saveQuote()
+        viewModel.deleteQuote()
+        assertThat(viewModel.uiState.value.isSaving).isTrue()
+        assertThat(viewModel.uiState.value.canSave).isFalse()
+        viewModel.updateTextLatin("A different draft")
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { quoteRepository.saveUserQuote(any()) }
+        coVerify(exactly = 0) { quoteRepository.deleteUserQuote(any()) }
+        assertThat(viewModel.uiState.value.textLatin).isEqualTo("Changed quote")
+        complete.complete(Unit)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun `delete excludes save and duplicate delete`() = runTest {
+        val complete = CompletableDeferred<Unit>()
+        coEvery { quoteRepository.getQuoteById(1L) } returns testQuote
+        coEvery { quoteRepository.deleteUserQuote(1L) } coAnswers { complete.await() }
+        viewModel = AddEditQuoteViewModel(
+            quoteRepository, userPreferencesManager, transliterationFactory, 1L
+        )
+        advanceUntilIdle()
+        viewModel.updateAuthor("Changed Author")
+
+        viewModel.deleteQuote()
+        viewModel.saveQuote()
+        viewModel.deleteQuote()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { quoteRepository.deleteUserQuote(1L) }
+        coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
+        assertThat(viewModel.uiState.value.isDeleting).isTrue()
+        assertThat(viewModel.uiState.value.canSave).isFalse()
+        complete.complete(Unit)
+        advanceUntilIdle()
+    }
 
     @Test
     fun `viewModel initializes with empty state for new quote`() = runTest {

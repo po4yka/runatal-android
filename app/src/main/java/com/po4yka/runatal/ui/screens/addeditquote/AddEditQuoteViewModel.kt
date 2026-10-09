@@ -145,6 +145,7 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
      * Updates the Latin text and regenerates runic previews.
      */
     fun updateTextLatin(text: String) {
+        if (_uiState.value.isMutating) return
         _uiState.update { it.copy(textLatin = text) }
         updateRunicPreviews(text)
         recomputeDerivedState()
@@ -154,6 +155,7 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
      * Updates the author name.
      */
     fun updateAuthor(author: String) {
+        if (_uiState.value.isMutating) return
         _uiState.update { it.copy(author = author) }
         recomputeDerivedState()
     }
@@ -169,17 +171,14 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
      * Saves the quote to the database and shows confirmation.
      */
     fun saveQuote() {
+        if (_uiState.value.isMutating) return
+        hasAttemptedSave = true
+        recomputeDerivedState()
+        val state = _uiState.value
+        if (!state.canSave) return
+        _uiState.update { it.copy(isSaving = true, canSave = false) }
+
         viewModelScope.launch {
-            val state = _uiState.value
-            hasAttemptedSave = true
-            recomputeDerivedState()
-
-            if (!_uiState.value.canSave) {
-                return@launch
-            }
-
-            _uiState.update { it.copy(isSaving = true) }
-
             try {
                 val result = editorInteractors.saveEditableQuoteUseCase(
                     SaveEditableQuoteRequest(
@@ -231,10 +230,12 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
             } catch (e: IOException) {
                 Log.e(TAG, "IO error saving quote", e)
                 _uiState.update { it.copy(isSaving = false) }
+                recomputeDerivedState()
                 _events.send(AddEditQuoteEvent.ShowMessage("Failed to save quote: ${e.message}"))
             } catch (e: IllegalStateException) {
                 Log.e(TAG, "Invalid state saving quote", e)
                 _uiState.update { it.copy(isSaving = false) }
+                recomputeDerivedState()
                 _events.send(AddEditQuoteEvent.ShowMessage("Invalid state: ${e.message}"))
             }
         }
@@ -244,19 +245,21 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
      * Deletes the current quote being edited.
      */
     fun deleteQuote() {
-        if (quoteId == 0L) return
+        if (quoteId == 0L || _uiState.value.isMutating) return
+        _uiState.update { it.copy(isDeleting = true, canSave = false) }
         viewModelScope.launch {
-            _uiState.update { it.copy(isDeleting = true) }
             try {
                 quoteRepository.deleteUserQuote(quoteId)
                 _events.send(AddEditQuoteEvent.NavigateBackAfterDelete)
             } catch (e: IOException) {
                 Log.e(TAG, "IO error deleting quote", e)
                 _uiState.update { it.copy(isDeleting = false) }
+                recomputeDerivedState()
                 _events.send(AddEditQuoteEvent.ShowMessage("Failed to delete quote: ${e.message}"))
             } catch (e: IllegalStateException) {
                 Log.e(TAG, "Invalid state deleting quote", e)
                 _uiState.update { it.copy(isDeleting = false) }
+                recomputeDerivedState()
                 _events.send(AddEditQuoteEvent.ShowMessage("Invalid state: ${e.message}"))
             }
         }
@@ -315,7 +318,7 @@ internal class AddEditQuoteViewModel @AssistedInject constructor(
                 quoteCharCount = evaluation.quoteCharCount,
                 authorCharCount = evaluation.authorCharCount,
                 hasUnsavedChanges = evaluation.hasUnsavedChanges,
-                canSave = evaluation.canSave
+                canSave = evaluation.canSave && !it.isMutating
             )
         }
     }
@@ -344,7 +347,10 @@ data class AddEditQuoteUiState(
     val hasUnsavedChanges: Boolean = false,
     val canSave: Boolean = false,
     val showConfirmation: Boolean = false
-)
+) {
+    /** Whether a mutually exclusive save or delete is in flight. */
+    val isMutating: Boolean get() = isSaving || isDeleting
+}
 
 /** One-off navigation events emitted by the add/edit quote screen. */
 sealed interface AddEditQuoteEvent {
