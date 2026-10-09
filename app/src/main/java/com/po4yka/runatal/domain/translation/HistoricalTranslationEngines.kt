@@ -15,7 +15,7 @@ internal class YoungerFutharkTranslationEngine @Inject constructor(
 ) : TranslationEngine {
 
     override val script: RunicScript = RunicScript.YOUNGER_FUTHARK
-    override val engineVersion: String = "yf-translation-v4"
+    override val engineVersion: String = "yf-translation-v5"
 
     private val parser = EnglishSyntaxParser()
     private val sourceCatalog = HistoricalSourceCatalog(

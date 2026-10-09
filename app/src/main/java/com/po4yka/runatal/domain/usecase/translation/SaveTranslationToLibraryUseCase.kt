@@ -44,21 +44,9 @@ internal class SaveTranslationToLibraryUseCase @Inject constructor(
             id = 0L,
             textLatin = input,
             author = DEFAULT_TRANSLATION_AUTHOR,
-            runicElder = if (request.translationMode == TranslationMode.TRANSLATE) {
-                historicalBundle.outputFor(RunicScript.ELDER_FUTHARK)
-            } else {
-                transliterationBundle.outputFor(RunicScript.ELDER_FUTHARK)
-            },
-            runicYounger = if (request.translationMode == TranslationMode.TRANSLATE) {
-                historicalBundle.outputFor(RunicScript.YOUNGER_FUTHARK)
-            } else {
-                transliterationBundle.outputFor(RunicScript.YOUNGER_FUTHARK)
-            },
-            runicCirth = if (request.translationMode == TranslationMode.TRANSLATE) {
-                historicalBundle.outputFor(RunicScript.CIRTH)
-            } else {
-                transliterationBundle.outputFor(RunicScript.CIRTH)
-            },
+            runicElder = transliterationBundle.outputFor(RunicScript.ELDER_FUTHARK),
+            runicYounger = transliterationBundle.outputFor(RunicScript.YOUNGER_FUTHARK),
+            runicCirth = transliterationBundle.outputFor(RunicScript.CIRTH),
             isUserCreated = true,
             isFavorite = false,
             createdAt = System.currentTimeMillis()

@@ -47,8 +47,8 @@ class YoungerFutharkTransliteratorTest {
     }
 
     @Test
-    fun `transliterate a to AS`() {
-        assertThat(transliterator.transliterate("a")).isEqualTo("\u16A8")
+    fun `transliterate a to AR`() {
+        assertThat(transliterator.transliterate("a")).isEqualTo("\u16C5")
     }
 
     @Test
@@ -58,23 +58,23 @@ class YoungerFutharkTransliteratorTest {
 
     @Test
     fun `transliterate k to KAUN`() {
-        assertThat(transliterator.transliterate("k")).isEqualTo("\u16B2")
+        assertThat(transliterator.transliterate("k")).isEqualTo("\u16B4")
     }
 
     @Test
     fun `transliterate c to KAUN`() {
-        assertThat(transliterator.transliterate("c")).isEqualTo("\u16B2")
+        assertThat(transliterator.transliterate("c")).isEqualTo("\u16B4")
     }
 
     @Test
     fun `transliterate g to KAUN`() {
         // Younger Futhark merged g and k
-        assertThat(transliterator.transliterate("g")).isEqualTo("\u16B2")
+        assertThat(transliterator.transliterate("g")).isEqualTo("\u16B4")
     }
 
     @Test
     fun `transliterate h to HAGALL`() {
-        assertThat(transliterator.transliterate("h")).isEqualTo("\u16BB")
+        assertThat(transliterator.transliterate("h")).isEqualTo("\u16BC")
     }
 
     @Test
@@ -101,13 +101,13 @@ class YoungerFutharkTransliteratorTest {
 
     @Test
     fun `transliterate s to SOL`() {
-        assertThat(transliterator.transliterate("s")).isEqualTo("\u16CA")
+        assertThat(transliterator.transliterate("s")).isEqualTo("\u16CB")
     }
 
     @Test
     fun `transliterate z to SOL`() {
         // z approximated as s
-        assertThat(transliterator.transliterate("z")).isEqualTo("\u16CA")
+        assertThat(transliterator.transliterate("z")).isEqualTo("\u16CB")
     }
 
     @Test
@@ -122,7 +122,7 @@ class YoungerFutharkTransliteratorTest {
 
     @Test
     fun `transliterate m to MADR`() {
-        assertThat(transliterator.transliterate("m")).isEqualTo("\u16D7")
+        assertThat(transliterator.transliterate("m")).isEqualTo("\u16D8")
     }
 
     @Test
@@ -131,9 +131,9 @@ class YoungerFutharkTransliteratorTest {
     }
 
     @Test
-    fun `transliterate d to THURS (approximation)`() {
-        // d approximated as th in Younger Futhark
-        assertThat(transliterator.transliterate("d")).isEqualTo("\u16A6")
+    fun `transliterate d to TYR`() {
+        // Direct spelling merges d with t.
+        assertThat(transliterator.transliterate("d")).isEqualTo("\u16CF")
     }
 
     @Test
@@ -147,14 +147,14 @@ class YoungerFutharkTransliteratorTest {
     @Test
     fun `transliterate th digraph to THURS`() {
         val result = transliterator.transliterate("the")
-        assertThat(result).isEqualTo("\u16A6\u16D6")
+        assertThat(result).isEqualTo("\u16A6\u16C1")
     }
 
     @Test
     fun `transliterate ng digraph to NAUD`() {
         val result = transliterator.transliterate("king")
         // k -> KAUN, i -> IS, ng -> NAUD
-        assertThat(result).isEqualTo("\u16B2\u16C1\u16BE")
+        assertThat(result).isEqualTo("\u16B4\u16C1\u16BE")
     }
 
     // ==================== Character Merging Tests ====================
@@ -199,21 +199,21 @@ class YoungerFutharkTransliteratorTest {
     fun `transliterate viking`() {
         val result = transliterator.transliterate("viking")
         // v -> UR, i -> IS, k -> KAUN, i -> IS, ng -> NAUD
-        assertThat(result).isEqualTo("\u16A2\u16C1\u16B2\u16C1\u16BE")
+        assertThat(result).isEqualTo("\u16A2\u16C1\u16B4\u16C1\u16BE")
     }
 
     @Test
     fun `transliterate rune`() {
         val result = transliterator.transliterate("rune")
-        // r -> REID, u -> UR, n -> NAUD, e -> approximation
-        assertThat(result).isEqualTo("\u16B1\u16A2\u16BE\u16D6")
+        // r -> REID, u -> UR, n -> NAUD, e -> IS
+        assertThat(result).isEqualTo("\u16B1\u16A2\u16BE\u16C1")
     }
 
     @Test
     fun `transliterate strength with digraph`() {
         val result = transliterator.transliterate("strength")
-        // s -> SOL, t -> TYR, r -> REID, e -> approx, ng -> NAUD, th -> THURS
-        assertThat(result).isEqualTo("\u16CA\u16CF\u16B1\u16D6\u16BE\u16A6")
+        // s -> SOL, t -> TYR, r -> REID, e -> IS, ng -> NAUD, th -> THURS
+        assertThat(result).isEqualTo("\u16CB\u16CF\u16B1\u16C1\u16BE\u16A6")
     }
 
     // ==================== Punctuation Tests ====================
@@ -266,22 +266,22 @@ class YoungerFutharkTransliteratorTest {
     @Test
     fun `transliterate Viking greeting`() {
         val result = transliterator.transliterate("hail")
-        // h -> HAGALL, a -> AS, i -> IS, l -> LOGR
-        assertThat(result).isEqualTo("\u16BB\u16A8\u16C1\u16DA")
+        // h -> HAGALL, a -> AR, i -> IS, l -> LOGR
+        assertThat(result).isEqualTo("\u16BC\u16C5\u16C1\u16DA")
     }
 
     @Test
     fun `transliterate Thor`() {
         val result = transliterator.transliterate("thor")
-        // "th" -> THURS, o -> approx, r -> REID
-        assertThat(result).isEqualTo("\u16A6\u16DF\u16B1")
+        // "th" -> THURS, o -> UR, r -> REID
+        assertThat(result).isEqualTo("\u16A6\u16A2\u16B1")
     }
 
     @Test
     fun `transliterate Odin`() {
         val result = transliterator.transliterate("odin")
-        // o -> approx, d -> THURS, i -> IS, n -> NAUD
-        assertThat(result).isEqualTo("\u16DF\u16A6\u16C1\u16BE")
+        // o -> UR, d -> TYR, i -> IS, n -> NAUD
+        assertThat(result).isEqualTo("\u16A2\u16CF\u16C1\u16BE")
     }
 
     // ==================== Comparison with Elder Futhark ====================

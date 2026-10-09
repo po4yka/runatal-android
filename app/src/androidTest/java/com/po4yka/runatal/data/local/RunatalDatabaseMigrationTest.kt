@@ -217,7 +217,7 @@ class RunatalDatabaseMigrationTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val database = Room.databaseBuilder(context, RunatalDatabase::class.java, TEST_DB)
             .setDriver(AndroidSQLiteDriver())
-            .addMigrations(RunatalDatabase.MIGRATION_7_8)
+            .addMigrations(RunatalDatabase.MIGRATION_7_8, RunatalDatabase.MIGRATION_8_9)
             .build()
         try {
             val quote = requireNotNull(database.quoteDao().getById(1))

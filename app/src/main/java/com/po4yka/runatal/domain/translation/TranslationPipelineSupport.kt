@@ -3,6 +3,7 @@ package com.po4yka.runatal.domain.translation
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.transliteration.CirthTransliterator
 import com.po4yka.runatal.domain.transliteration.ElderFutharkTransliterator
+import com.po4yka.runatal.domain.transliteration.YoungerFutharkAlphabet
 
 internal class TranslationGoldExampleResolver(
     private val runicCorpusStore: RunicCorpusStore
@@ -433,66 +434,7 @@ internal class YoungerFutharkPhonologyStage {
 }
 
 internal class YoungerFutharkRenderer {
-    private val longBranchMap = mapOf(
-        'f' to 'ᚠ',
-        'u' to 'ᚢ',
-        'v' to 'ᚢ',
-        'w' to 'ᚢ',
-        'þ' to 'ᚦ',
-        'a' to 'ᛅ',
-        'ą' to 'ᚬ',
-        'r' to 'ᚱ',
-        'ʀ' to 'ᛦ',
-        'k' to 'ᚴ',
-        'g' to 'ᚴ',
-        'h' to 'ᚼ',
-        'n' to 'ᚾ',
-        'i' to 'ᛁ',
-        'j' to 'ᛁ',
-        's' to 'ᛋ',
-        't' to 'ᛏ',
-        'd' to 'ᛏ',
-        'b' to 'ᛒ',
-        'p' to 'ᛒ',
-        'm' to 'ᛘ',
-        'l' to 'ᛚ',
-        ' ' to ' '
-    )
-
-    private val shortTwigMap = mapOf(
-        'f' to 'ᚠ',
-        'u' to 'ᚢ',
-        'v' to 'ᚢ',
-        'w' to 'ᚢ',
-        'þ' to 'ᚦ',
-        'a' to 'ᛆ',
-        'ą' to 'ᚭ',
-        'r' to 'ᚱ',
-        'ʀ' to 'ᛧ',
-        'k' to 'ᚴ',
-        'g' to 'ᚴ',
-        'h' to 'ᚽ',
-        'n' to 'ᚿ',
-        'i' to 'ᛁ',
-        'j' to 'ᛁ',
-        's' to 'ᛌ',
-        't' to 'ᛐ',
-        'd' to 'ᛐ',
-        'b' to 'ᛓ',
-        'p' to 'ᛓ',
-        'm' to 'ᛙ',
-        'l' to 'ᛚ',
-        ' ' to ' '
-    )
-
-    fun render(text: String, variant: YoungerFutharkVariant): String {
-        val mapping = when (variant) {
-            YoungerFutharkVariant.LONG_BRANCH -> longBranchMap
-            YoungerFutharkVariant.SHORT_TWIG -> shortTwigMap
-        }
-
-        return text.map { char -> mapping[char] ?: char }.joinToString("")
-    }
+    fun render(text: String, variant: YoungerFutharkVariant): String = YoungerFutharkAlphabet.render(text, variant)
 }
 
 internal data class ProtoNorseStageOutput(

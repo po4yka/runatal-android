@@ -1,16 +1,22 @@
 package com.po4yka.runatal.data.seed
 
 import com.po4yka.runatal.data.local.entity.QuoteEntity
+import com.po4yka.runatal.domain.transliteration.YoungerFutharkTransliterator
 
 /** Canonical quote identities are independent of database row IDs. */
 internal object QuoteSeedData {
 
     /** Builds canonical rows with database-assigned IDs. */
-    fun getCanonicalQuotes(): List<QuoteEntity> = getLegacyQuotes().map { it.copy(id = 0L) }
+    fun getCanonicalQuotes(): List<QuoteEntity> {
+        val youngerTransliterator = YoungerFutharkTransliterator()
+        return getLegacyQuotes().map { quote ->
+            quote.copy(id = 0L, runicYounger = youngerTransliterator.transliterate(quote.textLatin))
+        }
+    }
 
     /**
-     * Returns a list of initial quotes to seed the database with.
-     * All runic transliterations are pre-computed for optimal performance.
+     * Frozen legacy seed values used to recognize canonical rows during migrations.
+     * New canonical Younger Futhark renderings are generated from the current alphabet.
      */
     fun getLegacyQuotes(): List<QuoteEntity> {
         return listOf(
