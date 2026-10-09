@@ -98,6 +98,7 @@ import java.util.Locale
 internal fun AddEditQuoteScreen(
     quoteId: Long,
     onNavigateBack: () -> Unit,
+    onViewLibrary: () -> Unit,
     viewModel: AddEditQuoteViewModel = hiltViewModel<AddEditQuoteViewModel, AddEditQuoteViewModel.Factory>(
         creationCallback = { factory -> factory.create(quoteId) }
     )
@@ -121,7 +122,7 @@ internal fun AddEditQuoteScreen(
     if (uiState.showConfirmation) {
         ConfirmationContent(
             uiState = uiState,
-            onViewInLibrary = onNavigateBack,
+            onViewInLibrary = onViewLibrary,
             onCreateAnother = viewModel::resetForNewQuote
         )
         return

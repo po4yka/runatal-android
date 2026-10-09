@@ -383,7 +383,11 @@ private fun EntryProviderScope<NavKey>.DetailEntries(
     entry<AddEditQuoteRoute> { route ->
         AddEditQuoteScreen(
             quoteId = route.quoteId,
-            onNavigateBack = { backStack.removeLastOrNull() }
+            onNavigateBack = { backStack.removeLastOrNull() },
+            onViewLibrary = {
+                backStack.clear()
+                backStack.add(QuoteListRoute)
+            }
         )
     }
     entry<PackDetailRoute> { route ->
