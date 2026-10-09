@@ -1,11 +1,12 @@
 {
-  "version": "2026.10-attestation-v4",
+  "version": "2026.10-target-stages-v5",
   "generatedAt": "2026-10-09",
   "generatedBy": "Runatal curated translation pipeline",
   "notes": [
     "Generated from checked-in curated source extracts with stable ids and validation.",
     "STRICT mode only uses gold examples, phrase templates, attested forms, or cited lexical entries.",
     "Younger STRICT composition requires supported sentence grammar and explicit cited inflection forms; corpus examples confer no syntax exemption.",
-    "STRICT Elder output requires a located published inscription and matching diplomatic text; regression examples and homepage citations do not establish attestation."
+    "STRICT Elder output requires a located published inscription and matching diplomatic text; regression examples and homepage citations do not establish attestation.",
+    "Elder source preservation is distinct from Proto-Norse and never borrows Old Norse paraphrases; target vowel markings reduce to Elder rune classes."
   ]
 }

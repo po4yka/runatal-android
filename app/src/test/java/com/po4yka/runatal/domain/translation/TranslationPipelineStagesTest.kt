@@ -85,7 +85,7 @@ class TranslationPipelineStagesTest {
     }
 
     @Test
-    fun `proto norse lexical stage distinguishes strict readable paraphrase and preservation`() {
+    fun `proto norse lexical stage preserves unknown source without borrowing foreign paraphrases`() {
         val stage = ProtoNorseLexicalStage(
             HistoricalLexiconLookup(
                 lexiconStore = lexiconStore(
@@ -111,13 +111,14 @@ class TranslationPipelineStagesTest {
         assertThat(strict.unresolvedToken).isEqualTo("signal")
         assertThat(strict.notes.single()).contains("Missing attested or reconstructed Elder Futhark pattern")
 
-        assertThat(readableParaphrase.form).isEqualTo("beacon")
+        assertThat(readableParaphrase.form).isEqualTo("signal")
+        assertThat(readableParaphrase.historicalStage).isEqualTo(HistoricalStage.PRESERVED_SOURCE)
         assertThat(readableParaphrase.resolutionStatus).isEqualTo(TranslationResolutionStatus.APPROXIMATED)
-        assertThat(readableParaphrase.notes.single()).contains("descriptive paraphrase")
+        assertThat(readableParaphrase.notes.single()).contains("Preserved source spelling")
 
         assertThat(readablePreservation.form).isEqualTo("radar")
         assertThat(readablePreservation.resolutionStatus).isEqualTo(TranslationResolutionStatus.APPROXIMATED)
-        assertThat(readablePreservation.notes.single()).contains("phonological preservation")
+        assertThat(readablePreservation.notes.single()).contains("Preserved source spelling")
     }
 
     @Test

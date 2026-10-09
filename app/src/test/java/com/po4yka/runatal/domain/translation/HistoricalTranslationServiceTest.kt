@@ -97,7 +97,7 @@ class HistoricalTranslationServiceTest {
 
         assertThat(result.derivationKind).isEqualTo(TranslationDerivationKind.TOKEN_COMPOSED)
         assertThat(result.resolutionStatus).isEqualTo(TranslationResolutionStatus.APPROXIMATED)
-        assertThat(result.notes.joinToString()).contains("phonological preservation")
+        assertThat(result.notes.joinToString()).contains("Preserved source spelling")
         assertThat(result.glyphOutput).isNotEmpty()
     }
 

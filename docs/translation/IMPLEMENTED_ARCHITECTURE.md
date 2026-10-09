@@ -16,7 +16,7 @@ The app ships two separate stacks:
 The translation stack is offline and asset-backed. It currently exposes three engines:
 
 - `YoungerFutharkTranslationEngine` English -> normalized Old Norse -> diplomatic Latin rune spelling -> Younger Futhark glyphs
-- `ElderFutharkTranslationEngine` English -> constrained Proto-Norse reconstruction -> Elder Futhark glyphs
+- `ElderFutharkTranslationEngine` English -> located attested forms or curated Proto-Norse approximation/source preservation -> Elder Futhark glyphs
 - `EreborCirthTranslationEngine` English/Westron-style transcription -> Erebor diplomatic sequence layer -> Cirth glyphs
 
 Each engine returns `TranslationResult` with:
@@ -97,6 +97,13 @@ The current positive corpus uses the National Museum of Denmark's Gallehus inscr
 personal names. Its capital `R` transcription marker maps to the Elder rune normalized as `z`; output represents
 rune identities rather than a facsimile. Unverified wolf/king reconstructions remain explicit approximation data,
 and the old wolf-night regression record cannot authorize `STRICT` output.
+
+Elder approximation uses only the Proto-Norse lexical store for target-language forms. An unknown source word
+is preserved explicitly as `PRESERVED_SOURCE`; it never borrows the Old Norse paraphrase table. Combining a
+Proto-Norse form and preserved input yields `MIXED_PROTO_NORSE_SOURCE`, with approximation status and notes.
+Long/nasal target vowel markings remain in the language layer and reduce to the appropriate Elder rune class
+for glyph output. Unsupported Unicode source spans remain visibly preserved rather than being mistaken for
+a historical-language reconstruction.
 
 ## Persistence
 

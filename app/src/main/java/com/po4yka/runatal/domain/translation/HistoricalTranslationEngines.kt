@@ -183,7 +183,7 @@ internal class ElderFutharkTranslationEngine @Inject constructor(
 ) : TranslationEngine {
 
     override val script: RunicScript = RunicScript.ELDER_FUTHARK
-    override val engineVersion: String = "ef-translation-v5"
+    override val engineVersion: String = "ef-translation-v6"
 
     private val parser = EnglishSyntaxParser()
     private val sourceCatalog = HistoricalSourceCatalog(
@@ -211,12 +211,17 @@ internal class ElderFutharkTranslationEngine @Inject constructor(
 
     private fun composeReadableResult(request: TranslationRequest): TranslationResult {
         val parsed = parser.parse(request.sourceText)
+        val stages = mutableSetOf<HistoricalStage>()
         val resolutions = parsed.tokens.map { token ->
             when {
                 token.type == ParsedEnglishTokenType.PUNCTUATION -> token.asPunctuationResolution()
-                token.type == ParsedEnglishTokenType.UNSUPPORTED -> token.asUnsupportedResolution(request.fidelity)
+                token.type == ParsedEnglishTokenType.UNSUPPORTED -> {
+                    stages += HistoricalStage.PRESERVED_SOURCE
+                    token.asUnsupportedResolution(request.fidelity)
+                }
                 else -> {
                     val output = lexicalStage.reconstruct(token, request.fidelity)
+                    stages += output.historicalStage
                     if (output.unresolvedToken != null) {
                         TranslationTokenResolution(
                             sourceToken = token.raw,
@@ -249,7 +254,11 @@ internal class ElderFutharkTranslationEngine @Inject constructor(
             evidenceRequest = TranslationEvidenceRequest(
                 script = script,
                 derivationKind = TranslationDerivationKind.TOKEN_COMPOSED,
-                historicalStage = HistoricalStage.PROTO_NORSE,
+                historicalStage = when {
+                    stages.isEmpty() -> HistoricalStage.PRESERVED_SOURCE
+                    stages.size == 1 -> stages.single()
+                    else -> HistoricalStage.MIXED_PROTO_NORSE_SOURCE
+                },
                 engineVersion = engineVersion,
                 baseConfidence = when (request.fidelity) {
                     TranslationFidelity.READABLE -> 0.74f
@@ -257,7 +266,7 @@ internal class ElderFutharkTranslationEngine @Inject constructor(
                     TranslationFidelity.STRICT -> 0.84f
                 },
                 fallbackStatus = TranslationResolutionStatus.RECONSTRUCTED,
-                defaultNote = "Generated using the offline Proto-Norse translation pipeline."
+                defaultNote = "Generated using curated Proto-Norse forms or explicit source preservation."
             )
         )
     }

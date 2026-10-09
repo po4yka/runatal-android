@@ -380,6 +380,7 @@ internal class YoungerFutharkRenderer {
 }
 
 internal data class ProtoNorseStageOutput(
+    val historicalStage: HistoricalStage,
     val form: String? = null,
     val notes: List<String> = emptyList(),
     val resolutionStatus: TranslationResolutionStatus = TranslationResolutionStatus.RECONSTRUCTED,
@@ -395,10 +396,9 @@ internal class ProtoNorseLexicalStage(
         fidelity: TranslationFidelity
     ): ProtoNorseStageOutput {
         val lexiconEntry = lexiconLookup.protoNorseFor(token.normalized, fidelity)
-        val paraphrase = lexiconLookup.fallbackParaphrase(token.normalized)
-
         return when {
             lexiconEntry != null -> ProtoNorseStageOutput(
+                historicalStage = HistoricalStage.PROTO_NORSE,
                 form = lexiconEntry.form,
                 resolutionStatus = if (lexiconEntry.strictEligible) {
                     TranslationResolutionStatus.RECONSTRUCTED
@@ -409,30 +409,20 @@ internal class ProtoNorseLexicalStage(
             )
 
             fidelity == TranslationFidelity.STRICT -> ProtoNorseStageOutput(
+                historicalStage = HistoricalStage.PROTO_NORSE,
                 unresolvedToken = token.raw,
                 notes = listOf("Missing attested or reconstructed Elder Futhark pattern for '${token.raw}'.")
             )
 
-            paraphrase != null -> ProtoNorseStageOutput(
-                form = paraphrase.lowercase(),
-                notes = listOf("Used descriptive paraphrase for '${token.raw}'."),
-                resolutionStatus = TranslationResolutionStatus.APPROXIMATED,
-                provenance = listOf(
-                    lexiconLookup.provenanceFor(
-                        sourceId = "internal_heuristics",
-                        detail = "Readable-mode paraphrase"
-                    )
-                )
-            )
-
             else -> ProtoNorseStageOutput(
+                historicalStage = HistoricalStage.PRESERVED_SOURCE,
                 form = token.normalized,
-                notes = listOf("Used phonological preservation for '${token.raw}'."),
+                notes = listOf("Preserved source spelling for '${token.raw}'; no Proto-Norse lemma is available."),
                 resolutionStatus = TranslationResolutionStatus.APPROXIMATED,
                 provenance = listOf(
                     lexiconLookup.provenanceFor(
                         sourceId = "internal_heuristics",
-                        detail = "Proto-Norse preservation fallback"
+                        detail = "Source preservation without a Proto-Norse reconstruction"
                     )
                 )
             )
@@ -571,7 +561,19 @@ internal class CirthOrthographyStage(
 internal class ElderRuneRenderer(
     private val transliterator: ElderFutharkTransliterator
 ) {
-    fun render(text: String): String = transliterator.transliterate(text)
+    fun render(text: String): String {
+        val spelling = text.map { character ->
+            when (character) {
+                'ą', 'ā' -> 'a'
+                'ę', 'ē' -> 'e'
+                'į', 'ī' -> 'i'
+                'ǫ', 'ǭ', 'ō' -> 'o'
+                'ų', 'ū' -> 'u'
+                else -> character
+            }
+        }.joinToString("")
+        return transliterator.transliterate(spelling)
+    }
 }
 
 internal data class TranslationEvidenceRequest(

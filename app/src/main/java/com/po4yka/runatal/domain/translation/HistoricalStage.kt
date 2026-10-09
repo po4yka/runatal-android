@@ -7,5 +7,7 @@ internal enum class HistoricalStage {
     OLD_NORSE,
     PROTO_NORSE,
     EREBOR_ENGLISH,
-    MODERN_ENGLISH
+    MODERN_ENGLISH,
+    PRESERVED_SOURCE,
+    MIXED_PROTO_NORSE_SOURCE
 }
