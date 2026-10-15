@@ -34,23 +34,9 @@ interface QuotePackRepository {
      */
     fun searchPacks(query: String): Flow<List<QuotePack>>
 
-    /**
-     * Inserts a pack, returning its ID.
-     */
-    suspend fun insertPack(pack: QuotePack): Long
+    /** Atomically toggles persisted library membership and returns its committed state. */
+    suspend fun toggleLibrary(packId: Long): QuotePack
 
-    /**
-     * Inserts multiple packs.
-     */
-    suspend fun insertAllPacks(packs: List<QuotePack>)
-
-    /**
-     * Updates an existing pack.
-     */
-    suspend fun updatePack(pack: QuotePack)
-
-    /**
-     * Deletes a pack.
-     */
-    suspend fun deletePack(pack: QuotePack)
+    /** Idempotently installs or removes the pack's real quote content. */
+    suspend fun setLibraryMembership(packId: Long, isInLibrary: Boolean): QuotePack
 }

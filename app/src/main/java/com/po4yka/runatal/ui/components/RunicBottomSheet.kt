@@ -4,6 +4,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -39,6 +41,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.po4yka.runatal.domain.model.ResolvedQuoteRendering
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.ui.theme.LocalReduceMotion
 import com.po4yka.runatal.ui.theme.RunicExpressiveTheme
@@ -85,7 +88,7 @@ fun RunicBottomSheet(
         dragHandle = null,
         tonalElevation = RunicExpressiveTheme.elevations.overlay
     ) {
-        Column(modifier = Modifier.padding(bottom = 24.dp)) {
+        Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
             SheetHandle()
             if (preview != null) {
                 SheetCascade(
@@ -142,7 +145,8 @@ data class BottomSheetQuotePreview(
     val latinText: String,
     val author: String,
     val font: String,
-    val script: RunicScript
+    val script: RunicScript,
+    val rendering: ResolvedQuoteRendering
 )
 
 @Composable
@@ -200,6 +204,7 @@ private fun QuotePreviewCard(preview: BottomSheetQuotePreview) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                QuoteRenderingDetails(preview.rendering)
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RunicOrnamentRule(

@@ -73,66 +73,6 @@ class TranslationPipelineStagesTest {
     }
 
     @Test
-    fun `old norse morphology inflects nouns verbs and prepositions`() {
-        val lookup = HistoricalLexiconLookup(
-            lexiconStore = lexiconStore(
-                nounParadigms = mapOf("strong_masc_r" to NounParadigm(pluralSuffix = "ar")),
-                verbParadigms = mapOf(
-                    "verb_regular_a" to VerbParadigm(
-                        thirdPersonPresentSuffix = "r",
-                        thirdPersonPastSuffix = "ði"
-                    )
-                )
-            ),
-            sourceCatalog = HistoricalSourceCatalog(sourceManifest)
-        )
-        val stage = OldNorseMorphologyStage(lookup)
-
-        val pluralNoun = stage.inflect(
-            entry = OldNorseLexiconEntry(
-                id = "on_king",
-                english = "king",
-                lemma = "konungr",
-                partOfSpeech = "noun",
-                paradigmId = "strong_masc_r",
-                sourceId = "zoega",
-                citations = listOf("konungr")
-            ),
-            token = ParsedEnglishToken("kings", "kings", ParsedEnglishTokenType.WORD)
-        )
-        val pastVerb = stage.inflect(
-            entry = OldNorseLexiconEntry(
-                id = "on_walk",
-                english = "walk",
-                lemma = "ganga",
-                partOfSpeech = "verb",
-                paradigmId = "verb_regular_a",
-                sourceId = "zoega",
-                citations = listOf("ganga")
-            ),
-            token = ParsedEnglishToken("walked", "walked", ParsedEnglishTokenType.WORD)
-        )
-        val preposition = stage.inflect(
-            entry = OldNorseLexiconEntry(
-                id = "on_under",
-                english = "under",
-                lemma = "undir",
-                partOfSpeech = "preposition",
-                dativePhrase = "undir",
-                sourceId = "zoega",
-                citations = listOf("undir")
-            ),
-            token = ParsedEnglishToken("under", "under", ParsedEnglishTokenType.WORD)
-        )
-
-        assertThat(pluralNoun.form).isEqualTo("konungar")
-        assertThat(pluralNoun.notes.single()).contains("noun paradigm")
-        assertThat(pastVerb.form).isEqualTo("gangði")
-        assertThat(pastVerb.notes.single()).contains("verb paradigm")
-        assertThat(preposition.form).isEqualTo("undir")
-    }
-
-    @Test
     fun `younger phonology stage applies reductions and simplifications`() {
         val output = YoungerFutharkPhonologyStage().rewrite("eodgllnn")
 
@@ -145,7 +85,7 @@ class TranslationPipelineStagesTest {
     }
 
     @Test
-    fun `proto norse lexical stage distinguishes strict readable paraphrase and preservation`() {
+    fun `proto norse lexical stage preserves unknown source without borrowing foreign paraphrases`() {
         val stage = ProtoNorseLexicalStage(
             HistoricalLexiconLookup(
                 lexiconStore = lexiconStore(
@@ -156,28 +96,37 @@ class TranslationPipelineStagesTest {
         )
 
         val strict = stage.reconstruct(
-            ParsedEnglishToken("signal", "signal", ParsedEnglishTokenType.WORD),
+            ParsedEnglishToken("signal", "signal", ParsedEnglishTokenType.WORD, 0, 6),
             TranslationFidelity.STRICT
         )
         val readableParaphrase = stage.reconstruct(
-            ParsedEnglishToken("signal", "signal", ParsedEnglishTokenType.WORD),
+            ParsedEnglishToken("signal", "signal", ParsedEnglishTokenType.WORD, 0, 6),
             TranslationFidelity.READABLE
         )
         val readablePreservation = stage.reconstruct(
-            ParsedEnglishToken("radar", "radar", ParsedEnglishTokenType.WORD),
+            ParsedEnglishToken("radar", "radar", ParsedEnglishTokenType.WORD, 0, 5),
             TranslationFidelity.READABLE
         )
 
         assertThat(strict.unresolvedToken).isEqualTo("signal")
         assertThat(strict.notes.single()).contains("Missing attested or reconstructed Elder Futhark pattern")
 
-        assertThat(readableParaphrase.form).isEqualTo("beacon")
+        assertThat(readableParaphrase.form).isEqualTo("signal")
+        assertThat(readableParaphrase.historicalStage).isEqualTo(HistoricalStage.PRESERVED_SOURCE)
         assertThat(readableParaphrase.resolutionStatus).isEqualTo(TranslationResolutionStatus.APPROXIMATED)
-        assertThat(readableParaphrase.notes.single()).contains("descriptive paraphrase")
+        assertThat(readableParaphrase.notes.single()).contains("Preserved source spelling")
 
         assertThat(readablePreservation.form).isEqualTo("radar")
         assertThat(readablePreservation.resolutionStatus).isEqualTo(TranslationResolutionStatus.APPROXIMATED)
-        assertThat(readablePreservation.notes.single()).contains("phonological preservation")
+        assertThat(readablePreservation.notes.single()).contains("Preserved source spelling")
+    }
+
+    @Test
+    fun `diphthongs reduce before individual vowels and acute vowel classes never leak Latin`() {
+        val stage = YoungerFutharkPhonologyStage()
+        assertThat(stage.rewrite("veiði").form).isEqualTo("uiþi")
+        assertThat(stage.rewrite("ei ey á é í ó ú ý").form).isEqualTo("i u a i i u u u")
+        assertThat(stage.rewrite("úlfr").form).isEqualTo("ulfr")
     }
 
     private fun lexiconStore(

@@ -1,89 +1,30 @@
 {
   "phraseMappings": [
     {
-      "id": "cirth_tpl_under_mountain",
-      "sourceText": "Under the mountain",
-      "diplomaticForm": "u·n·d·e·r th·e m·ou·n·t·ai·n",
-      "glyphOutput": "  ",
+      "id": "cirth_title_page_english",
+      "sourceText": "The Lord of the Rings translated from the Red Book",
+      "diplomaticForm": "the lord of the rings translated from the red book",
+      "glyphOutput": " ",
       "resolutionStatus": "RECONSTRUCTED",
       "notes": [
-        "Matched a curated Erebor phrase mapping preserved for Tolkien-mode coverage."
+        "Published title-page English profile: reproduces the Fairfax HD publisher sample (corrected translated reading, DCS 2). This is a cited transcription, not an attested Tolkien manuscript."
       ],
       "referenceIds": [
-        "cirth_ref_under_mountain"
+        "cirth_ref_title_page"
       ]
     }
   ],
-  "sequences": {
-    "th": "",
-    "sh": "",
-    "ch": "",
-    "ng": "",
-    "gh": "",
-    "ph": "",
-    "qu": "",
-    "ai": "",
-    "ay": "",
-    "au": "",
-    "aw": "",
-    "ea": "",
-    "ei": "",
-    "ie": "",
-    "oa": "",
-    "ou": "",
-    "ow": ""
+  "publishedWords": {
+    "the": "",
+    "lord": "",
+    "of": "",
+    "rings": "",
+    "translated": "",
+    "from": "",
+    "red": "",
+    "book": ""
   },
-  "singleCharacters": {
-    "p": "",
-    "b": "",
-    "f": "",
-    "v": "",
-    "t": "",
-    "d": "",
-    "k": "",
-    "g": "",
-    "h": "",
-    "s": "",
-    "z": "",
-    "r": "",
-    "l": "",
-    "m": "",
-    "n": "",
-    "w": "",
-    "j": "",
-    "y": "",
-    "i": "",
-    "e": "",
-    "a": "",
-    "o": "",
-    "u": "",
-    "c": "",
-    "q": "",
-    "x": "",
-    " ": " ",
-    ".": ".",
-    ",": ",",
-    "!": "!",
-    "?": "?",
-    "'": "'",
-    "\"": "\"",
-    "-": "-",
-    ":": ":",
-    ";": ";"
-  },
-  "longVowels": {
-    "aa": "",
-    "ee": "",
-    "ii": "",
-    "oo": "",
-    "uu": ""
-  },
-  "longConsonants": {
-    "ll": "",
-    "mm": "",
-    "nn": "",
-    "rr": "",
-    "tt": ""
-  },
+  "profileSourceId": "fairfax_cirth_sample",
+  "profileReferenceId": "cirth_ref_title_page",
   "wordSeparator": "·"
 }

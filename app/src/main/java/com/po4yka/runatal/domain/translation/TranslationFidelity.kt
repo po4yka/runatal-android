@@ -3,7 +3,7 @@ package com.po4yka.runatal.domain.translation
 /**
  * Fidelity level for historical translation output.
  */
-internal enum class TranslationFidelity {
+enum class TranslationFidelity {
     STRICT,
     READABLE,
     DECORATIVE;

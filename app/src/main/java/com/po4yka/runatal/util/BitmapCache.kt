@@ -5,7 +5,8 @@ import android.util.LruCache
 
 /**
  * LRU cache for rendered bitmap images.
- * Automatically manages memory and recycles old bitmaps when evicted.
+ * Eviction releases the cache reference. Consumers may still hold the bitmap,
+ * so its memory is reclaimed by Android only after all references are released.
  */
 object BitmapCache {
 
@@ -18,17 +19,6 @@ object BitmapCache {
             return value.byteCount
         }
 
-        override fun entryRemoved(
-            evicted: Boolean,
-            key: String,
-            oldValue: Bitmap,
-            newValue: Bitmap?
-        ) {
-            // Only recycle if being evicted (not replaced)
-            if (evicted && oldValue != newValue && !oldValue.isRecycled) {
-                oldValue.recycle()
-            }
-        }
     }
 
     /**
@@ -51,26 +41,13 @@ object BitmapCache {
         cache.put(key, bitmap)
     }
 
-    /**
-     * Generates a cache key from text rendering parameters.
-     *
-     * @param text Text content
-     * @param fontResource Font resource ID
-     * @param textSize Text size in SP
-     * @param maxWidth Maximum width constraint
-     * @return Unique cache key
-     */
-    fun generateKey(
-        text: String,
-        fontResource: Int,
-        textSize: Float,
-        maxWidth: Int = 0
-    ): String {
-        return "$text|$fontResource|$textSize|$maxWidth"
+    /** Keys the bitmap by every render parameter and the resolved SP size in pixels. */
+    fun generateKey(config: RenderConfig, textSizePx: Float): String {
+        return "$config|$textSizePx"
     }
 
     /**
-     * Clears all cached bitmaps and recycles them.
+     * Releases all cache references without invalidating consumers' bitmaps.
      */
     fun clear() {
         cache.evictAll()

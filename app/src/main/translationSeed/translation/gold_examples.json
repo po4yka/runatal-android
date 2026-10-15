@@ -8,13 +8,17 @@
         "fidelity": "STRICT",
         "derivationKind": "GOLD_EXAMPLE",
         "historicalStage": "OLD_NORSE",
-        "normalizedForm": "úlfr veiðir um nótt",
-        "diplomaticForm": "ulfr uiþir um nutt",
-        "glyphOutput": "ᚢᛚᚠᚱ ᚢᛁᚦᛁᚱ ᚢᛘ ᚾᚢᛏᛏ",
+        "normalizedForm": "úlfrinn veiðir um nótt",
+        "diplomaticForm": "ulfrin uiþir um nutt",
+        "glyphOutput": "ᚢᛚᚠᚱᛁᚾ ᚢᛁᚦᛁᚱ ᚢᛘ ᚾᚢᛏᛏ",
         "requestedVariant": "LONG_BRANCH",
         "resolutionStatus": "RECONSTRUCTED",
         "confidence": 0.97,
-        "notes": ["Matched a curated Old Norse example aligned with the translation specification."],
+        "notes": [
+          "Educational comparison using the explicit suffixed-article interpretation: definite nominative singular úlfrinn (Barnes NION I §3.1.9, pp.56–58).",
+          "The reduced diplomatic spelling and rune sequence illustrate the declared Younger rendering profile; no located inscription is supplied.",
+          "This comparison record does not override lexical evidence or the generic syntax and inflection pipeline."
+        ],
         "provenance": [
           {
             "sourceId": "onp",
@@ -36,14 +40,37 @@
             "label": "Runor-aligned Younger exemplar",
             "role": "Runic inscription discovery and verification reference",
             "license": "Reference only"
+          },
+          {
+            "sourceId": "barnes_nion",
+            "label": "Barnes: suffixed definite article",
+            "role": "Explicit inflection paradigms and grammatical agreement",
+            "license": "Reference only",
+            "detail": "NION I §3.1.9, pp.56–58: suffixed masculine nominative singular article; article omission may also be grammatical in context."
           }
         ],
         "tokenBreakdown": [
           {
+            "sourceToken": "The",
+            "normalizedToken": "",
+            "diplomaticToken": "",
+            "glyphToken": "",
+            "resolutionStatus": "RECONSTRUCTED",
+            "provenance": [
+              {
+                "sourceId": "barnes_nion",
+                "label": "Barnes: suffixed definite article",
+                "role": "Explicit inflection paradigms and grammatical agreement",
+                "license": "Reference only",
+                "detail": "NION I §3.1.9, pp.56–58: suffixed masculine nominative singular article; article omission may also be grammatical in context."
+              }
+            ]
+          },
+          {
             "sourceToken": "wolf",
-            "normalizedToken": "úlfr",
-            "diplomaticToken": "ulfr",
-            "glyphToken": "ᚢᛚᚠᚱ",
+            "normalizedToken": "úlfrinn",
+            "diplomaticToken": "ulfrin",
+            "glyphToken": "ᚢᛚᚠᚱᛁᚾ",
             "resolutionStatus": "RECONSTRUCTED",
             "provenance": [
               {
@@ -52,6 +79,13 @@
                 "role": "Old Norse headword and normalization reference",
                 "license": "Reference only",
                 "detail": "Curated lemma set for the wolf/night example."
+              },
+              {
+                "sourceId": "barnes_nion",
+                "label": "Barnes: suffixed definite article",
+                "role": "Explicit inflection paradigms and grammatical agreement",
+                "license": "Reference only",
+                "detail": "NION I §3.1.9, pp.56–58: suffixed masculine nominative singular article; article omission may also be grammatical in context."
               }
             ]
           },
@@ -99,180 +133,6 @@
                 "referenceId": "yf_ref_wolf_night",
                 "label": "Runor-aligned Younger exemplar",
                 "role": "Runic inscription discovery and verification reference",
-                "license": "Reference only"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "script": "ELDER_FUTHARK",
-        "fidelity": "STRICT",
-        "derivationKind": "GOLD_EXAMPLE",
-        "historicalStage": "PROTO_NORSE",
-        "normalizedForm": "wulfaz waiþiþi nahts",
-        "diplomaticForm": "wulfaz waiþiþi nahts",
-        "glyphOutput": "ᚹᚢᛚᚠᚨᛉ ᚹᚨᛁᚦᛁᚦᛁ ᚾᚨᚻᛏᛊ",
-        "resolutionStatus": "RECONSTRUCTED",
-        "confidence": 0.9,
-        "notes": ["Matched a curated Proto-Norse reconstruction kept for regression coverage."],
-        "provenance": [
-          {
-            "sourceId": "srd",
-            "referenceId": "ef_ref_wolf_night",
-            "label": "SRD-style Elder exemplar",
-            "role": "Gold examples and runic comparison corpus",
-            "license": "Reference only"
-          }
-        ],
-        "tokenBreakdown": [
-          {
-            "sourceToken": "wolf",
-            "normalizedToken": "wulfaz",
-            "diplomaticToken": "wulfaz",
-            "glyphToken": "ᚹᚢᛚᚠᚨᛉ",
-            "resolutionStatus": "RECONSTRUCTED",
-            "provenance": [
-              {
-                "sourceId": "srd",
-                "referenceId": "ef_ref_wolf_night",
-                "label": "SRD-style Elder exemplar",
-                "role": "Gold examples and runic comparison corpus",
-                "license": "Reference only"
-              }
-            ]
-          },
-          {
-            "sourceToken": "hunts",
-            "normalizedToken": "waiþiþi",
-            "diplomaticToken": "waiþiþi",
-            "glyphToken": "ᚹᚨᛁᚦᛁᚦᛁ",
-            "resolutionStatus": "RECONSTRUCTED",
-            "provenance": [
-              {
-                "sourceId": "srd",
-                "referenceId": "ef_ref_wolf_night",
-                "label": "SRD-style Elder exemplar",
-                "role": "Gold examples and runic comparison corpus",
-                "license": "Reference only"
-              }
-            ]
-          },
-          {
-            "sourceToken": "night",
-            "normalizedToken": "nahts",
-            "diplomaticToken": "nahts",
-            "glyphToken": "ᚾᚨᚻᛏᛊ",
-            "resolutionStatus": "RECONSTRUCTED",
-            "provenance": [
-              {
-                "sourceId": "srd",
-                "referenceId": "ef_ref_wolf_night",
-                "label": "SRD-style Elder exemplar",
-                "role": "Gold examples and runic comparison corpus",
-                "license": "Reference only"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "script": "CIRTH",
-        "fidelity": "STRICT",
-        "derivationKind": "GOLD_EXAMPLE",
-        "historicalStage": "EREBOR_ENGLISH",
-        "normalizedForm": "the wolf hunts at night",
-        "diplomaticForm": "th·e w·o·l·f h·u·n·t·s a·t n·i·gh·t",
-        "glyphOutput": "    ",
-        "resolutionStatus": "APPROXIMATED",
-        "confidence": 0.78,
-        "notes": ["Curated Erebor transcription example using Appendix E-style orthography tables."],
-        "provenance": [
-          {
-            "sourceId": "tolkien_appendix_e",
-            "referenceId": "cirth_ref_wolf_night",
-            "label": "Appendix E wolf-night example",
-            "role": "Cirth transcription reference",
-            "license": "Reference only"
-          }
-        ],
-        "tokenBreakdown": [
-          {
-            "sourceToken": "the",
-            "normalizedToken": "the",
-            "diplomaticToken": "th·e",
-            "glyphToken": "",
-            "resolutionStatus": "APPROXIMATED",
-            "provenance": [
-              {
-                "sourceId": "tolkien_appendix_e",
-                "referenceId": "cirth_ref_wolf_night",
-                "label": "Appendix E wolf-night example",
-                "role": "Cirth transcription reference",
-                "license": "Reference only"
-              }
-            ]
-          },
-          {
-            "sourceToken": "wolf",
-            "normalizedToken": "wolf",
-            "diplomaticToken": "w·o·l·f",
-            "glyphToken": "",
-            "resolutionStatus": "APPROXIMATED",
-            "provenance": [
-              {
-                "sourceId": "tolkien_appendix_e",
-                "referenceId": "cirth_ref_wolf_night",
-                "label": "Appendix E wolf-night example",
-                "role": "Cirth transcription reference",
-                "license": "Reference only"
-              }
-            ]
-          },
-          {
-            "sourceToken": "hunts",
-            "normalizedToken": "hunts",
-            "diplomaticToken": "h·u·n·t·s",
-            "glyphToken": "",
-            "resolutionStatus": "APPROXIMATED",
-            "provenance": [
-              {
-                "sourceId": "tolkien_appendix_e",
-                "referenceId": "cirth_ref_wolf_night",
-                "label": "Appendix E wolf-night example",
-                "role": "Cirth transcription reference",
-                "license": "Reference only"
-              }
-            ]
-          },
-          {
-            "sourceToken": "at",
-            "normalizedToken": "at",
-            "diplomaticToken": "a·t",
-            "glyphToken": "",
-            "resolutionStatus": "APPROXIMATED",
-            "provenance": [
-              {
-                "sourceId": "tolkien_appendix_e",
-                "referenceId": "cirth_ref_wolf_night",
-                "label": "Appendix E wolf-night example",
-                "role": "Cirth transcription reference",
-                "license": "Reference only"
-              }
-            ]
-          },
-          {
-            "sourceToken": "night",
-            "normalizedToken": "night",
-            "diplomaticToken": "n·i·gh·t",
-            "glyphToken": "",
-            "resolutionStatus": "APPROXIMATED",
-            "provenance": [
-              {
-                "sourceId": "tolkien_appendix_e",
-                "referenceId": "cirth_ref_wolf_night",
-                "label": "Appendix E wolf-night example",
-                "role": "Cirth transcription reference",
                 "license": "Reference only"
               }
             ]

@@ -14,6 +14,7 @@ object WidgetStateCache {
         val date: LocalDate,
         val widgetWidth: Int,
         val widgetHeight: Int,
+        val renderEnvironment: String,
         val selectedScript: String,
         val selectedFont: String,
         val displayMode: String,
@@ -33,22 +34,28 @@ object WidgetStateCache {
         currentDate: LocalDate,
         preferences: UserPreferences,
         widgetWidth: Int,
-        widgetHeight: Int
+        widgetHeight: Int,
+        renderEnvironment: String,
+        expectedContent: WidgetQuoteContent
     ): WidgetState? {
         val entry = cache[widgetKey] ?: return null
-        val isValid = entry.date == currentDate &&
-            entry.widgetWidth == widgetWidth &&
-            entry.widgetHeight == widgetHeight &&
-            entry.selectedScript == preferences.selectedScript.name &&
-            entry.selectedFont == preferences.selectedFont &&
-            entry.displayMode == preferences.widgetDisplayMode &&
-            entry.updateMode == preferences.widgetUpdateMode &&
-            entry.themeMode == preferences.themeMode &&
-            entry.themePack == preferences.themePack &&
-            entry.highContrastEnabled == preferences.highContrastEnabled &&
-            entry.dynamicColorEnabled == preferences.dynamicColorEnabled
+        val isValid = expectedContent.matches(entry.state) &&
+            matchesDimensions(entry, currentDate, widgetWidth, widgetHeight, renderEnvironment) &&
+            matchesPreferences(entry, preferences)
         return if (isValid) entry.state else null
     }
+
+    private fun matchesDimensions(
+        entry: CacheEntry, date: LocalDate, width: Int, height: Int, environment: String
+    ): Boolean = entry.date == date && entry.widgetWidth == width && entry.widgetHeight == height &&
+        entry.renderEnvironment == environment
+
+    private fun matchesPreferences(entry: CacheEntry, preferences: UserPreferences): Boolean =
+        entry.selectedScript == preferences.selectedScript.name && entry.selectedFont == preferences.selectedFont &&
+            entry.displayMode == preferences.widgetDisplayMode && entry.updateMode == preferences.widgetUpdateMode &&
+            entry.themeMode == preferences.themeMode && entry.themePack == preferences.themePack &&
+            entry.highContrastEnabled == preferences.highContrastEnabled &&
+            entry.dynamicColorEnabled == preferences.dynamicColorEnabled
 
     /** Stores [state] in the cache for the given widget and parameters. */
     fun put(
@@ -57,12 +64,14 @@ object WidgetStateCache {
         preferences: UserPreferences,
         widgetWidth: Int,
         widgetHeight: Int,
+        renderEnvironment: String,
         state: WidgetState
     ) {
         cache[widgetKey] = CacheEntry(
             date = date,
             widgetWidth = widgetWidth,
             widgetHeight = widgetHeight,
+            renderEnvironment = renderEnvironment,
             selectedScript = preferences.selectedScript.name,
             selectedFont = preferences.selectedFont,
             displayMode = preferences.widgetDisplayMode,
@@ -74,6 +83,10 @@ object WidgetStateCache {
             state = state
         )
     }
+
+    /** Returns only a candidate identity; the loader must re-read its current quote content. */
+    fun quoteId(widgetKey: String, date: LocalDate): Long? = cache[widgetKey]
+        ?.takeIf { it.date == date }?.state?.quoteId?.takeIf { it > 0 }
 
     /** Removes the cached state for a single widget. */
     fun clear(widgetKey: String) {

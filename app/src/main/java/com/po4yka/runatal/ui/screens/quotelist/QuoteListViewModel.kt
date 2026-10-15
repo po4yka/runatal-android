@@ -6,10 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteLifecycleChange
 import com.po4yka.runatal.domain.model.RunicScript
-import com.po4yka.runatal.domain.model.getRunicText
+import com.po4yka.runatal.domain.model.ResolvedQuoteRendering
+import com.po4yka.runatal.domain.usecase.quote.ResolveQuoteRenderingUseCase
 import com.po4yka.runatal.domain.repository.QuoteRepository
-import com.po4yka.runatal.domain.transliteration.TransliterationFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,30 +22,48 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
-import java.util.Locale
+import com.po4yka.runatal.di.DefaultDispatcher
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /** ViewModel for the Library screen with tab filtering. */
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
-class QuoteListViewModel @Inject constructor(
+internal class QuoteListViewModel @Inject constructor(
     private val quoteRepository: QuoteRepository,
     private val userPreferencesManager: UserPreferencesManager,
-    private val transliterationFactory: TransliterationFactory
+    resolveQuoteRenderingUseCase: ResolveQuoteRenderingUseCase,
+    @param:DefaultDispatcher private val preparationDispatcher: CoroutineDispatcher
 ) : ViewModel() {
+
+    private val preparation = QuoteListPreparation(resolveQuoteRenderingUseCase)
 
     private val _uiState = MutableStateFlow(QuoteListUiState(isLoading = true))
     val uiState: StateFlow<QuoteListUiState> = _uiState.asStateFlow()
     private val currentFilter = MutableStateFlow(QuoteFilter.ALL)
     private val searchQuery = MutableStateFlow("")
+    private val pendingSearchWrite = MutableStateFlow<SearchWrite?>(null)
+    private var lastPersistedSearch: SearchWrite? = null
+    private var filterWasChanged = false
     private val _events = Channel<QuoteListEvent>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
 
     /** @suppress */
     companion object {
+        private const val SEARCH_PERSIST_DELAY_MS = 300L
         private const val TAG = "QuoteListViewModel"
     }
 
     init {
+        viewModelScope.launch { persistSearchUpdates() }
         viewModelScope.launch {
             restorePersistedFilters()
             observeQuotes()
@@ -71,50 +90,19 @@ class QuoteListViewModel @Inject constructor(
                         )
                     }
                 ) { sourceState, filterState ->
-                    val favoriteQuotes = sourceState.allQuotes.filter { it.isFavorite }
-                    val userQuotes = sourceState.allQuotes.filter { it.isUserCreated }
-                    val baseQuotes = when (filterState.currentFilter) {
-                        QuoteFilter.ALL -> sourceState.allQuotes
-                        QuoteFilter.USER_CREATED -> userQuotes
-                        QuoteFilter.FAVORITES -> favoriteQuotes
+                    sourceState to filterState
+                }.mapLatest { (source, filter) ->
+                    withContext(preparationDispatcher) {
+                        preparation.prepare(source.allQuotes, source.preferences.selectedScript,
+                            source.preferences.selectedFont, filter.currentFilter, filter.searchQuery)
                     }
-
-                    val quoteSearch = filterState.searchQuery.trim().lowercase(Locale.getDefault())
-                    val filteredQuotes = if (quoteSearch.isEmpty()) {
-                        baseQuotes
-                    } else {
-                        baseQuotes.filter { quote ->
-                            quote.textLatin.lowercase(Locale.getDefault()).contains(quoteSearch) ||
-                                quote.author.lowercase(Locale.getDefault()).contains(quoteSearch)
-                        }
-                    }
-                    val quoteItems = filteredQuotes.map { quote ->
-                        QuoteListItemUiModel(
-                            quote = quote,
-                            runicPreviewText = quote.getRunicText(
-                                script = sourceState.preferences.selectedScript,
-                                transliterationFactory = transliterationFactory
-                            )
-                        )
-                    }
-
-                    QuoteListUiState(
-                        quotes = filteredQuotes,
-                        quoteItems = quoteItems,
-                        currentFilter = filterState.currentFilter,
-                        searchQuery = filterState.searchQuery,
-                        selectedScript = sourceState.preferences.selectedScript,
-                        selectedFont = sourceState.preferences.selectedFont,
-                        isLoading = false,
-                        filterCounts = mapOf(
-                            QuoteFilter.ALL to sourceState.allQuotes.size,
-                            QuoteFilter.FAVORITES to favoriteQuotes.size,
-                            QuoteFilter.USER_CREATED to userQuotes.size
-                        )
-                    )
                 }.collect { newState ->
-                    _uiState.value = newState
+                    if (newState.currentFilter == currentFilter.value && newState.searchQuery == searchQuery.value) {
+                        _uiState.value = newState
+                    }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: IOException) {
                 Log.e(TAG, "IO error loading quotes", e)
                 _uiState.update { it.copy(isLoading = false) }
@@ -129,17 +117,42 @@ class QuoteListViewModel @Inject constructor(
 
     /** Changes the active tab filter and persists it. */
     fun setFilter(filter: QuoteFilter) {
+        filterWasChanged = true
         currentFilter.value = filter
+        _uiState.update { it.copy(currentFilter = filter) }
         viewModelScope.launch {
             userPreferencesManager.updateQuoteListFilter(filter.persistedValue)
         }
     }
 
-    /** Updates search query and persists it. */
+    /** Applies search immediately; one writer coalesces pending edits and flushes on navigation. */
     fun updateSearchQuery(query: String) {
         searchQuery.value = query
-        viewModelScope.launch {
-            userPreferencesManager.updateQuoteSearchQuery(query)
+        _uiState.update { it.copy(searchQuery = query) }
+        pendingSearchWrite.value = SearchWrite(query, userPreferencesManager.reserveQuoteSearchWrite())
+    }
+
+    private suspend fun persistSearchUpdates() {
+        try {
+            pendingSearchWrite.filterNotNull().debounce(SEARCH_PERSIST_DELAY_MS).collect { persistSearch(it) }
+        } finally {
+            withContext(NonCancellable) {
+                pendingSearchWrite.value?.let { if (it != lastPersistedSearch) persistSearch(it) }
+            }
+        }
+    }
+
+    private suspend fun persistSearch(write: SearchWrite) {
+        try {
+            // Finish the in-flight durable edit; cancellation then flushes only the newest pending value.
+            withContext(NonCancellable) {
+                userPreferencesManager.updateQuoteSearchQuery(write.query, write.generation)
+                lastPersistedSearch = write
+            }
+        } catch (exception: IOException) {
+            Log.e(TAG, "Failed to persist Library search", exception)
+            val message = "Couldn't save the search. Your current results remain available."
+            _events.trySend(QuoteListEvent.ShowMessage(message))
         }
     }
 
@@ -158,41 +171,52 @@ class QuoteListViewModel @Inject constructor(
         }
     }
 
-    /** Deletes a user-created quote. */
-    fun deleteQuote(quote: Quote) {
+    /** Moves a custom quote to retained trash and provides an exact undo receipt. */
+    fun deleteQuote(quote: Quote) = moveQuote(quote, quoteRepository::deleteUserQuote)
+
+    /** Archives an active quote until it is restored. */
+    fun archiveQuote(quote: Quote) = moveQuote(quote, quoteRepository::archiveQuote)
+
+    /** Hides an active quote until it is restored from the Hidden tab. */
+    fun hideQuote(quote: Quote) = moveQuote(quote, quoteRepository::hideQuote)
+
+    private fun moveQuote(quote: Quote, command: suspend (Long) -> QuoteLifecycleChange) {
         viewModelScope.launch {
             try {
-                quoteRepository.deleteUserQuote(quote.id)
-                _events.send(QuoteListEvent.QuoteDeleted(quote))
-            } catch (e: IOException) {
-                Log.e(TAG, "IO error deleting quote", e)
-                _events.send(QuoteListEvent.ShowMessage("Failed to delete quote: ${e.message}"))
-            } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state deleting quote", e)
-                _events.send(QuoteListEvent.ShowMessage("Invalid state: ${e.message}"))
+                val change = command(quote.id)
+                _events.send(QuoteListEvent.QuoteMoved(change))
+            } catch (exception: IOException) {
+                showLifecycleFailure(exception)
+            } catch (exception: IllegalStateException) {
+                showLifecycleFailure(exception)
             }
         }
     }
 
-    /** Restores a previously deleted quote. */
-    fun restoreDeletedQuote(quote: Quote) {
+    /** Undoes a state mutation without reinserting a stale quote snapshot. */
+    fun undoQuoteMove(change: QuoteLifecycleChange) {
         viewModelScope.launch {
             try {
-                quoteRepository.restoreUserQuote(quote.copy(isUserCreated = true))
-            } catch (e: IOException) {
-                Log.e(TAG, "IO error restoring quote", e)
-                _events.send(QuoteListEvent.ShowMessage("Failed to restore quote: ${e.message}"))
-            } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state restoring quote", e)
-                _events.send(QuoteListEvent.ShowMessage("Invalid state: ${e.message}"))
+                quoteRepository.undoLifecycleChange(change)
+            } catch (exception: IOException) {
+                showLifecycleFailure(exception)
+            } catch (exception: IllegalStateException) {
+                showLifecycleFailure(exception)
             }
         }
     }
+
+    private suspend fun showLifecycleFailure(exception: Exception) {
+        Log.e(TAG, "Quote lifecycle action failed", exception)
+        _events.send(QuoteListEvent.ShowMessage("Failed to update quote: ${exception.message}"))
+    }
+
+    private data class SearchWrite(val query: String, val generation: Long)
 
     private suspend fun restorePersistedFilters() {
         val prefs = userPreferencesManager.userPreferencesFlow.first()
-        currentFilter.value = QuoteFilter.fromPersistedValue(prefs.quoteListFilter)
-        searchQuery.value = prefs.quoteSearchQuery
+        if (!filterWasChanged) currentFilter.value = QuoteFilter.fromPersistedValue(prefs.quoteListFilter)
+        if (pendingSearchWrite.value == null) searchQuery.value = prefs.quoteSearchQuery
     }
 }
 
@@ -221,7 +245,8 @@ data class QuoteListUiState(
 /** Presentation model for quotes rendered in the library list and actions sheet. */
 data class QuoteListItemUiModel(
     val quote: Quote,
-    val runicPreviewText: String
+    val runicPreviewText: String,
+    val rendering: ResolvedQuoteRendering
 )
 
 /** One-off UI events emitted by the library screen. */
@@ -229,8 +254,8 @@ sealed interface QuoteListEvent {
     /** Shows transient feedback to the user. */
     data class ShowMessage(val message: String) : QuoteListEvent
 
-    /** Indicates that a quote was deleted successfully and can be restored. */
-    data class QuoteDeleted(val quote: Quote) : QuoteListEvent
+    /** Provides the exact receipt for a successful, reversible lifecycle action. */
+    data class QuoteMoved(val change: QuoteLifecycleChange) : QuoteListEvent
 }
 
 /** Tab filters for the Library screen: All, Favorites, Custom. */

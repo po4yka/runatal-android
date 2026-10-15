@@ -18,18 +18,21 @@ class RuneReferenceRepositoryImpl @Inject constructor(
     private val runeReferenceDao: RuneReferenceDao
 ) : RuneReferenceRepository {
 
-    private var isSeeded = false
+    override fun getBookmarkedRunesFlow(): Flow<List<RuneReference>> = runeReferenceDao.getBookmarkedFlow()
+        .map { rows -> rows.map { it.toDomain() } }
+
+    override fun observeBookmark(id: Long): Flow<Boolean> = runeReferenceDao.observeBookmark(id)
+
+    override suspend fun toggleBookmark(id: Long) {
+        storageWrite { runeReferenceDao.toggleBookmark(id) }
+    }
 
     override suspend fun seedIfNeeded() {
-        if (isSeeded || runeReferenceDao.getCount() > 0) {
-            return
+        storageWrite {
+            runeReferenceDao.seedCanonicalReferences(
+                RuneReferenceSeedData.getCanonicalReferences(), RuneReferenceSeedData.getKnownLegacyReferences()
+            )
         }
-
-        val allRunes = RuneReferenceSeedData.getElderFutharkRunes() +
-            RuneReferenceSeedData.getYoungerFutharkRunes() +
-            RuneReferenceSeedData.getCirthRunes()
-        runeReferenceDao.insertAll(allRunes)
-        isSeeded = true
     }
 
     override fun getAllRunesFlow(): Flow<List<RuneReference>> {
@@ -49,7 +52,7 @@ class RuneReferenceRepositoryImpl @Inject constructor(
     }
 
     override suspend fun insertAllRunes(runes: List<RuneReference>) {
-        runeReferenceDao.insertAll(runes.map { it.toEntity() })
+        storageWrite { runeReferenceDao.insertAll(runes.map { it.toEntity() }) }
     }
 
     private fun RuneReferenceEntity.toDomain() = RuneReference(

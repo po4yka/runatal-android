@@ -1,5 +1,6 @@
 package com.po4yka.runatal.domain.usecase.translation
 
+import com.po4yka.runatal.domain.model.QuoteInputPolicy
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.model.displayName
 import com.po4yka.runatal.domain.translation.TranslationDerivationKind
@@ -68,10 +69,12 @@ internal class BuildTranslationPresentationUseCase @Inject constructor(
         input: TranslationInputSnapshot,
         translateFeatureEnabled: Boolean
     ): TranslationPresentation {
+        val source = QuoteInputPolicy.prepareSourceText(input.inputText)
         val selectedScript = setOf(preferences.selectedScript)
         val transliterationBundle = buildTransliterationBundleUseCase(
-            inputText = input.inputText,
-            scripts = selectedScript
+            inputText = source,
+            scripts = selectedScript,
+            youngerVariant = preferences.youngerVariant
         )
         val effectiveMode = if (translateFeatureEnabled) {
             preferences.translationMode
@@ -81,7 +84,7 @@ internal class BuildTranslationPresentationUseCase @Inject constructor(
         val isHistoricalTranslation = effectiveMode == TranslationMode.TRANSLATE
         val translationBundle = if (translateFeatureEnabled && isHistoricalTranslation) {
             buildHistoricalTranslationBundleUseCase(
-                inputText = input.inputText,
+                inputText = source,
                 fidelity = preferences.fidelity,
                 youngerVariant = preferences.youngerVariant,
                 scripts = selectedScript
@@ -123,7 +126,7 @@ internal class BuildTranslationPresentationUseCase @Inject constructor(
             translateFeatureEnabled = translateFeatureEnabled,
             outputGlyphCount = selectedOutput.glyphCount(),
             inputCharacterCount = input.inputText.length,
-            canSave = input.inputText.trim().isNotEmpty() &&
+            canSave = QuoteInputPolicy.quoteTextError(input.inputText) == null &&
                 !input.isSaving &&
                 errorMessage == null &&
                 canSaveTranslation,

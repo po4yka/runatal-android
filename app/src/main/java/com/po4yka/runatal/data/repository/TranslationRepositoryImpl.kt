@@ -1,10 +1,10 @@
 package com.po4yka.runatal.data.repository
 
 import com.po4yka.runatal.data.local.dao.QuoteDao
-import com.po4yka.runatal.data.local.dao.TranslationBackfillStateDao
+import com.po4yka.runatal.data.local.dao.TranslationBackfillCompletionDao
 import com.po4yka.runatal.data.local.dao.TranslationRecordDao
 import com.po4yka.runatal.data.local.entity.QuoteEntity
-import com.po4yka.runatal.data.local.entity.TranslationBackfillStateEntity
+import com.po4yka.runatal.data.local.entity.TranslationBackfillCompletionEntity
 import com.po4yka.runatal.data.local.entity.TranslationRecordEntity
 import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.domain.model.RunicScript
@@ -19,6 +19,7 @@ import com.po4yka.runatal.domain.translation.TranslationResolutionStatus
 import com.po4yka.runatal.domain.translation.TranslationResult
 import com.po4yka.runatal.domain.translation.TranslationTokenBreakdown
 import com.po4yka.runatal.domain.translation.YoungerFutharkVariant
+import com.po4yka.runatal.domain.translation.TranslationMode
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.serialization.builtins.ListSerializer
@@ -32,7 +33,7 @@ import kotlinx.serialization.json.Json
 internal class TranslationRepositoryImpl @Inject constructor(
     private val quoteDao: QuoteDao,
     private val translationRecordDao: TranslationRecordDao,
-    private val translationBackfillStateDao: TranslationBackfillStateDao,
+    private val translationBackfillCompletionDao: TranslationBackfillCompletionDao,
     private val historicalTranslationService: HistoricalTranslationService,
     private val translationEngineFactory: TranslationEngineFactory
 ) : TranslationRepository {
@@ -44,6 +45,7 @@ internal class TranslationRepositoryImpl @Inject constructor(
     override suspend fun getCachedTranslation(
         quoteId: Long,
         script: RunicScript,
+        sourceText: String,
         fidelity: TranslationFidelity,
         youngerVariant: YoungerFutharkVariant
     ): TranslationResult? {
@@ -54,19 +56,19 @@ internal class TranslationRepositoryImpl @Inject constructor(
             fidelity = fidelity.name,
             variant = requestedVariant(script, youngerVariant),
             engineVersion = engine.engineVersion,
-            datasetVersion = engine.datasetVersion
+            datasetVersion = engine.datasetVersion,
+            sourceText = sourceText
         )?.toDomain()
     }
 
-    override suspend fun getLatestAvailableTranslation(
-        quoteId: Long,
-        script: RunicScript
-    ): TranslationResult? {
-        return translationRecordDao.getLatestAvailableForScript(
-            quoteId = quoteId,
-            script = script.name,
-            unavailableStatus = TranslationResolutionStatus.UNAVAILABLE.name
-        )?.toDomain()
+    override suspend fun saveUserQuoteWithTranslations(quote: Quote, results: List<TranslationResult>): Long {
+        require(quote.id == 0L && results.isNotEmpty())
+        require(results.all { result ->
+            result.sourceText == quote.textLatin &&
+                result.resolutionStatus != TranslationResolutionStatus.UNAVAILABLE && result.glyphOutput.isNotBlank()
+        })
+        val records = results.map { it.toEntity(quoteId = 0L, isBackfilled = false) }
+        return storageWrite { quoteDao.insertUserQuoteWithTranslations(quote.toEntity(), records) }
     }
 
     override suspend fun cacheTranslation(
@@ -77,7 +79,9 @@ internal class TranslationRepositoryImpl @Inject constructor(
         if (result.resolutionStatus == TranslationResolutionStatus.UNAVAILABLE) {
             return
         }
-        translationRecordDao.insert(result.toEntity(quoteId = quoteId, isBackfilled = isBackfilled))
+        storageWrite {
+            translationRecordDao.insertIfSourceMatches(result.toEntity(quoteId = quoteId, isBackfilled = isBackfilled))
+        }
     }
 
     override suspend fun cacheTranslations(
@@ -113,60 +117,29 @@ internal class TranslationRepositoryImpl @Inject constructor(
     }
 
     override suspend fun backfillQuote(quote: Quote) {
-        cacheTranslations(
-            quoteId = quote.id,
-            results = buildStrictResults(quote.textLatin),
-            isBackfilled = true
-        )
+        completeBackfillAttempt(quote, backfillVersion())
     }
 
     override suspend fun backfillAllQuotes() {
-        val now = System.currentTimeMillis()
-        val previousState = translationBackfillStateDao.getById()
-        val state = if (previousState == null || previousState.engineVersion != BACKFILL_ENGINE_VERSION) {
-            TranslationBackfillStateEntity(
-                engineVersion = BACKFILL_ENGINE_VERSION,
-                startedAt = now,
-                updatedAt = now
-            )
-        } else {
-            previousState
+        val version = backfillVersion()
+        while (true) {
+            val batch = translationBackfillCompletionDao.pendingQuotes(version, BACKFILL_BATCH_SIZE)
+            if (batch.isEmpty()) return
+            batch.forEach { completeBackfillAttempt(it.toDomain(), version) }
         }
-        translationBackfillStateDao.upsert(state)
+    }
 
-        val quotes = quoteDao.getAll()
-            .filter { it.id > state.lastProcessedQuoteId }
-            .sortedBy { it.id }
-
-        var processedCount = state.processedCount
-        var lastProcessedQuoteId = state.lastProcessedQuoteId
-
-        quotes.forEach { quoteEntity ->
-            val quote = quoteEntity.toDomain()
-            cacheTranslations(
-                quoteId = quote.id,
-                results = buildStrictResults(quote.textLatin),
-                isBackfilled = true
-            )
-            processedCount += 1
-            lastProcessedQuoteId = quote.id
-            translationBackfillStateDao.upsert(
-                state.copy(
-                    lastProcessedQuoteId = lastProcessedQuoteId,
-                    processedCount = processedCount,
-                    updatedAt = System.currentTimeMillis()
-                )
+    private suspend fun completeBackfillAttempt(quote: Quote, version: String) {
+        val records = buildStrictResults(quote.textLatin).map { it.toEntity(quote.id, isBackfilled = true) }
+        storageWrite {
+            translationBackfillCompletionDao.completeAttempt(
+                TranslationBackfillCompletionEntity(
+                    quoteId = quote.id, sourceText = quote.textLatin,
+                    versionFingerprint = version, completedAt = System.currentTimeMillis()
+                ),
+                records
             )
         }
-
-        translationBackfillStateDao.upsert(
-            state.copy(
-                lastProcessedQuoteId = lastProcessedQuoteId,
-                processedCount = processedCount,
-                updatedAt = System.currentTimeMillis(),
-                completedAt = System.currentTimeMillis()
-            )
-        )
     }
 
     override suspend fun deleteTranslationsForQuote(quoteId: Long) {
@@ -174,7 +147,7 @@ internal class TranslationRepositoryImpl @Inject constructor(
     }
 
     private fun buildStrictResults(sourceText: String): List<TranslationResult> {
-        return RunicScript.entries.mapNotNull { script ->
+        return BACKFILL_SCRIPTS.map { script ->
             historicalTranslationService.translate(
                 text = sourceText,
                 script = script,
@@ -183,8 +156,7 @@ internal class TranslationRepositoryImpl @Inject constructor(
             )
         }.filter { result ->
             result.resolutionStatus != TranslationResolutionStatus.UNAVAILABLE &&
-                result.provenance.isNotEmpty() &&
-                result.script != RunicScript.CIRTH
+                result.provenance.isNotEmpty()
         }
     }
 
@@ -198,7 +170,7 @@ internal class TranslationRepositoryImpl @Inject constructor(
             normalizedForm = normalizedForm,
             diplomaticForm = diplomaticForm,
             glyphOutput = glyphOutput,
-            requestedVariant = variant,
+            requestedVariant = variant.takeIf { it.isNotEmpty() },
             resolutionStatus = TranslationResolutionStatus.valueOf(resolutionStatus),
             confidence = confidence,
             notes = json.decodeFromString(ListSerializer(String.serializer()), notesJson),
@@ -232,7 +204,7 @@ internal class TranslationRepositoryImpl @Inject constructor(
             diplomaticForm = diplomaticForm,
             glyphOutput = glyphOutput,
             historicalStage = historicalStage.name,
-            variant = requestedVariant,
+            variant = requestedVariant.orEmpty(),
             resolutionStatus = resolutionStatus.name,
             confidence = confidence,
             notesJson = json.encodeToString(ListSerializer(String.serializer()), notes),
@@ -253,6 +225,14 @@ internal class TranslationRepositoryImpl @Inject constructor(
         )
     }
 
+    private fun Quote.toEntity() = QuoteEntity(
+        textLatin = textLatin, author = author, runicElder = runicElder,
+        runicYounger = runicYounger, runicCirth = runicCirth,
+        isUserCreated = true, isFavorite = isFavorite, createdAt = createdAt,
+        renderingMode = renderingMode.name, renderingFidelity = renderingFidelity.name,
+        renderingYoungerVariant = renderingYoungerVariant.name
+    )
+
     private fun QuoteEntity.toDomain() = Quote(
         id = id,
         textLatin = textLatin,
@@ -262,15 +242,23 @@ internal class TranslationRepositoryImpl @Inject constructor(
         runicCirth = runicCirth,
         isUserCreated = isUserCreated,
         isFavorite = isFavorite,
-        createdAt = createdAt
+        createdAt = createdAt,
+        renderingMode = TranslationMode.valueOf(renderingMode),
+        renderingFidelity = TranslationFidelity.valueOf(renderingFidelity),
+        renderingYoungerVariant = YoungerFutharkVariant.valueOf(renderingYoungerVariant)
     )
 
     private fun requestedVariant(
         script: RunicScript,
         youngerVariant: YoungerFutharkVariant
-    ): String? = if (script == RunicScript.YOUNGER_FUTHARK) youngerVariant.name else null
+    ): String = if (script == RunicScript.YOUNGER_FUTHARK) youngerVariant.name else ""
 
+    private fun backfillVersion(): String = BACKFILL_SCRIPTS.joinToString("|") { script ->
+        val engine = translationEngineFactory.create(script)
+        "${script.name}:${engine.engineVersion}:${engine.datasetVersion}"
+    }
     private companion object {
-        const val BACKFILL_ENGINE_VERSION = "historical-backfill-v2"
+        const val BACKFILL_BATCH_SIZE = 25
+        val BACKFILL_SCRIPTS = listOf(RunicScript.ELDER_FUTHARK, RunicScript.YOUNGER_FUTHARK)
     }
 }

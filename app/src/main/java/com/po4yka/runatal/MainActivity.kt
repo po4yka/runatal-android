@@ -8,11 +8,10 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation3.runtime.rememberNavBackStack
 import com.po4yka.runatal.ui.navigation.NavGraph
 import com.po4yka.runatal.ui.navigation.QuoteRoute
 import com.po4yka.runatal.ui.screens.settings.SettingsViewModel
@@ -44,6 +43,7 @@ class MainActivity : ComponentActivity() {
 fun RunatalApp() {
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     val preferences by settingsViewModel.userPreferences.collectAsStateWithLifecycle()
+    val onboardingCompleted by settingsViewModel.onboardingCompleted.collectAsStateWithLifecycle()
     val systemInDarkTheme = isSystemInDarkTheme()
     val context = LocalContext.current
 
@@ -65,16 +65,14 @@ fun RunatalApp() {
         darkTheme = darkTheme,
         dynamicColorEnabled = preferences.dynamicColorEnabled,
         themePack = preferences.themePack,
-        runicFontScale = if (preferences.largeRunesEnabled) 1.25f else 1.0f,
+        runicFontScale = preferences.runicFontScale,
         highContrast = preferences.highContrastEnabled,
         reducedMotion = preferences.reducedMotionEnabled
     ) {
-        val backStack = rememberSaveable {
-            mutableStateListOf<Any>(QuoteRoute)
-        }
+        val backStack = rememberNavBackStack(QuoteRoute)
         NavGraph(
             backStack = backStack,
-            hasCompletedOnboarding = preferences.hasCompletedOnboarding,
+            hasCompletedOnboarding = onboardingCompleted,
             selectedScript = preferences.selectedScript,
             onSelectOnboardingStyle = { script, themePack ->
                 settingsViewModel.updateSelectedScript(script)

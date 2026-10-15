@@ -6,12 +6,15 @@ import androidx.lifecycle.viewModelScope
 import com.po4yka.runatal.data.repository.RuneReferenceRepository
 import com.po4yka.runatal.domain.model.RuneReference
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -34,36 +37,35 @@ class ReferencesViewModel @Inject constructor(
     }
 
     init {
-        viewModelScope.launch {
-            runeReferenceRepository.seedIfNeeded()
-            loadRunes()
-        }
+        loadRunes()
     }
 
     private fun loadRunes() {
         loadJob?.cancel()
+        currentRunes = emptyList()
+        val script = _uiState.value.selectedTab.scriptKey
+        _uiState.update { it.copy(isLoading = true, errorMessage = null, runes = emptyList(), totalRuneCount = 0) }
         loadJob = viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
-            val script = _uiState.value.selectedTab.scriptKey
-            runeReferenceRepository.getRunesByScriptFlow(script)
-                .catch { e ->
-                    Log.e(TAG, "Error loading runes", e)
-                    _uiState.update {
-                        it.copy(isLoading = false, errorMessage = "Failed to load runes: ${e.message}")
-                    }
+            flow {
+                runeReferenceRepository.seedIfNeeded()
+                emitAll(runeReferenceRepository.getRunesByScriptFlow(script))
+            }.catch { e ->
+                if (e is CancellationException) throw e
+                Log.e(TAG, "Error loading runes", e)
+                _uiState.update {
+                    it.copy(isLoading = false, errorMessage = "Failed to load runes: ${e.message}")
                 }
-                .collect { runes ->
-                    currentRunes = runes
-                    _uiState.update {
-                        it.copy(
-                            runes = filterRunes(runes, it.searchQuery),
-                            totalRuneCount = runes.size,
-                            isLoading = false,
-                            errorMessage = null
-                        )
-                    }
+            }.collect { runes ->
+                currentRunes = runes
+                _uiState.update {
+                    it.copy(
+                        runes = filterRunes(runes, it.searchQuery),
+                        totalRuneCount = runes.size,
+                        isLoading = false,
+                        errorMessage = null
+                    )
                 }
+            }
         }
     }
 
@@ -104,7 +106,6 @@ class ReferencesViewModel @Inject constructor(
      * Retries loading runes after an error.
      */
     fun retry() {
-        _uiState.update { it.copy(errorMessage = null) }
         loadRunes()
     }
 

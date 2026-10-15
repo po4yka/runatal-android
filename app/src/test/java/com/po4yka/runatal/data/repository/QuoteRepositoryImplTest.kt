@@ -2,8 +2,12 @@ package com.po4yka.runatal.data.repository
 
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.data.local.dao.QuoteDao
+import com.po4yka.runatal.data.local.dao.ArchivedQuoteDao
 import com.po4yka.runatal.data.local.entity.QuoteEntity
+import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteLifecycleChange
+import com.po4yka.runatal.domain.model.QuoteLifecycleState
 import com.po4yka.runatal.util.TimeProvider
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -28,7 +32,9 @@ import java.time.LocalDate
 class QuoteRepositoryImplTest {
 
     private lateinit var quoteDao: QuoteDao
+    private lateinit var archiveDao: ArchivedQuoteDao
     private lateinit var timeProvider: FakeTimeProvider
+    private lateinit var preferences: UserPreferencesManager
     private lateinit var repository: QuoteRepositoryImpl
 
     /**
@@ -74,8 +80,15 @@ class QuoteRepositoryImplTest {
     @Before
     fun setUp() {
         quoteDao = mockk()
+        archiveDao = mockk()
         timeProvider = FakeTimeProvider(dayOfYear = 1)
-        repository = QuoteRepositoryImpl(quoteDao, timeProvider)
+        preferences = mockk()
+        coEvery { preferences.selectDailyQuote(any(), any()) } coAnswers {
+            val ids = secondArg<suspend () -> List<Long>>().invoke()
+            ids.takeIf { it.isNotEmpty() }?.get(Math.floorMod(firstArg<Long>(), ids.size.toLong()).toInt())
+        }
+        repository = QuoteRepositoryImpl(quoteDao, timeProvider, preferences, archiveDao)
+        coEvery { quoteDao.seedCanonicalQuotes(any()) } returns Unit
     }
 
     @After
@@ -86,43 +99,32 @@ class QuoteRepositoryImplTest {
     // ==================== Seed Logic Tests ====================
 
     @Test
-    fun `seedIfNeeded inserts quotes when database is empty`() = runTest {
-        // Given: Empty database
-        coEvery { quoteDao.getCount() } returns 0
-        coEvery { quoteDao.insertAll(any()) } returns Unit
-
-        // When: Seeding
+    fun `seedIfNeeded delegates canonical identities with database assigned ids`() = runTest {
         repository.seedIfNeeded()
 
-        // Then: Initial quotes are inserted
-        coVerify(exactly = 1) { quoteDao.insertAll(any()) }
-    }
-
-    @Test
-    fun `seedIfNeeded does nothing when database already has quotes`() = runTest {
-        // Given: Database has quotes
-        coEvery { quoteDao.getCount() } returns 5
-
-        // When: Seeding
-        repository.seedIfNeeded()
-
-        // Then: No insertion happens
+        coVerify {
+            quoteDao.seedCanonicalQuotes(match { quotes ->
+                quotes.size == 5 &&
+                    quotes.all { it.id == 0L && !it.isUserCreated && it.canonicalKey != null } &&
+                    quotes.map { it.canonicalKey }.distinct().size == quotes.size
+            })
+        }
         coVerify(exactly = 0) { quoteDao.insertAll(any()) }
     }
 
     @Test
-    fun `seedIfNeeded only seeds once`() = runTest {
-        // Given: Empty database
-        coEvery { quoteDao.getCount() } returns 0
-        coEvery { quoteDao.insertAll(any()) } returns Unit
-
-        // When: Seeding multiple times
-        repository.seedIfNeeded()
-        repository.seedIfNeeded()
+    fun `seedIfNeeded does not use total quote count to skip canonical quotes`() = runTest {
         repository.seedIfNeeded()
 
-        // Then: Only inserted once
-        coVerify(exactly = 1) { quoteDao.insertAll(any()) }
+        coVerify(exactly = 1) { quoteDao.seedCanonicalQuotes(any()) }
+        coVerify(exactly = 0) { quoteDao.getCount() }
+    }
+
+    @Test
+    fun `seedIfNeeded delegates repeated calls to persisted transactional identity check`() = runTest {
+        repeat(3) { repository.seedIfNeeded() }
+
+        coVerify(exactly = 3) { quoteDao.seedCanonicalQuotes(any()) }
     }
 
     // ==================== Quote of the Day Tests ====================
@@ -131,7 +133,7 @@ class QuoteRepositoryImplTest {
     fun `quoteOfTheDay returns consistent quote for same day`() = runTest {
         // Given: Database with quotes
         coEvery { quoteDao.getCount() } returns 3
-        coEvery { quoteDao.getAll() } returns testQuotes
+        stubQuotes(testQuotes)
 
         // When: Getting quote of the day multiple times on same day
         val quote1 = repository.quoteOfTheDay()
@@ -143,26 +145,27 @@ class QuoteRepositoryImplTest {
     }
 
     @Test
-    fun `quoteOfTheDay uses day of year for selection`() = runTest {
+    fun `quoteOfTheDay delegates the local epoch day and stable candidate identities`() = runTest {
         // Given: Database with 3 quotes and day of year set to 5
         timeProvider.setDayOfYear(5)
         coEvery { quoteDao.getCount() } returns 3
-        coEvery { quoteDao.getAll() } returns testQuotes
+        stubQuotes(testQuotes)
 
         // When: Getting quote of the day
         val quote = repository.quoteOfTheDay()
 
-        // Then: Quote index matches dayOfYear % size (5 % 3 = 2)
-        val expectedIndex = 2
+        // Then: Repository resolves the identity selected for the complete local epoch day
+        val expectedIndex = Math.floorMod(timeProvider.getCurrentDate().toEpochDay(), 3L).toInt()
         assertThat(quote?.id).isEqualTo(testQuotes[expectedIndex].id)
+        coVerify { preferences.selectDailyQuote(LocalDate.ofYearDay(2024, 5).toEpochDay(), any()) }
     }
 
     @Test
     fun `quoteOfTheDay returns null when no quotes available`() = runTest {
         // Given: Empty database (even after seeding attempt)
         coEvery { quoteDao.getCount() } returns 0
-        coEvery { quoteDao.insertAll(any()) } returns Unit
-        coEvery { quoteDao.getAll() } returns emptyList()
+        coEvery { quoteDao.seedCanonicalQuotes(any()) } returns Unit
+        stubQuotes(emptyList())
 
         // When: Getting quote of the day
         val quote = repository.quoteOfTheDay()
@@ -175,14 +178,14 @@ class QuoteRepositoryImplTest {
     fun `quoteOfTheDay seeds database if needed`() = runTest {
         // Given: Initially empty database, then has quotes after seeding
         coEvery { quoteDao.getCount() } returns 0 andThen 5
-        coEvery { quoteDao.insertAll(any()) } returns Unit
-        coEvery { quoteDao.getAll() } returns testQuotes
+        coEvery { quoteDao.seedCanonicalQuotes(any()) } returns Unit
+        stubQuotes(testQuotes)
 
         // When: Getting quote of the day
         val quote = repository.quoteOfTheDay()
 
         // Then: Seeding happened and quote returned
-        coVerify { quoteDao.insertAll(any()) }
+        coVerify { quoteDao.seedCanonicalQuotes(any()) }
         assertThat(quote).isNotNull()
     }
 
@@ -191,14 +194,14 @@ class QuoteRepositoryImplTest {
         // Given: Database with quotes and day of year set to 7
         timeProvider.setDayOfYear(7)
         coEvery { quoteDao.getCount() } returns 3
-        coEvery { quoteDao.getAll() } returns testQuotes
+        stubQuotes(testQuotes)
 
         // When: Getting quote of the day
         val quote = repository.quoteOfTheDay()
 
-        // Then: Domain model properties match entity (7 % 3 = 1)
+        // Then: Domain model properties match the selected persisted entity
         assertThat(quote).isNotNull()
-        val expectedIndex = 1
+        val expectedIndex = Math.floorMod(timeProvider.getCurrentDate().toEpochDay(), 3L).toInt()
         val expectedEntity = testQuotes[expectedIndex]
 
         assertThat(quote?.id).isEqualTo(expectedEntity.id)
@@ -230,7 +233,7 @@ class QuoteRepositoryImplTest {
     fun `randomQuote returns null when DAO returns null`() = runTest {
         // Given: DAO returns null (even after seeding attempt)
         coEvery { quoteDao.getCount() } returns 0
-        coEvery { quoteDao.insertAll(any()) } returns Unit
+        coEvery { quoteDao.seedCanonicalQuotes(any()) } returns Unit
         coEvery { quoteDao.getRandom() } returns null
 
         // When: Getting random quote
@@ -244,14 +247,14 @@ class QuoteRepositoryImplTest {
     fun `randomQuote seeds if needed`() = runTest {
         // Given: Initially empty database
         coEvery { quoteDao.getCount() } returns 0 andThen 5
-        coEvery { quoteDao.insertAll(any()) } returns Unit
+        coEvery { quoteDao.seedCanonicalQuotes(any()) } returns Unit
         coEvery { quoteDao.getRandom() } returns testQuotes[0]
 
         // When: Getting random quote
         val quote = repository.randomQuote()
 
         // Then: Seeding happened
-        coVerify { quoteDao.insertAll(any()) }
+        coVerify { quoteDao.seedCanonicalQuotes(any()) }
         assertThat(quote).isNotNull()
     }
 
@@ -309,7 +312,7 @@ class QuoteRepositoryImplTest {
     @Test
     fun `getAllQuotes returns all quotes from DAO`() = runTest {
         // Given: DAO returns list of quotes
-        coEvery { quoteDao.getAll() } returns testQuotes
+        stubQuotes(testQuotes)
 
         // When: Getting all quotes
         val quotes = repository.getAllQuotes()
@@ -324,7 +327,7 @@ class QuoteRepositoryImplTest {
     @Test
     fun `getAllQuotes returns empty list when no quotes`() = runTest {
         // Given: DAO returns empty list
-        coEvery { quoteDao.getAll() } returns emptyList()
+        stubQuotes(emptyList())
 
         // When: Getting all quotes
         val quotes = repository.getAllQuotes()
@@ -416,7 +419,7 @@ class QuoteRepositoryImplTest {
     fun `quoteOfTheDay returns same quote on repeated calls for same day`() = runTest {
         // Given: Database with quotes
         coEvery { quoteDao.getCount() } returns 3
-        coEvery { quoteDao.getAll() } returns testQuotes
+        stubQuotes(testQuotes)
 
         // When: Getting quote multiple times
         val quote1 = repository.quoteOfTheDay()
@@ -435,7 +438,7 @@ class QuoteRepositoryImplTest {
         // Given: Database with one quote
         val singleQuote = listOf(testQuotes[0])
         coEvery { quoteDao.getCount() } returns 1
-        coEvery { quoteDao.getAll() } returns singleQuote
+        stubQuotes(singleQuote)
 
         // When: Getting quote of the day
         val quote = repository.quoteOfTheDay()
@@ -459,7 +462,7 @@ class QuoteRepositoryImplTest {
             )
         }
         coEvery { quoteDao.getCount() } returns 1000
-        coEvery { quoteDao.getAll() } returns manyQuotes
+        stubQuotes(manyQuotes)
 
         // When: Getting quote of the day
         val quote = repository.quoteOfTheDay()
@@ -470,25 +473,25 @@ class QuoteRepositoryImplTest {
     }
 
     @Test
-    fun `day of year modulo works correctly for year boundary`() = runTest {
+    fun `epoch day selection works correctly for year boundary`() = runTest {
         // Given: 3 quotes in database and day of year set to 365 (end of year)
         timeProvider.setDayOfYear(365)
         coEvery { quoteDao.getCount() } returns 3
-        coEvery { quoteDao.getAll() } returns testQuotes
+        stubQuotes(testQuotes)
 
-        // When: Getting quote (day of year will be moduloed by 3)
+        // When: Getting quote using the complete local epoch day
         val quote = repository.quoteOfTheDay()
 
-        // Then: Index is within valid range (365 % 3 = 2)
+        // Then: Selected ID maps to an existing row across the year boundary
         assertThat(quote).isNotNull()
-        assertThat(quote?.id).isEqualTo(testQuotes[365 % 3].id)
+        assertThat(quote?.id).isEqualTo(testQuotes[Math.floorMod(timeProvider.getCurrentDate().toEpochDay(), 3L).toInt()].id)
     }
 
     @Test
     fun `different days return different quotes predictably`() = runTest {
         // Given: Database with 3 quotes
         coEvery { quoteDao.getCount() } returns 3
-        coEvery { quoteDao.getAll() } returns testQuotes
+        stubQuotes(testQuotes)
 
         // When: Getting quotes for different days
         timeProvider.setDayOfYear(1)
@@ -500,25 +503,25 @@ class QuoteRepositoryImplTest {
         timeProvider.setDayOfYear(3)
         val quote3 = repository.quoteOfTheDay()
 
-        // Then: Different quotes are returned based on modulo
-        assertThat(quote1?.id).isEqualTo(testQuotes[1].id) // 1 % 3 = 1
-        assertThat(quote2?.id).isEqualTo(testQuotes[2].id) // 2 % 3 = 2
-        assertThat(quote3?.id).isEqualTo(testQuotes[0].id) // 3 % 3 = 0
+        // Then: Different epoch days are passed to the daily identity selector
+        assertThat(quote1?.id).isEqualTo(testQuotes[1].id)
+        assertThat(quote2?.id).isEqualTo(testQuotes[2].id)
+        assertThat(quote3?.id).isEqualTo(testQuotes[0].id)
     }
 
     @Test
-    fun `same day always returns same quote index`() = runTest {
+    fun `same local day returns the selected quote identity`() = runTest {
         // Given: Database with 3 quotes and day set to 10
         timeProvider.setDayOfYear(10)
         coEvery { quoteDao.getCount() } returns 3
-        coEvery { quoteDao.getAll() } returns testQuotes
+        stubQuotes(testQuotes)
 
         // When: Getting quote multiple times on same day
         val quote1 = repository.quoteOfTheDay()
         val quote2 = repository.quoteOfTheDay()
         val quote3 = repository.quoteOfTheDay()
 
-        // Then: All return same quote (10 % 3 = 1)
+        // Then: All resolve the same selected identity
         assertThat(quote1?.id).isEqualTo(testQuotes[1].id)
         assertThat(quote2?.id).isEqualTo(quote1?.id)
         assertThat(quote3?.id).isEqualTo(quote1?.id)
@@ -533,14 +536,14 @@ class QuoteRepositoryImplTest {
         )
         timeProvider.setDayOfYear(366)
         coEvery { quoteDao.getCount() } returns 5
-        coEvery { quoteDao.getAll() } returns fiveQuotes
+        stubQuotes(fiveQuotes)
 
         // When: Getting quote for day 366
         val quote = repository.quoteOfTheDay()
 
-        // Then: Valid quote is returned (366 % 5 = 1)
+        // Then: Valid quote is returned for the complete leap-year date
         assertThat(quote).isNotNull()
-        assertThat(quote?.id).isEqualTo(fiveQuotes[1].id)
+        assertThat(quote?.id).isEqualTo(fiveQuotes[Math.floorMod(timeProvider.getCurrentDate().toEpochDay(), 5L).toInt()].id)
     }
 
     @Test
@@ -551,17 +554,17 @@ class QuoteRepositoryImplTest {
         // Test with 1 quote
         timeProvider.setDayOfYear(100)
         coEvery { quoteDao.getCount() } returns 1
-        coEvery { quoteDao.getAll() } returns singleQuote
+        stubQuotes(singleQuote)
         val quote = repository.quoteOfTheDay()
         assertThat(quote?.id).isEqualTo(singleQuote[0].id)
     }
 
     @Test
-    fun `isSeeded flag prevents multiple seeding calls`() = runTest {
+    fun `daily and random operations use persisted canonical seed check`() = runTest {
         // Given: Empty database initially
         coEvery { quoteDao.getCount() } returns 0 andThen 5
-        coEvery { quoteDao.insertAll(any()) } returns Unit
-        coEvery { quoteDao.getAll() } returns testQuotes
+        coEvery { quoteDao.seedCanonicalQuotes(any()) } returns Unit
+        stubQuotes(testQuotes)
         coEvery { quoteDao.getRandom() } returns testQuotes[0]
 
         // When: Multiple operations that call seedIfNeeded
@@ -569,8 +572,8 @@ class QuoteRepositoryImplTest {
         repository.randomQuote()
         repository.quoteOfTheDay()
 
-        // Then: insertAll is called only once due to isSeeded flag
-        coVerify(exactly = 1) { quoteDao.insertAll(any()) }
+        // Each operation checks canonical identity inside the DAO transaction.
+        coVerify(exactly = 3) { quoteDao.seedCanonicalQuotes(any()) }
     }
 
     @Test
@@ -663,87 +666,82 @@ class QuoteRepositoryImplTest {
     }
 
     @Test
-    fun `saveUserQuote updates existing quotes and returns original id`() = runTest {
-        val quote = Quote(
-            id = 12L,
-            textLatin = "Existing quote",
-            author = "Builder",
-            runicElder = null,
-            runicYounger = "ᚢᛈᛞᚨᛏᛖ",
-            runicCirth = null,
-            isUserCreated = false,
-            isFavorite = false,
-            createdAt = 99L
+    fun `content command returns persisted favorite and creation metadata`() = runTest {
+        val requested = Quote(
+            id = 12L, textLatin = "Updated source", author = "New author", runicElder = "new glyphs",
+            runicYounger = null, runicCirth = null, isUserCreated = true, isFavorite = false, createdAt = 999L
         )
-        coEvery { quoteDao.update(any()) } returns Unit
+        val persisted = QuoteEntity(
+            id = 12L, textLatin = requested.textLatin, author = requested.author, runicElder = requested.runicElder,
+            isUserCreated = true, isFavorite = true, createdAt = 42L
+        )
+        coEvery { quoteDao.updateUserContent(any(), "Old source", "Old author") } returns persisted
 
-        val result = repository.saveUserQuote(quote)
+        val saved = repository.updateUserQuoteContent(requested, "Old source", "Old author")
 
-        assertThat(result).isEqualTo(12L)
-        coVerify {
-            quoteDao.update(
-                QuoteEntity(
-                    id = 12L,
-                    textLatin = "Existing quote",
-                    author = "Builder",
-                    runicElder = null,
-                    runicYounger = "ᚢᛈᛞᚨᛏᛖ",
-                    runicCirth = null,
-                    isUserCreated = true,
-                    isFavorite = false,
-                    createdAt = 99L
-                )
-            )
-        }
+        assertThat(saved.id).isEqualTo(12L)
+        assertThat(saved.textLatin).isEqualTo("Updated source")
+        assertThat(saved.isFavorite).isTrue()
+        assertThat(saved.createdAt).isEqualTo(42L)
+        coVerify(exactly = 1) { quoteDao.updateUserContent(any(), "Old source", "Old author") }
     }
 
     @Test
-    fun `restoreUserQuote reinserts deleted quote with original id`() = runTest {
+    fun `content command rejects a missing or concurrently changed row`() = runTest {
+        coEvery { quoteDao.updateUserContent(any(), any(), any()) } returns null
         val quote = Quote(
-            id = 12L,
-            textLatin = "Restored quote",
-            author = "Builder",
-            runicElder = "ᚱᛖᛋᛏᛟᚱᛖᛞ",
-            runicYounger = null,
-            runicCirth = null,
-            isUserCreated = false,
-            isFavorite = true,
-            createdAt = 99L
+            id = 12L, textLatin = "Updated", author = "User",
+            runicElder = null, runicYounger = null, runicCirth = null, isUserCreated = true
         )
-        coEvery { quoteDao.insert(any()) } returns 12L
 
-        val result = repository.restoreUserQuote(quote)
+        val failure = runCatching { repository.updateUserQuoteContent(quote, "Old", "User") }.exceptionOrNull()
 
-        assertThat(result).isEqualTo(12L)
-        coVerify {
-            quoteDao.insert(
-                QuoteEntity(
-                    id = 12L,
-                    textLatin = "Restored quote",
-                    author = "Builder",
-                    runicElder = "ᚱᛖᛋᛏᛟᚱᛖᛞ",
-                    runicYounger = null,
-                    runicCirth = null,
-                    isUserCreated = true,
-                    isFavorite = true,
-                    createdAt = 99L
-                )
-            )
-        }
+        assertThat(failure).isInstanceOf(IllegalStateException::class.java)
+    }
+
+    @Test
+    fun `creation rejects an existing identity without replacing it`() = runTest {
+        val quote = Quote(
+            id = 12L, textLatin = "Source", author = "User",
+            runicElder = null, runicYounger = null, runicCirth = null, isUserCreated = true
+        )
+
+        val failure = runCatching { repository.saveUserQuote(quote) }.exceptionOrNull()
+
+        assertThat(failure).isInstanceOf(IllegalArgumentException::class.java)
+        coVerify(exactly = 0) { quoteDao.insert(any()) }
+    }
+
+    @Test
+    fun `undoLifecycleChange submits only the exact mutation receipt without reinserting a stale snapshot`() = runTest {
+        val change = QuoteLifecycleChange(12L, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, 0L, "delete")
+        coEvery { archiveDao.undoBatch(listOf(change)) } returns Unit
+        repository.undoLifecycleChange(change)
+        coVerify(exactly = 1) { archiveDao.undoBatch(listOf(change)) }
+        coVerify(exactly = 0) { quoteDao.insert(any()) }
     }
 
     @Test
     fun `deleteUserQuote and getQuoteById delegate and map results`() = runTest {
-        coEvery { quoteDao.deleteUserQuote(4L) } returns Unit
+        val change = QuoteLifecycleChange(4L, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, 0L, "delete")
+        coEvery { archiveDao.transition(4L, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, any(), any(), true) } returns change
         coEvery { quoteDao.getById(2L) } returns testQuotes[1].copy(isFavorite = true, createdAt = 500L)
         coEvery { quoteDao.getById(8L) } returns null
 
         repository.deleteUserQuote(4L)
         val quote = repository.getQuoteById(2L)
 
-        coVerify { quoteDao.deleteUserQuote(4L) }
+        coVerify {
+            archiveDao.transition(4L, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, any(), any(), true)
+        }
         assertThat(quote?.isFavorite).isTrue()
         assertThat(quote?.createdAt).isEqualTo(500L)
         assertThat(repository.getQuoteById(8L)).isNull()
+    }
+
+    private fun stubQuotes(quotes: List<QuoteEntity>) {
+        coEvery { quoteDao.getAll() } returns quotes
+        coEvery { quoteDao.getQuoteIdentities() } returns quotes.map { it.id }
+        coEvery { quoteDao.getById(any()) } answers { quotes.firstOrNull { it.id == firstArg<Long>() } }
     }
 }

@@ -151,6 +151,18 @@ class ElderFutharkTransliteratorTest {
         assertThat(transliterator.transliterate("d")).isEqualTo("\u16DE")
     }
 
+    @Test
+    fun `x preserves both k and s sounds`() {
+        assertThat(transliterator.transliterate("x axe X!"))
+            .isEqualTo("ᚲᛊ ᚨᚲᛊᛖ ᚲᛊ!")
+    }
+
+    @Test
+    fun `q and qu preserve both k and w sounds without doubling u`() {
+        assertThat(transliterator.transliterate("q qu queen Q QU"))
+            .isEqualTo("ᚲᚹ ᚲᚹ ᚲᚹᛖᛖᚾ ᚲᚹ ᚲᚹ")
+    }
+
     // ==================== Digraph Mappings ====================
 
     @Test

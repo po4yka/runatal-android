@@ -4,18 +4,22 @@
     "english": "wolf",
     "form": "wulfaz",
     "partOfSpeech": "noun",
-    "strictEligible": true,
-    "sourceId": "srd",
-    "citations": ["Curated runic-era reconstruction"]
+    "strictEligible": false,
+    "sourceId": "internal_heuristics",
+    "citations": [
+      "Unverified reconstruction retained only for explicit approximation; no located inscription supplied."
+    ]
   },
   {
     "id": "pn_kuningaz",
     "english": "king",
     "form": "kuningaz",
     "partOfSpeech": "noun",
-    "strictEligible": true,
-    "sourceId": "srd",
-    "citations": ["Curated runic-era reconstruction"]
+    "strictEligible": false,
+    "sourceId": "internal_heuristics",
+    "citations": [
+      "Unverified reconstruction retained only for explicit approximation; no located inscription supplied."
+    ]
   },
   {
     "id": "pn_waithi",
@@ -24,7 +28,9 @@
     "partOfSpeech": "verb",
     "strictEligible": false,
     "sourceId": "internal_heuristics",
-    "citations": ["Approximation"]
+    "citations": [
+      "Approximation"
+    ]
   },
   {
     "id": "pn_nahts",
@@ -33,7 +39,9 @@
     "partOfSpeech": "noun",
     "strictEligible": false,
     "sourceId": "internal_heuristics",
-    "citations": ["Approximation"]
+    "citations": [
+      "Approximation"
+    ]
   },
   {
     "id": "pn_berga",
@@ -42,7 +50,9 @@
     "partOfSpeech": "noun",
     "strictEligible": false,
     "sourceId": "internal_heuristics",
-    "citations": ["Approximation"]
+    "citations": [
+      "Approximation"
+    ]
   },
   {
     "id": "pn_ferdi",
@@ -51,7 +61,9 @@
     "partOfSpeech": "noun",
     "strictEligible": false,
     "sourceId": "internal_heuristics",
-    "citations": ["Approximation"]
+    "citations": [
+      "Approximation"
+    ]
   },
   {
     "id": "pn_werka",
@@ -60,7 +72,9 @@
     "partOfSpeech": "noun",
     "strictEligible": false,
     "sourceId": "internal_heuristics",
-    "citations": ["Approximation"]
+    "citations": [
+      "Approximation"
+    ]
   },
   {
     "id": "pn_isti",
@@ -69,6 +83,8 @@
     "partOfSpeech": "verb",
     "strictEligible": false,
     "sourceId": "internal_heuristics",
-    "citations": ["Approximation"]
+    "citations": [
+      "Approximation"
+    ]
   }
 ]

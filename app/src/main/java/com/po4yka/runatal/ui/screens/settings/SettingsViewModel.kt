@@ -10,6 +10,7 @@ import com.po4yka.runatal.domain.model.RunicScript
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -33,6 +34,16 @@ class SettingsViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = UserPreferences()
         )
+
+    /** Persisted onboarding decision, or null while preferences are still loading. */
+    val onboardingCompleted: StateFlow<Boolean?> =
+        userPreferencesManager.userPreferencesFlow
+            .map { it.hasCompletedOnboarding }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = null
+            )
 
     /**
      * Updates the selected runic script.

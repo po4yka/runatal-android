@@ -1,12 +1,22 @@
 package com.po4yka.runatal.ui.screens.share
 
-import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.domain.repository.NoOpTranslationRepository
 import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.domain.repository.TranslationRepository
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.data.preferences.UserPreferences
+import com.po4yka.runatal.data.preferences.UserPreferencesManager
+import com.po4yka.runatal.domain.usecase.quote.ResolveQuoteRenderingUseCase
+import com.po4yka.runatal.domain.usecase.quote.BuildQuotePresentationUseCase
+import com.po4yka.runatal.domain.transliteration.TransliterationFactory
+import com.po4yka.runatal.domain.transliteration.ElderFutharkTransliterator
+import com.po4yka.runatal.domain.transliteration.YoungerFutharkTransliterator
+import com.po4yka.runatal.domain.transliteration.CirthTransliterator
+import io.mockk.every
+import kotlinx.coroutines.flow.flowOf
 import com.po4yka.runatal.domain.model.RunicScript
+import com.po4yka.runatal.domain.translation.TranslationMode
 import com.po4yka.runatal.domain.translation.HistoricalStage
 import com.po4yka.runatal.domain.translation.TranslationDerivationKind
 import com.po4yka.runatal.domain.translation.TranslationFidelity
@@ -48,6 +58,7 @@ class ShareViewModelTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         quoteRepository = mockk()
+        every { quoteRepository.observeQuoteChanges() } returns kotlinx.coroutines.flow.emptyFlow()
     }
 
     @After
@@ -56,39 +67,63 @@ class ShareViewModelTest {
     }
 
     private fun createViewModel(
-        savedStateHandle: SavedStateHandle = SavedStateHandle(mapOf("quoteId" to 0L)),
-        translationRepository: TranslationRepository = NoOpTranslationRepository
+        quoteId: Long = 0L,
+        translationRepository: TranslationRepository = NoOpTranslationRepository,
+        script: RunicScript = RunicScript.DEFAULT
     ): ShareViewModel {
+        val preferences = mockk<UserPreferencesManager>()
+        every { preferences.userPreferencesFlow } returns flowOf(UserPreferences(selectedScript = script))
         return ShareViewModel(
             quoteRepository = quoteRepository,
-            savedStateHandle = savedStateHandle,
-            translationRepository = translationRepository
+            quoteId = quoteId,
+            buildQuotePresentationUseCase = BuildQuotePresentationUseCase(ResolveQuoteRenderingUseCase(
+                TransliterationFactory(ElderFutharkTransliterator(), YoungerFutharkTransliterator(), CirthTransliterator()),
+                translationRepository
+            )),
+            userPreferencesManager = preferences
         )
     }
 
     @Test
-    fun `saved quote id loads quote on initialization`() = runTest {
+    fun `route quote id loads quote on initialization`() = runTest {
         coEvery { quoteRepository.getQuoteById(7L) } returns testQuote
-        val viewModel = createViewModel(savedStateHandle = SavedStateHandle(mapOf("quoteId" to 7L)))
+        val viewModel = createViewModel(quoteId = 7L)
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value).isEqualTo(ShareUiState.Success(testQuote))
+        val content = (viewModel.uiState.value as ShareUiState.Success).content
+        assertThat(content.quote).isEqualTo(testQuote)
+        assertThat(content.runicText).isEqualTo(testQuote.runicElder)
+        assertThat(content.scriptLabel).contains("Custom stored glyphs")
     }
 
     @Test
-    fun `zero saved quote id leaves state in loading and avoids repository work`() = runTest {
+    fun `share prepares the selected script even when other cached fields exist`() = runTest {
+        coEvery { quoteRepository.getQuoteById(7L) } returns testQuote
+        val viewModel = createViewModel(quoteId = 7L, script = RunicScript.CIRTH)
+
+        advanceUntilIdle()
+
+        val content = (viewModel.uiState.value as ShareUiState.Success).content
+        assertThat(content.script).isEqualTo(RunicScript.CIRTH)
+        assertThat(content.scriptLabel).contains("Cirth")
+        assertThat(content.runicText).isEqualTo(testQuote.runicCirth)
+        assertThat(content.font).isEqualTo("noto")
+    }
+
+    @Test
+    fun `zero route quote id exposes an error and avoids repository work`() = runTest {
         val viewModel = createViewModel()
 
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value).isEqualTo(ShareUiState.Loading)
+        assertThat(viewModel.uiState.value).isEqualTo(ShareUiState.Error("Quote not found"))
         coVerify(exactly = 0) { quoteRepository.getQuoteById(any()) }
     }
 
     @Test
-    fun `saved quote id is loaded exactly once on initialization`() = runTest {
+    fun `route quote id is loaded exactly once on initialization`() = runTest {
         coEvery { quoteRepository.getQuoteById(7L) } returns testQuote
-        createViewModel(savedStateHandle = SavedStateHandle(mapOf("quoteId" to 7L)))
+        createViewModel(quoteId = 7L)
         advanceUntilIdle()
 
         coVerify(exactly = 1) { quoteRepository.getQuoteById(7L) }
@@ -97,7 +132,7 @@ class ShareViewModelTest {
     @Test
     fun `loadQuote surfaces repository errors`() = runTest {
         coEvery { quoteRepository.getQuoteById(7L) } throws IOException("disk")
-        val viewModel = createViewModel(savedStateHandle = SavedStateHandle(mapOf("quoteId" to 7L)))
+        val viewModel = createViewModel(quoteId = 7L)
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value).isEqualTo(ShareUiState.Error("Failed to load quote: disk"))
@@ -115,7 +150,7 @@ class ShareViewModelTest {
     }
 
     @Test
-    fun `latest translations override stored runes on the share surface`() = runTest {
+    fun `persisted historical selection chooses its exact result on the share surface`() = runTest {
         val translationRepository = mockk<TranslationRepository>()
         val elderTranslation = TranslationResult(
             sourceText = testQuote.textLatin,
@@ -145,39 +180,61 @@ class ShareViewModelTest {
             engineVersion = "engine",
             datasetVersion = "dataset"
         )
-        coEvery { quoteRepository.getQuoteById(7L) } returns testQuote
-        coEvery { translationRepository.getLatestAvailableTranslation(7L, RunicScript.ELDER_FUTHARK) } returns
+        coEvery { quoteRepository.getQuoteById(7L) } returns testQuote.copy(renderingMode = TranslationMode.TRANSLATE)
+        coEvery {
+            translationRepository.getCachedTranslation(7L, RunicScript.ELDER_FUTHARK, testQuote.textLatin, TranslationFidelity.STRICT, any())
+        } returns
             elderTranslation
-        coEvery { translationRepository.getLatestAvailableTranslation(7L, RunicScript.YOUNGER_FUTHARK) } returns null
-        coEvery { translationRepository.getLatestAvailableTranslation(7L, RunicScript.CIRTH) } returns cirthTranslation
+        coEvery {
+            translationRepository.getCachedTranslation(7L, RunicScript.YOUNGER_FUTHARK, testQuote.textLatin, TranslationFidelity.STRICT, any())
+        } returns null
+        coEvery {
+            translationRepository.getCachedTranslation(7L, RunicScript.CIRTH, testQuote.textLatin, TranslationFidelity.STRICT, any())
+        } returns cirthTranslation
 
         val viewModel = createViewModel(
-            savedStateHandle = SavedStateHandle(mapOf("quoteId" to 7L)),
+            quoteId = 7L,
             translationRepository = translationRepository
         )
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value).isEqualTo(
-            ShareUiState.Success(
-                testQuote.copy(
-                    runicElder = "cached elder",
-                    runicYounger = testQuote.runicYounger,
-                    runicCirth = "cached cirth"
-                )
-            )
-        )
+        val content = (viewModel.uiState.value as ShareUiState.Success).content
+        assertThat(content.runicText).isEqualTo("cached elder")
+        assertThat(content.rendering.mode).isEqualTo(TranslationMode.TRANSLATE)
+        assertThat(content.rendering.resolutionStatus).isEqualTo(TranslationResolutionStatus.ATTESTED)
     }
 
     @Test
     fun `retry reloads quote after an error`() = runTest {
         coEvery { quoteRepository.getQuoteById(7L) } throws IOException("disk") andThen testQuote
-        val viewModel = createViewModel(savedStateHandle = SavedStateHandle(mapOf("quoteId" to 7L)))
+        val viewModel = createViewModel(quoteId = 7L)
         advanceUntilIdle()
         assertThat(viewModel.uiState.value).isEqualTo(ShareUiState.Error("Failed to load quote: disk"))
 
         viewModel.retry()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value).isEqualTo(ShareUiState.Success(testQuote))
+        val content = (viewModel.uiState.value as ShareUiState.Success).content
+        assertThat(content.quote).isEqualTo(testQuote)
+        assertThat(content.runicText).isEqualTo(testQuote.runicElder)
+        assertThat(content.scriptLabel).contains("Custom stored glyphs")
     }
+    @Test
+    fun `committed updates refresh the share snapshot and inactive quotes remove prepared content`() = runTest {
+        val changes = kotlinx.coroutines.flow.MutableSharedFlow<Unit>()
+        every { quoteRepository.observeQuoteChanges() } returns changes
+        coEvery { quoteRepository.getQuoteById(7L) } returns testQuote
+        val viewModel = createViewModel(7L)
+        advanceUntilIdle()
+        val edited = testQuote.copy(textLatin = "Edited quote", runicElder = null)
+        coEvery { quoteRepository.getQuoteById(7L) } returns edited
+        changes.emit(Unit)
+        advanceUntilIdle()
+        assertThat((viewModel.uiState.value as ShareUiState.Success).content.quote).isEqualTo(edited)
+        coEvery { quoteRepository.getQuoteById(7L) } returns null
+        changes.emit(Unit)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value).isEqualTo(ShareUiState.Error("Quote not found"))
+    }
+
 }

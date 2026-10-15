@@ -42,7 +42,7 @@ class AssetTranslationDatasetProviderTest {
         assertThat(provider.elderAttestedForms()).isNotEmpty()
         assertThat(provider.runicCorpusReferences()).isNotEmpty()
         assertThat(provider.goldExamples()).isNotEmpty()
-        assertThat(provider.ereborTables().singleCharacters).isNotEmpty()
+        assertThat(provider.ereborTables().publishedWords).isNotEmpty()
 
         assertThat(provider.datasetManifest()).isSameInstanceAs(manifest)
         assertThat(provider.sourceManifest()).isSameInstanceAs(sourceManifest)

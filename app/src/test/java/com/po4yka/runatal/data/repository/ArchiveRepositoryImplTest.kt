@@ -2,8 +2,10 @@ package com.po4yka.runatal.data.repository
 
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.data.local.dao.ArchivedQuoteDao
-import com.po4yka.runatal.data.local.entity.ArchivedQuoteEntity
+import com.po4yka.runatal.data.local.entity.QuoteEntity
 import com.po4yka.runatal.domain.model.ArchivedQuote
+import com.po4yka.runatal.domain.model.QuoteLifecycleChange
+import com.po4yka.runatal.domain.model.QuoteLifecycleState
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -15,131 +17,74 @@ import org.junit.Before
 import org.junit.Test
 
 class ArchiveRepositoryImplTest {
-
-    private lateinit var archivedQuoteDao: ArchivedQuoteDao
+    private lateinit var dao: ArchivedQuoteDao
     private lateinit var repository: ArchiveRepositoryImpl
+    private val archived = ArchivedQuote(1L, "Stored", "Keeper", 42L)
+    private val receipt = QuoteLifecycleChange(
+        1L, QuoteLifecycleState.ARCHIVED, QuoteLifecycleState.ACTIVE, 42L, "restore"
+    )
 
     @Before
     fun setUp() {
-        archivedQuoteDao = mockk()
-        repository = ArchiveRepositoryImpl(archivedQuoteDao)
+        dao = mockk()
+        repository = ArchiveRepositoryImpl(dao)
     }
 
     @Test
-    fun `getAllArchivedFlow maps entities to domain models`() = runTest {
-        val entity = ArchivedQuoteEntity(
-            id = 1L,
-            originalQuoteId = 11L,
-            textLatin = "Archive me",
-            author = "Author",
-            archivedAt = 1234L
-        )
-        every { archivedQuoteDao.getAllFlow() } returns flowOf(listOf(entity))
+    fun `retained flow uses authoritative identity and exposes all three nonactive states`() = runTest {
+        val rows = listOf("ARCHIVED", "HIDDEN", "TRASH").mapIndexed { index, state ->
+            QuoteEntity(id = index + 1L, textLatin = state, author = "User", lifecycleState = state,
+                lifecycleChangedAt = 42L, isFavorite = true, createdAt = 12L, runicElder = "manual")
+        }
+        every { dao.getRetainedFlow() } returns flowOf(rows)
 
-        val result = repository.getAllArchivedFlow().first()
+        val retained = repository.getRetainedQuotesFlow().first()
 
-        assertThat(result).containsExactly(
-            ArchivedQuote(
-                id = 1L,
-                originalQuoteId = 11L,
-                textLatin = "Archive me",
-                author = "Author",
-                archivedAt = 1234L
-            )
-        )
+        assertThat(retained.map { it.id }).containsExactly(1L, 2L, 3L).inOrder()
+        assertThat(retained.map { it.lifecycleState }).containsExactly(
+            QuoteLifecycleState.ARCHIVED, QuoteLifecycleState.HIDDEN, QuoteLifecycleState.TRASH
+        ).inOrder()
+        assertThat(retained.last().isDeleted).isTrue()
+        assertThat(retained.first().archivedAt).isEqualTo(42L)
+        assertThat(retained.first().author).isEqualTo("User")
     }
 
     @Test
-    fun `getDeletedFlow preserves deleted flag`() = runTest {
-        val entity = ArchivedQuoteEntity(
-            id = 3L,
-            originalQuoteId = 33L,
-            textLatin = "Deleted",
-            author = "Archive",
-            archivedAt = 999L,
-            isDeleted = true
-        )
-        every { archivedQuoteDao.getDeletedFlow() } returns flowOf(listOf(entity))
+    fun `restore submits one batch with expected states and returns persistent undo receipts`() = runTest {
+        val hidden = archived.copy(id = 2L, lifecycleState = QuoteLifecycleState.HIDDEN)
+        coEvery { dao.restoreBatch(any(), any(), any()) } returns listOf(receipt)
 
-        val result = repository.getDeletedFlow().first().single()
-
-        assertThat(result.isDeleted).isTrue()
-        assertThat(result.originalQuoteId).isEqualTo(33L)
-    }
-
-    @Test
-    fun `getActiveArchivedFlow maps active entities`() = runTest {
-        every { archivedQuoteDao.getActiveFlow() } returns flowOf(
-            listOf(
-                ArchivedQuoteEntity(
-                    id = 2L,
-                    originalQuoteId = 22L,
-                    textLatin = "Visible",
-                    author = "Keeper",
-                    archivedAt = 4567L
-                )
-            )
-        )
-
-        val result = repository.getActiveArchivedFlow().first().single()
-
-        assertThat(result.textLatin).isEqualTo("Visible")
-        assertThat(result.isDeleted).isFalse()
-    }
-
-    @Test
-    fun `archiveQuote maps domain model to entity`() = runTest {
-        val quote = ArchivedQuote(
-            id = 5L,
-            originalQuoteId = 55L,
-            textLatin = "Stored",
-            author = "Keeper",
-            archivedAt = 4000L,
-            isDeleted = true
-        )
-        coEvery { archivedQuoteDao.archive(any()) } returns 99L
-
-        val result = repository.archiveQuote(quote)
-
-        assertThat(result).isEqualTo(99L)
-        coVerify {
-            archivedQuoteDao.archive(
-                ArchivedQuoteEntity(
-                    id = 5L,
-                    originalQuoteId = 55L,
-                    textLatin = "Stored",
-                    author = "Keeper",
-                    archivedAt = 4000L,
-                    isDeleted = true
-                )
-            )
+        assertThat(repository.restoreQuotes(listOf(archived, hidden))).containsExactly(receipt)
+        coVerify(exactly = 1) {
+            dao.restoreBatch(listOf(1L to QuoteLifecycleState.ARCHIVED, 2L to QuoteLifecycleState.HIDDEN), any(), any())
         }
     }
 
     @Test
-    fun `restoreQuote delegates to dao`() = runTest {
-        coEvery { archivedQuoteDao.restore(7L) } returns Unit
-
-        repository.restoreQuote(7L)
-
-        coVerify(exactly = 1) { archivedQuoteDao.restore(7L) }
+    fun `undo preserves exact receipt and does not reconstruct quote snapshots`() = runTest {
+        coEvery { dao.undoBatch(listOf(receipt)) } returns Unit
+        repository.undoChanges(listOf(receipt))
+        coVerify(exactly = 1) { dao.undoBatch(listOf(receipt)) }
     }
 
     @Test
-    fun `softDeleteQuote delegates to dao`() = runTest {
-        coEvery { archivedQuoteDao.softDelete(8L) } returns Unit
-
-        repository.softDeleteQuote(8L)
-
-        coVerify(exactly = 1) { archivedQuoteDao.softDelete(8L) }
-    }
-
-    @Test
-    fun `emptyTrash delegates to dao`() = runTest {
-        coEvery { archivedQuoteDao.emptyTrash() } returns Unit
-
+    fun `moving an archived quote to trash retains state guard and explicit purge is one operation`() = runTest {
+        val deletion = receipt.copy(state = QuoteLifecycleState.TRASH)
+        coEvery {
+            dao.transition(1L, QuoteLifecycleState.ARCHIVED, QuoteLifecycleState.TRASH, any(), any(), false)
+        } returns deletion
+        coEvery { dao.emptyTrash(any()) } returns Unit
+        assertThat(repository.moveToTrash(archived)).isEqualTo(deletion)
         repository.emptyTrash()
+        coVerify(exactly = 1) { dao.emptyTrash(any()) }
+    }
 
-        coVerify(exactly = 1) { archivedQuoteDao.emptyTrash() }
+    @Test
+    fun `moving an already trashed quote is rejected without a database mutation`() = runTest {
+        val failure = runCatching {
+            repository.moveToTrash(archived.copy(lifecycleState = QuoteLifecycleState.TRASH))
+        }.exceptionOrNull()
+        assertThat(failure).isInstanceOf(IllegalArgumentException::class.java)
+        coVerify(exactly = 0) { dao.transition(any(), any(), any(), any(), any(), any()) }
     }
 }

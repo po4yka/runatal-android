@@ -1,71 +1,51 @@
 package com.po4yka.runatal.data.repository
 
 import com.po4yka.runatal.data.local.dao.ArchivedQuoteDao
-import com.po4yka.runatal.data.local.entity.ArchivedQuoteEntity
 import com.po4yka.runatal.domain.model.ArchivedQuote
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import com.po4yka.runatal.domain.model.QuoteLifecycleChange
+import com.po4yka.runatal.domain.model.QuoteLifecycleState
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
-/**
- * Implementation of ArchiveRepository.
- * Maps data layer entities to domain models.
- */
+/** Reads retained authoritative quote rows and changes only their lifecycle columns. */
 @Singleton
-class ArchiveRepositoryImpl @Inject constructor(
+internal class ArchiveRepositoryImpl @Inject constructor(
     private val archivedQuoteDao: ArchivedQuoteDao
 ) : ArchiveRepository {
-
-    override fun getAllArchivedFlow(): Flow<List<ArchivedQuote>> {
-        return archivedQuoteDao.getAllFlow().map { entities ->
-            entities.map { it.toDomain() }
+    override fun getRetainedQuotesFlow(): Flow<List<ArchivedQuote>> =
+        archivedQuoteDao.getRetainedFlow().map { rows ->
+            rows.map { row ->
+                ArchivedQuote(row.id, row.textLatin, row.author, row.lifecycleChangedAt,
+                    QuoteLifecycleState.valueOf(row.lifecycleState))
+            }
         }
+
+    override suspend fun restoreQuotes(quotes: List<ArchivedQuote>): List<QuoteLifecycleChange> = storageWrite {
+        archivedQuoteDao.restoreBatch(
+            quotes.map { it.id to it.lifecycleState }, UUID.randomUUID().toString(), System.currentTimeMillis()
+        )
     }
 
-    override fun getActiveArchivedFlow(): Flow<List<ArchivedQuote>> {
-        return archivedQuoteDao.getActiveFlow().map { entities ->
-            entities.map { it.toDomain() }
+    override suspend fun undoChanges(changes: List<QuoteLifecycleChange>) {
+        storageWrite { archivedQuoteDao.undoBatch(changes) }
+    }
+
+    override suspend fun moveToTrash(quote: ArchivedQuote): QuoteLifecycleChange {
+        require(
+            quote.lifecycleState == QuoteLifecycleState.ARCHIVED || quote.lifecycleState == QuoteLifecycleState.HIDDEN
+        )
+        return storageWrite {
+            archivedQuoteDao.transition(
+                quote.id, quote.lifecycleState, QuoteLifecycleState.TRASH,
+                UUID.randomUUID().toString(), System.currentTimeMillis()
+            )
         }
-    }
-
-    override fun getDeletedFlow(): Flow<List<ArchivedQuote>> {
-        return archivedQuoteDao.getDeletedFlow().map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
-
-    override suspend fun archiveQuote(quote: ArchivedQuote): Long {
-        return archivedQuoteDao.archive(quote.toEntity())
-    }
-
-    override suspend fun restoreQuote(id: Long) {
-        archivedQuoteDao.restore(id)
-    }
-
-    override suspend fun softDeleteQuote(id: Long) {
-        archivedQuoteDao.softDelete(id)
     }
 
     override suspend fun emptyTrash() {
-        archivedQuoteDao.emptyTrash()
+        storageWrite { archivedQuoteDao.emptyTrash(System.currentTimeMillis()) }
     }
-
-    private fun ArchivedQuoteEntity.toDomain() = ArchivedQuote(
-        id = id,
-        originalQuoteId = originalQuoteId,
-        textLatin = textLatin,
-        author = author,
-        archivedAt = archivedAt,
-        isDeleted = isDeleted
-    )
-
-    private fun ArchivedQuote.toEntity() = ArchivedQuoteEntity(
-        id = id,
-        originalQuoteId = originalQuoteId,
-        textLatin = textLatin,
-        author = author,
-        archivedAt = archivedAt,
-        isDeleted = isDeleted
-    )
 }

@@ -49,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -61,6 +62,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.po4yka.runatal.domain.model.QuoteLifecycleState
 import com.po4yka.runatal.domain.model.ArchivedQuote
 import com.po4yka.runatal.ui.components.ConfirmationDialog
 import com.po4yka.runatal.ui.components.ErrorState
@@ -87,11 +89,15 @@ fun ArchiveScreen(
         viewModel.snackbarEvent.collect { event ->
             val (message, undoPayload) = when (event) {
                 is ArchiveSnackbarEvent.RestoredQuote -> {
-                    "Quote restored to library" to event.quotes
+                    "Quote restored to library" to event.changes
                 }
 
                 is ArchiveSnackbarEvent.RestoredBatch -> {
-                    "${event.quotes.size} quotes restored to library" to event.quotes
+                    "${event.changes.size} quotes restored to library" to event.changes
+                }
+                is ArchiveSnackbarEvent.ShowMessage -> {
+                    snackbarHostState.showSnackbar(event.message)
+                    return@collect
                 }
             }
             val result = snackbarHostState.showSnackbar(
@@ -220,12 +226,12 @@ private fun ArchiveTabSelector(selectedTab: ArchiveTab, onTabSelected: (ArchiveT
 private fun ArchiveContent(
     uiState: ArchiveUiState,
     onRestoreQuote: (ArchivedQuote) -> Unit,
-    onDeleteQuote: (Long) -> Unit,
+    onDeleteQuote: (ArchivedQuote) -> Unit,
     onRestoreAll: () -> Unit,
     onEmptyTrash: () -> Unit
 ) {
     val quotes = uiState.quotesForSelectedTab
-    val showBottomAction = quotes.isNotEmpty() && uiState.selectedTab != ArchiveTab.HIDDEN
+    val showBottomAction = quotes.isNotEmpty()
 
     Column(modifier = Modifier.fillMaxSize()) {
         ArchiveInfoRow(uiState)
@@ -241,7 +247,7 @@ private fun ArchiveContent(
         }
 
         LazyColumn(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).testTag("archive_list_lazy"),
             contentPadding = PaddingValues(
                 start = 20.dp,
                 end = 20.dp,
@@ -255,7 +261,7 @@ private fun ArchiveContent(
                     quote = quote,
                     selectedTab = uiState.selectedTab,
                     onRestore = { onRestoreQuote(quote) },
-                    onDelete = { onDeleteQuote(quote.id) }
+                    onDelete = { onDeleteQuote(quote) }
                 )
                 if (index == 0 && uiState.selectedTab == ArchiveTab.ARCHIVED && quotes.size > 1) {
                     Spacer(modifier = Modifier.height(2.dp))
@@ -329,7 +335,7 @@ private fun ArchiveQuoteCard(
     onDelete: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().testTag("archive_quote_${quote.id}"),
         shape = RunicExpressiveTheme.shapes.contentCard,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -363,27 +369,24 @@ private fun ArchiveQuoteCard(
                     )
                 }
                 IconButton(
-                    onClick = if (selectedTab == ArchiveTab.DELETED) onDelete else onRestore,
+                    onClick = onRestore,
                     modifier = Modifier.size(RunicExpressiveTheme.controls.minimumTouchTarget)
                 ) {
                     Icon(
-                        imageVector = if (selectedTab == ArchiveTab.DELETED) {
-                            Icons.Default.Delete
-                        } else {
-                            Icons.Default.Restore
-                        },
-                        contentDescription = if (selectedTab == ArchiveTab.DELETED) {
-                            "Delete permanently"
-                        } else {
-                            "Restore quote"
-                        },
-                        modifier = Modifier.size(14.dp),
-                        tint = if (selectedTab == ArchiveTab.DELETED) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
+                        imageVector = Icons.Default.Restore, contentDescription = "Restore quote",
+                        modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+                if (selectedTab != ArchiveTab.DELETED) {
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(RunicExpressiveTheme.controls.minimumTouchTarget)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete, contentDescription = "Move to trash",
+                            modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
         }
@@ -406,7 +409,7 @@ private fun ArchiveBottomAction(
     onEmptyTrash: () -> Unit
 ) {
     val actionConfig = when (selectedTab) {
-        ArchiveTab.ARCHIVED -> ArchiveActionConfig(
+        ArchiveTab.ARCHIVED, ArchiveTab.HIDDEN -> ArchiveActionConfig(
             label = "Restore All",
             icon = Icons.Default.Restore,
             onClick = onRestoreAll,
@@ -426,7 +429,6 @@ private fun ArchiveBottomAction(
             )
         )
 
-        ArchiveTab.HIDDEN -> return
     }
 
     Box(
@@ -531,8 +533,8 @@ private fun ArchiveLoadingState(selectedTab: ArchiveTab) {
         ArchiveInfoRow(
             ArchiveUiState(
                 selectedTab = selectedTab,
-                archivedQuotes = List(4) { ArchivedQuote(0, 0, "", "", 0L) },
-                deletedQuotes = List(2) { ArchivedQuote(0, 0, "", "", 0L, isDeleted = true) }
+                archivedQuotes = List(4) { ArchivedQuote(0, "", "", 0L) },
+                deletedQuotes = List(2) { ArchivedQuote(0, "", "", 0L, QuoteLifecycleState.TRASH) }
             )
         )
         ArchiveLoadingSkeleton(

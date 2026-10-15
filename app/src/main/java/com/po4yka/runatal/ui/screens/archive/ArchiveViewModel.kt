@@ -5,15 +5,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runatal.data.repository.ArchiveRepository
 import com.po4yka.runatal.domain.model.ArchivedQuote
+import com.po4yka.runatal.domain.model.QuoteLifecycleChange
+import com.po4yka.runatal.domain.model.QuoteLifecycleState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.io.IOException
 import javax.inject.Inject
@@ -31,6 +33,7 @@ class ArchiveViewModel @Inject constructor(
 
     private val _snackbarEvent = Channel<ArchiveSnackbarEvent>(Channel.BUFFERED)
     val snackbarEvent = _snackbarEvent.receiveAsFlow()
+    private var observationJob: Job? = null
 
     /** @suppress */
     companion object {
@@ -42,27 +45,23 @@ class ArchiveViewModel @Inject constructor(
     }
 
     private fun loadArchive() {
-        viewModelScope.launch {
+        observationJob?.cancel()
+        observationJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-
-            combine(
-                archiveRepository.getActiveArchivedFlow(),
-                archiveRepository.getDeletedFlow()
-            ) { archived, deleted ->
-                ArchiveUiState(
-                    archivedQuotes = archived,
-                    hiddenQuotes = emptyList(),
-                    deletedQuotes = deleted,
-                    selectedTab = _uiState.value.selectedTab,
-                    isLoading = false
-                )
-            }.catch { e ->
+            archiveRepository.getRetainedQuotesFlow().catch { e ->
                 Log.e(TAG, "Error loading archive", e)
                 _uiState.update {
                     it.copy(isLoading = false, errorMessage = "Failed to load archive: ${e.message}")
                 }
-            }.collect { newState ->
-                _uiState.value = newState
+            }.collect { quotes ->
+                _uiState.update { state ->
+                    state.copy(
+                        archivedQuotes = quotes.filter { it.lifecycleState == QuoteLifecycleState.ARCHIVED },
+                        hiddenQuotes = quotes.filter { it.lifecycleState == QuoteLifecycleState.HIDDEN },
+                        deletedQuotes = quotes.filter { it.lifecycleState == QuoteLifecycleState.TRASH },
+                        isLoading = false, errorMessage = null
+                    )
+                }
             }
         }
     }
@@ -74,88 +73,51 @@ class ArchiveViewModel @Inject constructor(
         _uiState.update { it.copy(selectedTab = tab) }
     }
 
-    /**
-     * Restores an archived quote back to the library.
-     */
-    fun restoreQuote(quote: ArchivedQuote) {
+    /** Restores one retained quote without rewriting any content or derived metadata. */
+    fun restoreQuote(quote: ArchivedQuote) = mutate("restore quote") {
+        val changes = archiveRepository.restoreQuotes(listOf(quote))
+        _snackbarEvent.send(ArchiveSnackbarEvent.RestoredQuote(changes))
+    }
+
+    /** Undoes only the exact persisted restore mutations, as one batch. */
+    fun undoRestore(changes: List<QuoteLifecycleChange>) = mutate("undo restore") {
+        archiveRepository.undoChanges(changes)
+    }
+
+    /** Restores the currently shown archived or hidden batch atomically. */
+    fun restoreAllArchivedQuotes() = mutate("restore quotes") {
+        val quotes = _uiState.value.quotesForSelectedTab
+        if (quotes.isNotEmpty()) {
+            val changes = archiveRepository.restoreQuotes(quotes)
+            _snackbarEvent.send(ArchiveSnackbarEvent.RestoredBatch(changes))
+        }
+    }
+
+    /** Moves a retained archived or hidden quote to trash without losing its metadata. */
+    fun softDeleteQuote(quote: ArchivedQuote) = mutate("move quote to trash") {
+        archiveRepository.moveToTrash(quote)
+    }
+
+    /** Permanently removes only trash rows, in one transaction. */
+    fun emptyTrash() = mutate("empty trash") {
+        archiveRepository.emptyTrash()
+    }
+
+    private fun mutate(action: String, block: suspend () -> Unit) {
         viewModelScope.launch {
             try {
-                archiveRepository.restoreQuote(quote.id)
-                _snackbarEvent.send(ArchiveSnackbarEvent.RestoredQuote(listOf(quote)))
-            } catch (e: IOException) {
-                Log.e(TAG, "IO error restoring quote", e)
-            } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state restoring quote", e)
+                block()
+            } catch (exception: IOException) {
+                showMutationFailure(action, exception)
+            } catch (exception: IllegalStateException) {
+                showMutationFailure(action, exception)
             }
         }
     }
 
-    /**
-     * Re-archives a quote (undo restore).
-     */
-    fun undoRestore(quotes: List<ArchivedQuote>) {
-        viewModelScope.launch {
-            try {
-                quotes.forEach { quote ->
-                    archiveRepository.archiveQuote(quote)
-                }
-            } catch (e: IOException) {
-                Log.e(TAG, "IO error undoing restore", e)
-            } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state undoing restore", e)
-            }
-        }
-    }
-
-    /**
-     * Restores all currently archived quotes back to the library.
-     */
-    fun restoreAllArchivedQuotes() {
-        viewModelScope.launch {
-            val quotesToRestore = _uiState.value.archivedQuotes
-            if (quotesToRestore.isEmpty()) return@launch
-
-            try {
-                quotesToRestore.forEach { quote ->
-                    archiveRepository.restoreQuote(quote.id)
-                }
-                _snackbarEvent.send(ArchiveSnackbarEvent.RestoredBatch(quotesToRestore))
-            } catch (e: IOException) {
-                Log.e(TAG, "IO error restoring all quotes", e)
-            } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state restoring all quotes", e)
-            }
-        }
-    }
-
-    /**
-     * Soft-deletes an archived quote (moves to trash).
-     */
-    fun softDeleteQuote(id: Long) {
-        viewModelScope.launch {
-            try {
-                archiveRepository.softDeleteQuote(id)
-            } catch (e: IOException) {
-                Log.e(TAG, "IO error deleting quote", e)
-            } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state deleting quote", e)
-            }
-        }
-    }
-
-    /**
-     * Permanently removes all trashed quotes.
-     */
-    fun emptyTrash() {
-        viewModelScope.launch {
-            try {
-                archiveRepository.emptyTrash()
-            } catch (e: IOException) {
-                Log.e(TAG, "IO error emptying trash", e)
-            } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state emptying trash", e)
-            }
-        }
+    private suspend fun showMutationFailure(action: String, exception: Exception) {
+        Log.e(TAG, "Failed to $action", exception)
+        _snackbarEvent.send(ArchiveSnackbarEvent.ShowMessage("Failed to $action: ${exception.message}"))
     }
 
     /**
@@ -195,11 +157,12 @@ val ArchiveUiState.quotesForSelectedTab: List<ArchivedQuote>
  * Event for showing a snackbar with undo action after restoring a quote.
  */
 sealed interface ArchiveSnackbarEvent {
-    val quotes: List<ArchivedQuote>
+    /** Snackbar event for restoring a single quote, carrying the persisted undo receipt. */
+    data class RestoredQuote(val changes: List<QuoteLifecycleChange>) : ArchiveSnackbarEvent
 
-    /** Snackbar event for restoring a single quote. */
-    data class RestoredQuote(override val quotes: List<ArchivedQuote>) : ArchiveSnackbarEvent
+    /** Snackbar event for an atomic restored batch. */
+    data class RestoredBatch(val changes: List<QuoteLifecycleChange>) : ArchiveSnackbarEvent
 
-    /** Snackbar event for restoring multiple quotes in one action. */
-    data class RestoredBatch(override val quotes: List<ArchivedQuote>) : ArchiveSnackbarEvent
+    /** Reports persistence failures without claiming that an action succeeded. */
+    data class ShowMessage(val message: String) : ArchiveSnackbarEvent
 }

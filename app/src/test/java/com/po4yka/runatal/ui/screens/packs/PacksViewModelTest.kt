@@ -51,7 +51,7 @@ class PacksViewModelTest {
         coEvery { quotePackRepository.seedIfNeeded() } returns Unit
         every { quotePackRepository.getAllPacksFlow() } returns allPacksFlow
         every { quotePackRepository.getLibraryPacksFlow() } returns libraryPacksFlow
-        coEvery { quotePackRepository.updatePack(any()) } returns Unit
+        coEvery { quotePackRepository.toggleLibrary(any()) } returns testPack.copy(isInLibrary = true)
     }
 
     @After
@@ -61,7 +61,7 @@ class PacksViewModelTest {
 
     @Test
     fun `toggleLibrary emits message event on io error`() = runTest {
-        coEvery { quotePackRepository.updatePack(any()) } throws IOException("disk")
+        coEvery { quotePackRepository.toggleLibrary(any()) } throws IOException("disk")
         val viewModel = PacksViewModel(quotePackRepository)
         advanceUntilIdle()
 
@@ -72,6 +72,19 @@ class PacksViewModelTest {
             assertThat(awaitItem()).isEqualTo(PacksEvent.ShowMessage("Failed to update pack: disk"))
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `seed failure stays visible and retry performs a real seed`() = runTest {
+        coEvery { quotePackRepository.seedIfNeeded() } throws IOException("seed disk") andThen Unit
+        val viewModel = PacksViewModel(quotePackRepository)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.errorMessage).isEqualTo("Failed to load packs: seed disk")
+        assertThat(viewModel.uiState.value.isLoading).isFalse()
+        viewModel.retry()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.errorMessage).isNull()
+        assertThat(viewModel.uiState.value.packs).containsExactly(testPack)
     }
 
     @Test

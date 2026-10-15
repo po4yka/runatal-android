@@ -93,7 +93,6 @@ HPLcom/po4yka/runatal/ui/screens/quotelist/QuoteListViewModel;-><init>(Lcom/po4y
 HPLcom/po4yka/runatal/ui/screens/quotelist/QuoteListViewModel;->getUiState()Lkotlinx/coroutines/flow/StateFlow;
 HPLcom/po4yka/runatal/ui/screens/quotelist/QuoteListViewModel;->setFilter(Lcom/po4yka/runatal/ui/screens/quotelist/QuoteFilter;)V
 
-HPLcom/po4yka/runatal/ui/screens/addeditquote/AddEditQuoteViewModel;-><init>(Lcom/po4yka/runatal/data/repository/QuoteRepository;Lcom/po4yka/runatal/data/preferences/UserPreferencesManager;Lcom/po4yka/runatal/domain/transliteration/ElderFutharkTransliterator;Lcom/po4yka/runatal/domain/transliteration/YoungerFutharkTransliterator;Lcom/po4yka/runatal/domain/transliteration/CirthTransliterator;Landroidx/lifecycle/SavedStateHandle;)V
 HPLcom/po4yka/runatal/ui/screens/addeditquote/AddEditQuoteViewModel;->updateTextLatin(Ljava/lang/String;)V
 HPLcom/po4yka/runatal/ui/screens/addeditquote/AddEditQuoteViewModel;->updateAuthor(Ljava/lang/String;)V
 

@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
     <cloud-backup>
-        <!-- Include DataStore preferences in cloud backups -->
-        <include domain="sharedpref" path="."/>
+        <!-- User quotes, favorites and related records; Android also includes SQLite WAL/journal files. -->
+        <include domain="database" path="runic_quotes.db"/>
+        <!-- Preferences DataStore stores its protobuf in files/datastore, not shared_prefs. -->
+        <include domain="file" path="datastore/user_preferences.preferences_pb"/>
     </cloud-backup>
 </data-extraction-rules>

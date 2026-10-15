@@ -1,8 +1,8 @@
 package com.po4yka.runatal.data.local.entity
 
-import androidx.room.Entity
-import androidx.room.Index
-import androidx.room.PrimaryKey
+import androidx.room3.Entity
+import androidx.room3.Index
+import androidx.room3.PrimaryKey
 
 /**
  * Room entity representing a rune reference entry.
@@ -18,7 +18,8 @@ import androidx.room.PrimaryKey
 @Entity(
     tableName = "rune_references",
     indices = [
-        Index(value = ["script"])
+        Index(value = ["script"]),
+        Index(value = ["canonicalKey"], unique = true)
     ]
 )
 data class RuneReferenceEntity(
@@ -28,5 +29,7 @@ data class RuneReferenceEntity(
     val pronunciation: String,
     val meaning: String,
     val history: String,
-    val script: String
+    val script: String,
+    val canonicalKey: String? = null,
+    val canonicalFingerprint: String? = null
 )

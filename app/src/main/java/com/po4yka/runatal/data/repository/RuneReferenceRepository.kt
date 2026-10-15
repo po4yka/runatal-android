@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 interface RuneReferenceRepository {
 
     /**
-     * Seeds the database with rune reference data if empty.
+     * Synchronizes canonical rune identities and unmodified metadata while preserving custom references.
      */
     suspend fun seedIfNeeded()
 
@@ -33,4 +33,11 @@ interface RuneReferenceRepository {
      * Inserts multiple rune references.
      */
     suspend fun insertAllRunes(runes: List<RuneReference>)
+    /** Persisted bookmarked runes. */
+    fun getBookmarkedRunesFlow(): Flow<List<RuneReference>>
+    /** Live bookmark state for a reference. */
+    fun observeBookmark(id: Long): Flow<Boolean>
+    /** Atomically toggles a rune bookmark. */
+    suspend fun toggleBookmark(id: Long)
+
 }

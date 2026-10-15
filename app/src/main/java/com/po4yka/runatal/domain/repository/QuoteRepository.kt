@@ -1,6 +1,7 @@
 package com.po4yka.runatal.domain.repository
 
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteLifecycleChange
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -14,6 +15,9 @@ interface QuoteRepository {
      * Seeds the database with initial quotes if needed.
      */
     suspend fun seedIfNeeded()
+
+    /** Emits after committed quote writes; values must not be deduplicated by consumers. */
+    fun observeQuoteChanges(): Flow<Unit>
 
     /**
      * Gets the quote of the day.
@@ -62,21 +66,32 @@ interface QuoteRepository {
     suspend fun toggleFavorite(quoteId: Long, isFavorite: Boolean)
 
     /**
-     * Inserts or updates a user-created quote.
-     * @return The ID of the inserted/updated quote.
+     * Creates a user quote with a database-assigned identity. The incoming ID must be zero.
+     * @return The ID of the created quote.
      */
     suspend fun saveUserQuote(quote: Quote): Long
 
     /**
-     * Re-inserts a deleted user-created quote with its existing identity.
-     * @return The restored quote ID.
+     * Updates editor-owned content and invalidates changed-source translations atomically.
+     * Preserves favorite status, creation time and stored identity; rejects missing or changed content.
      */
-    suspend fun restoreUserQuote(quote: Quote): Long
+    suspend fun updateUserQuoteContent(
+        quote: Quote,
+        expectedTextLatin: String,
+        expectedAuthor: String
+    ): Quote
 
-    /**
-     * Deletes a user-created quote.
-     */
-    suspend fun deleteUserQuote(quoteId: Long)
+    /** Moves an active user quote to retained trash without deleting related metadata. */
+    suspend fun deleteUserQuote(quoteId: Long): QuoteLifecycleChange
+
+    /** Moves any active quote out of the reading library while retaining its full data. */
+    suspend fun archiveQuote(quoteId: Long): QuoteLifecycleChange
+
+    /** Hides an active quote until the user explicitly restores it. */
+    suspend fun hideQuote(quoteId: Long): QuoteLifecycleChange
+
+    /** Undoes only the exact lifecycle mutation represented by this receipt. */
+    suspend fun undoLifecycleChange(change: QuoteLifecycleChange)
 
     /**
      * Gets a quote by ID.

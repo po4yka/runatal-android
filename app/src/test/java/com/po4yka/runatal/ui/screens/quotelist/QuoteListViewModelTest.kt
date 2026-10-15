@@ -5,7 +5,11 @@ import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.domain.repository.QuoteRepository
+import com.po4yka.runatal.domain.repository.NoOpTranslationRepository
+import com.po4yka.runatal.domain.usecase.quote.ResolveQuoteRenderingUseCase
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteLifecycleChange
+import com.po4yka.runatal.domain.model.QuoteLifecycleState
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.transliteration.TransliterationFactory
 import io.mockk.coEvery
@@ -13,12 +17,18 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import java.io.IOException
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -99,11 +109,21 @@ class QuoteListViewModelTest {
         every { quoteRepository.getUserQuotesFlow() } returns userQuotesFlow
         every { quoteRepository.getFavoritesFlow() } returns favoritesFlow
         coEvery { userPreferencesManager.updateQuoteListFilter(any()) } returns Unit
-        coEvery { userPreferencesManager.updateQuoteSearchQuery(any()) } returns Unit
+        var searchGeneration = 0L
+        every { userPreferencesManager.reserveQuoteSearchWrite() } answers { ++searchGeneration }
+        coEvery { userPreferencesManager.updateQuoteSearchQuery(any(), any()) } returns Unit
         coEvery { quoteRepository.toggleFavorite(any(), any()) } returns Unit
-        coEvery { quoteRepository.deleteUserQuote(any()) } returns Unit
+        coEvery { quoteRepository.deleteUserQuote(any()) } answers {
+            QuoteLifecycleChange(firstArg(), QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, 0L, "delete")
+        }
+        coEvery { quoteRepository.archiveQuote(any()) } answers {
+            QuoteLifecycleChange(firstArg(), QuoteLifecycleState.ACTIVE, QuoteLifecycleState.ARCHIVED, 0L, "archive")
+        }
+        coEvery { quoteRepository.hideQuote(any()) } answers {
+            QuoteLifecycleChange(firstArg(), QuoteLifecycleState.ACTIVE, QuoteLifecycleState.HIDDEN, 0L, "hide")
+        }
         coEvery { quoteRepository.saveUserQuote(any()) } returns 99L
-        coEvery { quoteRepository.restoreUserQuote(any()) } returns 99L
+        coEvery { quoteRepository.undoLifecycleChange(any()) } returns Unit
     }
 
     @After
@@ -160,7 +180,7 @@ class QuoteListViewModelTest {
 
         assertThat(viewModel.uiState.value.searchQuery).isEqualTo("wander")
         assertThat(viewModel.uiState.value.quotes).containsExactly(testQuotes[1])
-        coVerify { userPreferencesManager.updateQuoteSearchQuery("wander") }
+        coVerify { userPreferencesManager.updateQuoteSearchQuery("wander", any()) }
     }
 
     @Test
@@ -201,31 +221,209 @@ class QuoteListViewModelTest {
             advanceUntilIdle()
 
             coVerify { quoteRepository.deleteUserQuote(2L) }
-            assertThat(awaitItem()).isEqualTo(QuoteListEvent.QuoteDeleted(testQuotes[1]))
+            assertThat(awaitItem()).isEqualTo(QuoteListEvent.QuoteMoved(
+                QuoteLifecycleChange(2L, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, 0L, "delete")
+            ))
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `restoreDeletedQuote re-inserts a user-created copy`() = runTest {
+    fun `undo move submits exact receipt and does not reinsert a stale quote snapshot`() = runTest {
         viewModel = createViewModel()
         advanceUntilIdle()
-
-        viewModel.restoreDeletedQuote(testQuotes.first())
+        val change = QuoteLifecycleChange(1L, QuoteLifecycleState.ACTIVE, QuoteLifecycleState.TRASH, 0L, "delete")
+        viewModel.undoQuoteMove(change)
         advanceUntilIdle()
+        coVerify(exactly = 1) { quoteRepository.undoLifecycleChange(change) }
+        coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
+    }
 
-        coVerify {
-            quoteRepository.restoreUserQuote(
-                match { restored -> restored.id == 1L && restored.isUserCreated }
+    @Test
+    fun `archive and hide are positive quote actions with separate undo receipts`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.events.test {
+            viewModel.archiveQuote(testQuotes.first())
+            advanceUntilIdle()
+            assertThat((awaitItem() as QuoteListEvent.QuoteMoved).change.state).isEqualTo(QuoteLifecycleState.ARCHIVED)
+            viewModel.hideQuote(testQuotes[1])
+            advanceUntilIdle()
+            assertThat((awaitItem() as QuoteListEvent.QuoteMoved).change.state).isEqualTo(QuoteLifecycleState.HIDDEN)
+            coVerify { quoteRepository.archiveQuote(1L) }
+            coVerify { quoteRepository.hideQuote(2L) }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `library preparation runs on its injected background dispatcher`() = runTest {
+        val background = StandardTestDispatcher(testDispatcher.scheduler, name = "library-background")
+        val resolver = mockk<ResolveQuoteRenderingUseCase>()
+        coEvery { resolver(any(), any()) } coAnswers {
+            assertThat(kotlinx.coroutines.currentCoroutineContext()[kotlin.coroutines.ContinuationInterceptor])
+                .isSameInstanceAs(background)
+            com.po4yka.runatal.domain.model.ResolvedQuoteRendering(
+                "ᚠ", emptyList(), com.po4yka.runatal.domain.translation.TranslationMode.TRANSLITERATE, "Resolved"
             )
         }
+        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager, resolver, background)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.quoteItems).hasSize(testQuotes.size)
+        coVerify(exactly = testQuotes.size) { resolver(any(), any()) }
+    }
+
+    @Test
+    fun `a new search cancels a slow previous rendering without reverting the typed query`() = runTest {
+        val resolver = mockk<ResolveQuoteRenderingUseCase>()
+        coEvery { resolver(any(), any()) } coAnswers { kotlinx.coroutines.awaitCancellation() }
+        viewModel = QuoteListViewModel(quoteRepository, userPreferencesManager, resolver, testDispatcher)
+        runCurrent()
+        viewModel.updateSearchQuery("No matching source")
+        assertThat(viewModel.uiState.value.searchQuery).isEqualTo("No matching source")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.searchQuery).isEqualTo("No matching source")
+        assertThat(viewModel.uiState.value.quotes).isEmpty()
+        assertThat(viewModel.uiState.value.isLoading).isFalse()
+    }
+
+    @Test
+    fun `rapid input keeps immediate results while only the newest pending query is persisted`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        repeat(100) { viewModel.updateSearchQuery("query $it") }
+        assertThat(viewModel.uiState.value.searchQuery).isEqualTo("query 99")
+        advanceUntilIdle()
+        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery("query 99", any()) }
+        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery(any(), any()) }
+    }
+
+    @Test
+    fun `leaving during a write commits the in flight edit and flushes only the final query`() = runTest {
+        val started = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        coEvery { userPreferencesManager.updateQuoteSearchQuery("a", any()) } coAnswers {
+            started.complete(Unit)
+            release.await()
+        }
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.updateSearchQuery("a")
+        advanceTimeBy(300)
+        runCurrent()
+        assertThat(started.isCompleted).isTrue()
+        viewModel.updateSearchQuery("ab")
+        viewModel.updateSearchQuery("abc")
+        viewModel.viewModelScope.cancel()
+        release.complete(Unit)
+        advanceUntilIdle()
+        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery("a", any()) }
+        coVerify(exactly = 0) { userPreferencesManager.updateQuoteSearchQuery("ab", any()) }
+        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery("abc", any()) }
+    }
+
+    @Test
+    fun `a persistence failure leaves search usable and reports the failure`() = runTest {
+        coEvery { userPreferencesManager.updateQuoteSearchQuery(any(), any()) } throws IOException("storage")
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.events.test {
+            viewModel.updateSearchQuery("wander")
+            advanceUntilIdle()
+            assertThat((awaitItem() as QuoteListEvent.ShowMessage).message).contains("Couldn't save the search")
+            assertThat(viewModel.uiState.value.quotes).containsExactly(testQuotes[1])
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `an old view model final flush cannot replace the new view model search in real DataStore`() = runTest {
+        val directory = kotlin.io.path.createTempDirectory("library-search-owners").toFile()
+        val storeJob = kotlinx.coroutines.SupervisorJob()
+        val store = androidx.datastore.preferences.core.PreferenceDataStoreFactory.create(
+            scope = kotlinx.coroutines.CoroutineScope(storeJob + testDispatcher)
+        ) { java.io.File(directory, "search.preferences_pb") }
+        val started = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        var block = true
+        val delayed = object : androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences> by store {
+            override suspend fun updateData(
+                transform: suspend (androidx.datastore.preferences.core.Preferences) ->
+                    androidx.datastore.preferences.core.Preferences
+            ): androidx.datastore.preferences.core.Preferences {
+                val value = store.updateData(transform)
+                if (block && value[androidx.datastore.preferences.core.stringPreferencesKey("quote_search_query")] == "a") {
+                    block = false
+                    started.complete(Unit)
+                    release.await()
+                }
+                return value
+            }
+        }
+        val shared = UserPreferencesManager(delayed)
+        val resolver = ResolveQuoteRenderingUseCase(transliterationFactory, NoOpTranslationRepository)
+        val old = QuoteListViewModel(quoteRepository, shared, resolver, testDispatcher)
+        var newer: QuoteListViewModel? = null
+        try {
+            runCurrent()
+            old.updateSearchQuery("a")
+            started.await()
+            old.updateSearchQuery("abc")
+            old.viewModelScope.cancel()
+            val current = QuoteListViewModel(quoteRepository, shared, resolver, testDispatcher)
+            newer = current
+            runCurrent()
+            current.updateSearchQuery("xyz")
+            shared.userPreferencesFlow.first { it.quoteSearchQuery == "xyz" }
+            release.complete(Unit)
+            checkNotNull(old.viewModelScope.coroutineContext[kotlinx.coroutines.Job]).join()
+            assertThat(shared.userPreferencesFlow.first().quoteSearchQuery).isEqualTo("xyz")
+            assertThat(current.uiState.value.searchQuery).isEqualTo("xyz")
+        } finally {
+            release.complete(Unit)
+            old.viewModelScope.cancel()
+            newer?.viewModelScope?.cancel()
+            storeJob.cancel()
+            directory.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `normally spaced keystrokes debounce disk edits while filtering immediately`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        listOf("w", "wa", "wan", "wand", "wander").forEach { input ->
+            viewModel.updateSearchQuery(input)
+            runCurrent()
+            assertThat(viewModel.uiState.value.searchQuery).isEqualTo(input)
+            advanceTimeBy(100)
+        }
+        coVerify(exactly = 0) { userPreferencesManager.updateQuoteSearchQuery(any(), any()) }
+        advanceTimeBy(300)
+        runCurrent()
+        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery("wander", any()) }
+        assertThat(viewModel.uiState.value.quotes).containsExactly(testQuotes[1])
+    }
+
+    @Test
+    fun `navigation before debounce expires flushes the latest query immediately`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.updateSearchQuery("last search")
+        runCurrent()
+        advanceTimeBy(100)
+        coVerify(exactly = 0) { userPreferencesManager.updateQuoteSearchQuery(any(), any()) }
+        viewModel.viewModelScope.cancel()
+        runCurrent()
+        coVerify(exactly = 1) { userPreferencesManager.updateQuoteSearchQuery("last search", any()) }
     }
 
     private fun createViewModel(): QuoteListViewModel {
         return QuoteListViewModel(
             quoteRepository = quoteRepository,
             userPreferencesManager = userPreferencesManager,
-            transliterationFactory = transliterationFactory
+            resolveQuoteRenderingUseCase = ResolveQuoteRenderingUseCase(transliterationFactory, NoOpTranslationRepository),
+            preparationDispatcher = testDispatcher
         )
     }
 }

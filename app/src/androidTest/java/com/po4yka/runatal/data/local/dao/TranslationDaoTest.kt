@@ -1,7 +1,8 @@
 package com.po4yka.runatal.data.local.dao
 
 import android.content.Context
-import androidx.room.Room
+import androidx.room3.Room
+import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.po4yka.runatal.data.local.RunatalDatabase
@@ -31,7 +32,7 @@ class TranslationDaoTest {
         database = Room.inMemoryDatabaseBuilder(
             context,
             RunatalDatabase::class.java
-        ).allowMainThreadQueries().build()
+        ).setDriver(AndroidSQLiteDriver()).allowMainThreadQueries().build()
 
         quoteDao = database.quoteDao()
         translationRecordDao = database.translationRecordDao()
@@ -63,7 +64,7 @@ class TranslationDaoTest {
         val elderLegacy = record(
             quoteId = 1L,
             script = "ELDER_FUTHARK",
-            variant = null,
+            variant = "",
             datasetVersion = "dataset-v0",
             glyphOutput = "legacy"
         )
@@ -78,23 +79,26 @@ class TranslationDaoTest {
             fidelity = "STRICT",
             variant = "SHORT_TWIG",
             engineVersion = "engine-v1",
-            datasetVersion = "dataset-v1"
+            datasetVersion = "dataset-v1",
+            sourceText = "Quote 1"
         )
         val elderMatch = translationRecordDao.getBySelection(
             quoteId = 1L,
             script = "ELDER_FUTHARK",
             fidelity = "STRICT",
-            variant = null,
+            variant = "",
             engineVersion = "engine-v1",
-            datasetVersion = "dataset-v0"
+            datasetVersion = "dataset-v0",
+            sourceText = "Quote 1"
         )
         val datasetMiss = translationRecordDao.getBySelection(
             quoteId = 1L,
             script = "ELDER_FUTHARK",
             fidelity = "STRICT",
-            variant = null,
+            variant = "",
             engineVersion = "engine-v1",
-            datasetVersion = "dataset-v1"
+            datasetVersion = "dataset-v1",
+            sourceText = "Quote 1"
         )
 
         assertEquals("short", youngerMatch?.glyphOutput)
@@ -103,43 +107,15 @@ class TranslationDaoTest {
     }
 
     @Test
-    fun getLatestAvailableForScript_ignores_unavailable_and_prefers_latest_valid_row() = runTest {
-        quoteDao.insertAll(listOf(quote(id = 2L)))
-        translationRecordDao.insert(
-            record(
-                quoteId = 2L,
-                script = "ELDER_FUTHARK",
-                resolutionStatus = "RECONSTRUCTED",
-                updatedAt = 100L,
-                glyphOutput = "older"
-            )
+    fun exactSelection_does_not_choose_a_newer_different_fidelity() = runTest {
+        quoteDao.insert(quote(id = 2L))
+        translationRecordDao.insert(record(2L, "ELDER_FUTHARK", glyphOutput = "strict"))
+        translationRecordDao.insert(record(2L, "ELDER_FUTHARK", updatedAt = 900L, glyphOutput = "readable")
+            .copy(fidelity = "READABLE"))
+        val selected = translationRecordDao.getBySelection(
+            2L, "ELDER_FUTHARK", "STRICT", "", "engine-v1", "dataset-v1", "Quote 2"
         )
-        translationRecordDao.insert(
-            record(
-                quoteId = 2L,
-                script = "ELDER_FUTHARK",
-                resolutionStatus = "UNAVAILABLE",
-                updatedAt = 400L,
-                glyphOutput = ""
-            )
-        )
-        translationRecordDao.insert(
-            record(
-                quoteId = 2L,
-                script = "ELDER_FUTHARK",
-                resolutionStatus = "APPROXIMATED",
-                updatedAt = 250L,
-                glyphOutput = "newest-available"
-            )
-        )
-
-        val latest = translationRecordDao.getLatestAvailableForScript(
-            quoteId = 2L,
-            script = "ELDER_FUTHARK",
-            unavailableStatus = "UNAVAILABLE"
-        )
-
-        assertEquals("newest-available", latest?.glyphOutput)
+        assertEquals("strict", selected?.glyphOutput)
     }
 
     @Test
@@ -150,15 +126,23 @@ class TranslationDaoTest {
 
         translationRecordDao.deleteForQuote(3L)
 
-        val deleted = translationRecordDao.getLatestAvailableForScript(
+        val deleted = translationRecordDao.getBySelection(
             quoteId = 3L,
             script = "ELDER_FUTHARK",
-            unavailableStatus = "UNAVAILABLE"
+            fidelity = "STRICT",
+            variant = "",
+            engineVersion = "engine-v1",
+            datasetVersion = "dataset-v1",
+            sourceText = "Quote 3"
         )
-        val preserved = translationRecordDao.getLatestAvailableForScript(
+        val preserved = translationRecordDao.getBySelection(
             quoteId = 4L,
             script = "YOUNGER_FUTHARK",
-            unavailableStatus = "UNAVAILABLE"
+            fidelity = "STRICT",
+            variant = "LONG_BRANCH",
+            engineVersion = "engine-v1",
+            datasetVersion = "dataset-v1",
+            sourceText = "Quote 4"
         )
 
         assertNull(deleted)
@@ -213,7 +197,7 @@ class TranslationDaoTest {
     private fun record(
         quoteId: Long,
         script: String,
-        variant: String? = null,
+        variant: String = "",
         datasetVersion: String = "dataset-v1",
         resolutionStatus: String = "RECONSTRUCTED",
         updatedAt: Long = 200L,

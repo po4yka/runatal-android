@@ -5,9 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
-import com.po4yka.runatal.domain.repository.NoOpTranslationRepository
 import com.po4yka.runatal.domain.repository.QuoteRepository
-import com.po4yka.runatal.domain.repository.TranslationRepository
 import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.transliteration.TransliterationFactory
@@ -18,6 +16,9 @@ import com.po4yka.runatal.domain.usecase.addeditquote.LoadEditableQuoteUseCase
 import com.po4yka.runatal.domain.usecase.addeditquote.QuotePreviewSet
 import com.po4yka.runatal.domain.usecase.addeditquote.SaveEditableQuoteRequest
 import com.po4yka.runatal.domain.usecase.addeditquote.SaveEditableQuoteUseCase
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,30 +29,31 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
-import javax.inject.Inject
 
 /**
  * ViewModel for adding or editing user-created quotes.
  * Provides live preview of runic transliteration as user types.
  */
-@HiltViewModel
-internal class AddEditQuoteViewModel @Inject constructor(
+@HiltViewModel(assistedFactory = AddEditQuoteViewModel.Factory::class)
+internal class AddEditQuoteViewModel @AssistedInject constructor(
     private val quoteRepository: QuoteRepository,
     private val userPreferencesManager: UserPreferencesManager,
-    savedStateHandle: SavedStateHandle,
-    private val editorInteractors: AddEditQuoteEditorInteractors
+    @Assisted private var quoteId: Long,
+    private val editorInteractors: AddEditQuoteEditorInteractors,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
+    @androidx.annotation.VisibleForTesting
     internal constructor(
         quoteRepository: QuoteRepository,
         userPreferencesManager: UserPreferencesManager,
         transliterationFactory: TransliterationFactory,
-        savedStateHandle: SavedStateHandle,
-        translationRepository: TranslationRepository = NoOpTranslationRepository
+        quoteId: Long,
+        savedStateHandle: SavedStateHandle = SavedStateHandle()
     ) : this(
         quoteRepository = quoteRepository,
         userPreferencesManager = userPreferencesManager,
-        savedStateHandle = savedStateHandle,
+        quoteId = quoteId,
         editorInteractors = AddEditQuoteEditorInteractors(
             loadEditableQuoteUseCase = LoadEditableQuoteUseCase(
                 quoteRepository = quoteRepository,
@@ -61,26 +63,45 @@ internal class AddEditQuoteViewModel @Inject constructor(
             evaluateQuoteDraftUseCase = EvaluateQuoteDraftUseCase(),
             saveEditableQuoteUseCase = SaveEditableQuoteUseCase(
                 quoteRepository = quoteRepository,
-                translationRepository = translationRepository
+                buildQuotePreviewsUseCase = BuildQuotePreviewsUseCase(transliterationFactory)
             )
-        )
+        ),
+        savedStateHandle = savedStateHandle
     )
 
-    private var quoteId: Long = savedStateHandle.get<Long>("quoteId") ?: 0L
     private var loadedQuoteId: Long? = null
     private var loadedQuote: Quote? = null
     private var initialTextLatin: String = ""
     private var initialAuthor: String = ""
     private var hasAttemptedSave: Boolean = false
 
-    private val _uiState = MutableStateFlow(AddEditQuoteUiState())
+    private val _uiState = MutableStateFlow(
+        AddEditQuoteUiState(
+            textLatin = savedStateHandle[DRAFT_TEXT] ?: "",
+            author = savedStateHandle[DRAFT_AUTHOR] ?: "",
+            showConfirmation = savedStateHandle[SAVED_CONFIRMATION] ?: false
+        )
+    )
     val uiState: StateFlow<AddEditQuoteUiState> = _uiState.asStateFlow()
     private val _events = Channel<AddEditQuoteEvent>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
 
+    /** Creates an entry-scoped editor for a new quote (zero) or the selected quote. */
+    @AssistedFactory
+    interface Factory {
+        /** Creates the ViewModel for the selected navigation entry. */
+        fun create(quoteId: Long): AddEditQuoteViewModel
+    }
+
     /** Constants for validation limits. */
     companion object {
         private const val TAG = "AddEditQuoteViewModel"
+        private const val DRAFT_TEXT = "editor.text"
+        private const val DRAFT_AUTHOR = "editor.author"
+        private const val SAVED_QUOTE_ID = "editor.quoteId"
+        private const val SAVED_CONFIRMATION = "editor.confirmation"
+        private const val INITIAL_TEXT = "editor.initialText"
+        private const val INITIAL_AUTHOR = "editor.initialAuthor"
     }
 
     init {
@@ -97,7 +118,10 @@ internal class AddEditQuoteViewModel @Inject constructor(
             }
         }
 
-        initializeQuoteIfNeeded(quoteId)
+        this.quoteId = savedStateHandle[SAVED_QUOTE_ID] ?: quoteId
+        updateRunicPreviews(_uiState.value.textLatin)
+        recomputeDerivedState()
+        initializeQuoteIfNeeded(this.quoteId)
     }
 
     /**
@@ -111,17 +135,24 @@ internal class AddEditQuoteViewModel @Inject constructor(
 
         this.quoteId = quoteId
         loadedQuoteId = quoteId
+        _uiState.update { it.copy(isLoading = true, loadError = null, canSave = false) }
 
         viewModelScope.launch {
-            val loadedEditableQuote = editorInteractors.loadEditableQuoteUseCase(quoteId)
-            if (loadedEditableQuote != null) {
+            try {
+                val loadedEditableQuote = editorInteractors.loadEditableQuoteUseCase(quoteId)
+                if (loadedEditableQuote == null) {
+                    _uiState.update { it.copy(loadError = "Quote is missing or cannot be edited") }
+                    return@launch
+                }
                 loadedQuote = loadedEditableQuote.quote
-                initialTextLatin = loadedEditableQuote.quote.textLatin
-                initialAuthor = loadedEditableQuote.quote.author
+                initialTextLatin = savedStateHandle[INITIAL_TEXT] ?: loadedEditableQuote.quote.textLatin
+                initialAuthor = savedStateHandle[INITIAL_AUTHOR] ?: loadedEditableQuote.quote.author
+                savedStateHandle[INITIAL_TEXT] = initialTextLatin
+                savedStateHandle[INITIAL_AUTHOR] = initialAuthor
                 _uiState.update {
                     it.copy(
-                        textLatin = loadedEditableQuote.quote.textLatin,
-                        author = loadedEditableQuote.quote.author,
+                        textLatin = savedStateHandle[DRAFT_TEXT] ?: loadedEditableQuote.quote.textLatin,
+                        author = savedStateHandle[DRAFT_AUTHOR] ?: loadedEditableQuote.quote.author,
                         runicElderPreview = loadedEditableQuote.previews.elder,
                         runicYoungerPreview = loadedEditableQuote.previews.younger,
                         runicCirthPreview = loadedEditableQuote.previews.cirth,
@@ -129,15 +160,35 @@ internal class AddEditQuoteViewModel @Inject constructor(
                         isEditing = true
                     )
                 }
+                savedStateHandle[DRAFT_TEXT] = _uiState.value.textLatin
+                savedStateHandle[DRAFT_AUTHOR] = _uiState.value.author
+                updateRunicPreviews(_uiState.value.textLatin)
+            } catch (exception: IOException) {
+                Log.e(TAG, "Failed to load editable quote", exception)
+                _uiState.update { it.copy(loadError = "Failed to load quote") }
+            } catch (exception: IllegalStateException) {
+                Log.e(TAG, "Invalid editable quote state", exception)
+                _uiState.update { it.copy(loadError = "Failed to load quote") }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
                 recomputeDerivedState()
             }
         }
+    }
+
+    /** Retries loading an existing quote after an error. */
+    fun retryLoading() {
+        if (_uiState.value.isLoading || quoteId == 0L) return
+        loadedQuoteId = null
+        initializeQuoteIfNeeded(quoteId)
     }
 
     /**
      * Updates the Latin text and regenerates runic previews.
      */
     fun updateTextLatin(text: String) {
+        if (!_uiState.value.isEditable) return
+        savedStateHandle[DRAFT_TEXT] = text
         _uiState.update { it.copy(textLatin = text) }
         updateRunicPreviews(text)
         recomputeDerivedState()
@@ -147,6 +198,8 @@ internal class AddEditQuoteViewModel @Inject constructor(
      * Updates the author name.
      */
     fun updateAuthor(author: String) {
+        if (!_uiState.value.isEditable) return
+        savedStateHandle[DRAFT_AUTHOR] = author
         _uiState.update { it.copy(author = author) }
         recomputeDerivedState()
     }
@@ -162,46 +215,38 @@ internal class AddEditQuoteViewModel @Inject constructor(
      * Saves the quote to the database and shows confirmation.
      */
     fun saveQuote() {
+        if (!_uiState.value.isEditable) return
+        hasAttemptedSave = true
+        recomputeDerivedState()
+        val state = _uiState.value
+        if (!state.canSave) return
+        _uiState.update { it.copy(isSaving = true, canSave = false) }
+
         viewModelScope.launch {
-            val state = _uiState.value
-            hasAttemptedSave = true
-            recomputeDerivedState()
-
-            if (!_uiState.value.canSave) {
-                return@launch
-            }
-
-            _uiState.update { it.copy(isSaving = true) }
-
             try {
                 val result = editorInteractors.saveEditableQuoteUseCase(
                     SaveEditableQuoteRequest(
                         quoteId = quoteId,
                         textLatin = state.textLatin,
                         author = state.author,
-                        previews = QuotePreviewSet(
-                            elder = state.runicElderPreview,
-                            younger = state.runicYoungerPreview,
-                            cirth = state.runicCirthPreview
-                        ),
                         existingQuote = loadedQuote,
                         createdAtMillis = state.createdAtMillis,
                         isEditing = state.isEditing,
-                        initialTextLatin = initialTextLatin
+                        initialTextLatin = initialTextLatin,
+                        initialAuthor = initialAuthor
                     )
                 )
-                if (result.translationInvalidationError != null) {
-                    Log.w(
-                        TAG,
-                        "Saved edited quote but failed to invalidate translation cache for id=${result.savedQuote.id}",
-                        result.translationInvalidationError
-                    )
-                }
                 quoteId = result.savedQuote.id
+                savedStateHandle[SAVED_QUOTE_ID] = quoteId
+                savedStateHandle[DRAFT_TEXT] = result.savedQuote.textLatin
+                savedStateHandle[DRAFT_AUTHOR] = result.savedQuote.author
+                savedStateHandle[SAVED_CONFIRMATION] = !state.isEditing
                 loadedQuoteId = result.savedQuote.id
                 loadedQuote = result.savedQuote
                 initialTextLatin = result.savedQuote.textLatin
                 initialAuthor = result.savedQuote.author
+                savedStateHandle[INITIAL_TEXT] = initialTextLatin
+                savedStateHandle[INITIAL_AUTHOR] = initialAuthor
                 if (state.isEditing) {
                     _uiState.update {
                         it.copy(
@@ -224,10 +269,12 @@ internal class AddEditQuoteViewModel @Inject constructor(
             } catch (e: IOException) {
                 Log.e(TAG, "IO error saving quote", e)
                 _uiState.update { it.copy(isSaving = false) }
+                recomputeDerivedState()
                 _events.send(AddEditQuoteEvent.ShowMessage("Failed to save quote: ${e.message}"))
             } catch (e: IllegalStateException) {
                 Log.e(TAG, "Invalid state saving quote", e)
                 _uiState.update { it.copy(isSaving = false) }
+                recomputeDerivedState()
                 _events.send(AddEditQuoteEvent.ShowMessage("Invalid state: ${e.message}"))
             }
         }
@@ -237,19 +284,21 @@ internal class AddEditQuoteViewModel @Inject constructor(
      * Deletes the current quote being edited.
      */
     fun deleteQuote() {
-        if (quoteId == 0L) return
+        if (quoteId == 0L || !_uiState.value.isEditable) return
+        _uiState.update { it.copy(isDeleting = true, canSave = false) }
         viewModelScope.launch {
-            _uiState.update { it.copy(isDeleting = true) }
             try {
                 quoteRepository.deleteUserQuote(quoteId)
                 _events.send(AddEditQuoteEvent.NavigateBackAfterDelete)
             } catch (e: IOException) {
                 Log.e(TAG, "IO error deleting quote", e)
                 _uiState.update { it.copy(isDeleting = false) }
+                recomputeDerivedState()
                 _events.send(AddEditQuoteEvent.ShowMessage("Failed to delete quote: ${e.message}"))
             } catch (e: IllegalStateException) {
                 Log.e(TAG, "Invalid state deleting quote", e)
                 _uiState.update { it.copy(isDeleting = false) }
+                recomputeDerivedState()
                 _events.send(AddEditQuoteEvent.ShowMessage("Invalid state: ${e.message}"))
             }
         }
@@ -259,6 +308,12 @@ internal class AddEditQuoteViewModel @Inject constructor(
      * Resets the form for creating another quote after confirmation.
      */
     fun resetForNewQuote() {
+        savedStateHandle.remove<String>(INITIAL_TEXT)
+        savedStateHandle.remove<String>(INITIAL_AUTHOR)
+        savedStateHandle.remove<String>(DRAFT_TEXT)
+        savedStateHandle.remove<String>(DRAFT_AUTHOR)
+        savedStateHandle.remove<Long>(SAVED_QUOTE_ID)
+        savedStateHandle.remove<Boolean>(SAVED_CONFIRMATION)
         quoteId = 0L
         loadedQuoteId = null
         loadedQuote = null
@@ -308,7 +363,7 @@ internal class AddEditQuoteViewModel @Inject constructor(
                 quoteCharCount = evaluation.quoteCharCount,
                 authorCharCount = evaluation.authorCharCount,
                 hasUnsavedChanges = evaluation.hasUnsavedChanges,
-                canSave = evaluation.canSave
+                canSave = evaluation.canSave && it.isEditable
             )
         }
     }
@@ -336,8 +391,16 @@ data class AddEditQuoteUiState(
     val isDeleting: Boolean = false,
     val hasUnsavedChanges: Boolean = false,
     val canSave: Boolean = false,
-    val showConfirmation: Boolean = false
-)
+    val showConfirmation: Boolean = false,
+    val isLoading: Boolean = false,
+    val loadError: String? = null
+) {
+    /** Whether a mutually exclusive save or delete is in flight. */
+    val isMutating: Boolean get() = isSaving || isDeleting
+
+    /** Editing requires a successfully loaded quote and no pending mutation. */
+    val isEditable: Boolean get() = !isMutating && !isLoading && loadError == null
+}
 
 /** One-off navigation events emitted by the add/edit quote screen. */
 sealed interface AddEditQuoteEvent {

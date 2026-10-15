@@ -37,6 +37,8 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import com.po4yka.runatal.ui.components.RunicText
+import com.po4yka.runatal.domain.model.RunicScript
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -460,8 +462,11 @@ private fun RuneCell(rune: RuneReference, onClick: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
+            RunicText(
                 text = rune.character,
+                script = RunicScript.valueOf(rune.script.uppercase()),
+                fontSize = MaterialTheme.typography.titleLarge.fontSize,
+                overrideLineHeight = MaterialTheme.typography.titleLarge.lineHeight,
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center

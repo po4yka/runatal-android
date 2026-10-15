@@ -46,6 +46,9 @@ import com.po4yka.runatal.ui.components.RunicInfoCard
 import com.po4yka.runatal.ui.components.RunicTopBar
 import com.po4yka.runatal.ui.components.RunicTopBarActionStyle
 import com.po4yka.runatal.ui.components.RunicTopBarIconAction
+import com.po4yka.runatal.ui.util.rememberQuoteShareManager
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import com.po4yka.runatal.ui.theme.RunicExpressiveTheme
 
 /**
@@ -54,9 +57,12 @@ import com.po4yka.runatal.ui.theme.RunicExpressiveTheme
 @Composable
 fun ProfileScreen(
     onNavigateBack: () -> Unit = {},
+    onNavigateToHistory: () -> Unit,
+    onNavigateToSavedRunes: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val shareManager = rememberQuoteShareManager()
 
     Scaffold(
         topBar = {
@@ -73,7 +79,7 @@ fun ProfileScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            ProfileHeroCard(streakDays = state.streakDays)
+            ProfileHeroCard(streakDays = state.streakDays, firstReadDate = state.firstReadDate)
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -105,19 +111,25 @@ fun ProfileScreen(
                 icon = Icons.Default.Share,
                 title = "Share Profile",
                 subtitle = "Invite friends to Runatal",
-                onClick = {}
+                onClick = {
+                    shareManager.shareQuoteText(
+                        "I read runes with Runatal. Reading streak: ${state.streakDays} days. " +
+                            "https://github.com/po4yka/runatal-android",
+                        "Runatal"
+                    )
+                }
             )
             ProfileMenuItem(
                 icon = Icons.Default.History,
                 title = "Streak History",
                 subtitle = "View your daily activity",
-                onClick = {}
+                onClick = onNavigateToHistory
             )
             ProfileMenuItem(
                 icon = Icons.Default.BookmarkBorder,
                 title = "Saved Runes",
                 subtitle = "Your bookmarked runes",
-                onClick = {}
+                onClick = onNavigateToSavedRunes
             )
         }
     }
@@ -145,7 +157,7 @@ private fun ProfileTopBar(onNavigateBack: () -> Unit) {
 }
 
 @Composable
-private fun ProfileHeroCard(streakDays: Int) {
+private fun ProfileHeroCard(streakDays: Int, firstReadDate: LocalDate?) {
     RunicArticleCard(
         modifier = Modifier.fillMaxWidth(),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
@@ -172,7 +184,9 @@ private fun ProfileHeroCard(streakDays: Int) {
         )
 
         RunicBadgeRow {
-            RunicBadge(text = "Member since February 2026")
+            firstReadDate?.let { date ->
+                RunicBadge(text = "Reading since ${date.format(DateTimeFormatter.ofPattern("MMMM yyyy"))}")
+            }
             if (streakDays > 0) {
                 RunicBadge(
                     text = "$streakDays-day streak",

@@ -15,12 +15,26 @@ internal fun resolveWidgetPalette(
     return widgetPaletteFromColorScheme(
         runicColorScheme(
             darkTheme = darkTheme,
-            themePack = "stone",
+            themePack = preferences.themePack,
             highContrast = preferences.highContrastEnabled,
             dynamicColorEnabled = preferences.dynamicColorEnabled,
             context = context
         )
     )
+}
+
+/** Includes resolved colors and device scaling, which can change without a preference write. */
+internal fun widgetRenderEnvironment(
+    context: Context,
+    palette: WidgetPalette,
+    preferences: UserPreferences
+): String {
+    val resources = context.resources
+    val fontResource = com.po4yka.runatal.util.RunicTextRenderer.getFontResource(
+        preferences.selectedFont, preferences.selectedScript
+    )
+    return "$palette|${resources.displayMetrics.densityDpi}|" +
+        "${resources.configuration.fontScale}|${preferences.runicFontScale}|$fontResource|source-v1"
 }
 
 private fun isDarkTheme(context: Context, preferences: UserPreferences): Boolean {

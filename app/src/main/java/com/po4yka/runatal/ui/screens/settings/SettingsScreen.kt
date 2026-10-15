@@ -51,7 +51,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runatal.R
-import com.po4yka.runatal.RunatalApplication
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.ui.components.SettingItem
 import com.po4yka.runatal.ui.components.SettingSection
@@ -77,9 +76,6 @@ fun SettingsScreen(
     val context = LocalContext.current
     val spacing = RunicExpressiveTheme.spacing
     val dynamicColorSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-    val refreshWidgets = {
-        RunatalApplication.widgetSyncManager(context).refreshAllAsync(context)
-    }
 
     Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0)) { paddingValues ->
         Column(
@@ -110,7 +106,6 @@ fun SettingsScreen(
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateSelectedScript(RunicScript.ELDER_FUTHARK)
-                        refreshWidgets()
                     }
                 )
                 ScriptSettingItem(
@@ -121,7 +116,6 @@ fun SettingsScreen(
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateSelectedScript(RunicScript.YOUNGER_FUTHARK)
-                        refreshWidgets()
                     }
                 )
                 ScriptSettingItem(
@@ -132,7 +126,6 @@ fun SettingsScreen(
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateSelectedScript(RunicScript.CIRTH)
-                        refreshWidgets()
                     }
                 )
             }
@@ -146,7 +139,6 @@ fun SettingsScreen(
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateThemeMode("light")
-                        refreshWidgets()
                     }
                 )
                 ThemeSettingItem(
@@ -157,7 +149,6 @@ fun SettingsScreen(
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateThemeMode("dark")
-                        refreshWidgets()
                     }
                 )
                 ThemeSettingItem(
@@ -168,7 +159,6 @@ fun SettingsScreen(
                     onClick = {
                         haptics.lightToggle()
                         viewModel.updateThemeMode("system")
-                        refreshWidgets()
                     }
                 )
                 ToggleSettingItem(
@@ -184,7 +174,6 @@ fun SettingsScreen(
                     onCheckedChange = {
                         haptics.lightToggle()
                         viewModel.updateDynamicColorEnabled(it)
-                        refreshWidgets()
                     }
                 )
                 ToggleSettingItem(
@@ -278,7 +267,6 @@ fun SettingsScreen(
                     onCheckedChange = {
                         haptics.lightToggle()
                         viewModel.updateHighContrastEnabled(it)
-                        refreshWidgets()
                     }
                 )
                 ToggleSettingItem(

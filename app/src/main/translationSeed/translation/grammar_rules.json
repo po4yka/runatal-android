@@ -1,5 +1,9 @@
 {
-  "removableWords": ["the", "a", "an"],
+  "removableWords": [
+    "the",
+    "a",
+    "an"
+  ],
   "prepositionMap": {
     "at": "um",
     "in": "í",
@@ -9,13 +13,62 @@
     "of": "af",
     "to": "til"
   },
-  "interrogatives": ["who", "what", "why", "when", "where", "how"],
+  "interrogatives": [
+    "who",
+    "what",
+    "why",
+    "when",
+    "where",
+    "how"
+  ],
   "pronounMap": {
     "i": "ek",
     "you": "þú",
     "we": "vér",
     "they": "þeir",
     "he": "hann",
-    "she": "hon"
+    "she": "hon",
+    "it": "þat",
+    "you all": "þér"
+  },
+  "governedPrepositions": {
+    "with": {
+      "lemma": "með",
+      "grammaticalCase": "DATIVE",
+      "sourceId": "barnes_nion",
+      "citations": [
+        "NION I p.219: með Óláfi Svía konungi (association with dative)."
+      ]
+    },
+    "to": {
+      "lemma": "til",
+      "grammaticalCase": "GENITIVE",
+      "sourceId": "zoega",
+      "citations": [
+        "Zoega s.v. til, prep. with gen., sense1: to/towards."
+      ]
+    },
+    "at": {
+      "lemma": "um",
+      "grammaticalCase": "ACCUSATIVE",
+      "allowedHeadwords": [
+        "night"
+      ],
+      "sourceId": "zoega",
+      "citations": [
+        "Zoega s.v. um I.6: temporal accusative, þat var um nótt."
+      ]
+    },
+    "under": {
+      "lemma": "undir",
+      "grammaticalCase": "DATIVE",
+      "sourceId": "zoega",
+      "citations": [
+        "Zoega s.v. undir I.1: spatial location with dative; II.1 distinguishes directional accusative."
+      ],
+      "notes": [
+        "Interpreted under as spatial location, including movement within that location; a directional goal is not inferred."
+      ]
+    }
   }
 }

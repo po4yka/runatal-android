@@ -2,7 +2,11 @@ package com.po4yka.runatal.ui.screens.notificationsettings
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
-import com.po4yka.runatal.data.preferences.UserPreferences
+import com.po4yka.runatal.data.preferences.NotificationPreferencesSnapshot
+import com.po4yka.runatal.domain.model.RunicScript
+import com.po4yka.runatal.notification.NotificationAccess
+import com.po4yka.runatal.notification.NotificationKind
+import com.po4yka.runatal.notification.NotificationPublisher
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -25,7 +29,7 @@ class NotificationSettingsViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
     private lateinit var userPreferencesManager: UserPreferencesManager
-    private lateinit var preferencesFlow: MutableStateFlow<UserPreferences>
+    private lateinit var preferencesFlow: MutableStateFlow<NotificationPreferencesSnapshot>
     private lateinit var viewModel: NotificationSettingsViewModel
 
     @Before
@@ -33,24 +37,24 @@ class NotificationSettingsViewModelTest {
         Dispatchers.setMain(dispatcher)
         userPreferencesManager = mockk(relaxed = true)
         preferencesFlow = MutableStateFlow(
-            UserPreferences(
-                dailyQuoteNotifications = false,
-                streakNotifications = true,
-                packUpdateNotifications = false
-            )
+            NotificationPreferencesSnapshot(false, true, false, RunicScript.DEFAULT)
         )
-        every { userPreferencesManager.userPreferencesFlow } returns preferencesFlow
+        every { userPreferencesManager.notificationPreferencesFlow } returns preferencesFlow
         coEvery { userPreferencesManager.updateDailyQuoteNotifications(any()) } coAnswers {
-            preferencesFlow.value = preferencesFlow.value.copy(dailyQuoteNotifications = firstArg())
+            preferencesFlow.value = preferencesFlow.value.copy(dailyQuote = firstArg())
         }
         coEvery { userPreferencesManager.updateStreakNotifications(any()) } coAnswers {
-            preferencesFlow.value = preferencesFlow.value.copy(streakNotifications = firstArg())
+            preferencesFlow.value = preferencesFlow.value.copy(streak = firstArg())
         }
         coEvery { userPreferencesManager.updatePackUpdateNotifications(any()) } coAnswers {
-            preferencesFlow.value = preferencesFlow.value.copy(packUpdateNotifications = firstArg())
+            preferencesFlow.value = preferencesFlow.value.copy(packUpdates = firstArg())
         }
 
-        viewModel = NotificationSettingsViewModel(userPreferencesManager)
+        val publisher = mockk<NotificationPublisher>(relaxed = true)
+        every { publisher.access } returns MutableStateFlow(
+            NotificationAccess(true, true, NotificationKind.entries.toSet())
+        )
+        viewModel = NotificationSettingsViewModel(userPreferencesManager, publisher)
     }
 
     @After
@@ -78,7 +82,7 @@ class NotificationSettingsViewModelTest {
             awaitItem()
             awaitItem()
 
-            viewModel.toggleDailyQuote()
+            viewModel.updateDailyQuote(true)
             advanceUntilIdle()
 
             coVerify { userPreferencesManager.updateDailyQuoteNotifications(true) }
@@ -93,7 +97,7 @@ class NotificationSettingsViewModelTest {
             awaitItem()
             awaitItem()
 
-            viewModel.toggleStreak()
+            viewModel.updateStreak(false)
             advanceUntilIdle()
 
             coVerify { userPreferencesManager.updateStreakNotifications(false) }
@@ -108,7 +112,7 @@ class NotificationSettingsViewModelTest {
             awaitItem()
             awaitItem()
 
-            viewModel.togglePackUpdates()
+            viewModel.updatePackUpdates(true)
             advanceUntilIdle()
 
             coVerify { userPreferencesManager.updatePackUpdateNotifications(true) }
@@ -116,4 +120,19 @@ class NotificationSettingsViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+    @Test
+    fun `failed preference write keeps committed value and exposes a retryable message`() = runTest {
+        coEvery { userPreferencesManager.updateDailyQuoteNotifications(true) } throws java.io.IOException("disk")
+        viewModel.uiState.test {
+            awaitItem()
+            awaitItem()
+            viewModel.updateDailyQuote(true)
+            advanceUntilIdle()
+            val failed = awaitItem()
+            assertThat(failed.dailyQuote).isFalse()
+            assertThat(failed.errorMessage).contains("Couldn't save")
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
 }

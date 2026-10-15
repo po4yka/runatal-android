@@ -1,8 +1,8 @@
 package com.po4yka.runatal.domain.usecase.addeditquote
 
 import com.po4yka.runatal.domain.repository.QuoteRepository
-import com.po4yka.runatal.domain.repository.TranslationRepository
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteInputPolicy
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.model.getRunicText
 import com.po4yka.runatal.domain.transliteration.TransliterationFactory
@@ -32,16 +32,15 @@ internal data class SaveEditableQuoteRequest(
     val quoteId: Long,
     val textLatin: String,
     val author: String,
-    val previews: QuotePreviewSet,
     val existingQuote: Quote?,
     val createdAtMillis: Long,
     val isEditing: Boolean,
-    val initialTextLatin: String
+    val initialTextLatin: String,
+    val initialAuthor: String
 )
 
 internal data class SaveEditableQuoteResult(
-    val savedQuote: Quote,
-    val translationInvalidationError: Throwable? = null
+    val savedQuote: Quote
 )
 
 internal class AddEditQuoteEditorInteractors @Inject constructor(
@@ -59,14 +58,15 @@ internal class BuildQuotePreviewsUseCase @Inject constructor(
         text: String,
         preservedQuote: Quote? = null
     ): QuotePreviewSet {
-        val preserved = preservedQuote?.takeIf { it.textLatin == text }
+        val source = QuoteInputPolicy.prepareSourceText(text)
+        val preserved = preservedQuote?.takeIf { it.textLatin == source }
         return QuotePreviewSet(
             elder = preserved?.getRunicText(RunicScript.ELDER_FUTHARK, transliterationFactory)
-                ?: transliterationFactory.transliterate(text, RunicScript.ELDER_FUTHARK),
+                ?: transliterationFactory.transliterate(source, RunicScript.ELDER_FUTHARK),
             younger = preserved?.getRunicText(RunicScript.YOUNGER_FUTHARK, transliterationFactory)
-                ?: transliterationFactory.transliterate(text, RunicScript.YOUNGER_FUTHARK),
+                ?: transliterationFactory.transliterate(source, RunicScript.YOUNGER_FUTHARK),
             cirth = preserved?.getRunicText(RunicScript.CIRTH, transliterationFactory)
-                ?: transliterationFactory.transliterate(text, RunicScript.CIRTH)
+                ?: transliterationFactory.transliterate(source, RunicScript.CIRTH)
         )
     }
 }
@@ -95,26 +95,16 @@ internal class EvaluateQuoteDraftUseCase @Inject constructor() {
         initialAuthor: String,
         hasAttemptedSave: Boolean
     ): QuoteDraftEvaluation {
-        val rawQuoteTextError = when {
-            textLatin.trim().length < MIN_QUOTE_LENGTH -> {
-                "Quote must be at least $MIN_QUOTE_LENGTH characters"
-            }
+        val rawQuoteTextError = QuoteInputPolicy.quoteTextError(textLatin)
 
-            textLatin.length > MAX_QUOTE_LENGTH -> "Keep quote under $MAX_QUOTE_LENGTH characters"
-            else -> null
-        }
-
-        val rawAuthorError = when {
-            author.isBlank() -> "Author is required"
-            author.length > MAX_AUTHOR_LENGTH -> "Keep author under $MAX_AUTHOR_LENGTH characters"
-            else -> null
-        }
+        val rawAuthorError = QuoteInputPolicy.authorError(author)
 
         val quoteTextError = rawQuoteTextError?.takeIf { hasAttemptedSave || textLatin.isNotBlank() }
         val authorError = rawAuthorError?.takeIf { hasAttemptedSave || author.isNotBlank() }
 
         val hasUnsavedChanges = if (isEditing) {
-            textLatin.trim() != initialTextLatin.trim() || author.trim() != initialAuthor.trim()
+            QuoteInputPolicy.prepareSourceText(textLatin) != QuoteInputPolicy.prepareSourceText(initialTextLatin) ||
+                author.trim() != initialAuthor.trim()
         } else {
             textLatin.isNotBlank() || author.isNotBlank()
         }
@@ -129,21 +119,19 @@ internal class EvaluateQuoteDraftUseCase @Inject constructor() {
         )
     }
 
-    private companion object {
-        const val MAX_QUOTE_LENGTH = 280
-        const val MAX_AUTHOR_LENGTH = 60
-        const val MIN_QUOTE_LENGTH = 3
-    }
 }
 
 internal class SaveEditableQuoteUseCase @Inject constructor(
     private val quoteRepository: QuoteRepository,
-    private val translationRepository: TranslationRepository
+    private val buildQuotePreviewsUseCase: BuildQuotePreviewsUseCase
 ) {
 
     suspend operator fun invoke(request: SaveEditableQuoteRequest): SaveEditableQuoteResult {
-        val trimmedText = request.textLatin.trim()
+        check(QuoteInputPolicy.quoteTextError(request.textLatin) == null) { "Enter valid quote text before saving." }
+        check(QuoteInputPolicy.authorError(request.author) == null) { "Enter a valid author before saving." }
+        val trimmedText = QuoteInputPolicy.prepareSourceText(request.textLatin)
         val trimmedAuthor = request.author.trim()
+        val previews = buildQuotePreviewsUseCase(trimmedText, request.existingQuote)
         val createdAt = if (request.isEditing && request.createdAtMillis != 0L) {
             request.createdAtMillis
         } else {
@@ -154,24 +142,25 @@ internal class SaveEditableQuoteUseCase @Inject constructor(
             id = request.quoteId,
             textLatin = trimmedText,
             author = trimmedAuthor,
-            runicElder = request.previews.elder,
-            runicYounger = request.previews.younger,
-            runicCirth = request.previews.cirth,
+            runicElder = previews.elder,
+            runicYounger = previews.younger,
+            runicCirth = previews.cirth,
             isUserCreated = true,
             isFavorite = request.existingQuote?.isFavorite ?: false,
             createdAt = createdAt
         )
 
-        val savedQuoteId = quoteRepository.saveUserQuote(quote)
-        val invalidationError = if (request.isEditing && trimmedText != request.initialTextLatin.trim()) {
-            runCatching { translationRepository.deleteTranslationsForQuote(savedQuoteId) }.exceptionOrNull()
+        val savedQuote = if (quote.id == 0L) {
+            quote.copy(id = quoteRepository.saveUserQuote(quote))
         } else {
-            null
+            val previous = checkNotNull(request.existingQuote) { "Load the quote before editing its content." }
+            check(previous.id == quote.id) { "The loaded quote does not match this editor." }
+            quoteRepository.updateUserQuoteContent(
+                quote = quote,
+                expectedTextLatin = request.initialTextLatin,
+                expectedAuthor = request.initialAuthor
+            )
         }
-
-        return SaveEditableQuoteResult(
-            savedQuote = quote.copy(id = savedQuoteId, createdAt = createdAt),
-            translationInvalidationError = invalidationError
-        )
+        return SaveEditableQuoteResult(savedQuote = savedQuote)
     }
 }

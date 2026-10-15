@@ -2,11 +2,16 @@ package com.po4yka.runatal.domain.translation
 
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.transliteration.CirthTransliterator
+import java.text.Normalizer
+import java.util.Locale
 import com.po4yka.runatal.domain.transliteration.ElderFutharkTransliterator
+import com.po4yka.runatal.domain.transliteration.YoungerFutharkAlphabet
 
 internal class TranslationGoldExampleResolver(
     private val runicCorpusStore: RunicCorpusStore
 ) {
+    private val elderAttestation = ElderAttestationPolicy(runicCorpusStore)
+
     fun resolve(
         request: TranslationRequest,
         engineVersion: String
@@ -20,7 +25,7 @@ internal class TranslationGoldExampleResolver(
                 it.fidelity == request.fidelity.name &&
                 (request.script != RunicScript.YOUNGER_FUTHARK ||
                     it.requestedVariant == null ||
-                    it.requestedVariant == request.youngerVariant.name)
+                    it.requestedVariant == request.youngerVariant.name) && isEligible(request, it)
         } ?: return null
 
         return TranslationResult(
@@ -45,6 +50,15 @@ internal class TranslationGoldExampleResolver(
             engineVersion = engineVersion,
             datasetVersion = runicCorpusStore.datasetManifest().version
         )
+    }
+
+    private fun isEligible(request: TranslationRequest, result: TranslationGoldExampleResult): Boolean {
+        if (request.script == RunicScript.CIRTH) return false
+        if (request.script != RunicScript.ELDER_FUTHARK || request.fidelity != TranslationFidelity.STRICT) return true
+        return elderAttestation.allows(
+            result.normalizedForm, result.diplomaticForm, result.resolutionStatus,
+            result.historicalStage, result.provenance.mapNotNull { it.referenceId }
+        ) && result.glyphOutput == elderAttestation.render(result.diplomaticForm)
     }
 }
 
@@ -141,30 +155,25 @@ internal class RunicPhraseTemplateResolver(
     private val runicCorpusStore: RunicCorpusStore,
     private val sourceCatalog: HistoricalSourceCatalog
 ) {
-    fun resolveYounger(
-        request: TranslationRequest,
-        renderer: YoungerFutharkRenderer
-    ): TranslationResult? {
-        val template = findTemplate(request, runicCorpusStore.youngerPhraseTemplates()) ?: return null
-        return template.toTranslationResult(
-            request = request,
-            script = RunicScript.YOUNGER_FUTHARK,
-            datasetVersion = runicCorpusStore.datasetManifest().version,
-            engineVersion = "yf-template-v3"
-        ) { token -> renderer.render(token, request.youngerVariant) }
-    }
-
     fun resolveElder(
         request: TranslationRequest,
         renderer: ElderRuneRenderer
     ): TranslationResult? {
         val template = findTemplate(request, runicCorpusStore.elderAttestedForms()) ?: return null
+        val policy = ElderAttestationPolicy(runicCorpusStore)
+        if (request.fidelity == TranslationFidelity.STRICT && !policy.allows(
+                template.normalizedForm, template.diplomaticForm, template.resolutionStatus,
+                template.historicalStage, template.referenceIds
+            )) return null
         return template.toTranslationResult(
             request = request,
             script = RunicScript.ELDER_FUTHARK,
             datasetVersion = runicCorpusStore.datasetManifest().version,
             engineVersion = "ef-template-v3"
-        ) { token -> renderer.render(token) }
+        ) { token ->
+            if (template.resolutionStatus == TranslationResolutionStatus.ATTESTED.name) policy.render(token)
+            else renderer.render(token)
+        }
     }
 
     private fun findTemplate(
@@ -214,7 +223,6 @@ internal class RunicPhraseTemplateResolver(
                 provenance = tokenProvenance
             )
         }
-        val diplomaticTokens = breakdown.map { it.diplomaticToken }
         return TranslationResult(
             sourceText = request.sourceText,
             script = script,
@@ -223,7 +231,7 @@ internal class RunicPhraseTemplateResolver(
             historicalStage = HistoricalStage.valueOf(historicalStage),
             normalizedForm = normalizedForm,
             diplomaticForm = diplomaticForm,
-            glyphOutput = stitchTokens(diplomaticTokens.map(glyphRenderer)),
+            glyphOutput = glyphRenderer(diplomaticForm),
             requestedVariant = if (script == RunicScript.YOUNGER_FUTHARK) request.youngerVariant.name else null,
             resolutionStatus = TranslationResolutionStatus.valueOf(resolutionStatus),
             confidence = confidenceFor(TranslationResolutionStatus.valueOf(resolutionStatus)),
@@ -245,72 +253,9 @@ internal data class TranslationTokenResolution(
     val resolutionStatus: TranslationResolutionStatus,
     val notes: List<String> = emptyList(),
     val unresolvedToken: String? = null,
-    val provenance: List<TranslationProvenanceEntry> = emptyList()
+    val provenance: List<TranslationProvenanceEntry> = emptyList(),
+    val isPunctuation: Boolean = false
 )
-
-internal data class MorphologyHints(
-    val isPlural: Boolean,
-    val isPast: Boolean,
-    val isThirdPersonSingular: Boolean
-)
-
-internal data class MorphologyStageOutput(
-    val form: String,
-    val notes: List<String> = emptyList()
-)
-
-internal class OldNorseMorphologyStage(
-    private val lexiconLookup: HistoricalLexiconLookup
-) {
-    fun inflect(entry: OldNorseLexiconEntry, token: ParsedEnglishToken): MorphologyStageOutput {
-        val hints = token.toMorphologyHints()
-        return when (entry.partOfSpeech) {
-            "verb" -> MorphologyStageOutput(
-                form = inflectVerb(entry, hints),
-                notes = listOfNotNull(entry.paradigmId?.let { "Applied verb paradigm $it." })
-            )
-
-            "noun" -> MorphologyStageOutput(
-                form = inflectNoun(entry, hints),
-                notes = listOfNotNull(entry.paradigmId?.let { "Applied noun paradigm $it." })
-            )
-
-            "preposition" -> MorphologyStageOutput(entry.dativePhrase ?: entry.lemma)
-            else -> MorphologyStageOutput(entry.lemma)
-        }
-    }
-
-    private fun inflectVerb(entry: OldNorseLexiconEntry, hints: MorphologyHints): String {
-        val paradigm = entry.paradigmId?.let { lexiconLookup.paradigmTables().verbParadigms[it] }
-        val pastForm = when {
-            !hints.isPast -> null
-            entry.past3sg != null -> entry.past3sg
-            paradigm != null -> entry.lemma.removeSuffix("a") + paradigm.thirdPersonPastSuffix
-            else -> null
-        }
-        val presentForm = when {
-            !hints.isThirdPersonSingular -> null
-            entry.present3sg != null -> entry.present3sg
-            paradigm != null -> entry.lemma.removeSuffix("a") + paradigm.thirdPersonPresentSuffix
-            else -> null
-        }
-
-        return pastForm ?: presentForm ?: entry.lemma
-    }
-
-    private fun inflectNoun(entry: OldNorseLexiconEntry, hints: MorphologyHints): String {
-        val paradigm = entry.paradigmId?.let { lexiconLookup.paradigmTables().nounParadigms[it] }
-        val inflectedForm = when {
-            !hints.isPlural -> null
-            entry.pluralForm != null -> entry.pluralForm
-            paradigm == null || paradigm.pluralSuffix.isBlank() -> null
-            entry.lemma.endsWith("r") -> entry.lemma.dropLast(1) + paradigm.pluralSuffix
-            else -> entry.lemma + paradigm.pluralSuffix
-        }
-
-        return inflectedForm ?: entry.lemma
-    }
-}
 
 internal data class PhonologyStageOutput(
     val form: String,
@@ -322,9 +267,9 @@ internal class YoungerFutharkPhonologyStage {
         var current = text.lowercase()
         val notes = mutableListOf<String>()
 
+        current = applyDiphthongHandling(current, notes)
         current = applyFrontVowelReduction(current, notes)
         current = applyRoundedVowelReduction(current, notes)
-        current = applyDiphthongHandling(current, notes)
         current = applyVoicingAndDevoicing(current, notes)
         current = applyGeminateSimplification(current, notes)
 
@@ -341,7 +286,7 @@ internal class YoungerFutharkPhonologyStage {
         var current = value
         current = applyRegexRule(
             value = current,
-            regex = Regex("[eéæ]"),
+            regex = Regex("[eéæí]"),
             replacement = "i",
             notes = notes,
             note = "Applied front-vowel reduction group."
@@ -353,6 +298,7 @@ internal class YoungerFutharkPhonologyStage {
             notes = notes,
             note = "Normalized glide-plus-vowel spelling for Younger Futhark."
         )
+        current = applyLiteralRule(current, "á", "a", notes, "Reduced acute a to its runic vowel class.")
         return current
     }
 
@@ -362,7 +308,7 @@ internal class YoungerFutharkPhonologyStage {
     ): String {
         return applyRegexRule(
             value = value,
-            regex = Regex("[oóǫøy]"),
+            regex = Regex("[oóǫøyýú]"),
             replacement = "u",
             notes = notes,
             note = "Applied rounded-vowel reduction group."
@@ -387,6 +333,7 @@ internal class YoungerFutharkPhonologyStage {
         current = applyLiteralRule(current, "g", "k", notes, "Applied voicing-neutralization group.")
         current = applyLiteralRule(current, "d", "t", notes, "Applied devoicing group.")
         current = applyLiteralRule(current, "ð", "þ", notes, "Normalized eth to thorn.")
+        current = applyLiteralRule(current, "v", "u", notes, "Reduced v to its runic vowel class.")
         return current
     }
 
@@ -432,69 +379,11 @@ internal class YoungerFutharkPhonologyStage {
 }
 
 internal class YoungerFutharkRenderer {
-    private val longBranchMap = mapOf(
-        'f' to 'ᚠ',
-        'u' to 'ᚢ',
-        'v' to 'ᚢ',
-        'w' to 'ᚢ',
-        'þ' to 'ᚦ',
-        'a' to 'ᛅ',
-        'ą' to 'ᚬ',
-        'r' to 'ᚱ',
-        'ʀ' to 'ᛦ',
-        'k' to 'ᚴ',
-        'g' to 'ᚴ',
-        'h' to 'ᚼ',
-        'n' to 'ᚾ',
-        'i' to 'ᛁ',
-        'j' to 'ᛁ',
-        's' to 'ᛋ',
-        't' to 'ᛏ',
-        'd' to 'ᛏ',
-        'b' to 'ᛒ',
-        'p' to 'ᛒ',
-        'm' to 'ᛘ',
-        'l' to 'ᛚ',
-        ' ' to ' '
-    )
-
-    private val shortTwigMap = mapOf(
-        'f' to 'ᚠ',
-        'u' to 'ᚢ',
-        'v' to 'ᚢ',
-        'w' to 'ᚢ',
-        'þ' to 'ᚦ',
-        'a' to 'ᛆ',
-        'ą' to 'ᚭ',
-        'r' to 'ᚱ',
-        'ʀ' to 'ᛧ',
-        'k' to 'ᚴ',
-        'g' to 'ᚴ',
-        'h' to 'ᚽ',
-        'n' to 'ᚿ',
-        'i' to 'ᛁ',
-        'j' to 'ᛁ',
-        's' to 'ᛌ',
-        't' to 'ᛐ',
-        'd' to 'ᛐ',
-        'b' to 'ᛓ',
-        'p' to 'ᛓ',
-        'm' to 'ᛙ',
-        'l' to 'ᛚ',
-        ' ' to ' '
-    )
-
-    fun render(text: String, variant: YoungerFutharkVariant): String {
-        val mapping = when (variant) {
-            YoungerFutharkVariant.LONG_BRANCH -> longBranchMap
-            YoungerFutharkVariant.SHORT_TWIG -> shortTwigMap
-        }
-
-        return text.map { char -> mapping[char] ?: char }.joinToString("")
-    }
+    fun render(text: String, variant: YoungerFutharkVariant): String = YoungerFutharkAlphabet.render(text, variant)
 }
 
 internal data class ProtoNorseStageOutput(
+    val historicalStage: HistoricalStage,
     val form: String? = null,
     val notes: List<String> = emptyList(),
     val resolutionStatus: TranslationResolutionStatus = TranslationResolutionStatus.RECONSTRUCTED,
@@ -510,10 +399,9 @@ internal class ProtoNorseLexicalStage(
         fidelity: TranslationFidelity
     ): ProtoNorseStageOutput {
         val lexiconEntry = lexiconLookup.protoNorseFor(token.normalized, fidelity)
-        val paraphrase = lexiconLookup.fallbackParaphrase(token.normalized)
-
         return when {
             lexiconEntry != null -> ProtoNorseStageOutput(
+                historicalStage = HistoricalStage.PROTO_NORSE,
                 form = lexiconEntry.form,
                 resolutionStatus = if (lexiconEntry.strictEligible) {
                     TranslationResolutionStatus.RECONSTRUCTED
@@ -524,30 +412,20 @@ internal class ProtoNorseLexicalStage(
             )
 
             fidelity == TranslationFidelity.STRICT -> ProtoNorseStageOutput(
+                historicalStage = HistoricalStage.PROTO_NORSE,
                 unresolvedToken = token.raw,
                 notes = listOf("Missing attested or reconstructed Elder Futhark pattern for '${token.raw}'.")
             )
 
-            paraphrase != null -> ProtoNorseStageOutput(
-                form = paraphrase.lowercase(),
-                notes = listOf("Used descriptive paraphrase for '${token.raw}'."),
-                resolutionStatus = TranslationResolutionStatus.APPROXIMATED,
-                provenance = listOf(
-                    lexiconLookup.provenanceFor(
-                        sourceId = "internal_heuristics",
-                        detail = "Readable-mode paraphrase"
-                    )
-                )
-            )
-
             else -> ProtoNorseStageOutput(
+                historicalStage = HistoricalStage.PRESERVED_SOURCE,
                 form = token.normalized,
-                notes = listOf("Used phonological preservation for '${token.raw}'."),
+                notes = listOf("Preserved source spelling for '${token.raw}'; no Proto-Norse lemma is available."),
                 resolutionStatus = TranslationResolutionStatus.APPROXIMATED,
                 provenance = listOf(
                     lexiconLookup.provenanceFor(
                         sourceId = "internal_heuristics",
-                        detail = "Proto-Norse preservation fallback"
+                        detail = "Source preservation without a Proto-Norse reconstruction"
                     )
                 )
             )
@@ -589,10 +467,7 @@ internal class CirthOrthographyStage(
             unresolvedTokens = emptyList(),
             provenance = mapping.referenceIds.map { referenceId ->
                 sourceCatalog.provenanceFor(
-                    sourceId = ereborStore.sourceManifest().sources
-                        .firstOrNull { source -> source.id == "tolkien_appendix_e" }
-                        ?.id
-                        ?: "internal_heuristics",
+                    sourceId = ereborStore.ereborTables().profileSourceId,
                     referenceId = referenceId
                 )
             },
@@ -607,86 +482,53 @@ internal class CirthOrthographyStage(
         fidelity: TranslationFidelity
     ): CirthOrthographyOutput {
         val tables = ereborStore.ereborTables()
-        val sequenceMappings = linkedMapOf<String, String>().apply {
-            putAll(tables.longConsonants)
-            putAll(tables.longVowels)
-            putAll(tables.sequences)
-        }
-        val allSequences = sequenceMappings.keys.sortedByDescending { it.length }
-        val diplomaticTokens = mutableListOf<String>()
-        val glyphs = StringBuilder()
-        var remaining = token.lowercase()
-        var appliedCanonicalRule = false
-        var approximated = false
-        var unresolvedToken: String? = null
-
-        while (remaining.isNotEmpty()) {
-            val sequence = allSequences.firstOrNull { remaining.startsWith(it) }
-            val singleCharacter = remaining.first().toString()
-            val nextGlyph = when {
-                sequence != null -> {
-                    appliedCanonicalRule = true
-                    diplomaticTokens += sequence
-                    remaining = remaining.removePrefix(sequence)
-                    sequenceMappings.getValue(sequence)
-                }
-
-                tables.singleCharacters[singleCharacter] != null -> {
-                    diplomaticTokens += singleCharacter
-                    remaining = remaining.drop(1)
-                    tables.singleCharacters.getValue(singleCharacter)
-                }
-
-                fidelity == TranslationFidelity.STRICT -> {
-                    unresolvedToken = token
-                    remaining = ""
-                    null
-                }
-
-                else -> {
-                    diplomaticTokens += singleCharacter
-                    remaining = remaining.drop(1)
-                    approximated = true
-                    transliterator.transliterate(singleCharacter)
-                }
-            }
-
-            nextGlyph?.let(glyphs::append)
-        }
-
-        if (unresolvedToken != null) {
+        val publishedGlyphs = tables.publishedWords[token]
+        if (publishedGlyphs != null) {
             return CirthOrthographyOutput(
-                unresolvedToken = unresolvedToken,
-                notes = listOf("Unsupported Erebor sequence in '$token'.")
+                diplomatic = token,
+                glyphs = publishedGlyphs,
+                notes = listOf("Published title-page English profile: cited word transcription."),
+                resolutionStatus = TranslationResolutionStatus.RECONSTRUCTED,
+                provenance = listOf(sourceCatalog.provenanceFor(
+                    tables.profileSourceId, tables.profileReferenceId,
+                    "Word witnessed in the published corrected title-page sample; no extrapolated spelling rules."
+                ))
             )
         }
-
-        return CirthOrthographyOutput(
-            diplomatic = diplomaticTokens.joinToString(tables.wordSeparator),
-            glyphs = glyphs.toString(),
-            notes = listOfNotNull(
-                if (appliedCanonicalRule) "Applied Erebor sequence-table transcription." else null,
-                if (approximated) "Used readable-mode character fallback for an unsupported Erebor sequence." else null
-            ),
-            resolutionStatus = if (approximated) {
-                TranslationResolutionStatus.APPROXIMATED
-            } else {
-                TranslationResolutionStatus.RECONSTRUCTED
-            },
-            provenance = listOf(
-                sourceCatalog.provenanceFor(
-                    sourceId = "tolkien_appendix_e",
-                    detail = "Erebor orthography table"
-                )
+        return if (fidelity == TranslationFidelity.STRICT) {
+            CirthOrthographyOutput(
+                unresolvedToken = token,
+                notes = listOf("No cited English Cirth profile transcription for '$token'.")
             )
-        )
+        } else {
+            CirthOrthographyOutput(
+                diplomatic = token,
+                glyphs = transliterator.transliterate(token),
+                resolutionStatus = TranslationResolutionStatus.APPROXIMATED,
+                notes = listOf("Educational Latin substitution using UCSUR Cirth glyph identities; " +
+                    "not a reconstructed English pronunciation."),
+                provenance = listOf(sourceCatalog.provenanceFor("ucsur_cirth"))
+            )
+        }
     }
 }
 
 internal class ElderRuneRenderer(
     private val transliterator: ElderFutharkTransliterator
 ) {
-    fun render(text: String): String = transliterator.transliterate(text)
+    fun render(text: String): String {
+        val spelling = text.map { character ->
+            when (character) {
+                'ą', 'ā' -> 'a'
+                'ę', 'ē' -> 'e'
+                'į', 'ī' -> 'i'
+                'ǫ', 'ǭ', 'ō' -> 'o'
+                'ų', 'ū' -> 'u'
+                else -> character
+            }
+        }.joinToString("")
+        return transliterator.transliterate(spelling)
+    }
 }
 
 internal data class TranslationEvidenceRequest(
@@ -708,13 +550,16 @@ internal class TranslationEvidenceSynthesizer(
         resolutions: List<TranslationTokenResolution>,
         evidenceRequest: TranslationEvidenceRequest
     ): TranslationResult {
-        val unresolvedTokens = resolutions.mapNotNull { it.unresolvedToken }.distinct()
+        val hasContent = resolutions.any { !it.isPunctuation && it.sourceToken.hasVisibleContent() }
+        val unresolvedTokens = (resolutions.mapNotNull { it.unresolvedToken } +
+            if (hasContent) emptyList() else resolutions.filter { !it.isPunctuation }.map { it.sourceToken }).distinct()
         val provenance = resolutions.flatMap { it.provenance }.distinctBy {
             listOf(it.sourceId, it.referenceId, it.role, it.detail, it.label)
         }
-        val notes = resolutions.flatMap { it.notes }.distinct()
+        val notes = (resolutions.flatMap { it.notes } +
+            if (hasContent) emptyList() else listOf("No visible translatable source content was found.")).distinct()
         val resolutionStatus = when {
-            unresolvedTokens.isNotEmpty() -> TranslationResolutionStatus.UNAVAILABLE
+            !hasContent || unresolvedTokens.isNotEmpty() -> TranslationResolutionStatus.UNAVAILABLE
             resolutions.any { it.resolutionStatus == TranslationResolutionStatus.APPROXIMATED } ->
                 TranslationResolutionStatus.APPROXIMATED
             else -> evidenceRequest.fallbackStatus
@@ -773,23 +618,15 @@ private fun confidenceFor(
     }
 }
 
-private fun ParsedEnglishToken.toMorphologyHints(): MorphologyHints {
-    return MorphologyHints(
-        isPlural = normalized.endsWith("s") && !normalized.endsWith("'s"),
-        isPast = normalized.endsWith("ed"),
-        isThirdPersonSingular = normalized.endsWith("s") && !normalized.endsWith("ss")
-    )
-}
-
 private fun String.normalizePhraseKey(): String {
-    return lowercase()
+    return Normalizer.normalize(this, Normalizer.Form.NFC).lowercase(Locale.ROOT)
         .trim()
         .replace(Regex("\\s+"), " ")
 }
 
 internal fun stitchTokens(tokens: List<String>): String {
     return buildString {
-        tokens.forEachIndexed { index, token ->
+        tokens.filter { it.isNotEmpty() }.forEachIndexed { index, token ->
             if (index > 0 && token !in PUNCTUATION_TOKENS && previousCharacterNeedsSpace(lastOrNull())) {
                 append(' ')
             }
@@ -822,3 +659,18 @@ internal val PUNCTUATION_TOKENS = setOf(".", ",", "!", "?", ";", ":")
 private const val ATTESTED_CONFIDENCE = 0.98f
 private const val APPROXIMATION_PENALTY = 0.18f
 private const val MIN_APPROXIMATION_CONFIDENCE = 0.3f
+
+private fun String.hasVisibleContent(): Boolean = codePoints().anyMatch { codePoint ->
+    Character.getType(codePoint) !in invisibleSourceTypes
+}
+
+private val invisibleSourceTypes = setOf(
+    Character.CONTROL.toInt(),
+    Character.FORMAT.toInt(),
+    Character.NON_SPACING_MARK.toInt(),
+    Character.COMBINING_SPACING_MARK.toInt(),
+    Character.ENCLOSING_MARK.toInt(),
+    Character.SPACE_SEPARATOR.toInt(),
+    Character.LINE_SEPARATOR.toInt(),
+    Character.PARAGRAPH_SEPARATOR.toInt()
+)

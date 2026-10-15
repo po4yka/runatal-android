@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -36,40 +35,34 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteShareContent
 import com.po4yka.runatal.ui.components.RunicActionButton
 import com.po4yka.runatal.ui.components.RunicActionButtonStyle
 import com.po4yka.runatal.ui.components.RunicActionIconButton
 import com.po4yka.runatal.ui.components.RunicChoiceChip
 import com.po4yka.runatal.ui.components.RunicChoiceGroup
 import com.po4yka.runatal.ui.components.ErrorState
-import com.po4yka.runatal.ui.components.RunicText
 import com.po4yka.runatal.ui.components.RunicTopBar
 import com.po4yka.runatal.ui.components.RunicTopBarIconAction
-import com.po4yka.runatal.ui.components.buildRunicAccessibilityText
 import com.po4yka.runatal.ui.components.runicActionButtonColors
 import com.po4yka.runatal.ui.components.runicChoiceChipColors
 import com.po4yka.runatal.ui.theme.RunicExpressiveTheme
 import com.po4yka.runatal.ui.theme.RunicSharePalette
 import com.po4yka.runatal.ui.theme.RunicShareStyleTokens
-import com.po4yka.runatal.ui.theme.RunicTextRole
 import com.po4yka.runatal.ui.theme.RunicTypeRoles
 import com.po4yka.runatal.ui.theme.SupportingTextRole
 import com.po4yka.runatal.ui.theme.runicSharePalette
@@ -81,8 +74,11 @@ import kotlinx.coroutines.launch
 
 @Composable
 internal fun ShareScreen(
+    quoteId: Long,
     onNavigateBack: () -> Unit = {},
-    viewModel: ShareViewModel = hiltViewModel()
+    viewModel: ShareViewModel = hiltViewModel<ShareViewModel, ShareViewModel.Factory>(
+        creationCallback = { factory -> factory.create(quoteId) }
+    )
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedTemplate by viewModel.selectedTemplate.collectAsStateWithLifecycle()
@@ -119,23 +115,21 @@ internal fun ShareScreen(
             )
 
             is ShareUiState.Success -> ShareContent(
-                quote = state.quote,
+                content = state.content,
                 selectedTemplate = selectedTemplate,
                 selectedAppearance = selectedAppearance,
                 onSelectTemplate = viewModel::selectTemplate,
                 onSelectAppearance = viewModel::selectAppearance,
                 onShareAsText = {
                     quoteShareManager.shareQuoteText(
-                        latinText = state.quote.textLatin,
-                        author = state.quote.author
+                        latinText = state.content.textLatin,
+                        author = state.content.author
                     )
                 },
                 onShareAsImage = {
                     coroutineScope.launch {
                         val didShare = quoteShareManager.shareQuoteAsImage(
-                            runicText = state.quote.sharePreviewRunes(),
-                            latinText = state.quote.textLatin,
-                            author = state.quote.author,
+                            content = state.content,
                             template = selectedTemplate,
                             appearance = selectedAppearance
                         )
@@ -146,8 +140,8 @@ internal fun ShareScreen(
                 },
                 onCopyQuote = {
                     quoteShareManager.copyQuoteToClipboard(
-                        latinText = state.quote.textLatin,
-                        author = state.quote.author
+                        latinText = state.content.textLatin,
+                        author = state.content.author
                     )
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar("Quote copied")
@@ -157,15 +151,6 @@ internal fun ShareScreen(
             )
         }
     }
-}
-
-private fun Quote.sharePreviewRunes(): String {
-    val cachedHistoricalGlyph = listOfNotNull(
-        runicElder,
-        runicYounger,
-        runicCirth
-    ).singleOrNull()
-    return cachedHistoricalGlyph ?: runicElder ?: textLatin
 }
 
 @Composable
@@ -193,7 +178,7 @@ private fun ShareTopBar(
 
 @Composable
 private fun ShareContent(
-    quote: Quote,
+    content: QuoteShareContent,
     selectedTemplate: ShareTemplate,
     selectedAppearance: ShareAppearance,
     onSelectTemplate: (ShareTemplate) -> Unit,
@@ -220,9 +205,9 @@ private fun ShareContent(
         )
 
         SharePreview(
-            quote = quote,
+            content = content,
             selectedTemplate = selectedTemplate,
-            palette = palette,
+            selectedAppearance = selectedAppearance,
             shareStyle = shareStyle
         )
 
@@ -307,234 +292,35 @@ private fun AppearanceToggle(
 
 @Composable
 private fun SharePreview(
-    quote: Quote,
+    content: QuoteShareContent,
     selectedTemplate: ShareTemplate,
-    palette: RunicSharePalette,
+    selectedAppearance: ShareAppearance,
     shareStyle: RunicShareStyleTokens
 ) {
-    when (selectedTemplate) {
-        ShareTemplate.CARD -> CardPreview(quote = quote, palette = palette, shareStyle = shareStyle)
-        ShareTemplate.VERSE -> VersePreview(quote = quote, palette = palette, shareStyle = shareStyle)
-        ShareTemplate.LANDSCAPE -> LandscapePreview(quote = quote, palette = palette, shareStyle = shareStyle)
-    }
-}
-
-@Composable
-private fun CardPreview(
-    quote: Quote,
-    palette: RunicSharePalette,
-    shareStyle: RunicShareStyleTokens
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp)
-            .aspectRatio(292f / 365f),
-        shape = shareStyle.cardPreviewShape,
-        color = palette.surface,
-        shadowElevation = shareStyle.previewCardElevation,
-        border = BorderStroke(1.dp, palette.outline)
+    val manager = rememberQuoteShareManager()
+    val bitmap by androidx.compose.runtime.produceState<android.graphics.Bitmap?>(
+        null, content, selectedTemplate, selectedAppearance
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 22.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            PreviewBrandBar(palette = palette)
-
-            DecorativeRule(palette = palette, shareStyle = shareStyle)
-
-            RunicText(
-                text = quote.previewRunicText,
-                role = RunicTextRole.ShareCard,
-                accessibilityText = buildRunicAccessibilityText(
-                    latinText = quote.textLatin,
-                    author = quote.author,
-                    scriptLabel = quote.previewScriptLabel,
-                    prefix = "Share card preview"
-                ),
-                color = palette.primaryText,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
+        value = null
+        value = manager.renderQuoteImage(content, selectedTemplate, selectedAppearance)
+    }
+    val aspectRatio = if (selectedTemplate == ShareTemplate.LANDSCAPE) 1600f / 900f else 1080f / 1920f
+    Surface(
+        modifier = Modifier.fillMaxWidth().aspectRatio(aspectRatio),
+        shape = shareStyle.cardPreviewShape,
+        shadowElevation = shareStyle.previewCardElevation
+    ) {
+        val rendered = bitmap
+        if (rendered != null) {
+            androidx.compose.foundation.Image(
+                bitmap = rendered.asImageBitmap(),
+                contentDescription = "${content.scriptLabel} share preview. ${content.textLatin}. By ${content.author}",
+                modifier = Modifier.fillMaxSize()
             )
-
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                Spacer(
-                    modifier = Modifier
-                        .size(width = 32.dp, height = 1.dp)
-                        .background(palette.rule)
-                )
+        } else {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                androidx.compose.material3.CircularProgressIndicator()
             }
-
-            Text(
-                text = "“${quote.textLatin}”",
-                style = RunicTypeRoles.supporting(SupportingTextRole.ShareCardQuote),
-                color = palette.secondaryText,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Text(
-                text = "— ${quote.author}",
-                style = RunicTypeRoles.supporting(SupportingTextRole.ShareAuthor),
-                color = palette.secondaryText,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Text(
-                text = "Runatal · ${quote.previewScriptLabel}",
-                style = RunicTypeRoles.supporting(SupportingTextRole.ShareMeta),
-                color = palette.tertiaryText,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-@Composable
-private fun VersePreview(
-    quote: Quote,
-    palette: RunicSharePalette,
-    shareStyle: RunicShareStyleTokens
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp)
-            .aspectRatio(292f / 389.328125f),
-        shape = shareStyle.cardPreviewShape,
-        color = palette.surface,
-        shadowElevation = shareStyle.previewCardElevation,
-        border = BorderStroke(1.dp, palette.outline)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            DecorativeDots(palette = palette, shareStyle = shareStyle)
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "“${quote.textLatin}”",
-                style = RunicTypeRoles.supporting(SupportingTextRole.ShareVerseQuote),
-                color = palette.primaryText,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            DividerWithDots(palette = palette, shareStyle = shareStyle)
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            RunicText(
-                text = quote.previewRunicText,
-                role = RunicTextRole.ShareVerse,
-                accessibilityText = buildRunicAccessibilityText(
-                    latinText = quote.textLatin,
-                    author = quote.author,
-                    scriptLabel = quote.previewScriptLabel,
-                    prefix = "Share verse preview"
-                ),
-                color = palette.tertiaryText,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            Text(
-                text = quote.author,
-                style = RunicTypeRoles.supporting(SupportingTextRole.ShareAuthor),
-                color = palette.secondaryText,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Text(
-                text = "ᚱ  Runatal",
-                style = RunicTypeRoles.supporting(SupportingTextRole.ShareMeta),
-                color = palette.tertiaryText,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
-
-@Composable
-private fun LandscapePreview(
-    quote: Quote,
-    palette: RunicSharePalette,
-    shareStyle: RunicShareStyleTokens
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp)
-            .aspectRatio(16f / 9f),
-        shape = shareStyle.landscapePreviewShape,
-        color = palette.surface,
-        shadowElevation = shareStyle.landscapePreviewElevation,
-        border = BorderStroke(1.dp, palette.outline)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-        ) {
-            Text(
-                text = "ᚱ  Runatal · ${quote.previewScriptLabel}",
-                style = RunicTypeRoles.supporting(SupportingTextRole.ShareMeta),
-                color = palette.tertiaryText
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Text(
-                text = "“${quote.textLatin}”",
-                style = RunicTypeRoles.supporting(SupportingTextRole.ShareLandscapeQuote),
-                color = palette.primaryText,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            AuthorRule(author = quote.author, palette = palette, shareStyle = shareStyle)
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            RunicText(
-                text = quote.previewRunicText,
-                role = RunicTextRole.ShareLandscape,
-                accessibilityText = buildRunicAccessibilityText(
-                    latinText = quote.textLatin,
-                    author = quote.author,
-                    scriptLabel = quote.previewScriptLabel,
-                    prefix = "Share landscape preview"
-                ),
-                color = palette.tertiaryText,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
@@ -749,50 +535,6 @@ private fun ShareActions(
 }
 
 @Composable
-private fun PreviewBrandBar(palette: RunicSharePalette) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Spacer(
-            modifier = Modifier
-                .weight(1f)
-                .height(1.dp)
-                .background(palette.rule)
-        )
-        Text(
-            text = "ᚱ",
-            style = MaterialTheme.typography.labelLarge,
-            color = palette.tertiaryText
-        )
-        Spacer(
-            modifier = Modifier
-                .weight(1f)
-                .height(1.dp)
-                .background(palette.rule)
-        )
-    }
-}
-
-@Composable
-private fun DecorativeRule(
-    palette: RunicSharePalette,
-    shareStyle: RunicShareStyleTokens
-) {
-    Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
-    ) {
-        Spacer(
-            modifier = Modifier
-                .size(width = shareStyle.ruleWidth, height = 1.dp)
-                .background(palette.rule)
-        )
-    }
-}
-
-@Composable
 private fun DecorativeDots(
     palette: RunicSharePalette,
     shareStyle: RunicShareStyleTokens
@@ -813,68 +555,6 @@ private fun DecorativeDots(
                     .background(palette.secondaryText.copy(alpha = 0.65f))
             )
         }
-    }
-}
-
-@Composable
-private fun DividerWithDots(
-    palette: RunicSharePalette,
-    shareStyle: RunicShareStyleTokens
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        repeat(2) {
-            Box(
-                modifier = Modifier
-                    .size(width = 4.dp, height = 1.dp)
-                    .background(palette.rule)
-            )
-        }
-        Box(
-            modifier = Modifier
-                .size(width = shareStyle.ruleWidth, height = 1.dp)
-                .background(palette.rule)
-        )
-        repeat(2) {
-            Box(
-                modifier = Modifier
-                    .size(width = 4.dp, height = 1.dp)
-                    .background(palette.rule)
-            )
-        }
-    }
-}
-
-@Composable
-private fun AuthorRule(
-    author: String,
-    palette: RunicSharePalette,
-    shareStyle: RunicShareStyleTokens
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Spacer(
-            modifier = Modifier
-                .size(width = shareStyle.authorRuleWidth, height = 1.dp)
-                .background(palette.rule)
-        )
-        Spacer(modifier = Modifier.size(8.dp))
-        Text(
-            text = author,
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
-            color = palette.secondaryText
-        )
-        Spacer(modifier = Modifier.size(8.dp))
-        Spacer(
-            modifier = Modifier
-                .size(width = shareStyle.authorRuleWidth, height = 1.dp)
-                .background(palette.rule)
-        )
     }
 }
 
@@ -907,17 +587,6 @@ private val ShareTemplate.helperText: String?
         ShareTemplate.CARD -> null
         ShareTemplate.VERSE -> null
         ShareTemplate.LANDSCAPE -> "16:9 · Ideal for social media headers and banners"
-    }
-
-private val Quote.previewRunicText: String
-    get() = runicElder ?: runicYounger ?: runicCirth ?: textLatin
-
-private val Quote.previewScriptLabel: String
-    get() = when {
-        runicElder != null -> "Elder Futhark"
-        runicYounger != null -> "Younger Futhark"
-        runicCirth != null -> "Cirth"
-        else -> "Runic"
     }
 
 @Composable

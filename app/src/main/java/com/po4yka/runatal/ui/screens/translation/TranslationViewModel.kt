@@ -1,6 +1,7 @@
 package com.po4yka.runatal.ui.screens.translation
 
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.po4yka.runatal.BuildConfig
@@ -8,6 +9,7 @@ import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.domain.repository.TranslationRepository
 import com.po4yka.runatal.di.DefaultDispatcher
+import com.po4yka.runatal.domain.model.QuoteInputPolicy
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.model.displayName
 import com.po4yka.runatal.domain.transliteration.TransliterationFactory
@@ -35,6 +37,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
@@ -45,6 +48,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import com.po4yka.runatal.util.takeUtf16Budget
 import javax.inject.Inject
 
 /**
@@ -56,16 +60,19 @@ internal class TranslationViewModel @Inject constructor(
     private val userPreferencesManager: UserPreferencesManager,
     private val buildTranslationPresentationUseCase: BuildTranslationPresentationUseCase,
     private val saveTranslationToLibraryUseCase: SaveTranslationToLibraryUseCase,
-    @param:DefaultDispatcher private val translationDispatcher: CoroutineDispatcher
+    @param:DefaultDispatcher private val translationDispatcher: CoroutineDispatcher,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
+    @androidx.annotation.VisibleForTesting
     internal constructor(
         transliterationFactory: TransliterationFactory,
         historicalTranslationService: com.po4yka.runatal.domain.translation.HistoricalTranslationService,
         quoteRepository: QuoteRepository,
         translationRepository: TranslationRepository,
         userPreferencesManager: UserPreferencesManager,
-        translationDispatcher: CoroutineDispatcher = Dispatchers.Default
+        translationDispatcher: CoroutineDispatcher = Dispatchers.Default,
+        savedStateHandle: SavedStateHandle = SavedStateHandle()
     ) : this(
         userPreferencesManager = userPreferencesManager,
         buildTranslationPresentationUseCase = BuildTranslationPresentationUseCase(
@@ -82,25 +89,41 @@ internal class TranslationViewModel @Inject constructor(
                 historicalTranslationService
             )
         ),
-        translationDispatcher = translationDispatcher
+        translationDispatcher = translationDispatcher,
+        savedStateHandle = savedStateHandle
     )
 
-    private val _inputText = MutableStateFlow("")
+    private val _inputText = savedStateHandle.getMutableStateFlow("translation.input", "")
+
+    /** Immediate editing state, independent of asynchronous translation rendering. */
+    val inputText: StateFlow<String> = _inputText.asStateFlow()
+
     private val _selectedScript = MutableStateFlow(RunicScript.DEFAULT)
     private val _selectedFont = MutableStateFlow("noto")
-    private val _translationMode = MutableStateFlow(TranslationMode.DEFAULT)
-    private val _selectedFidelity = MutableStateFlow(TranslationFidelity.DEFAULT)
-    private val _selectedYoungerVariant = MutableStateFlow(YoungerFutharkVariant.DEFAULT)
+    private val _translationMode = MutableStateFlow(
+        if (BuildConfig.ENABLE_EXPERIMENTAL_TRANSLATE) {
+            savedStateHandle.get<String>("translation.mode")?.let(TranslationMode::valueOf) ?: TranslationMode.DEFAULT
+        } else {
+            TranslationMode.TRANSLITERATE
+        }
+    )
+    private val _selectedFidelity = MutableStateFlow(
+        savedStateHandle.get<String>("translation.fidelity")?.let(TranslationFidelity::valueOf)
+            ?: TranslationFidelity.DEFAULT
+    )
+    private val _selectedYoungerVariant = MutableStateFlow(
+        savedStateHandle.get<String>("translation.variant")?.let(YoungerFutharkVariant::valueOf)
+            ?: YoungerFutharkVariant.DEFAULT
+    )
     private val _isSaving = MutableStateFlow(false)
     private val _persistedWordByWordEnabled = MutableStateFlow(false)
-    private val _localWordByWordOverride = MutableStateFlow<Boolean?>(null)
+    private val _localWordByWordOverride = MutableStateFlow<Boolean?>(savedStateHandle["translation.wordByWord"])
     private val translateFeatureEnabled = BuildConfig.ENABLE_EXPERIMENTAL_TRANSLATE
     private val _events = Channel<TranslationEvent>(Channel.BUFFERED)
 
     /** @suppress */
     companion object {
         private const val TAG = "TranslationViewModel"
-        private const val MAX_INPUT_LENGTH = 280
         private const val TRANSLATE_INPUT_DEBOUNCE_MS = 150L
     }
 
@@ -186,6 +209,8 @@ internal class TranslationViewModel @Inject constructor(
                 translateFeatureEnabled = translateFeatureEnabled
             ).toUiState()
         }
+    }.combine(combine(_inputText, preferencesSnapshot) { text, preferences -> text to preferences }) {
+        rendered, (text, preferences) -> rendered.forSelection(text, preferences)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000L),
@@ -196,7 +221,7 @@ internal class TranslationViewModel @Inject constructor(
      * Updates the source text with the Figma-defined 280 character cap.
      */
     fun updateInputText(text: String) {
-        _inputText.value = text.take(MAX_INPUT_LENGTH)
+        _inputText.value = text.takeUtf16Budget(QuoteInputPolicy.MAX_QUOTE_LENGTH)
     }
 
     /**
@@ -208,6 +233,7 @@ internal class TranslationViewModel @Inject constructor(
         } else {
             TranslationMode.TRANSLITERATE
         }
+        savedStateHandle["translation.mode"] = _translationMode.value.name
     }
 
     /**
@@ -215,6 +241,7 @@ internal class TranslationViewModel @Inject constructor(
      */
     fun selectFidelity(fidelity: TranslationFidelity) {
         _selectedFidelity.value = fidelity
+        savedStateHandle["translation.fidelity"] = fidelity.name
     }
 
     /**
@@ -222,6 +249,7 @@ internal class TranslationViewModel @Inject constructor(
      */
     fun selectYoungerVariant(variant: YoungerFutharkVariant) {
         _selectedYoungerVariant.value = variant
+        savedStateHandle["translation.variant"] = variant.name
     }
 
     /**
@@ -256,6 +284,7 @@ internal class TranslationViewModel @Inject constructor(
     fun toggleWordByWordMode() {
         _localWordByWordOverride.value =
             !(_localWordByWordOverride.value ?: _persistedWordByWordEnabled.value)
+        savedStateHandle["translation.wordByWord"] = _localWordByWordOverride.value
     }
 
     /**
@@ -263,12 +292,20 @@ internal class TranslationViewModel @Inject constructor(
      */
     fun saveToLibrary() {
         val state = uiState.value
-        if (!state.canSave) {
+        val currentSelection = TranslationSelection(
+            inputText = _inputText.value,
+            script = _selectedScript.value,
+            font = _selectedFont.value,
+            mode = _translationMode.value,
+            fidelity = _selectedFidelity.value,
+            variant = _selectedYoungerVariant.value
+        )
+        if (!state.canSave || _isSaving.value || state.selection() != currentSelection) {
             return
         }
 
+        _isSaving.value = true
         viewModelScope.launch {
-            _isSaving.value = true
             try {
                 val result = withContext(translationDispatcher) {
                     saveTranslationToLibraryUseCase(
@@ -276,7 +313,8 @@ internal class TranslationViewModel @Inject constructor(
                             inputText = state.inputText,
                             translationMode = state.translationMode,
                             fidelity = state.selectedFidelity,
-                            youngerVariant = state.selectedYoungerVariant
+                            youngerVariant = state.selectedYoungerVariant,
+                            selectedScript = state.selectedScript
                         )
                     )
                 }
@@ -351,7 +389,60 @@ internal data class TranslationUiState(
 ) {
     /** Display name for the currently selected script. */
     val scriptDisplayName: String get() = selectedScript.displayName
+
+    /** Invalidates the previous result whenever any translation selection changes. */
+    fun forSelection(currentInput: String, preferences: TranslationPreferencesSnapshot): TranslationUiState {
+        val requestedSelection = TranslationSelection(
+            currentInput, preferences.selectedScript, preferences.selectedFont,
+            preferences.translationMode, preferences.fidelity, preferences.youngerVariant
+        )
+        if (selection() == requestedSelection) return this
+
+        return TranslationUiState(
+            inputText = currentInput,
+            inputCharacterCount = currentInput.length,
+            selectedScript = preferences.selectedScript,
+            translationMode = preferences.translationMode,
+            selectedFidelity = preferences.fidelity,
+            selectedYoungerVariant = preferences.youngerVariant,
+            selectedFont = preferences.selectedFont,
+            translateFeatureEnabled = translateFeatureEnabled,
+            isSaving = isSaving,
+            wordByWordEnabled = wordByWordEnabled
+        )
+    }
+
+    /** Hides results for previous text while the current input is awaiting rendering. */
+    fun forInput(currentInput: String): TranslationUiState {
+        if (inputText == currentInput) return this
+
+        return TranslationUiState(
+            inputText = currentInput,
+            inputCharacterCount = currentInput.length,
+            selectedScript = selectedScript,
+            translationMode = translationMode,
+            selectedFidelity = selectedFidelity,
+            selectedYoungerVariant = selectedYoungerVariant,
+            selectedFont = selectedFont,
+            translateFeatureEnabled = translateFeatureEnabled,
+            isSaving = isSaving,
+            wordByWordEnabled = wordByWordEnabled
+        )
+    }
 }
+
+private data class TranslationSelection(
+    val inputText: String,
+    val script: RunicScript,
+    val font: String,
+    val mode: TranslationMode,
+    val fidelity: TranslationFidelity,
+    val variant: YoungerFutharkVariant
+)
+
+private fun TranslationUiState.selection() = TranslationSelection(
+    inputText, selectedScript, selectedFont, translationMode, selectedFidelity, selectedYoungerVariant
+)
 
 private fun TranslationPresentation.toUiState(): TranslationUiState {
     return TranslationUiState(

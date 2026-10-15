@@ -73,6 +73,25 @@ class WidgetPaletteResolverTest {
     }
 
     @Test
+    fun `widget follows every selected theme pack`() {
+        val context = contextWithNightMode(Configuration.UI_MODE_NIGHT_NO)
+        listOf("stone", "parchment", "night_ink").forEach { themePack ->
+            val expected = widgetPaletteFromColorScheme(
+                runicColorScheme(
+                    darkTheme = false,
+                    themePack = themePack,
+                    highContrast = false,
+                    dynamicColorEnabled = false,
+                    context = context
+                )
+            )
+
+            assertThat(resolveWidgetPalette(context, UserPreferences(themeMode = "light", themePack = themePack)))
+                .isEqualTo(expected)
+        }
+    }
+
+    @Test
     fun `resolveWidgetPalette follows system night mode and high contrast preference`() {
         val darkContext = contextWithNightMode(Configuration.UI_MODE_NIGHT_YES)
         val lightContext = contextWithNightMode(Configuration.UI_MODE_NIGHT_NO)

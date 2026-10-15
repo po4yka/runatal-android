@@ -47,157 +47,157 @@ class CirthTransliteratorTest {
     }
 
     @Test
-    fun `transliterate t to Cirth 9`() {
-        assertThat(transliterator.transliterate("t")).isEqualTo("\uE088")
+    fun `transliterate t to Cirth T`() {
+        assertThat(transliterator.transliterate("t")).isEqualTo("\uE087")
     }
 
     @Test
-    fun `transliterate d to Cirth 10`() {
-        assertThat(transliterator.transliterate("d")).isEqualTo("\uE089")
+    fun `transliterate d to Cirth D`() {
+        assertThat(transliterator.transliterate("d")).isEqualTo("\uE088")
     }
 
     @Test
-    fun `transliterate þ to Cirth 11`() {
-        assertThat(transliterator.transliterate("þ")).isEqualTo("\uE08A")
+    fun `transliterate þ to Cirth TH`() {
+        assertThat(transliterator.transliterate("þ")).isEqualTo("\uE089")
     }
 
     @Test
-    fun `transliterate k to Cirth 17`() {
-        assertThat(transliterator.transliterate("k")).isEqualTo("\uE090")
+    fun `transliterate k to Cirth K`() {
+        assertThat(transliterator.transliterate("k")).isEqualTo("\uE091")
     }
 
     @Test
-    fun `transliterate g to Cirth 18`() {
-        assertThat(transliterator.transliterate("g")).isEqualTo("\uE091")
+    fun `transliterate g to Cirth G`() {
+        assertThat(transliterator.transliterate("g")).isEqualTo("\uE092")
     }
 
     @Test
-    fun `transliterate h to Cirth 19`() {
-        assertThat(transliterator.transliterate("h")).isEqualTo("\uE092")
+    fun `transliterate h to Cirth H`() {
+        assertThat(transliterator.transliterate("h")).isEqualTo("\uE0B9")
     }
 
     @Test
-    fun `transliterate s to Cirth 29`() {
-        assertThat(transliterator.transliterate("s")).isEqualTo("\uE09C")
+    fun `transliterate s to Cirth S`() {
+        assertThat(transliterator.transliterate("s")).isEqualTo("\uE0A1")
     }
 
     @Test
-    fun `transliterate z to Cirth 30`() {
-        assertThat(transliterator.transliterate("z")).isEqualTo("\uE09D")
+    fun `transliterate z to Cirth Z`() {
+        assertThat(transliterator.transliterate("z")).isEqualTo("\uE0A3")
     }
 
     @Test
-    fun `transliterate r to Cirth 33`() {
-        assertThat(transliterator.transliterate("r")).isEqualTo("\uE0A0")
+    fun `transliterate r to Cirth R`() {
+        assertThat(transliterator.transliterate("r")).isEqualTo("\uE09C")
     }
 
     @Test
-    fun `transliterate l to Cirth 41`() {
-        assertThat(transliterator.transliterate("l")).isEqualTo("\uE0A8")
+    fun `transliterate l to Cirth L`() {
+        assertThat(transliterator.transliterate("l")).isEqualTo("\uE09E")
     }
 
     @Test
-    fun `transliterate m to Cirth 49`() {
-        assertThat(transliterator.transliterate("m")).isEqualTo("\uE0B0")
+    fun `transliterate m to Cirth M`() {
+        assertThat(transliterator.transliterate("m")).isEqualTo("\uE085")
     }
 
     @Test
-    fun `transliterate n to Cirth 53`() {
-        assertThat(transliterator.transliterate("n")).isEqualTo("\uE0B4")
+    fun `transliterate n to Cirth N`() {
+        assertThat(transliterator.transliterate("n")).isEqualTo("\uE08B")
     }
 
     @Test
-    fun `transliterate w to Cirth 57`() {
-        assertThat(transliterator.transliterate("w")).isEqualTo("\uE0B8")
+    fun `transliterate w to Cirth W`() {
+        assertThat(transliterator.transliterate("w")).isEqualTo("\uE0AC")
     }
 
     @Test
-    fun `transliterate j to Cirth 61`() {
-        assertThat(transliterator.transliterate("j")).isEqualTo("\uE0BC")
+    fun `transliterate j to Cirth J`() {
+        assertThat(transliterator.transliterate("j")).isEqualTo("\uE08D")
     }
 
     @Test
-    fun `transliterate y to Cirth 62`() {
-        assertThat(transliterator.transliterate("y")).isEqualTo("\uE0BD")
+    fun `transliterate y to Cirth Y`() {
+        assertThat(transliterator.transliterate("y")).isEqualTo("\uE0E1")
     }
 
     @Test
-    fun `transliterate i to Cirth 73`() {
-        assertThat(transliterator.transliterate("i")).isEqualTo("\uE0C8")
+    fun `transliterate i to Cirth I`() {
+        assertThat(transliterator.transliterate("i")).isEqualTo("\uE0A7")
     }
 
     @Test
-    fun `transliterate e to Cirth 74`() {
-        assertThat(transliterator.transliterate("e")).isEqualTo("\uE0C9")
+    fun `transliterate e to Cirth E`() {
+        assertThat(transliterator.transliterate("e")).isEqualTo("\uE0AF")
     }
 
     @Test
-    fun `transliterate a to Cirth 75`() {
-        assertThat(transliterator.transliterate("a")).isEqualTo("\uE0CA")
+    fun `transliterate a to Cirth A`() {
+        assertThat(transliterator.transliterate("a")).isEqualTo("\uE0B1")
     }
 
     @Test
-    fun `transliterate o to Cirth 76`() {
-        assertThat(transliterator.transliterate("o")).isEqualTo("\uE0CB")
+    fun `transliterate o to Cirth O`() {
+        assertThat(transliterator.transliterate("o")).isEqualTo("\uE0B3")
     }
 
     @Test
-    fun `transliterate u to Cirth 77`() {
-        assertThat(transliterator.transliterate("u")).isEqualTo("\uE0CC")
+    fun `transliterate u to Cirth U`() {
+        assertThat(transliterator.transliterate("u")).isEqualTo("\uE0AA")
     }
 
     // ==================== Approximation Mappings ====================
 
     @Test
-    fun `transliterate c to k (Cirth 17)`() {
-        assertThat(transliterator.transliterate("c")).isEqualTo("\uE090")
+    fun `transliterate c to k (Cirth K)`() {
+        assertThat(transliterator.transliterate("c")).isEqualTo("\uE091")
     }
 
     @Test
-    fun `transliterate q to k (Cirth 17)`() {
-        assertThat(transliterator.transliterate("q")).isEqualTo("\uE090")
+    fun `transliterate q to kw (Cirth KW)`() {
+        assertThat(transliterator.transliterate("q")).isEqualTo("\uE096")
     }
 
     @Test
-    fun `transliterate x to s approximation`() {
-        assertThat(transliterator.transliterate("x")).isEqualTo("\uE09C")
+    fun `transliterate x preserves k and s`() {
+        assertThat(transliterator.transliterate("x")).isEqualTo("\uE091\uE0A1")
     }
 
     // ==================== Digraph Tests ====================
 
     @Test
-    fun `transliterate th digraph to Cirth 11`() {
+    fun `transliterate th digraph to Cirth TH`() {
         val result = transliterator.transliterate("the")
-        // "th" -> \uE08A, "e" -> \uE0C9
-        assertThat(result).isEqualTo("\uE08A\uE0C9")
+        // "th" -> \uE089, "e" -> \uE0AF
+        assertThat(result).isEqualTo("\uE089\uE0AF")
     }
 
     @Test
-    fun `transliterate ch digraph to Cirth 20`() {
+    fun `transliterate ch digraph to Cirth CH`() {
         val result = transliterator.transliterate("chain")
-        // "ch" -> \uE093, "a" -> \uE0CA, "i" -> \uE0C8, "n" -> \uE0B4
-        assertThat(result).isEqualTo("\uE093\uE0CA\uE0C8\uE0B4")
+        // "ch" -> \uE08C, "a" -> \uE0B1, "i" -> \uE0A7, "n" -> \uE08B
+        assertThat(result).isEqualTo("\uE08C\uE0B1\uE0A7\uE08B")
     }
 
     @Test
-    fun `transliterate sh digraph to Cirth 31`() {
+    fun `transliterate sh digraph to Cirth SH`() {
         val result = transliterator.transliterate("ship")
-        // "sh" -> \uE09E, "i" -> \uE0C8, "p" -> \uE080
-        assertThat(result).isEqualTo("\uE09E\uE0C8\uE080")
+        // "sh" -> \uE08E, "i" -> \uE0A7, "p" -> \uE080
+        assertThat(result).isEqualTo("\uE08E\uE0A7\uE080")
     }
 
     @Test
-    fun `transliterate ng digraph to Cirth 54`() {
+    fun `transliterate ng digraph to Cirth ENG`() {
         val result = transliterator.transliterate("ring")
-        // "r" -> \uE0A0, "i" -> \uE0C8, "ng" -> \uE0B5
-        assertThat(result).isEqualTo("\uE0A0\uE0C8\uE0B5")
+        // "r" -> \uE09C, "i" -> \uE0A7, "ng" -> \uE095
+        assertThat(result).isEqualTo("\uE09C\uE0A7\uE095")
     }
 
     @Test
     fun `digraphs have priority over individual chars`() {
         val result = transliterator.transliterate("ashing")
-        // "a" -> \uE0CA, "sh" -> \uE09E, "i" -> \uE0C8, "ng" -> \uE0B5
-        assertThat(result).isEqualTo("\uE0CA\uE09E\uE0C8\uE0B5")
+        // "a" -> \uE0B1, "sh" -> \uE08E, "i" -> \uE0A7, "ng" -> \uE095
+        assertThat(result).isEqualTo("\uE0B1\uE08E\uE0A7\uE095")
     }
 
     // ==================== Middle-earth Words ====================
@@ -205,30 +205,30 @@ class CirthTransliteratorTest {
     @Test
     fun `transliterate moria`() {
         val result = transliterator.transliterate("moria")
-        // m -> \uE0B0, o -> \uE0CB, r -> \uE0A0, i -> \uE0C8, a -> \uE0CA
-        assertThat(result).isEqualTo("\uE0B0\uE0CB\uE0A0\uE0C8\uE0CA")
+        // m -> \uE085, o -> \uE0B3, r -> \uE09C, i -> \uE0A7, a -> \uE0B1
+        assertThat(result).isEqualTo("\uE085\uE0B3\uE09C\uE0A7\uE0B1")
     }
 
     @Test
     fun `transliterate gandalf`() {
         val result = transliterator.transliterate("gandalf")
-        // g -> \uE091, a -> \uE0CA, n -> \uE0B4, d -> \uE089, a -> \uE0CA, l -> \uE0A8, f -> \uE082
-        assertThat(result).isEqualTo("\uE091\uE0CA\uE0B4\uE089\uE0CA\uE0A8\uE082")
+        // g -> \uE092, a -> \uE0B1, n -> \uE08B, d -> \uE088, a -> \uE0B1, l -> \uE09E, f -> \uE082
+        assertThat(result).isEqualTo("\uE092\uE0B1\uE08B\uE088\uE0B1\uE09E\uE082")
     }
 
     @Test
     fun `transliterate erebor`() {
         val result = transliterator.transliterate("erebor")
-        // e -> \uE0C9, r -> \uE0A0, e -> \uE0C9, b -> \uE081, o -> \uE0CB, r -> \uE0A0
-        assertThat(result).isEqualTo("\uE0C9\uE0A0\uE0C9\uE081\uE0CB\uE0A0")
+        // e -> \uE0AF, r -> \uE09C, e -> \uE0AF, b -> \uE081, o -> \uE0B3, r -> \uE09C
+        assertThat(result).isEqualTo("\uE0AF\uE09C\uE0AF\uE081\uE0B3\uE09C")
     }
 
     @Test
     fun `transliterate khazad-dum with hyphen`() {
         val result = transliterator.transliterate("khazad-dum")
-        // k -> \uE090, h -> \uE092, a -> \uE0CA, z -> \uE09D, a -> \uE0CA, d -> \uE089,
-        // "-", d -> \uE089, u -> \uE0CC, m -> \uE0B0
-        assertThat(result).isEqualTo("\uE090\uE092\uE0CA\uE09D\uE0CA\uE089-\uE089\uE0CC\uE0B0")
+        // k -> \uE091, h -> \uE0B9, a -> \uE0B1, z -> \uE0A3, a -> \uE0B1, d -> \uE088,
+        // "-", d -> \uE088, u -> \uE0AA, m -> \uE085
+        assertThat(result).isEqualTo("\uE093\uE0B1\uE0A3\uE0B1\uE088-\uE088\uE0AA\uE085")
     }
 
     // ==================== Word Tests ====================
@@ -236,15 +236,15 @@ class CirthTransliteratorTest {
     @Test
     fun `transliterate simple word - rune`() {
         val result = transliterator.transliterate("rune")
-        // r -> \uE0A0, u -> \uE0CC, n -> \uE0B4, e -> \uE0C9
-        assertThat(result).isEqualTo("\uE0A0\uE0CC\uE0B4\uE0C9")
+        // r -> \uE09C, u -> \uE0AA, n -> \uE08B, e -> \uE0AF
+        assertThat(result).isEqualTo("\uE09C\uE0AA\uE08B\uE0AF")
     }
 
     @Test
     fun `transliterate word with multiple digraphs`() {
         val result = transliterator.transliterate("thing")
-        // "th" -> \uE08A, "i" -> \uE0C8, "ng" -> \uE0B5
-        assertThat(result).isEqualTo("\uE08A\uE0C8\uE0B5")
+        // "th" -> \uE089, "i" -> \uE0A7, "ng" -> \uE095
+        assertThat(result).isEqualTo("\uE089\uE0A7\uE095")
     }
 
     // ==================== Punctuation Preservation ====================
@@ -361,12 +361,12 @@ class CirthTransliteratorTest {
     // ==================== Character Equivalence ====================
 
     @Test
-    fun `c and k and q map to same Cirth`() {
+    fun `c and k share K while q represents KW`() {
         val c = transliterator.transliterate("c")
         val k = transliterator.transliterate("k")
         val q = transliterator.transliterate("q")
         assertThat(c).isEqualTo(k)
-        assertThat(q).isEqualTo(k)
+        assertThat(q).isEqualTo("\uE096")
     }
 
     // ==================== Complete Phrases ====================

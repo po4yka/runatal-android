@@ -7,9 +7,9 @@ This document tracks research directions that are not fully implemented yet.
 Possible next steps:
 
 - larger ONP-backed lemma coverage
-- more complete noun and verb paradigm classes
+- more source-cited noun/verb forms and weak adjective agreement in definite noun phrases
 - better phonology grouping for vowel reduction and consonant neutralization
-- additional attested short formulas and reusable phrase templates
+- additional attested comparison examples and grammatical government coverage; examples must not bypass the AST
 
 ## Elder Futhark
 

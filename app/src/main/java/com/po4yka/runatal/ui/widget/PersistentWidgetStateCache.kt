@@ -33,8 +33,10 @@ internal object PersistentWidgetStateCache {
     @Serializable
     private data class CacheRecord(
         val dateEpochDay: Long,
+        val quoteId: Long,
         val widgetWidth: Int,
         val widgetHeight: Int,
+        val renderEnvironment: String,
         val selectedScript: String,
         val selectedFont: String,
         val displayModePreference: String,
@@ -52,7 +54,22 @@ internal object PersistentWidgetStateCache {
         val displayMode: String,
         val error: String? = null,
         val bitmapCacheKey: String? = null
-    )
+    ) {
+        fun matchesContent(expected: WidgetQuoteContent): Boolean = quoteId == expected.quoteId &&
+            latinText == expected.latinText && author == expected.author && runicText == expected.runicText &&
+            scriptLabel == expected.scriptLabel
+
+        fun matchesDimensions(date: LocalDate, width: Int, height: Int, environment: String): Boolean =
+            dateEpochDay == date.toEpochDay() && widgetWidth == width && widgetHeight == height &&
+                renderEnvironment == environment
+
+        fun matchesPreferences(preferences: UserPreferences): Boolean =
+            selectedScript == preferences.selectedScript.name && selectedFont == preferences.selectedFont &&
+                displayModePreference == preferences.widgetDisplayMode &&
+                updateModePreference == preferences.widgetUpdateMode && themeMode == preferences.themeMode &&
+                themePack == preferences.themePack && highContrastEnabled == preferences.highContrastEnabled &&
+                dynamicColorEnabled == preferences.dynamicColorEnabled
+    }
 
     fun get(
         context: Context,
@@ -61,6 +78,8 @@ internal object PersistentWidgetStateCache {
         preferences: UserPreferences,
         widgetWidth: Int,
         widgetHeight: Int,
+        renderEnvironment: String,
+        expectedContent: WidgetQuoteContent,
         palette: WidgetPalette,
         sizeClass: WidgetSizeClass
     ): WidgetState? {
@@ -76,17 +95,9 @@ internal object PersistentWidgetStateCache {
             return null
         }
 
-        val isValid = record.dateEpochDay == currentDate.toEpochDay() &&
-            record.widgetWidth == widgetWidth &&
-            record.widgetHeight == widgetHeight &&
-            record.selectedScript == preferences.selectedScript.name &&
-            record.selectedFont == preferences.selectedFont &&
-            record.displayModePreference == preferences.widgetDisplayMode &&
-            record.updateModePreference == preferences.widgetUpdateMode &&
-            record.themeMode == preferences.themeMode &&
-            record.themePack == preferences.themePack &&
-            record.highContrastEnabled == preferences.highContrastEnabled &&
-            record.dynamicColorEnabled == preferences.dynamicColorEnabled
+        val isValid = record.matchesContent(expectedContent) &&
+            record.matchesDimensions(currentDate, widgetWidth, widgetHeight, renderEnvironment) &&
+            record.matchesPreferences(preferences)
         if (!isValid) {
             return null
         }
@@ -98,6 +109,7 @@ internal object PersistentWidgetStateCache {
         )
 
         return WidgetState(
+            quoteId = record.quoteId,
             runicText = record.runicText,
             runicBitmap = runicBitmap,
             latinText = record.latinText,
@@ -120,6 +132,7 @@ internal object PersistentWidgetStateCache {
         preferences: UserPreferences,
         widgetWidth: Int,
         widgetHeight: Int,
+        renderEnvironment: String,
         state: WidgetState,
         bitmapCacheKey: String?
     ) {
@@ -127,15 +140,17 @@ internal object PersistentWidgetStateCache {
 
         val bitmapFile = bitmapFile(context, widgetKey)
         if (state.runicBitmap != null) {
-            writeBitmap(bitmapFile, state.runicBitmap)
+            writeWidgetBitmap(bitmapFile, state.runicBitmap)
         } else if (bitmapFile.exists()) {
             bitmapFile.delete()
         }
 
         val record = CacheRecord(
             dateEpochDay = date.toEpochDay(),
+            quoteId = state.quoteId,
             widgetWidth = widgetWidth,
             widgetHeight = widgetHeight,
+            renderEnvironment = renderEnvironment,
             selectedScript = preferences.selectedScript.name,
             selectedFont = preferences.selectedFont,
             displayModePreference = preferences.widgetDisplayMode,
@@ -157,6 +172,12 @@ internal object PersistentWidgetStateCache {
         metadataFile(context, widgetKey).writeText(json.encodeToString(CacheRecord.serializer(), record))
     }
 
+    /** Candidate identity only; current content is always read from the quote repository. */
+    fun quoteId(context: Context, widgetKey: String, date: LocalDate): Long? = runCatching {
+        val record = json.decodeFromString(CacheRecord.serializer(), metadataFile(context, widgetKey).readText())
+        record.quoteId.takeIf { record.dateEpochDay == date.toEpochDay() && it > 0 }
+    }.getOrNull()
+
     fun clear(context: Context, widgetKey: String) {
         metadataFile(context, widgetKey).delete()
         bitmapFile(context, widgetKey).delete()
@@ -172,17 +193,6 @@ internal object PersistentWidgetStateCache {
         val persistedBitmap = BitmapFactory.decodeFile(bitmapFile(context, widgetKey).absolutePath) ?: return null
         bitmapCacheKey?.let { BitmapCache.put(it, persistedBitmap) }
         return persistedBitmap
-    }
-
-    private fun writeBitmap(file: File, bitmap: Bitmap) {
-        val tempFile = File(file.parentFile, "${file.name}.tmp")
-        FileOutputStream(tempFile).use { outputStream ->
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-        }
-        if (file.exists()) {
-            file.delete()
-        }
-        tempFile.renameTo(file)
     }
 
     private fun cacheRoot(context: Context): File {
@@ -204,4 +214,15 @@ internal object PersistentWidgetStateCache {
             ((byte.toInt() and UNSIGNED_BYTE_MASK) + HEX_PADDING).toString(HEX_RADIX).substring(1)
         }
     }
+}
+
+private fun writeWidgetBitmap(file: File, bitmap: Bitmap) {
+    val tempFile = File(file.parentFile, "${file.name}.tmp")
+    FileOutputStream(tempFile).use { outputStream ->
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+    }
+    if (file.exists()) {
+        file.delete()
+    }
+    tempFile.renameTo(file)
 }

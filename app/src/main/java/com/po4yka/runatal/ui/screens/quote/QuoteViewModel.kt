@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.domain.repository.NoOpTranslationRepository
+import com.po4yka.runatal.domain.repository.ReadingHistoryRepository
 import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.domain.repository.TranslationRepository
 import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.transliteration.TransliterationFactory
+import com.po4yka.runatal.domain.usecase.quote.ResolveQuoteRenderingUseCase
 import com.po4yka.runatal.domain.usecase.quote.BuildQuotePresentationUseCase
 import com.po4yka.runatal.domain.usecase.quote.LoadQuoteSurfaceUseCase
 import com.po4yka.runatal.domain.usecase.quote.QuotePresentation
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -45,6 +48,7 @@ internal class QuoteViewModel @Inject constructor(
         quoteRepository: QuoteRepository,
         userPreferencesManager: UserPreferencesManager,
         transliterationFactory: TransliterationFactory,
+        readingHistoryRepository: ReadingHistoryRepository,
         translationRepository: TranslationRepository = NoOpTranslationRepository
     ) : this(
         quoteRepository = quoteRepository,
@@ -52,13 +56,12 @@ internal class QuoteViewModel @Inject constructor(
         loadQuoteSurfaceUseCase = LoadQuoteSurfaceUseCase(
             quoteRepository = quoteRepository,
             buildQuotePresentationUseCase = BuildQuotePresentationUseCase(
-                transliterationFactory = transliterationFactory,
-                translationRepository = translationRepository
-            )
+                ResolveQuoteRenderingUseCase(transliterationFactory, translationRepository)
+            ),
+            readingHistoryRepository = readingHistoryRepository
         ),
         buildQuotePresentationUseCase = BuildQuotePresentationUseCase(
-            transliterationFactory = transliterationFactory,
-            translationRepository = translationRepository
+            ResolveQuoteRenderingUseCase(transliterationFactory, translationRepository)
         )
     )
 
@@ -66,6 +69,7 @@ internal class QuoteViewModel @Inject constructor(
     val uiState: StateFlow<QuoteUiState> = _uiState.asStateFlow()
     private val localWordByWordOverride = MutableStateFlow<Boolean?>(null)
     private var currentQuote: Quote? = null
+    private var displayedDay: java.time.LocalDate? = null
     private var recentQuoteCandidates: List<Quote> = emptyList()
     private var latestPreferences: UserPreferences = UserPreferences()
 
@@ -74,20 +78,31 @@ internal class QuoteViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 userPreferencesManager.userPreferencesFlow,
-                localWordByWordOverride
-            ) { preferences, wordByWordOverride ->
+                localWordByWordOverride,
+                quoteRepository.observeQuoteChanges().onStart { emit(Unit) }
+            ) { preferences, wordByWordOverride, _ ->
                 preferences to wordByWordOverride
             }.collectLatest { (preferences, wordByWordOverride) ->
-                latestPreferences = preferences
-                if (currentQuote == null) {
-                    loadQuoteOfTheDay(preferences = preferences, showLoading = true)
-                } else {
-                    applyPreferencesToCurrentQuote(
-                        preferences = preferences,
-                        wordByWordOverride = wordByWordOverride
-                    )
-                }
+                refreshObservedQuote(preferences, wordByWordOverride)
             }
+        }
+    }
+
+    private suspend fun refreshObservedQuote(preferences: UserPreferences, wordByWordOverride: Boolean?) {
+        try {
+            latestPreferences = preferences
+            currentQuote = currentQuote?.let { quoteRepository.getQuoteById(it.id) }
+            if (currentQuote == null) {
+                loadQuoteOfTheDay(preferences = preferences, showLoading = true)
+            } else {
+                applyPreferencesToCurrentQuote(preferences, wordByWordOverride)
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: IOException) {
+            _uiState.value = QuoteUiState.Error(e.message ?: "Failed to refresh quote")
+        } catch (e: IllegalStateException) {
+            _uiState.value = QuoteUiState.Error(e.message ?: "Invalid quote state")
         }
     }
 
@@ -120,6 +135,8 @@ internal class QuoteViewModel @Inject constructor(
             }
         } catch (e: IOException) {
             _uiState.update { QuoteUiState.Error(e.message ?: "Failed to load quote") }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: IllegalStateException) {
             _uiState.update { QuoteUiState.Error(e.message ?: "Invalid state") }
         }
@@ -150,10 +167,19 @@ internal class QuoteViewModel @Inject constructor(
                 }
             } catch (e: IOException) {
                 _uiState.update { QuoteUiState.Error(e.message ?: "Failed to load random quote") }
-            } catch (e: IllegalStateException) {
+            } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: IllegalStateException) {
                 _uiState.update { QuoteUiState.Error(e.message ?: "Invalid state") }
             }
         }
+    }
+
+    /** Refreshes once when the visible screen observes a new local calendar date. */
+    fun refreshCalendarDay(day: java.time.LocalDate) {
+        val previous = displayedDay
+        displayedDay = day
+        if (previous != null && previous != day) refreshQuote()
     }
 
     /**
@@ -203,7 +229,9 @@ internal class QuoteViewModel @Inject constructor(
                     loadQuoteOfTheDay(showLoading = true)
                 } catch (e: IOException) {
                     Log.e(TAG, "IO error deleting quote", e)
-                } catch (e: IllegalStateException) {
+                } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: IllegalStateException) {
                     Log.e(TAG, "Invalid state deleting quote", e)
                 }
             }
@@ -258,7 +286,8 @@ internal class QuoteViewModel @Inject constructor(
         val updatedRecent = presentation.recentQuotes.map { item ->
             RecentQuoteItem(
                 quote = item.quote,
-                runicText = item.runicText
+                runicText = item.runicText,
+                rendering = item.rendering
             )
         }
         _uiState.update {
@@ -270,6 +299,7 @@ internal class QuoteViewModel @Inject constructor(
                 showTransliteration = preferences.showTransliteration,
                 wordByWordEnabled = wordByWordEnabled,
                 wordBreakdown = presentation.wordBreakdown,
+                rendering = presentation.rendering,
                 recentQuotes = updatedRecent
             )
         }

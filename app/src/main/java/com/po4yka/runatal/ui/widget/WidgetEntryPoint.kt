@@ -3,7 +3,7 @@ package com.po4yka.runatal.ui.widget
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.di.IoDispatcher
 import com.po4yka.runatal.domain.repository.QuoteRepository
-import com.po4yka.runatal.domain.transliteration.TransliterationFactory
+import com.po4yka.runatal.domain.usecase.quote.ResolveQuoteRenderingUseCase
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
@@ -15,7 +15,7 @@ import kotlinx.coroutines.CoroutineDispatcher
  */
 @EntryPoint
 @InstallIn(SingletonComponent::class)
-interface WidgetEntryPoint {
+internal interface WidgetEntryPoint {
     /** Provides the quote repository instance. */
     fun quoteRepository(): QuoteRepository
 
@@ -23,7 +23,7 @@ interface WidgetEntryPoint {
     fun userPreferencesManager(): UserPreferencesManager
 
     /** Provides the transliteration factory instance. */
-    fun transliterationFactory(): TransliterationFactory
+    fun resolveQuoteRenderingUseCase(): ResolveQuoteRenderingUseCase
 
     /** Provides the IO dispatcher for widget loading work. */
     @IoDispatcher

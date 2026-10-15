@@ -1,11 +1,13 @@
 package com.po4yka.runatal.ui.screens.translation
 
 import app.cash.turbine.test
+import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.data.preferences.UserPreferencesManager
 import com.po4yka.runatal.domain.repository.QuoteRepository
 import com.po4yka.runatal.domain.repository.TranslationRepository
+import com.po4yka.runatal.domain.model.Quote
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.transliteration.CirthTransliterator
 import com.po4yka.runatal.domain.transliteration.ElderFutharkTransliterator
@@ -98,6 +100,43 @@ class TranslationViewModelTest {
     }
 
     @Test
+    fun `input budget drops a whole supplementary character that cannot fit and persists exact bounded text`() = runTest {
+        val handle = SavedStateHandle()
+        val bounded = TranslationViewModel(
+            transliterationFactory = transliterationFactory,
+            historicalTranslationService = historicalTranslationService,
+            quoteRepository = quoteRepository, translationRepository = translationRepository,
+            userPreferencesManager = userPreferencesManager, translationDispatcher = testDispatcher,
+            savedStateHandle = handle
+        )
+        val prefix = "a".repeat(279)
+        bounded.uiState.test {
+            awaitItem()
+            bounded.updateInputText(prefix + "😀tail")
+            advanceUntilIdle()
+            assertThat(bounded.inputText.value).isEqualTo(prefix)
+            assertThat(handle.get<String>("translation.input")).isEqualTo(prefix)
+            assertThat(bounded.uiState.value.inputCharacterCount).isEqualTo(279)
+            assertThat(bounded.uiState.value.inputText).isEqualTo(prefix)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `input budget keeps a complete supplementary character that fits and counts its two units`() = runTest {
+        val text = "a".repeat(278) + "😀"
+        viewModel.uiState.test {
+            awaitItem()
+            viewModel.updateInputText(text + "tail")
+            advanceUntilIdle()
+            assertThat(viewModel.inputText.value).isEqualTo(text)
+            assertThat(viewModel.uiState.value.inputText).isEqualTo(text)
+            assertThat(viewModel.uiState.value.inputCharacterCount).isEqualTo(280)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `ui state reflects persisted word by word default and selected font`() = runTest {
         viewModel.uiState.test {
             awaitItem()
@@ -167,7 +206,7 @@ class TranslationViewModelTest {
             viewModel.selectScript(RunicScript.CIRTH)
             advanceUntilIdle()
 
-            val cirthState = awaitItem()
+            val cirthState = expectMostRecentItem()
             assertThat(cirthState.wordBreakdown).containsExactly(
                 WordTransliterationPair(
                     sourceToken = "thing",
@@ -281,7 +320,7 @@ class TranslationViewModelTest {
     }
 
     @Test
-    fun `translate mode debounces input updates before rendering`() = runTest {
+    fun `typing keeps immediate input while translation rendering is debounced`() = runTest {
         every {
             historicalTranslationService.translate(any(), any(), any(), any())
         } answers {
@@ -295,7 +334,13 @@ class TranslationViewModelTest {
         viewModel.selectMode(TranslationMode.TRANSLATE)
         runCurrent()
 
+        viewModel.updateInputText("n")
+        assertThat(viewModel.inputText.value).isEqualTo("n")
+        viewModel.updateInputText("ni")
+        assertThat(viewModel.inputText.value).isEqualTo("ni")
         viewModel.updateInputText("night")
+        assertThat(viewModel.inputText.value).isEqualTo("night")
+        assertThat(viewModel.uiState.value.inputText).isEmpty()
         runCurrent()
 
         verify(exactly = 0) {
@@ -320,6 +365,153 @@ class TranslationViewModelTest {
                 YoungerFutharkVariant.DEFAULT
             )
         }
+        collector.cancel()
+    }
+
+    @Test
+    fun `restored translation retains input mode fidelity and variant`() = runTest {
+        val handle = SavedStateHandle()
+        val original = TranslationViewModel(
+            transliterationFactory, historicalTranslationService, quoteRepository,
+            translationRepository, userPreferencesManager, testDispatcher, handle
+        )
+        original.updateInputText("Unsaved translation")
+        original.selectMode(TranslationMode.TRANSLATE)
+        original.selectFidelity(TranslationFidelity.DECORATIVE)
+        original.selectYoungerVariant(YoungerFutharkVariant.SHORT_TWIG)
+        val restored = SavedStateHandle(handle.keys().associateWith { handle.get<Any>(it) })
+
+        val recreated = TranslationViewModel(
+            transliterationFactory, historicalTranslationService, quoteRepository,
+            translationRepository, userPreferencesManager, testDispatcher, restored
+        )
+        val collector = launch { recreated.uiState.collect { } }
+        advanceUntilIdle()
+
+        assertThat(recreated.inputText.value).isEqualTo("Unsaved translation")
+        assertThat(recreated.uiState.value.translationMode).isEqualTo(TranslationMode.TRANSLATE)
+        assertThat(recreated.uiState.value.selectedFidelity).isEqualTo(TranslationFidelity.DECORATIVE)
+        assertThat(recreated.uiState.value.selectedYoungerVariant).isEqualTo(YoungerFutharkVariant.SHORT_TWIG)
+        collector.cancel()
+    }
+
+    @Test
+    fun `pending selection hides all previous translation fields`() {
+        val previous = TranslationUiState(
+            inputText = "night",
+            transliteratedText = "ᚾ",
+            normalizedForm = "nótt",
+            diplomaticForm = "not",
+            canSave = true,
+            resolutionStatus = TranslationResolutionStatus.RECONSTRUCTED
+        )
+        val requested = com.po4yka.runatal.domain.usecase.translation.TranslationPreferencesSnapshot(
+            selectedScript = RunicScript.YOUNGER_FUTHARK,
+            selectedFont = "noto",
+            persistedWordByWordEnabled = false,
+            translationMode = TranslationMode.TRANSLATE,
+            fidelity = TranslationFidelity.DECORATIVE,
+            youngerVariant = YoungerFutharkVariant.SHORT_TWIG
+        )
+
+        val pending = previous.forSelection("night", requested)
+
+        assertThat(pending.translationMode).isEqualTo(TranslationMode.TRANSLATE)
+        assertThat(pending.selectedFidelity).isEqualTo(TranslationFidelity.DECORATIVE)
+        assertThat(pending.selectedYoungerVariant).isEqualTo(YoungerFutharkVariant.SHORT_TWIG)
+        assertThat(pending.canSave).isFalse()
+        assertThat(pending.transliteratedText).isEmpty()
+        assertThat(pending.normalizedForm).isEmpty()
+        assertThat(pending.diplomaticForm).isEmpty()
+        assertThat(pending.resolutionStatus).isNull()
+    }
+
+    @Test
+    fun `save rejects a result from the previous mode fidelity variant or script`() = runTest {
+        every { historicalTranslationService.translate(any(), any(), any(), any()) } answers {
+            placeholderTranslation(text = firstArg(), script = secondArg()).copy(
+                glyphOutput = "ᚾ",
+                resolutionStatus = TranslationResolutionStatus.RECONSTRUCTED
+            )
+        }
+        val collector = launch { viewModel.uiState.collect { } }
+        viewModel.updateInputText("night")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.canSave).isTrue()
+
+        viewModel.selectMode(TranslationMode.TRANSLATE)
+        viewModel.saveToLibrary()
+        coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.translationMode).isEqualTo(TranslationMode.TRANSLATE)
+
+        viewModel.selectFidelity(TranslationFidelity.DECORATIVE)
+        viewModel.saveToLibrary()
+        advanceUntilIdle()
+        viewModel.selectYoungerVariant(YoungerFutharkVariant.SHORT_TWIG)
+        viewModel.saveToLibrary()
+        advanceUntilIdle()
+        viewModel.selectScript(RunicScript.YOUNGER_FUTHARK)
+        viewModel.saveToLibrary()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
+        coVerify(exactly = 0) { translationRepository.saveUserQuoteWithTranslations(any(), any()) }
+        assertThat(viewModel.uiState.value.selectedScript).isEqualTo(RunicScript.YOUNGER_FUTHARK)
+        collector.cancel()
+    }
+
+    @Test
+    fun `pending input hides previous results and cannot save the previous text`() = runTest {
+        every {
+            historicalTranslationService.translate(any(), any(), any(), any())
+        } answers {
+            placeholderTranslation(text = firstArg(), script = secondArg()).copy(
+                normalizedForm = firstArg(),
+                glyphOutput = "ᚾ",
+                resolutionStatus = TranslationResolutionStatus.RECONSTRUCTED,
+                provenance = listOf(
+                    TranslationProvenanceEntry(
+                        sourceId = "regression-source",
+                        label = "Regression source",
+                        role = "Reference",
+                        license = "CC0"
+                    )
+                )
+            )
+        }
+
+        val collector = launch { viewModel.uiState.collect { } }
+        viewModel.selectMode(TranslationMode.TRANSLATE)
+        viewModel.updateInputText("night")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.canSave).isTrue()
+        assertThat(viewModel.uiState.value.transliteratedText).isNotEmpty()
+
+        viewModel.updateInputText("night rune")
+        val pending = viewModel.uiState.value.forInput(viewModel.inputText.value)
+
+        assertThat(pending.inputText).isEqualTo("night rune")
+        assertThat(pending.inputCharacterCount).isEqualTo(10)
+        assertThat(pending.transliteratedText).isEmpty()
+        assertThat(pending.normalizedForm).isEmpty()
+        assertThat(pending.derivationKindLabel).isEmpty()
+        assertThat(pending.provenance).isEmpty()
+        assertThat(pending.resolutionStatus).isNull()
+        assertThat(pending.canSave).isFalse()
+
+        viewModel.saveToLibrary()
+        advanceTimeBy(149)
+        runCurrent()
+        coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
+        coVerify(exactly = 0) { translationRepository.saveUserQuoteWithTranslations(any(), any()) }
+
+        advanceTimeBy(1)
+        advanceUntilIdle()
+        val rendered = viewModel.uiState.value.forInput(viewModel.inputText.value)
+        assertThat(rendered.inputText).isEqualTo("night rune")
+        assertThat(rendered.transliteratedText).isNotEmpty()
+        assertThat(rendered.canSave).isTrue()
         collector.cancel()
     }
 
@@ -375,6 +567,29 @@ class TranslationViewModelTest {
     }
 
     @Test
+    fun `preview and save prepare the same source while retaining the exact raw editing state`() = runTest {
+        val saved = slot<Quote>()
+        coEvery { quoteRepository.saveUserQuote(capture(saved)) } returns 21L
+        val draft = " \tWolf,  king!\n "
+        val collector = launch { viewModel.uiState.collect { } }
+        viewModel.updateInputText(draft)
+        advanceUntilIdle()
+        val preview = viewModel.uiState.value
+
+        viewModel.saveToLibrary()
+        advanceUntilIdle()
+
+        assertThat(viewModel.inputText.value).isEqualTo(draft)
+        assertThat(preview.inputText).isEqualTo(draft)
+        assertThat(preview.inputCharacterCount).isEqualTo(draft.length)
+        assertThat(preview.canSave).isTrue()
+        assertThat(saved.captured.textLatin).isEqualTo("Wolf,  king!")
+        assertThat(saved.captured.runicElder).isEqualTo(preview.transliteratedText)
+        assertThat(preview.wordBreakdown.map { it.sourceToken }).containsExactly("Wolf,", "king!").inOrder()
+        collector.cancel()
+    }
+
+    @Test
     fun `saveToLibrary emits one shot success event`() = runTest {
         coEvery { quoteRepository.saveUserQuote(any()) } returns 21L
 
@@ -394,8 +609,27 @@ class TranslationViewModelTest {
     }
 
     @Test
+    fun `saveToLibrary claims the save before its coroutine starts`() = runTest {
+        coEvery { quoteRepository.saveUserQuote(any()) } returns 21L
+
+        val collector = launch { viewModel.uiState.collect { } }
+        viewModel.updateInputText("rune song")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.canSave).isTrue()
+
+        viewModel.saveToLibrary()
+        viewModel.saveToLibrary()
+        coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
+
+        advanceUntilIdle()
+        coVerify(exactly = 1) { quoteRepository.saveUserQuote(any()) }
+        assertThat(viewModel.uiState.value.isSaving).isFalse()
+        assertThat(viewModel.uiState.value.canSave).isTrue()
+        collector.cancel()
+    }
+
+    @Test
     fun `saveToLibrary caches structured translations in translate mode`() = runTest {
-        coEvery { quoteRepository.saveUserQuote(any()) } returns 34L
         val cachedResults = slot<List<TranslationResult>>()
         every {
             historicalTranslationService.translate(any(), any(), any(), any())
@@ -404,6 +638,9 @@ class TranslationViewModelTest {
                 sourceText = firstArg(),
                 script = secondArg(),
                 fidelity = thirdArg(),
+                requestedVariant = if (secondArg<RunicScript>() == RunicScript.YOUNGER_FUTHARK) {
+                    arg<YoungerFutharkVariant>(3).name
+                } else null,
                 derivationKind = TranslationDerivationKind.TOKEN_COMPOSED,
                 historicalStage = when (secondArg<RunicScript>()) {
                     RunicScript.YOUNGER_FUTHARK -> HistoricalStage.OLD_NORSE
@@ -428,12 +665,8 @@ class TranslationViewModelTest {
             )
         }
         coEvery {
-            translationRepository.cacheTranslations(
-                quoteId = 34L,
-                results = capture(cachedResults),
-                isBackfilled = false
-            )
-        } returns Unit
+            translationRepository.saveUserQuoteWithTranslations(any(), capture(cachedResults))
+        } returns 34L
 
         val collector = launch { viewModel.uiState.collect { } }
         viewModel.selectMode(TranslationMode.TRANSLATE)
@@ -492,7 +725,7 @@ class TranslationViewModelTest {
         advanceUntilIdle()
 
         coVerify(exactly = 0) { quoteRepository.saveUserQuote(any()) }
-        coVerify(exactly = 0) { translationRepository.cacheTranslations(any(), any(), any()) }
+        coVerify(exactly = 0) { translationRepository.saveUserQuoteWithTranslations(any(), any()) }
         collector.cancel()
     }
 

@@ -1,7 +1,10 @@
 package com.po4yka.runatal.di
 
 import android.content.Context
-import androidx.room.Room
+import androidx.room3.Room
+import androidx.sqlite.driver.AndroidSQLiteDriver
+import com.po4yka.runatal.data.local.dao.ReadingHistoryDao
+import com.po4yka.runatal.data.local.dao.TranslationBackfillCompletionDao
 import com.po4yka.runatal.data.local.RunatalDatabase
 import com.po4yka.runatal.data.local.dao.ArchivedQuoteDao
 import com.po4yka.runatal.data.local.dao.QuoteDao
@@ -34,13 +37,26 @@ internal object DatabaseModule {
             RunatalDatabase::class.java,
             "runic_quotes.db"
         )
+            .setDriver(AndroidSQLiteDriver())
             .addMigrations(
                 RunatalDatabase.MIGRATION_1_2,
                 RunatalDatabase.MIGRATION_2_3,
                 RunatalDatabase.MIGRATION_3_4,
                 RunatalDatabase.MIGRATION_4_5,
                 RunatalDatabase.MIGRATION_5_6,
-                RunatalDatabase.MIGRATION_6_7
+                RunatalDatabase.MIGRATION_6_7,
+                RunatalDatabase.MIGRATION_7_8,
+                RunatalDatabase.MIGRATION_8_9,
+                RunatalDatabase.MIGRATION_9_10,
+                RunatalDatabase.MIGRATION_10_11,
+                RunatalDatabase.MIGRATION_11_12,
+                RunatalDatabase.MIGRATION_12_13,
+                RunatalDatabase.MIGRATION_13_14,
+                RunatalDatabase.MIGRATION_14_15,
+                RunatalDatabase.MIGRATION_15_16,
+                RunatalDatabase.MIGRATION_16_17,
+                RunatalDatabase.MIGRATION_17_18,
+                RunatalDatabase.MIGRATION_18_19
             )
             .build()
     }
@@ -86,4 +102,13 @@ internal object DatabaseModule {
     fun provideTranslationBackfillStateDao(database: RunatalDatabase): TranslationBackfillStateDao {
         return database.translationBackfillStateDao()
     }
+    /** Provides the transactional reading history DAO. */
+    @Provides
+    fun provideReadingHistoryDao(database: RunatalDatabase): ReadingHistoryDao = database.readingHistoryDao()
+
+    /** Provides the per-source completion DAO. */
+    @Provides
+    fun provideTranslationBackfillCompletionDao(database: RunatalDatabase): TranslationBackfillCompletionDao =
+        database.translationBackfillCompletionDao()
+
 }

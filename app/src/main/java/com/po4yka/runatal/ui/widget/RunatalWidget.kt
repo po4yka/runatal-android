@@ -40,11 +40,10 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.po4yka.runatal.MainActivity
 import com.po4yka.runatal.data.preferences.WidgetDisplayMode
+import com.po4yka.runatal.data.preferences.UserPreferences
 import com.po4yka.runatal.data.preferences.WidgetUpdateMode
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.domain.model.displayName
-import com.po4yka.runatal.domain.model.getRunicText
-import com.po4yka.runatal.domain.transliteration.CirthGlyphCompat
 import com.po4yka.runatal.ui.components.buildRunicAccessibilityText
 import com.po4yka.runatal.util.BitmapCache
 import com.po4yka.runatal.util.RenderConfig
@@ -55,6 +54,7 @@ import java.io.IOException
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.withLock
 
 private const val RUNIC_QUOTE_WIDGET_TAG = "RunatalWidget"
 private const val DEFAULT_WIDGET_WIDTH = 300
@@ -468,179 +468,211 @@ internal class DefaultWidgetStateLoader : WidgetStateLoader {
         val sizeClass = RunatalWidgetMetrics.resolveSizeClass(widgetHeight)
 
         return withContext(ioDispatcher) {
-            try {
-                val today = LocalDate.now()
-                val preferences = preferencesManager.userPreferencesFlow.first()
-                val displayMode = WidgetDisplayMode.fromPersistedValue(preferences.widgetDisplayMode)
-                val updateMode = WidgetUpdateMode.fromPersistedValue(preferences.widgetUpdateMode)
-                val randomRequested = WidgetInteractionState.consumeRandomQuoteRequest(widgetKey)
-                val palette = resolveWidgetPalette(context, preferences)
+            WidgetContentLock.mutex.withLock {
+                try {
+                    val today = LocalDate.now()
+                    val preferences = preferencesManager.userPreferencesFlow.first()
+                    val displayMode = WidgetDisplayMode.fromPersistedValue(preferences.widgetDisplayMode)
+                    val updateMode = WidgetUpdateMode.fromPersistedValue(preferences.widgetUpdateMode)
+                    val randomRequested = WidgetInteractionState.consumeRandomQuoteRequest(widgetKey)
+                    val palette = resolveWidgetPalette(context, preferences)
+                    val renderEnvironment = widgetRenderEnvironment(context, palette, preferences)
 
-                if (!randomRequested) {
-                    val cachedState = WidgetStateCache.get(
-                        widgetKey = widgetKey,
-                        currentDate = today,
-                        preferences = preferences,
-                        widgetWidth = widgetWidth,
-                        widgetHeight = widgetHeight
-                    )
-                    if (cachedState != null) {
-                        return@withContext cachedState.copy(
-                            sizeClass = sizeClass,
-                            palette = palette
+                    val cachedId = WidgetStateCache.quoteId(widgetKey, today)
+                        ?: PersistentWidgetStateCache.quoteId(context, widgetKey, today)
+                    val quote = selectWidgetQuote(quoteRepository, displayMode, randomRequested, cachedId)
+                    val rendering = quote?.let {
+                        entryPoint.resolveQuoteRenderingUseCase()(it, preferences.selectedScript)
+                    }
+                    val expectedContent = widgetQuoteContent(quote, rendering)
+                    val normalizedRunicText = expectedContent.runicText
+
+                    if (!randomRequested) {
+                        val cachedState = WidgetStateCache.get(
+                            widgetKey = widgetKey,
+                            currentDate = today,
+                            preferences = preferences,
+                            widgetWidth = widgetWidth,
+                            widgetHeight = widgetHeight,
+                            renderEnvironment = renderEnvironment,
+                            expectedContent = expectedContent
                         )
+                        if (cachedState != null) {
+                            return@withContext cachedState.copy(
+                                sizeClass = sizeClass,
+                                palette = palette
+                            )
+                        }
+
+                        val persistedState = PersistentWidgetStateCache.get(
+                            context = context,
+                            widgetKey = widgetKey,
+                            currentDate = today,
+                            preferences = preferences,
+                            widgetWidth = widgetWidth,
+                            widgetHeight = widgetHeight,
+                            renderEnvironment = renderEnvironment,
+                            expectedContent = expectedContent,
+                            palette = palette,
+                            sizeClass = sizeClass
+                        )
+                        if (persistedState != null) {
+                            WidgetStateCache.put(
+                                widgetKey = widgetKey,
+                                date = today,
+                                preferences = preferences,
+                                widgetWidth = widgetWidth,
+                                widgetHeight = widgetHeight,
+                                renderEnvironment = renderEnvironment,
+                                state = persistedState
+                            )
+                            return@withContext persistedState
+                        }
                     }
 
-                    val persistedState = PersistentWidgetStateCache.get(
-                        context = context,
-                        widgetKey = widgetKey,
-                        currentDate = today,
-                        preferences = preferences,
-                        widgetWidth = widgetWidth,
-                        widgetHeight = widgetHeight,
-                        palette = palette,
-                        sizeClass = sizeClass
-                    )
-                    if (persistedState != null) {
+                    if (quote != null) {
+                        val textSize = RunatalWidgetMetrics.runicTextSize(sizeClass, preferences)
+                        val maxWidth = RunatalWidgetMetrics.maxRunicWidthPx(
+                            resources = context.resources,
+                            widgetWidthDp = widgetWidth,
+                            sizeClass = sizeClass
+                        )
+                        val fontResource = RunicTextRenderer.getFontResource(
+                            preferences.selectedFont, preferences.selectedScript
+                        )
+                        val renderConfig = RenderConfig(
+                            text = normalizedRunicText,
+                            fontResource = fontResource,
+                            textSizeSp = textSize,
+                            textColor = palette.runicText,
+                            backgroundColor = null,
+                            maxWidth = maxWidth,
+                            textAlign = RenderTextAlign.START,
+                            maxLines = if (sizeClass == WidgetSizeClass.EXPANDED) 2 else 1
+                        )
+                        val bitmapCacheKey = BitmapCache.generateKey(
+                            config = renderConfig,
+                            textSizePx = android.util.TypedValue.applyDimension(
+                                android.util.TypedValue.COMPLEX_UNIT_SP,
+                                textSize,
+                                context.resources.displayMetrics
+                            )
+                        )
+                        val runicBitmap = BitmapCache.get(bitmapCacheKey) ?: try {
+                            val bitmap = RunicTextRenderer.renderTextToBitmap(context, renderConfig)
+                            BitmapCache.put(bitmapCacheKey, bitmap)
+                            bitmap
+                        } catch (e: IOException) {
+                            Log.e(RUNIC_QUOTE_WIDGET_TAG, "Failed to render runic text bitmap", e)
+                            null
+                        } catch (e: OutOfMemoryError) {
+                            Log.e(RUNIC_QUOTE_WIDGET_TAG, "Out of memory rendering widget bitmap", e)
+                            null
+                        }
+
+                        val newState = WidgetState(
+                            quoteId = quote.id,
+                            runicText = normalizedRunicText,
+                            runicBitmap = runicBitmap,
+                            latinText = quote.textLatin,
+                            author = quote.author,
+                            scriptLabel = checkNotNull(rendering).label,
+                            modeLabel = displayMode.displayName,
+                            updateModeLabel = updateMode.displayName,
+                            palette = palette,
+                            sizeClass = sizeClass,
+                            displayMode = displayMode,
+                            isLoading = false
+                        )
+
                         WidgetStateCache.put(
                             widgetKey = widgetKey,
                             date = today,
                             preferences = preferences,
                             widgetWidth = widgetWidth,
                             widgetHeight = widgetHeight,
-                            state = persistedState
+                            renderEnvironment = renderEnvironment,
+                            state = newState
                         )
-                        return@withContext persistedState
-                    }
-                }
-
-                val quote = if (
-                    displayMode == WidgetDisplayMode.DAILY_RANDOM_TAP &&
-                    randomRequested
-                ) {
-                    quoteRepository.randomQuote()
-                } else {
-                    quoteRepository.quoteOfTheDay()
-                }
-
-                if (quote != null) {
-                    val runicText = quote.getRunicText(
-                        script = preferences.selectedScript,
-                        transliterationFactory = entryPoint.transliterationFactory()
-                    )
-                    val normalizedRunicText = CirthGlyphCompat.normalizeLegacyPuaGlyphs(runicText)
-                    val textSize = RunatalWidgetMetrics.runicTextSize(sizeClass)
-                    val maxWidth = RunatalWidgetMetrics.maxRunicWidthPx(
-                        resources = context.resources,
-                        widgetWidthDp = widgetWidth,
-                        sizeClass = sizeClass
-                    )
-                    val fontResource = RunicTextRenderer.getFontResource(preferences.selectedFont)
-                    val bitmapCacheKey = BitmapCache.generateKey(
-                        text = "${sizeClass.name}:$normalizedRunicText",
-                        fontResource = fontResource,
-                        textSize = textSize,
-                        maxWidth = maxWidth
-                    )
-                    val runicBitmap = BitmapCache.get(bitmapCacheKey) ?: try {
-                        val bitmap = RunicTextRenderer.renderTextToBitmap(
+                        PersistentWidgetStateCache.put(
                             context = context,
-                            config = RenderConfig(
-                                text = normalizedRunicText,
-                                fontResource = fontResource,
-                                textSizeSp = textSize,
-                                textColor = palette.runicText,
-                                backgroundColor = null,
-                                maxWidth = maxWidth,
-                                textAlign = RenderTextAlign.START,
-                                maxLines = if (sizeClass == WidgetSizeClass.EXPANDED) 2 else 1
-                            )
+                            widgetKey = widgetKey,
+                            date = today,
+                            preferences = preferences,
+                            widgetWidth = widgetWidth,
+                            widgetHeight = widgetHeight,
+                            renderEnvironment = renderEnvironment,
+                            state = newState,
+                            bitmapCacheKey = bitmapCacheKey
                         )
-                        BitmapCache.put(bitmapCacheKey, bitmap)
-                        bitmap
-                    } catch (e: IOException) {
-                        Log.e(RUNIC_QUOTE_WIDGET_TAG, "Failed to render runic text bitmap", e)
-                        null
-                    } catch (e: OutOfMemoryError) {
-                        Log.e(RUNIC_QUOTE_WIDGET_TAG, "Out of memory rendering widget bitmap", e)
-                        null
+                        newState
+                    } else {
+                        val emptyState = WidgetState(
+                            latinText = "No quote available",
+                            scriptLabel = RunicScript.DEFAULT.displayName,
+                            modeLabel = displayMode.displayName,
+                            updateModeLabel = updateMode.displayName,
+                            palette = palette,
+                            sizeClass = sizeClass,
+                            displayMode = displayMode
+                        )
+                        WidgetStateCache.put(
+                            widgetKey = widgetKey,
+                            date = today,
+                            preferences = preferences,
+                            widgetWidth = widgetWidth,
+                            widgetHeight = widgetHeight,
+                            renderEnvironment = renderEnvironment,
+                            state = emptyState
+                        )
+                        PersistentWidgetStateCache.put(
+                            context = context,
+                            widgetKey = widgetKey,
+                            date = today,
+                            preferences = preferences,
+                            widgetWidth = widgetWidth,
+                            widgetHeight = widgetHeight,
+                            renderEnvironment = renderEnvironment,
+                            state = emptyState,
+                            bitmapCacheKey = null
+                        )
+                        emptyState
                     }
-
-                    val newState = WidgetState(
-                        runicText = normalizedRunicText,
-                        runicBitmap = runicBitmap,
-                        latinText = quote.textLatin,
-                        author = quote.author,
-                        scriptLabel = preferences.selectedScript.displayName,
-                        modeLabel = displayMode.displayName,
-                        updateModeLabel = updateMode.displayName,
-                        palette = palette,
+                } catch (e: IOException) {
+                    Log.e(RUNIC_QUOTE_WIDGET_TAG, "IO error loading widget state", e)
+                    WidgetState(
+                        latinText = "",
+                        palette = WidgetPalette.default(),
                         sizeClass = sizeClass,
-                        displayMode = displayMode,
-                        isLoading = false
+                        displayMode = WidgetDisplayMode.RUNE_LATIN,
+                        error = e.message
                     )
-
-                    WidgetStateCache.put(
-                        widgetKey = widgetKey,
-                        date = today,
-                        preferences = preferences,
-                        widgetWidth = widgetWidth,
-                        widgetHeight = widgetHeight,
-                        state = newState
-                    )
-                    PersistentWidgetStateCache.put(
-                        context = context,
-                        widgetKey = widgetKey,
-                        date = today,
-                        preferences = preferences,
-                        widgetWidth = widgetWidth,
-                        widgetHeight = widgetHeight,
-                        state = newState,
-                        bitmapCacheKey = bitmapCacheKey
-                    )
-                    newState
-                } else {
-                    val emptyState = WidgetState(
-                        latinText = "No quote available",
-                        scriptLabel = RunicScript.DEFAULT.displayName,
-                        modeLabel = displayMode.displayName,
-                        updateModeLabel = updateMode.displayName,
-                        palette = palette,
-                        sizeClass = sizeClass,
-                        displayMode = displayMode
-                    )
-                    WidgetStateCache.put(
-                        widgetKey = widgetKey,
-                        date = today,
-                        preferences = preferences,
-                        widgetWidth = widgetWidth,
-                        widgetHeight = widgetHeight,
-                        state = emptyState
-                    )
-                    PersistentWidgetStateCache.put(
-                        context = context,
-                        widgetKey = widgetKey,
-                        date = today,
-                        preferences = preferences,
-                        widgetWidth = widgetWidth,
-                        widgetHeight = widgetHeight,
-                        state = emptyState,
-                        bitmapCacheKey = null
-                    )
-                    emptyState
                 }
-            } catch (e: IOException) {
-                Log.e(RUNIC_QUOTE_WIDGET_TAG, "IO error loading widget state", e)
-                WidgetState(
-                    latinText = "",
-                    palette = WidgetPalette.default(),
-                    sizeClass = sizeClass,
-                    displayMode = WidgetDisplayMode.RUNE_LATIN,
-                    error = e.message
-                )
             }
         }
     }
+}
+
+private suspend fun selectWidgetQuote(
+    repository: com.po4yka.runatal.domain.repository.QuoteRepository,
+    mode: WidgetDisplayMode,
+    randomRequested: Boolean,
+    cachedId: Long?
+): com.po4yka.runatal.domain.model.Quote? = when {
+    mode == WidgetDisplayMode.DAILY_RANDOM_TAP && randomRequested -> repository.randomQuote()
+    mode == WidgetDisplayMode.DAILY_RANDOM_TAP && cachedId != null ->
+        repository.getQuoteById(cachedId) ?: repository.quoteOfTheDay()
+    else -> repository.quoteOfTheDay()
+}
+
+internal fun widgetQuoteContent(
+    quote: com.po4yka.runatal.domain.model.Quote?,
+    rendering: com.po4yka.runatal.domain.model.ResolvedQuoteRendering?
+): WidgetQuoteContent = if (quote == null) {
+    WidgetQuoteContent(0, "No quote available", "", "", RunicScript.DEFAULT.displayName)
+} else {
+    val resolved = checkNotNull(rendering)
+    WidgetQuoteContent(quote.id, quote.textLatin, quote.author, resolved.glyphOutput, resolved.label)
 }
 
 internal object RunatalWidgetMetrics {
@@ -650,12 +682,12 @@ internal object RunatalWidgetMetrics {
     private const val TEXT_SIZE_MEDIUM = 14f
     private const val TEXT_SIZE_LARGE = 15f
 
-    fun runicTextSize(sizeClass: WidgetSizeClass): Float {
+    fun runicTextSize(sizeClass: WidgetSizeClass, preferences: UserPreferences): Float {
         return when (sizeClass) {
             WidgetSizeClass.COMPACT -> TEXT_SIZE_COMPACT
             WidgetSizeClass.MEDIUM -> TEXT_SIZE_MEDIUM
             WidgetSizeClass.EXPANDED -> TEXT_SIZE_LARGE
-        }
+        } * preferences.runicFontScale
     }
 
     fun maxRunicWidthPx(

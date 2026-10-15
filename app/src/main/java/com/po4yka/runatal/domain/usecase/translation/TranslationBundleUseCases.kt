@@ -60,7 +60,8 @@ internal class BuildTransliterationBundleUseCase @Inject constructor(
     @Suppress("TooGenericExceptionCaught")
     suspend operator fun invoke(
         inputText: String,
-        scripts: Set<RunicScript> = RunicScript.entries.toSet()
+        scripts: Set<RunicScript> = RunicScript.entries.toSet(),
+        youngerVariant: YoungerFutharkVariant = YoungerFutharkVariant.DEFAULT
     ): TransliterationBundle {
         if (inputText.isBlank()) {
             return TransliterationBundle()
@@ -72,8 +73,8 @@ internal class BuildTransliterationBundleUseCase @Inject constructor(
 
             for (script in scripts) {
                 currentCoroutineContext().ensureActive()
-                outputs[script] = transliterationFactory.transliterate(inputText, script)
-                breakdowns[script] = transliterationFactory.transliterateWordByWord(inputText, script)
+                outputs[script] = transliterationFactory.transliterate(inputText, script, youngerVariant)
+                breakdowns[script] = transliterationFactory.transliterateWordByWord(inputText, script, youngerVariant)
             }
 
             TransliterationBundle(

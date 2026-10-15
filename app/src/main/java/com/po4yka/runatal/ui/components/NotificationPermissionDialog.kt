@@ -66,7 +66,7 @@ fun NotificationPermissionDialog(
         }
         Spacer(modifier = Modifier.height(spacing.comfortable))
         Text(
-            text = "Daily Rune Wisdom",
+            text = "Daily Quote Reminders",
             style = MaterialTheme.typography.titleLarge,
             color = colors.onSurface,
             textAlign = TextAlign.Center,
@@ -74,7 +74,7 @@ fun NotificationPermissionDialog(
         )
         Spacer(modifier = Modifier.height(spacing.small))
         Text(
-            text = "Allow Runatal to send you a new runic quote each morning.",
+            text = "Allow Runatal to send you a daily quote reminder.",
             style = MaterialTheme.typography.bodySmall,
             color = colors.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -91,8 +91,8 @@ fun NotificationPermissionDialog(
                 modifier = Modifier.padding(horizontal = spacing.standard, vertical = spacing.standard),
                 verticalArrangement = Arrangement.spacedBy(spacing.medium)
             ) {
-                NotificationBenefitRow("Fresh quote every morning")
-                NotificationBenefitRow("Personalized based on your favorite script")
+                NotificationBenefitRow("One locally selected daily quote")
+                NotificationBenefitRow("Open Runatal to read your selected script")
                 NotificationBenefitRow("Quiet, respectful reminders")
             }
         }

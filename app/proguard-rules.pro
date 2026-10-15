@@ -87,22 +87,22 @@
 # ROOM DATABASE
 # ====================================================================================================
 # Keep Room generated classes
--keep class * extends androidx.room.RoomDatabase
--keep @androidx.room.Entity class *
--keep @androidx.room.Dao class *
+-keep class * extends androidx.room3.RoomDatabase { <init>(); }
+-keep @androidx.room3.Entity class *
+-keep @androidx.room3.Dao class *
 
 # Keep Room DAO methods
--keepclassmembers,allowobfuscation class * extends androidx.room.RoomDatabase {
+-keepclassmembers,allowobfuscation class * extends androidx.room3.RoomDatabase {
     public abstract * *Dao();
 }
 
 # Keep Room entity fields
 -keepclassmembers class * {
-    @androidx.room.* <fields>;
+    @androidx.room3.* <fields>;
 }
 
 # Don't warn about Room paging
--dontwarn androidx.room.paging.**
+-dontwarn androidx.room3.paging.**
 
 # ====================================================================================================
 # DATASTORE

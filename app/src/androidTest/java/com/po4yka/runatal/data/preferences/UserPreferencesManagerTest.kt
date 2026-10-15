@@ -184,68 +184,30 @@ class UserPreferencesManagerTest {
         assertEquals("daily_random_tap", preferences.widgetDisplayMode)
     }
 
-    // ==================== Update Last Quote Date Tests ====================
-
     @Test
-    fun updateLastQuoteDate_updatesAndPersists() = testScope.runTest {
-        // When: Updating last quote date
-        preferencesManager.updateLastQuoteDate(12345L)
-
-        // Then: Preference is updated
+    fun selectDailyQuote_persistsDayAndIdentityTogether() = testScope.runTest {
+        preferencesManager.selectDailyQuote(12345L) { listOf(42L) }
         val preferences = preferencesManager.userPreferencesFlow.first()
         assertEquals(12345L, preferences.lastQuoteDate)
-    }
-
-    @Test
-    fun updateLastQuoteDate_handlesLargeValues() = testScope.runTest {
-        // When: Updating with large timestamp
-        val largeTimestamp = System.currentTimeMillis()
-        preferencesManager.updateLastQuoteDate(largeTimestamp)
-
-        // Then: Large value is persisted
-        val preferences = preferencesManager.userPreferencesFlow.first()
-        assertEquals(largeTimestamp, preferences.lastQuoteDate)
-    }
-
-    @Test
-    fun updateLastQuoteDate_handlesZero() = testScope.runTest {
-        // Given: Non-zero date
-        preferencesManager.updateLastQuoteDate(12345L)
-
-        // When: Resetting to zero
-        preferencesManager.updateLastQuoteDate(0L)
-
-        // Then: Zero is persisted
-        val preferences = preferencesManager.userPreferencesFlow.first()
-        assertEquals(0L, preferences.lastQuoteDate)
-    }
-
-    // ==================== Update Last Daily Quote ID Tests ====================
-
-    @Test
-    fun updateLastDailyQuoteId_updatesAndPersists() = testScope.runTest {
-        // When: Updating last daily quote ID
-        preferencesManager.updateLastDailyQuoteId(42L)
-
-        // Then: Preference is updated
-        val preferences = preferencesManager.userPreferencesFlow.first()
         assertEquals(42L, preferences.lastDailyQuoteId)
     }
 
     @Test
-    fun updateLastDailyQuoteId_handlesSequentialUpdates() = testScope.runTest {
-        // When: Updating multiple times
-        preferencesManager.updateLastDailyQuoteId(1L)
-        var prefs = preferencesManager.userPreferencesFlow.first()
-        assertEquals(1L, prefs.lastDailyQuoteId)
+    fun selectDailyQuote_keepsSameDayIdentityAndReplacesDeletedSelection() = testScope.runTest {
+        preferencesManager.selectDailyQuote(0L) { listOf(42L) }
+        assertEquals(42L, preferencesManager.selectDailyQuote(0L) { listOf(1L, 42L, 3L) })
+        assertEquals(3L, preferencesManager.selectDailyQuote(0L) { listOf(3L) })
+        val preferences = preferencesManager.userPreferencesFlow.first()
+        assertEquals(0L, preferences.lastQuoteDate)
+        assertEquals(3L, preferences.lastDailyQuoteId)
+    }
 
-        preferencesManager.updateLastDailyQuoteId(2L)
-        prefs = preferencesManager.userPreferencesFlow.first()
-        assertEquals(2L, prefs.lastDailyQuoteId)
-
-        preferencesManager.updateLastDailyQuoteId(3L)
-        prefs = preferencesManager.userPreferencesFlow.first()
-        assertEquals(3L, prefs.lastDailyQuoteId)
+    @Test
+    fun selectDailyQuote_handlesNegativeEpochDaysAndOneQuote() = testScope.runTest {
+        assertEquals(7L, preferencesManager.selectDailyQuote(-1L) { listOf(7L) })
+        val preferences = preferencesManager.userPreferencesFlow.first()
+        assertEquals(-1L, preferences.lastQuoteDate)
+        assertEquals(7L, preferences.lastDailyQuoteId)
     }
 
     // ==================== Update Theme Mode Tests ====================
@@ -449,8 +411,7 @@ class UserPreferencesManagerTest {
         preferencesManager.updateDailyQuoteNotifications(false)
         preferencesManager.updateStreakNotifications(false)
         preferencesManager.updatePackUpdateNotifications(false)
-        preferencesManager.updateLastQuoteDate(99999L)
-        preferencesManager.updateLastDailyQuoteId(88L)
+        preferencesManager.selectDailyQuote(99999L) { listOf(88L) }
 
         // Then: All preferences are updated
         val preferences = preferencesManager.userPreferencesFlow.first()

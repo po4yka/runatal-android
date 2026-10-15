@@ -58,7 +58,42 @@ internal data class OldNorseLexiconEntry(
     val dativePhrase: String? = null,
     val strictEligible: Boolean = true,
     val sourceId: String,
-    val citations: List<String> = emptyList()
+    val citations: List<String> = emptyList(),
+    val gender: GrammaticalGender? = null,
+    val englishPluralForms: List<String> = emptyList(),
+    val nounForms: Map<String, String> = emptyMap(),
+    val adjectiveForms: Map<String, String> = emptyMap(),
+    val presentForms: Map<String, String> = emptyMap(),
+    val pastForms: Map<String, String> = emptyMap(),
+    val englishVerbForms: Map<String, EnglishFiniteVerbForm> = emptyMap(),
+    val objectCase: GrammaticalCase? = null,
+    val inflectionSourceId: String? = null,
+    val inflectionCitations: List<String> = emptyList()
+)
+
+@Serializable
+internal data class EnglishFiniteVerbForm(val tense: GrammaticalTense, val agreements: List<String>)
+
+@Serializable
+internal enum class GrammaticalGender { MASCULINE, FEMININE, NEUTER }
+
+@Serializable
+internal enum class GrammaticalCase { NOMINATIVE, ACCUSATIVE, GENITIVE, DATIVE }
+
+@Serializable
+internal enum class GrammaticalTense { PRESENT, PAST }
+
+@Serializable
+internal enum class GrammaticalNumber { SINGULAR, PLURAL }
+
+@Serializable
+internal data class GovernedPreposition(
+    val lemma: String,
+    val grammaticalCase: GrammaticalCase,
+    val sourceId: String,
+    val citations: List<String>,
+    val allowedHeadwords: List<String> = emptyList(),
+    val notes: List<String> = emptyList()
 )
 
 @Serializable
@@ -93,10 +128,9 @@ internal data class VerbParadigm(
 @Serializable
 internal data class EreborTablesData(
     val phraseMappings: List<EreborPhraseMappingEntry> = emptyList(),
-    val sequences: Map<String, String> = emptyMap(),
-    val singleCharacters: Map<String, String> = emptyMap(),
-    val longVowels: Map<String, String> = emptyMap(),
-    val longConsonants: Map<String, String> = emptyMap(),
+    val publishedWords: Map<String, String> = emptyMap(),
+    val profileSourceId: String = "internal_heuristics",
+    val profileReferenceId: String? = null,
     val wordSeparator: String = "·"
 )
 
@@ -116,7 +150,8 @@ internal data class GrammarRulesData(
     val removableWords: List<String> = emptyList(),
     val prepositionMap: Map<String, String> = emptyMap(),
     val interrogatives: List<String> = emptyList(),
-    val pronounMap: Map<String, String> = emptyMap()
+    val pronounMap: Map<String, String> = emptyMap(),
+    val governedPrepositions: Map<String, GovernedPreposition> = emptyMap()
 )
 
 @Serializable
@@ -150,7 +185,16 @@ internal data class RunicCorpusReferenceEntry(
     val sourceId: String,
     val label: String,
     val detail: String,
-    val url: String? = null
+    val url: String? = null,
+    val attestation: InscriptionAttestation? = null
+)
+
+@Serializable
+internal data class InscriptionAttestation(
+    val locator: String,
+    val diplomaticText: String,
+    val historicalStage: String,
+    val namedForms: List<String> = emptyList()
 )
 
 @Serializable

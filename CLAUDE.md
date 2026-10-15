@@ -6,14 +6,14 @@ Android app displaying inspirational quotes transliterated into ancient runic sc
 
 ## Tech Stack
 
-- **Kotlin** 2.3.10, **Compose BOM** 2026.02.01, **AGP** 9.1.0, **Gradle** 8.1.3
-- **SDK**: minSdk 26, targetSdk/compileSdk 36, **JDK** 17
-- **DI**: Hilt 2.59.2 | **DB**: Room 2.8.4 | **Prefs**: DataStore 1.2.0
-- **Nav**: Navigation 3 (type-safe routes) | **Widget**: Glance 1.1.1
-- **Background**: WorkManager 2.11.1
-- **Testing**: JUnit 4 + MockK 1.14.9 + Turbine 1.2.1 + Truth 1.4.5 + Robolectric
-- **Static Analysis**: Detekt 1.23.8 (strict: maxIssues = 0)
-- **Versions**: Centralized in `gradle/libs.versions.toml`
+- **Kotlin + Compose**: Jetpack Compose with Material 3 Expressive; built-in Kotlin support in AGP
+- **SDK**: minSdk 26, targetSdk/compileSdk 37; **Gradle runtime**: JDK 21; **bytecode target**: Java 17
+- **DI**: Hilt with `androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel`
+- **DB / preferences / background**: Room 3, DataStore, WorkManager
+- **Nav / widget**: Navigation 3 type-safe routes, Glance
+- **Testing**: JUnit 4, MockK, Turbine, Truth, Robolectric, Konsist; JaCoCo coverage
+- **Static analysis**: Detekt with `maxIssues = 0`, Android lint
+- **Version source of truth**: `gradle/libs.versions.toml`; Gradle distribution: `gradle/wrapper/gradle-wrapper.properties`
 
 ## Build Commands
 
@@ -21,12 +21,15 @@ Android app displaying inspirational quotes transliterated into ancient runic sc
 ./gradlew assembleDebug                    # Build debug APK
 ./gradlew testDebugUnitTest                # Unit tests
 ./gradlew testDebugUnitTest jacocoProjectCoverageReport  # Project coverage report
-./gradlew jacocoTransliterationCoverageVerification      # Coverage gate
+./gradlew jacocoTransliterationCoverageVerification      # Transliteration coverage gate
+./gradlew jacocoTranslationCoverageVerification          # Translation coverage gate
 ./gradlew detekt                           # Static analysis (must pass with 0 issues)
 ./gradlew lintDebug                        # Android lint
 ./gradlew check                            # All checks
 ./gradlew test --tests "ClassName"         # Single test class
 ```
+
+On this Mac, wrap heavy local commands with `build-gate --` and keep Gradle workers at four or fewer.
 
 ## Project Structure
 
@@ -64,7 +67,8 @@ app/src/main/java/com/po4yka/runatal/
 - **Repositories**: MockK for DAO dependencies
 - **ViewModels**: Turbine for Flow testing, `runTest` for coroutines
 - **Assertions**: Use Google Truth (`assertThat(...).isEqualTo(...)`)
-- **Coverage gates**: 80% minimum (JaCoCo), 90% target for business logic
+- **Coverage gates**: `jacocoTransliterationCoverageVerification` and `jacocoTranslationCoverageVerification`; thresholds are defined in `app/build.gradle.kts`
+- **CI device**: Android 17 (API 37) emulator for PRs, main pushes, and manual runs
 
 ## Key Domain Knowledge
 

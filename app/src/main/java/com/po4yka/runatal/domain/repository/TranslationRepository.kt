@@ -17,14 +17,13 @@ internal interface TranslationRepository {
     suspend fun getCachedTranslation(
         quoteId: Long,
         script: RunicScript,
+        sourceText: String,
         fidelity: TranslationFidelity = TranslationFidelity.DEFAULT,
         youngerVariant: YoungerFutharkVariant = YoungerFutharkVariant.DEFAULT
     ): TranslationResult?
 
-    suspend fun getLatestAvailableTranslation(
-        quoteId: Long,
-        script: RunicScript
-    ): TranslationResult?
+    /** Creates the user quote and its prepared historical records atomically. */
+    suspend fun saveUserQuoteWithTranslations(quote: Quote, results: List<TranslationResult>): Long
 
     suspend fun cacheTranslation(
         quoteId: Long,
@@ -61,9 +60,14 @@ internal object NoOpTranslationRepository : TranslationRepository {
     override suspend fun getCachedTranslation(
         quoteId: Long,
         script: RunicScript,
+        sourceText: String,
         fidelity: TranslationFidelity,
         youngerVariant: YoungerFutharkVariant
     ): TranslationResult? = null
+
+    override suspend fun saveUserQuoteWithTranslations(quote: Quote, results: List<TranslationResult>): Long {
+        error("Historical library saving requires a persistent translation repository.")
+    }
 
     override suspend fun cacheTranslation(
         quoteId: Long,
@@ -108,11 +112,6 @@ internal object NoOpTranslationRepository : TranslationRepository {
     override suspend fun backfillQuote(quote: Quote) = Unit
 
     override suspend fun backfillAllQuotes() = Unit
-
-    override suspend fun getLatestAvailableTranslation(
-        quoteId: Long,
-        script: RunicScript
-    ): TranslationResult? = null
 
     override suspend fun deleteTranslationsForQuote(quoteId: Long) = Unit
 }

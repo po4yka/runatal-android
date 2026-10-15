@@ -9,6 +9,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
 import androidx.core.content.FileProvider
+import com.po4yka.runatal.domain.model.QuoteShareContent
 import com.po4yka.runatal.BuildConfig
 import com.po4yka.runatal.di.IoDispatcher
 import com.po4yka.runatal.di.MainDispatcher
@@ -30,11 +31,22 @@ class QuoteShareManager @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val imageGenerator: QuoteImageGenerator,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    @param:MainDispatcher private val mainDispatcher: CoroutineDispatcher
+    @param:MainDispatcher private val mainDispatcher: CoroutineDispatcher,
+    private val quoteRepository: com.po4yka.runatal.domain.repository.QuoteRepository
 ) {
+    /** Uses the same complete layout for the in-app preview and exported image. */
+    suspend fun renderQuoteImage(
+        content: QuoteShareContent,
+        template: ShareTemplate,
+        appearance: ShareAppearance
+    ): Bitmap = withContext(ioDispatcher) {
+        imageGenerator.generateQuoteImage(content, template, appearance)
+    }
+
     /** Sharing constants. */
     companion object {
         private const val TAG = "QuoteShareManager"
+        private const val IMAGE_LAYOUT_VERSION = "complete-layout-v2"
         private const val SHARE_DIR = "shared_quotes"
         private const val FILE_EXTENSION = "png"
         private const val MAX_CACHED_FILES = 12
@@ -46,33 +58,28 @@ class QuoteShareManager @Inject constructor(
     /**
      * Shares a quote as an image.
      *
-     * @param runicText The runic transliteration
-     * @param latinText The Latin text
-     * @param author The quote author
+     * @param content Prepared text, alphabet and font shared with the preview
      * @param template Share template style preset
      * @return true if sharing was initiated successfully
      */
     suspend fun shareQuoteAsImage(
-        runicText: String,
-        latinText: String,
-        author: String,
+        content: QuoteShareContent,
         template: ShareTemplate = ShareTemplate.CARD,
         appearance: ShareAppearance = ShareAppearance.DARK
     ): Boolean = withContext(ioDispatcher) {
         try {
+            if (!isCurrentContent(content)) return@withContext false
             val shareDir = File(context.cacheDir, SHARE_DIR).apply {
                 if (!exists()) mkdirs()
             }
             val imageFile = File(
                 shareDir,
-                "${shareFileKey(runicText, latinText, author, template, appearance)}.$FILE_EXTENSION"
+                "${shareFileKey(content, template, appearance)}.$FILE_EXTENSION"
             )
 
             if (!imageFile.exists() || imageFile.length() == 0L) {
                 val bitmap = imageGenerator.generateQuoteImage(
-                    runicText = runicText,
-                    latinText = latinText,
-                    author = author,
+                    content = content,
                     template = template,
                     appearance = appearance
                 )
@@ -80,6 +87,7 @@ class QuoteShareManager @Inject constructor(
                 pruneShareDir(shareDir)
             }
 
+            if (!isCurrentContent(content)) return@withContext false
             val authority = "${BuildConfig.APPLICATION_ID}.fileprovider"
             val imageUri: Uri = FileProvider.getUriForFile(
                 context,
@@ -90,7 +98,7 @@ class QuoteShareManager @Inject constructor(
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "image/png"
                 putExtra(Intent.EXTRA_STREAM, imageUri)
-                putExtra(Intent.EXTRA_TEXT, "$latinText\n— $author")
+                putExtra(Intent.EXTRA_TEXT, "${content.textLatin}\n— ${content.author}")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
@@ -159,6 +167,14 @@ class QuoteShareManager @Inject constructor(
         }
     }
 
+    private suspend fun isCurrentContent(content: QuoteShareContent): Boolean {
+        val current = quoteRepository.getQuoteById(content.quote.id) ?: return false
+        return current.textLatin == content.textLatin && current.author == content.author &&
+            current.renderingMode == content.quote.renderingMode &&
+            current.renderingFidelity == content.quote.renderingFidelity &&
+            current.renderingYoungerVariant == content.quote.renderingYoungerVariant
+    }
+
     private fun writeBitmap(bitmap: Bitmap, imageFile: File) {
         val tempFile = File(imageFile.parentFile, "${imageFile.name}.tmp")
         FileOutputStream(tempFile).use { outputStream ->
@@ -188,19 +204,22 @@ class QuoteShareManager @Inject constructor(
     }
 
     private fun shareFileKey(
-        runicText: String,
-        latinText: String,
-        author: String,
+        content: QuoteShareContent,
         template: ShareTemplate,
         appearance: ShareAppearance
     ): String {
         val digest = MessageDigest.getInstance("SHA-256")
         val payload = listOf(
+            IMAGE_LAYOUT_VERSION,
+            RunicTextRenderer.getFontResource(content.font, content.script).toString(),
+            content.scriptLabel,
             template.name,
             appearance.name,
-            runicText,
-            latinText,
-            author
+            content.script.name,
+            content.font,
+            content.runicText,
+            content.textLatin,
+            content.author
         ).joinToString(separator = "\u0000")
         val bytes = digest.digest(payload.toByteArray(Charsets.UTF_8))
         return bytes.joinToString(separator = "") { byte ->

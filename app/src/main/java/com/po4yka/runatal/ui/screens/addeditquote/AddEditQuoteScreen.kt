@@ -33,6 +33,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -67,6 +68,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.po4yka.runatal.domain.model.RunicScript
 import com.po4yka.runatal.ui.components.ConfirmationDialog
+import com.po4yka.runatal.ui.components.ErrorState
 import com.po4yka.runatal.ui.components.RunicActionButton
 import com.po4yka.runatal.ui.components.RunicActionButtonStyle
 import com.po4yka.runatal.ui.components.RunicChoiceChip
@@ -94,8 +96,12 @@ import java.util.Locale
 
 @Composable
 internal fun AddEditQuoteScreen(
+    quoteId: Long,
     onNavigateBack: () -> Unit,
-    viewModel: AddEditQuoteViewModel = hiltViewModel()
+    onViewLibrary: () -> Unit,
+    viewModel: AddEditQuoteViewModel = hiltViewModel<AddEditQuoteViewModel, AddEditQuoteViewModel.Factory>(
+        creationCallback = { factory -> factory.create(quoteId) }
+    )
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -116,22 +122,41 @@ internal fun AddEditQuoteScreen(
     if (uiState.showConfirmation) {
         ConfirmationContent(
             uiState = uiState,
-            onViewInLibrary = onNavigateBack,
+            onViewInLibrary = onViewLibrary,
             onCreateAnother = viewModel::resetForNewQuote
         )
         return
     }
 
     val requestExit = {
-        if (uiState.hasUnsavedChanges && !uiState.isSaving) {
-            showDiscardDialog = true
-        } else {
-            onNavigateBack()
+        when {
+            uiState.isMutating -> Unit
+            uiState.hasUnsavedChanges -> showDiscardDialog = true
+            else -> onNavigateBack()
         }
     }
 
-    BackHandler(enabled = uiState.hasUnsavedChanges && !uiState.isSaving) {
+    BackHandler(enabled = uiState.hasUnsavedChanges || uiState.isMutating) {
         requestExit()
+    }
+
+    if (uiState.isLoading || uiState.loadError != null) {
+        Scaffold(
+            topBar = { EditorTopBar(uiState, false, requestExit, {}) }
+        ) { padding ->
+            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                if (uiState.isLoading) {
+                    CircularProgressIndicator()
+                } else {
+                    ErrorState(
+                        title = "Unable to edit quote",
+                        description = uiState.loadError.orEmpty(),
+                        onRetry = viewModel::retryLoading
+                    )
+                }
+            }
+        }
+        return
     }
 
     EditorContent(
@@ -182,7 +207,7 @@ private fun EditorContent(
     onRequestDelete: () -> Unit
 ) {
     val haptics = rememberHapticFeedback()
-    val saveEnabled = uiState.canSave && !uiState.isSaving
+    val saveEnabled = uiState.canSave && !uiState.isMutating
 
     Scaffold(
         modifier = Modifier.imePadding(),
@@ -221,21 +246,21 @@ private fun EditorContent(
                     haptics.lightToggle()
                     onUpdateScript(script)
                 },
-                enabled = !uiState.isSaving
+                enabled = uiState.isEditable
             )
 
             QuoteTextField(
                 value = uiState.textLatin,
                 onValueChange = onUpdateText,
                 error = uiState.quoteTextError,
-                enabled = !uiState.isSaving
+                enabled = uiState.isEditable
             )
 
             AuthorTextField(
                 value = uiState.author,
                 onValueChange = onUpdateAuthor,
                 error = uiState.authorError,
-                enabled = !uiState.isSaving
+                enabled = uiState.isEditable
             )
 
             SaveButton(
@@ -249,7 +274,7 @@ private fun EditorContent(
 
             if (uiState.isEditing) {
                 DeleteQuoteButton(
-                    enabled = !uiState.isDeleting,
+                    enabled = uiState.isEditable,
                     onDelete = {
                         haptics.mediumAction()
                         onRequestDelete()

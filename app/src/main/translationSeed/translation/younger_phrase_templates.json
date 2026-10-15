@@ -6,21 +6,29 @@
     "derivationKind": "PHRASE_TEMPLATE",
     "historicalStage": "OLD_NORSE",
     "sourceText": "The king walks under the mountain",
-    "normalizedForm": "konungr gengr undir fjall",
-    "diplomaticForm": "kununkr kinkr untir fial",
+    "normalizedForm": "konungrinn gengr undir fjallinu",
+    "diplomaticForm": "kununkrin kinkr untir fialinu",
     "resolutionStatus": "RECONSTRUCTED",
     "notes": [
-      "Matched a curated Younger Futhark phrase template with ONP-style normalized Old Norse.",
-      "Applied a template diplomatic layer curated for long-branch and short-twig rendering."
+      "Educational comparison using explicit suffixed definite forms: nominative singular konungrinn and dative singular fjallinu (Barnes NION I §3.1.9, pp.56–58).",
+      "Interpreted under as spatial location, including movement within that location, with dative government (Zoega s.v. undir I.1); directional accusative is not inferred.",
+      "Reduced spelling illustrates the declared Younger rendering profile; no located inscription is supplied, and this record cannot bypass the generic grammar pipeline."
     ],
     "referenceIds": [
       "yf_ref_king_mountain"
     ],
     "tokenBreakdown": [
       {
+        "sourceToken": "The",
+        "normalizedToken": "",
+        "diplomaticToken": "",
+        "resolutionStatus": "RECONSTRUCTED",
+        "referenceIds": []
+      },
+      {
         "sourceToken": "king",
-        "normalizedToken": "konungr",
-        "diplomaticToken": "kununkr",
+        "normalizedToken": "konungrinn",
+        "diplomaticToken": "kununkrin",
         "resolutionStatus": "RECONSTRUCTED",
         "referenceIds": [
           "yf_ref_king_mountain"
@@ -45,9 +53,16 @@
         ]
       },
       {
+        "sourceToken": "the",
+        "normalizedToken": "",
+        "diplomaticToken": "",
+        "resolutionStatus": "RECONSTRUCTED",
+        "referenceIds": []
+      },
+      {
         "sourceToken": "mountain",
-        "normalizedToken": "fjall",
-        "diplomaticToken": "fial",
+        "normalizedToken": "fjallinu",
+        "diplomaticToken": "fialinu",
         "resolutionStatus": "RECONSTRUCTED",
         "referenceIds": [
           "yf_ref_king_mountain"

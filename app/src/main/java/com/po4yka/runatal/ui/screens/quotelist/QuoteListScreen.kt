@@ -19,6 +19,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -58,7 +60,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.po4yka.runatal.domain.model.ResolvedQuoteRendering
 import com.po4yka.runatal.domain.model.Quote
+import com.po4yka.runatal.domain.model.QuoteLifecycleState
 import com.po4yka.runatal.domain.model.displayName
 import com.po4yka.runatal.ui.components.BottomSheetAction
 import com.po4yka.runatal.ui.components.BottomSheetQuotePreview
@@ -76,7 +80,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuoteListScreen(
+internal fun QuoteListScreen(
     onNavigateToAddQuote: () -> Unit,
     onNavigateToEditQuote: (Long) -> Unit,
     onNavigateToShare: (Long) -> Unit = {},
@@ -96,15 +100,20 @@ fun QuoteListScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is QuoteListEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
-                is QuoteListEvent.QuoteDeleted -> {
+                is QuoteListEvent.QuoteMoved -> {
                     val result = snackbarHostState.showSnackbar(
-                        message = "Quote deleted",
+                        message = when (event.change.state) {
+                            QuoteLifecycleState.TRASH -> "Quote moved to trash"
+                            QuoteLifecycleState.ARCHIVED -> "Quote archived"
+                            QuoteLifecycleState.HIDDEN -> "Quote hidden"
+                            QuoteLifecycleState.ACTIVE -> "Quote restored"
+                        },
                         actionLabel = "Undo",
                         duration = SnackbarDuration.Short
                     )
                     if (result == SnackbarResult.ActionPerformed) {
                         haptics.lightToggle()
-                        viewModel.restoreDeletedQuote(event.quote)
+                        viewModel.undoQuoteMove(event.change)
                     }
                 }
             }
@@ -202,6 +211,7 @@ fun QuoteListScreen(
                         ) { quoteItem ->
                             QuoteListItem(
                                 quote = quoteItem.quote,
+                                renderingLabel = quoteItem.rendering.label,
                                 onToggleFavorite = {
                                     haptics.lightToggle()
                                     viewModel.toggleFavorite(quoteItem.quote)
@@ -222,6 +232,7 @@ fun QuoteListScreen(
         LibraryActionsBottomSheet(
             quote = quoteItem.quote,
             runicPreviewText = quoteItem.runicPreviewText,
+            rendering = quoteItem.rendering,
             selectedScript = uiState.selectedScript,
             selectedFont = uiState.selectedFont,
             onDismiss = { bottomSheetQuote = null },
@@ -265,6 +276,14 @@ fun QuoteListScreen(
             onDelete = {
                 bottomSheetQuote = null
                 deleteCandidate = quoteItem.quote
+            },
+            onArchive = {
+                bottomSheetQuote = null
+                viewModel.archiveQuote(quoteItem.quote)
+            },
+            onHide = {
+                bottomSheetQuote = null
+                viewModel.hideQuote(quoteItem.quote)
             }
         )
     }
@@ -272,7 +291,7 @@ fun QuoteListScreen(
     deleteCandidate?.let { quote ->
         ConfirmationDialog(
             title = "Delete quote?",
-            message = "This quote will be removed from your library. You can undo it from the snackbar.",
+            message = "This quote will move to trash. You can restore it from the archive until you empty trash.",
             confirmLabel = "Delete",
             onConfirm = {
                 deleteCandidate = null
@@ -379,6 +398,7 @@ private fun LibraryLoadingSkeleton() {
 @Composable
 private fun QuoteListItem(
     quote: Quote,
+    renderingLabel: String,
     onToggleFavorite: () -> Unit,
     onShowActions: () -> Unit
 ) {
@@ -419,6 +439,12 @@ private fun QuoteListItem(
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = renderingLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Row(
@@ -478,6 +504,7 @@ private fun QuoteListItem(
 private fun LibraryActionsBottomSheet(
     quote: Quote,
     runicPreviewText: String,
+    rendering: ResolvedQuoteRendering,
     selectedScript: com.po4yka.runatal.domain.model.RunicScript,
     selectedFont: String,
     onDismiss: () -> Unit,
@@ -486,7 +513,9 @@ private fun LibraryActionsBottomSheet(
     onCopyText: () -> Unit,
     onCopyRunes: () -> Unit,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onArchive: () -> Unit,
+    onHide: () -> Unit
 ) {
     val actions = buildList {
         add(
@@ -517,12 +546,27 @@ private fun LibraryActionsBottomSheet(
                 onClick = onCopyText
             )
         )
+        if (rendering.isAvailable) {
+            add(
+                BottomSheetAction(
+                    icon = Icons.Default.TextFields,
+                    title = "Copy Runes",
+                    subtitle = "Copy ${rendering.label}",
+                    onClick = onCopyRunes
+                )
+            )
+        }
+
         add(
             BottomSheetAction(
-                icon = Icons.Default.TextFields,
-                title = "Copy Runes",
-                subtitle = "Copy ${selectedScript.displayName} transliteration",
-                onClick = onCopyRunes
+                icon = Icons.Default.Archive, title = "Archive Quote",
+                subtitle = "Keep this quote in your archive", onClick = onArchive
+            )
+        )
+        add(
+            BottomSheetAction(
+                icon = Icons.Default.VisibilityOff, title = "Hide Quote",
+                subtitle = "Remove from reading until you restore it", onClick = onHide
             )
         )
         if (quote.isUserCreated) {
@@ -538,7 +582,7 @@ private fun LibraryActionsBottomSheet(
                 BottomSheetAction(
                     icon = Icons.Default.Delete,
                     title = "Delete Quote",
-                    subtitle = "Remove permanently",
+                    subtitle = "Move to trash until you restore or empty trash",
                     isDestructive = true,
                     onClick = onDelete
                 )
@@ -553,7 +597,8 @@ private fun LibraryActionsBottomSheet(
             latinText = quote.textLatin,
             author = quote.author,
             font = selectedFont,
-            script = selectedScript
+            script = selectedScript,
+            rendering = rendering
         ),
         onDismiss = onDismiss
     )

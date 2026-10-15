@@ -32,8 +32,9 @@ We pledge to make participation in our project a harassment-free experience for 
 ## Getting Started
 
 ### Prerequisites
-- Android Studio Hedgehog (2023.1.1) or newer
-- JDK 17 or higher
+- Android Studio with support for Android Gradle Plugin 9.4 and Android 17
+- JDK 21 to run Gradle (Java/Kotlin bytecode targets Java 17)
+- Android SDK Platform 37 (Android 17) and build tools
 - Git
 - Basic knowledge of Kotlin and Jetpack Compose
 

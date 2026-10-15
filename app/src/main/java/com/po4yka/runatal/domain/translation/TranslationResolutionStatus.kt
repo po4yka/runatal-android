@@ -3,7 +3,7 @@ package com.po4yka.runatal.domain.translation
 /**
  * Historical confidence tier for a translation result.
  */
-internal enum class TranslationResolutionStatus {
+enum class TranslationResolutionStatus {
     ATTESTED,
     RECONSTRUCTED,
     APPROXIMATED,

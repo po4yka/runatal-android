@@ -9,10 +9,15 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.po4yka.runatal.domain.model.RunicScript
+import kotlinx.coroutines.flow.first
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,6 +29,7 @@ import javax.inject.Singleton
 class UserPreferencesManager @Inject constructor(
     private val dataStore: DataStore<Preferences>
 ) {
+    private val quoteSearchGeneration = AtomicLong()
 
     /**
      * Flow of user preferences that emits whenever preferences change.
@@ -67,6 +73,54 @@ class UserPreferencesManager @Inject constructor(
                 packUpdateNotifications = preferences[PACK_UPDATE_NOTIFICATIONS] ?: true
             )
         }
+
+    /** Notification delivery must fail closed if reading the persisted preferences fails. */
+    internal val notificationPreferencesFlow = dataStore.data.map { preferences ->
+        NotificationPreferencesSnapshot(
+            preferences[DAILY_QUOTE_NOTIFICATIONS] ?: true,
+            preferences[STREAK_NOTIFICATIONS] ?: true,
+            preferences[PACK_UPDATE_NOTIFICATIONS] ?: true,
+            preferences[SELECTED_SCRIPT]?.let { name -> RunicScript.entries.firstOrNull { it.name == name } }
+                ?: RunicScript.DEFAULT
+        )
+    }
+
+    internal suspend fun lastNotificationDay(kind: String): Long? =
+        dataStore.data.first()[longPreferencesKey("notification_delivered_$kind")]
+
+    internal suspend fun markNotificationDelivered(kind: String, epochDay: Long) {
+        dataStore.edit { it[longPreferencesKey("notification_delivered_$kind")] = epochDay }
+    }
+
+    internal suspend fun rollbackNotificationDay(kind: String, reserved: Long, previous: Long?) {
+        dataStore.edit { values ->
+            val key = longPreferencesKey("notification_delivered_$kind")
+            if (values[key] == reserved) {
+                if (previous == null) values.remove(key) else values[key] = previous
+            }
+        }
+    }
+
+    internal suspend fun notificationPackCatalogue(): Map<String, String>? =
+        dataStore.data.first()[NOTIFICATION_PACK_CATALOGUE]?.let {
+            Json.decodeFromString(MapSerializer(String.serializer(), String.serializer()), it)
+        }
+
+    internal suspend fun markNotificationPackCatalogue(catalogue: Map<String, String>) {
+        dataStore.edit {
+            it[NOTIFICATION_PACK_CATALOGUE] = Json.encodeToString(
+                MapSerializer(String.serializer(), String.serializer()), catalogue
+            )
+        }
+    }
+
+    internal suspend fun rollbackNotificationCatalogue(reserved: Map<String, String>, previous: Map<String, String>) {
+        dataStore.edit { values ->
+            val serializer = MapSerializer(String.serializer(), String.serializer())
+            val actual = values[NOTIFICATION_PACK_CATALOGUE]?.let { Json.decodeFromString(serializer, it) }
+            if (actual == reserved) values[NOTIFICATION_PACK_CATALOGUE] = Json.encodeToString(serializer, previous)
+        }
+    }
 
     /**
      * Updates the selected runic script.
@@ -116,9 +170,12 @@ class UserPreferencesManager @Inject constructor(
     /**
      * Updates quote search query.
      */
-    suspend fun updateQuoteSearchQuery(query: String) {
+    internal fun reserveQuoteSearchWrite(): Long = quoteSearchGeneration.incrementAndGet()
+
+    internal suspend fun updateQuoteSearchQuery(query: String, generation: Long) {
         dataStore.edit { preferences ->
-            preferences[QUOTE_SEARCH_QUERY] = query
+            // Check within the serialized mutation, not before awaiting another writer.
+            if (quoteSearchGeneration.get() == generation) preferences[QUOTE_SEARCH_QUERY] = query
         }
     }
 
@@ -149,22 +206,25 @@ class UserPreferencesManager @Inject constructor(
         }
     }
 
-    /**
-     * Updates the last quote date.
-     */
-    suspend fun updateLastQuoteDate(date: Long) {
-        dataStore.edit { preferences ->
-            preferences[LAST_QUOTE_DATE] = date
+    /** Selects and persists one identity per local epoch day in a single serialized DataStore transaction. */
+    suspend fun selectDailyQuote(epochDay: Long, availableQuoteIds: suspend () -> List<Long>): Long? {
+        val updated = dataStore.edit { preferences ->
+            // Load candidates inside the serialized edit so competing readers cannot use older catalog snapshots.
+            val ids = availableQuoteIds().distinct().sorted()
+            require(ids.all { it > 0L })
+            if (ids.isEmpty()) {
+                preferences.remove(LAST_QUOTE_DATE)
+                preferences.remove(LAST_DAILY_QUOTE_ID)
+                return@edit
+            }
+            val previousId = preferences[LAST_DAILY_QUOTE_ID]
+            if (preferences[LAST_QUOTE_DATE] == epochDay && previousId in ids) return@edit
+            val index = Math.floorMod(epochDay, ids.size.toLong()).toInt()
+            val selectedId = if (ids.size > 1 && ids[index] == previousId) ids[(index + 1) % ids.size] else ids[index]
+            preferences[LAST_QUOTE_DATE] = epochDay
+            preferences[LAST_DAILY_QUOTE_ID] = selectedId
         }
-    }
-
-    /**
-     * Updates the last daily quote ID.
-     */
-    suspend fun updateLastDailyQuoteId(id: Long) {
-        dataStore.edit { preferences ->
-            preferences[LAST_DAILY_QUOTE_ID] = id
-        }
+        return updated[LAST_DAILY_QUOTE_ID]
     }
 
     /**
@@ -323,6 +383,7 @@ class UserPreferencesManager @Inject constructor(
         private val HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
         private val DAILY_QUOTE_NOTIFICATIONS = booleanPreferencesKey("daily_quote_notifications")
         private val STREAK_NOTIFICATIONS = booleanPreferencesKey("streak_notifications")
+        private val NOTIFICATION_PACK_CATALOGUE = stringPreferencesKey("notification_pack_catalogue")
         private val PACK_UPDATE_NOTIFICATIONS = booleanPreferencesKey("pack_update_notifications")
     }
 }
