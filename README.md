@@ -44,7 +44,7 @@ A beautiful Android app that displays inspiring quotes transliterated into ancie
 - **Design System**: Material 3 Expressive
 - **Architecture**: MVVM + Clean Architecture
 - **Dependency Injection**: Hilt
-- **Build System**: Gradle 9.8.1 + Android Gradle Plugin 9.4.1 with Kotlin DSL
+- **Build System**: Gradle 9.8.2 + Android Gradle Plugin 9.4.1 with Kotlin DSL
 
 ### Jetpack Components
 - **Room 3**: Local database with migrations
